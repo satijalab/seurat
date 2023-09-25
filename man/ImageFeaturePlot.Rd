@@ -71,8 +71,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 \item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
-\item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
-to split by cell identity'; similar to the old \code{FeatureHeatmap}}
+\item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
+to split by cell identity'}
 
 \item{molecules}{A vector of molecules to plot}
 

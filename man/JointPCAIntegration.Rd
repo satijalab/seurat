@@ -16,8 +16,14 @@ JointPCAIntegration(
   dims = 1:30,
   k.anchor = 20,
   scale.layer = "scale.data",
-  verbose = TRUE,
+  dims.to.integrate = NULL,
+  k.weight = 100,
+  weight.reduction = NULL,
+  sd.weight = 1,
+  sample.tree = NULL,
+  preserve.order = FALSE,
   groups = NULL,
+  verbose = TRUE,
   ...
 )
 }

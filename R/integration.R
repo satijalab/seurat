@@ -913,7 +913,8 @@ FindTransferAnchors <- function(
         query = reference,
         scale = scale,
         dims = dims,
-        verbose = verbose
+        verbose = verbose,
+        normalization.method = normalization.method
       )
       orig.embeddings <- Embeddings(object = query[[reference.reduction]])[, dims]
       orig.loadings <- Loadings(object = query[[reference.reduction]])
@@ -1894,7 +1895,7 @@ ProjectIntegration <- function(
   seed = 123,
   verbose = TRUE
 ) {
-  
+
   layers <- Layers(object = object[[assay]], search = layers)
   # Check input and output dimensional reductions
   sketched.layers <- sketched.layers %||% layers
@@ -1953,6 +1954,10 @@ ProjectIntegration <- function(
     )
   )
   features <- intersect(x = features, y = features.atom)
+  if (length(x = features) == 0) {
+    stop('Features are not found. Please check VariableFeatures(object[[sketched.assay]]) ',
+    'or set features in ProjectIntegration')
+  }
   ncells <- c(
     0,
     sapply(
@@ -2185,7 +2190,7 @@ MapQuery <- function(
   if (DefaultAssay(anchorset@object.list[[1]]) %in% Assays(reference)) {
     DefaultAssay(reference) <- DefaultAssay(anchorset@object.list[[1]])
   } else {
-    stop('The assay used to create the anchorset does not match any', 
+    stop('The assay used to create the anchorset does not match any',
          'of the assays in the reference object.')
   }
   # determine anchor type
@@ -4053,6 +4058,7 @@ FindAnchors_v5 <- function(
       x = object.pair,
       cells = c(cells1, cells2.i)
     )
+    object.pair.i <- JoinLayers(object.pair.i)
     anchor.list[[i]] <- FindAnchors_v3(
       object.pair = object.pair.i,
       assay = assay,
@@ -4334,7 +4340,7 @@ FindNN <- function(
       eps = eps,
       index = if (reduction.2 == nn.reduction) nn.idx2 else NULL
     )
-    
+
     nnba <- NNHelper(
       data = Embeddings(object = object[[reduction]])[cells1, nn.dims],
       query = Embeddings(object = object[[reduction]])[cells2, nn.dims],
@@ -4417,6 +4423,9 @@ FindWeights <- function(
     to.keep <- !duplicated(x = anchors.cells1)
     anchors.cells1 <- anchors.cells1[to.keep]
     anchors.cells2 <- anchors.cells2[to.keep]
+    if (length(anchors.cells1) < k || length(anchors.cells2) < k) {
+      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than ", min(length(anchors.cells1), length(anchors.cells2)), " or increase k.anchor.")
+    }
     if (is.null(x = features)) {
       data.use <- Embeddings(object = reduction)[nn.cells1, dims]
       data.use.query <- Embeddings(object = reduction)[nn.cells2, dims]
@@ -4442,6 +4451,9 @@ FindWeights <- function(
     )
   } else {
     anchors.cells2 <- unique(x = nn.cells2[anchors[, "cell2"]])
+    if (length(anchors.cells2) < k) {
+      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than ", length(anchors.cells2),  " or increase k.anchor.")
+    }
     if (is.null(x = features)) {
       data.use <- Embeddings(reduction)[nn.cells2, dims]
     } else {
@@ -5192,7 +5204,7 @@ if (normalization.method == 'SCT') {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
     } else if (inherits(x = reference.data, what = "IterableMatrix")) {
-      bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
+      bp.stats <- BPCells::matrix_stats(matrix = reference.data,
                                         row_stats = "variance")
       feature.mean <- bp.stats$row_stats["mean",]
     } else {
@@ -5358,7 +5370,7 @@ ProjectSVD <- function(
   if (verbose) {
     message("Projecting new data onto SVD")
   }
-  projected.u <- as.matrix(x = crossprod(x = vt, y = data))
+  projected.u <- as.matrix(t(vt) %*% data)
   if (mode == "lsi") {
     components <- slot(object = reduction, name = 'misc')
     sigma <- components$d
@@ -5926,8 +5938,8 @@ ValidateParams_FindTransferAnchors <- function(
     } else {
       new.sct.assay <- query.umi.assay
     }
-    
-    
+
+
     DefaultAssay(query) <- new.sct.assay
     ModifyParam(param = "query.assay", value = new.sct.assay)
     ModifyParam(param = "query", value = query)
@@ -7607,7 +7619,10 @@ FindBridgeTransferAnchors <- function(
   reduction <-  match.arg(arg = reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
+  command.name <- grep(pattern = 'PrepareBridgeReference',
+       x = names(slot(object = extended.reference, name = 'commands')),
+       value = TRUE)
+  params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
@@ -7686,8 +7701,10 @@ FindBridgeIntegrationAnchors <- function(
   integration.reduction <-  match.arg(arg = integration.reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-
-  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
+  command.name <- grep(pattern = 'PrepareBridgeReference',
+                       x = names(slot(object = extended.reference, name = 'commands')),
+                       value = TRUE)
+  params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction

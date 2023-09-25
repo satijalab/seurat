@@ -420,7 +420,7 @@ GetResidual <- function(
       "This SCTAssay contains multiple SCT models. Computing residuals for cells using different models"
     )
   }
-  if (!umi.assay %in% Assays(object = object) || 
+  if (!umi.assay %in% Assays(object = object) ||
       length(x = Layers(object = object[[umi.assay]], search = 'counts')) == 0) {
     return(object)
   }
@@ -525,6 +525,7 @@ Load10X_Spatial <- function(
   slice = 'slice1',
   filter.matrix = TRUE,
   to.upper = FALSE,
+  image = NULL,
   ...
 ) {
   if (length(x = data.dir) > 1) {
@@ -551,8 +552,7 @@ Load10X_Spatial <- function(
   if (is.null(x = image)) {
     image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
                            filter.matrix = filter.matrix)
-  }
-  else {
+  } else {
     if (!inherits(x = image, what = "VisiumV1"))
       stop("Image must be an object of class 'VisiumV1'.")
   }
@@ -1650,7 +1650,7 @@ ReadMtx <- function(
         feature.column,
         ". Try specifiying a different column.",
         call. = FALSE
-        )
+      )
     } else {
       warning(
         "Some features names are NA in column ",
@@ -1659,7 +1659,7 @@ ReadMtx <- function(
         replacement.column,
         ".",
         call. = FALSE
-        )
+      )
     }
     feature.names[na.features, feature.column] <- feature.names[na.features, replacement.column]
   }
@@ -1683,7 +1683,7 @@ ReadMtx <- function(
         no = ""
       ),
       call. = FALSE
-      )
+    )
   }
   if (length(x = feature.names) != nrow(x = data)) {
     stop(
@@ -1697,7 +1697,7 @@ ReadMtx <- function(
         no = ""
       ),
       call. = FALSE
-      )
+    )
   }
 
   colnames(x = data) <- cell.names
@@ -3184,6 +3184,9 @@ SCTransform.default <- function(
   verbose = TRUE,
   ...
 ) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   vst.args <- list(...)
   umi <- object
   # check for batch_var in meta data
@@ -3236,7 +3239,14 @@ SCTransform.default <- function(
       immediate. = TRUE
     )
   }
-  
+
+  if (!is.null(x = vst.flavor) && !vst.flavor %in% c("v1", "v2")){
+    stop("vst.flavor can be 'v1' or 'v2'. Default is 'v2'")
+  }
+  if (!is.null(x = vst.flavor) && vst.flavor == "v1"){
+    vst.flavor <- NULL
+  }
+
   vst.args[['vst.flavor']] <- vst.flavor
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
@@ -3413,7 +3423,10 @@ SCTransform.default <- function(
   )
   vst.out$y <- scale.data
   vst.out$variable_features <- residual.features %||% top.features
-
+  if (!do.correct.umi) {
+    vst.out$umi_corrected <- umi
+  }
+  min_var <- vst.out$arguments$min_variance
   return(vst.out)
 }
 
@@ -3449,6 +3462,7 @@ SCTransform.Assay <- function(
     do.correct.umi <- FALSE
     do.center <- FALSE
   }
+
   umi <- GetAssayData(object = object, slot = 'counts')
   vst.out <- SCTransform(object = umi,
                          cell.attr = cell.attr,
@@ -3515,7 +3529,7 @@ SCTransform.Assay <- function(
 #'
 SCTransform.Seurat <- function(
     object,
-    assay = NULL,
+    assay = "RNA",
     new.assay.name = 'SCT',
     reference.SCT.model = NULL,
     do.correct.umi = TRUE,
@@ -3534,12 +3548,20 @@ SCTransform.Seurat <- function(
     verbose = TRUE,
     ...
 ) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   assay <- assay %||% DefaultAssay(object = object)
+  if (assay == "SCT") {
+    # if re-running SCTransform, use the RNA assay
+    assay <- "RNA"
+    warning("Running SCTransform on the RNA assay while default assay is SCT.")
+  }
+
   if (verbose){
     message("Running SCTransform on assay: ", assay)
   }
   cell.attr <- slot(object = object, name = 'meta.data')[colnames(object[[assay]]),]
-
   assay.data <- SCTransform(object = object[[assay]],
                             cell.attr = cell.attr,
                             reference.SCT.model = reference.SCT.model,
@@ -3879,7 +3901,6 @@ FindVariableFeatures.Seurat <- function(
     num.bin = num.bin,
     binning.method = binning.method,
     nfeatures = nfeatures,
-    nselect = nfeatures,
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,

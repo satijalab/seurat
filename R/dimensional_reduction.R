@@ -649,7 +649,8 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, slot = "scale.data")
+  # combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, slot = "scale.data")
+  combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
       object = combined.object,
@@ -1792,6 +1793,12 @@ RunUMAP.Seurat <- function(
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
+  if (sum(!is.null(x = dims), !is.null(x = nn.name),
+          !is.null(x = graph), !is.null(x = features)) != 1) {
+    stop("Only one parameter among 'dims', 'nn.name', 'graph', or 'features' ",
+         "should be used at a time to run UMAP")
+  }
+
   if (!is.null(x = features)) {
     data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
@@ -2015,6 +2022,11 @@ CheckFeatures <- function(
   }
   if (inherits(x = data.use, what = 'dgCMatrix')) {
     features.var <- SparseRowVar(mat = data.use[features, ], display_progress = F)
+  }
+  else if (inherits(x = data.use,  what = "IterableMatrix")) {
+    bp.stats <- BPCells::matrix_stats(matrix = data.use,
+                                      row_stats = "variance")
+    features.var <- bp.stats$row_stats["variance",][features]
   }
   else {
     features.var <- RowVar(x = data.use[features, ])

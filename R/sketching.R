@@ -78,7 +78,7 @@ SketchData <- function(
       var.name = var.name,
       over.write = over.write,
       seed = seed,
-      verbose = verbose,
+      verbose = FALSE,
       ...
     )
   } else if (method == 'Uniform') {
@@ -389,6 +389,7 @@ LeverageScore.default <- function(
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
   if (ncells < nsketch * 1.5) {
+    nv <- ifelse(nrow(x = object) < 50, nrow(x = object) - 1, 50)
     Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
@@ -421,7 +422,7 @@ LeverageScore.default <- function(
   stopifnot(is.function(x = method))
   # Run the sketching
   if (isTRUE(x = verbose)) {
-    message("sampling ", nsketch, " cells")
+    message("sampling ", nsketch, " cells for random sketching")
   }
   S <- method(nsketch = nsketch, ncells = ncells, seed = seed, ...)
   object <- t(x = object)

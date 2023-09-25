@@ -63,13 +63,13 @@ NULL
 #' # We can also add arguments specific to Harmony such as theta, to give more diverse clusters
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca",
 #'   new.reduction = 'harmony', verbose = FALSE, theta = 3)
-#'
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
 #'   orig.reduction = "pca", new.reduction = 'harmony',
 #'   assay = "SCT", verbose = FALSE)
 #' }
+#'
 #'
 #' @export
 #'
@@ -83,6 +83,7 @@ HarmonyIntegration <- function(
   groups,
   features = NULL,
   scale.layer = 'scale.data',
+  new.reduction = 'harmony',
   layers = NULL,
   npcs = 50L,
   key = 'harmony_',
@@ -146,7 +147,9 @@ HarmonyIntegration <- function(
     # assay = assay
     assay = DefaultAssay(object = orig)
   ))
-  return(list(harmony = dr))
+  output.list <- list(dr)
+  names(output.list) <- c(new.reduction)
+  return(output.list)
 }
 
 attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
@@ -197,8 +200,15 @@ CCAIntegration <- function(
     groups = NULL,
     k.filter = NA,
     scale.layer = 'scale.data',
+    dims.to.integrate = NULL,
+    k.weight = 100,
+    weight.reduction = NULL,
+    sd.weight = 1,
+    sample.tree = NULL,
+    preserve.order = FALSE,
     verbose = TRUE,
-    ...) {
+    ...
+) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
   normalization.method <- match.arg(arg = normalization.method)
@@ -214,8 +224,25 @@ CCAIntegration <- function(
   } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
-    object.list[[i]][['RNA']]$scale.data <- object[[scale.layer]][features, Cells(object.list[[i]])]
+    if (inherits(x = object[[layers[i]]], what = "IterableMatrix")) {
+      warning("Converting BPCells matrix to dgCMatrix for integration ",
+        "as on-disk CCA Integration is not currently supported", call. = FALSE, immediate. = TRUE)
+      counts <- as(object = object[[layers[i]]][features, ],
+                   Class = "dgCMatrix")
+    }
+    else {
+      counts <- object[[layers[i]]][features, ]
+    }
+    object.list[[i]] <- CreateSeuratObject(counts = counts)
+    if (inherits(x = object[[scale.layer]], what = "IterableMatrix")) {
+      scale.data.layer <- as.matrix(object[[scale.layer]][features,
+                                                          Cells(object.list[[i]])])
+      object.list[[i]][["RNA"]]$scale.data <- scale.data.layer
+    }
+    else {
+      object.list[[i]][["RNA"]]$scale.data <- object[[scale.layer]][features,
+                                                                    Cells(object.list[[i]])]
+    }
     object.list[[i]][['RNA']]$counts <- NULL
   }
   }
@@ -231,15 +258,23 @@ CCAIntegration <- function(
                                    verbose = verbose,
                                    ...
   )
-  anchor@object.list <- lapply(anchor@object.list, function(x) {
-    x <- DietSeurat(x, features = features[1:2])
-    return(x)
-  })
+  suppressWarnings({
+    anchor@object.list <- lapply(anchor@object.list, function(x) {
+      x <- DietSeurat(x, features = features[1:2])
+      return(x)
+    })
+  }, classes = "dimWarning")
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
+                                       dims.to.integrate = dims.to.integrate,
+                                       k.weight = k.weight,
+                                       weight.reduction = weight.reduction,
+                                       sd.weight = sd.weight,
+                                       sample.tree = sample.tree,
+                                       preserve.order = preserve.order,
                                        verbose = verbose
-                                       )
+  )
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
   return(output.list)
@@ -302,6 +337,10 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #'   assay = "SCT", verbose = FALSE)
 #' }
 #'
+
+#' @inheritParams FindIntegrationAnchors
+#' @inheritParams IntegrateEmbeddings
+#' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
 #'
 RPCAIntegration <- function(
@@ -317,32 +356,45 @@ RPCAIntegration <- function(
     k.filter = NA,
     scale.layer = 'scale.data',
     groups = NULL,
+    dims.to.integrate = NULL,
+    k.weight = 100,
+    weight.reduction = NULL,
+    sd.weight = 1,
+    sample.tree = NULL,
+    preserve.order = FALSE,
     verbose = TRUE,
-    ...) {
+    ...
+) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
   normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object = object, search = 'data')
+  #check that there enough cells present
+  ncells <- sapply(X = layers, FUN = function(x) {ncell <-  dim(object[[x]])[2]
+  return(ncell) })
+  if (min(ncells) < max(dims))  {
+    abort(message = "At least one layer has fewer cells than dimensions specified, please lower 'dims' accordingly.")
+  }
   if (normalization.method == 'SCT') {
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct, split.by = 'split')
     object.list <- PrepSCTIntegration(object.list = object.list, anchor.features = features)
     object.list <- lapply(X = object.list, FUN = function(x) {
-      x <- RunPCA(object = x, features = features, verbose = FALSE)
+      x <- RunPCA(object = x, features = features, verbose = FALSE, npcs = max(dims))
       return(x)
     }
     )
   } else {
     object.list <- list()
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,])
+      object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = object[[layers[i]]][features,])))
       VariableFeatures(object =  object.list[[i]]) <- features
-      object.list[[i]] <- ScaleData(object = object.list[[i]], verbose = FALSE)
-      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
-      object.list[[i]][['RNA']]$counts <- NULL
+      object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
+      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
+      suppressWarnings(object.list[[i]][['RNA']]$counts <- NULL)
     }
   }
   anchor <- FindIntegrationAnchors(object.list = object.list,
@@ -367,8 +419,14 @@ RPCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
+                                       dims.to.integrate = dims.to.integrate,
+                                       k.weight = k.weight,
+                                       weight.reduction = weight.reduction,
+                                       sd.weight = sd.weight,
+                                       sample.tree = sample.tree,
+                                       preserve.order = preserve.order,
                                        verbose = verbose
-                                       )
+  )
 
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
@@ -381,6 +439,8 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @inheritParams RPCAIntegration
 #' @inheritParams FindIntegrationAnchors
+#' @inheritParams IntegrateEmbeddings
+#' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
 #'
 JointPCAIntegration <- function(
@@ -395,8 +455,14 @@ JointPCAIntegration <- function(
     dims = 1:30,
     k.anchor = 20,
     scale.layer = 'scale.data',
-    verbose = TRUE,
+    dims.to.integrate = NULL,
+    k.weight = 100,
+    weight.reduction = NULL,
+    sd.weight = 1,
+    sample.tree = NULL,
+    preserve.order = FALSE,
     groups = NULL,
+    verbose = TRUE,
     ...
 ) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
@@ -451,7 +517,14 @@ JointPCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
-                                       verbose = verbose)
+                                       dims.to.integrate = dims.to.integrate,
+                                       k.weight = k.weight,
+                                       weight.reduction = weight.reduction,
+                                       sd.weight = sd.weight,
+                                       sample.tree = sample.tree,
+                                       preserve.order = preserve.order,
+                                       verbose = verbose
+  )
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
   return(output.list)
@@ -518,7 +591,7 @@ IntegrateLayers <- function(
       assay = assay
     )
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
-    layers <- Layers(object = object, assay = assay, search = layers)
+    layers <- Layers(object = object, assay = assay, search = layers %||% 'data')
     scale.layer <- Layers(object = object, search = scale.layer)
     features <- features %||% VariableFeatures(
       object = object,

@@ -3,6 +3,7 @@
 \name{LeverageScore}
 \alias{LeverageScore}
 \alias{LeverageScore.default}
+\alias{LeverageScore.DelayedMatrix}
 \alias{LeverageScore.StdAssay}
 \alias{LeverageScore.Assay}
 \alias{LeverageScore.Seurat}
@@ -17,6 +18,18 @@ LeverageScore(object, ...)
   method = CountSketch,
   eps = 0.5,
   seed = 123L,
+  verbose = TRUE,
+  ...
+)
+
+\method{LeverageScore}{DelayedMatrix}(
+  object,
+  nsketch = 5000L,
+  ndims = NULL,
+  method = CountSketch,
+  eps = 0.5,
+  seed = 123L,
+  block.size = 1e+08,
   verbose = TRUE,
   ...
 )

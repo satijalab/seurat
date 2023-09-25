@@ -10,6 +10,7 @@ HarmonyIntegration(
   groups,
   features = NULL,
   scale.layer = "scale.data",
+  new.reduction = "harmony",
   layers = NULL,
   npcs = 50L,
   key = "harmony_",
@@ -80,8 +81,6 @@ obj <- SCTransform(object = obj)
 obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
   orig.reduction = "pca", new.reduction = 'harmony',
   assay = "SCT", verbose = FALSE)
-}
-
 }
 \seealso{
 \code{\link[harmony:HarmonyMatrix]{harmony::HarmonyMatrix}()}

@@ -17,6 +17,12 @@ RPCAIntegration(
   k.filter = NA,
   scale.layer = "scale.data",
   groups = NULL,
+  dims.to.integrate = NULL,
+  k.weight = 100,
+  weight.reduction = NULL,
+  sd.weight = 1,
+  sample.tree = NULL,
+  preserve.order = FALSE,
   verbose = TRUE,
   ...
 )
@@ -50,6 +56,7 @@ or SCT}
 \item{verbose}{Print progress}
 
 \item{...}{Additional arguments passed to \code{FindIntegrationAnchors}}
+
 }
 \description{
 Seurat-RPCA Integration
