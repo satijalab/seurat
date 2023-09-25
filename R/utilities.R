@@ -364,7 +364,6 @@ AggregateExpression <- function(
   return.seurat = FALSE,
   group.by = 'ident',
   add.ident = NULL,
-  slot = 'data',
   verbose = TRUE,
   ...
 ) {
@@ -377,7 +376,7 @@ AggregateExpression <- function(
       return.seurat = return.seurat,
       group.by = group.by,
       add.ident = add.ident,
-      slot = slot,
+      slot = "counts",
       verbose = verbose,
       ...
     )
@@ -543,7 +542,7 @@ AverageExpression <- function(
       )
       LayerData(object = toRet,
                 layer = "data",
-                assay = names(x = data.return)[1]) <- log1p(x = as.matrix(x = data.return[[1]]))
+                assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[1]]))
     }
     #for multimodal data
     if (length(x = data.return) > 1) {
@@ -564,15 +563,8 @@ AverageExpression <- function(
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           LayerData(object = toRet,
                     layer = "data",
-                    assay = names(x = data.return)[i]) <- log1p(x = as.matrix(x = data.return[[i]]))
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            layer = "data",
-            new.data = log1p(x = as.matrix(x = data.return[[i]]))
-          )
+                    assay = names(x = data.return)[i]) <- NormalizeData(as.matrix(x = data.return[[i]]))
         }
-        
       }
     }
     if (DefaultAssay(object = object) %in% names(x = data.return)) {
