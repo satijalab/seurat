@@ -161,6 +161,7 @@ FindVariableFeatures.StdAssay <- function(
     object[colnames(x = hvf.info)] <- hvf.info
   }
   object@meta.data$var.features <- NULL
+  object@meta.data$var.features.rank <- NULL
   VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nselect, method = key)
   return(object)
 }
