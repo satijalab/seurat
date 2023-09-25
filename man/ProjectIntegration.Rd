@@ -50,11 +50,6 @@ for all cells (default is 'sketch'). Can be one of:
 \item{ratio}{Sketch ratio of data slot when \code{dictionary.method} is set
 to \dQuote{\code{sketch}}; defaults to 0.8}
 
-\item{sketched.layers}{Names of sketched layers, defaults to all 
-layers of \dQuote{\code{object[[assay]]}}}
-
-\item{seed}{A positive integer. The seed for the random number generator, defaults to 123.}
-
 \item{verbose}{Print progress and message}
 }
 \value{
