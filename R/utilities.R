@@ -430,6 +430,10 @@ AverageExpression <- function(
   layer = 'data',
   slot = deprecated(),
   method = 'average',
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
+  block.size = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -547,7 +551,12 @@ AverageExpression <- function(
       )
       LayerData(object = toRet,
                 layer = "data",
-                assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[1]]), ...)
+                assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[i]]),
+                                                                    normalization.method = normalization.method,
+                                                                    scale.factor = scale.factor,
+                                                                    margin = margin,
+                                                                    block.size = block.size,
+                                                                    verbose = verbose)
     }
     #for multimodal data
     if (length(x = data.return) > 1) {
@@ -568,7 +577,12 @@ AverageExpression <- function(
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           LayerData(object = toRet,
                     layer = "data",
-                    assay = names(x = data.return)[i]) <- NormalizeData(as.matrix(x = data.return[[i]]), ...)
+                    assay = names(x = data.return)[i]) <- NormalizeData(as.matrix(x = data.return[[i]]),
+                                                                        normalization.method = normalization.method,
+                                                                        scale.factor = scale.factor,
+                                                                        margin = margin,
+                                                                        block.size = block.size,
+                                                                        verbose = verbose)
         }
       }
     }
