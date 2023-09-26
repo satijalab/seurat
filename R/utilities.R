@@ -433,7 +433,7 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
-  CheckDots(..., fxns = 'CreateSeuratObject')
+  #CheckDots(..., fxns = 'CreateSeuratObject')
   if (!is.null(x = add.ident)) {
     .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
     group.by <- c('ident', add.ident)
@@ -456,6 +456,11 @@ AverageExpression <- function(
     )
     layer <- slot
   }
+  
+  if (method =="average") {
+    message("Starting with Seurat v5, recommend users swtich to AggregateExpression rather than AverageExpression")
+  }
+  
   object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
@@ -542,7 +547,7 @@ AverageExpression <- function(
       )
       LayerData(object = toRet,
                 layer = "data",
-                assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[1]]))
+                assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[1]]), ...)
     }
     #for multimodal data
     if (length(x = data.return) > 1) {
@@ -563,7 +568,7 @@ AverageExpression <- function(
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           LayerData(object = toRet,
                     layer = "data",
-                    assay = names(x = data.return)[i]) <- NormalizeData(as.matrix(x = data.return[[i]]))
+                    assay = names(x = data.return)[i]) <- NormalizeData(as.matrix(x = data.return[[i]]), ...)
         }
       }
     }
