@@ -4223,6 +4223,7 @@ FindIntegrationMatrix <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
+  object <- JoinLayers(object)
   anchors <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
