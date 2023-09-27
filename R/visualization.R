@@ -4009,7 +4009,7 @@ SpatialPlot <- function(
       }
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && class(x = data[, features[j]]) != "factor") {
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], what = "factor") ) {
         max.feature.value <- max(data[, features[j]])
       }
 
@@ -4085,7 +4085,7 @@ SpatialPlot <- function(
       }
 
       # Plot multiple images depending on keep.scale
-      if (!(is.null(x = keep.scale)) && class(x = data[, features[j]]) != "factor") {
+      if (!(is.null(x = keep.scale)) && !inherits(x = data[, features[j]], "factor")) {
         plot <- suppressMessages(plot & scale_fill_gradientn(colors = SpatialColors(n = 100), limits = c(NA, max.feature.value)))
       }
 
@@ -4885,7 +4885,7 @@ AutoPointSize <- function(data, raster = NULL) {
 #' hexadecimal codes
 #' @param threshold Intensity threshold for light/dark cutoff; intensities
 #' greater than \code{theshold} yield \code{dark}, others yield \code{light}
-#' @param w3c Use \href{http://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
+#' @param w3c Use \href{https://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
 #' background text color; ignores \code{threshold}
 #' @param dark Color for dark text
 #' @param light Color for light text
@@ -7802,7 +7802,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 #' @param cols An optional vector of colors to use
 #' @param pt.size Point size for the plot
 #' @param smooth Make a smoothed scatter plot
-#' @param rows.highight A vector of rows to highlight (like cells.highlight in
+#' @param rows.highlight A vector of rows to highlight (like cells.highlight in
 #' \code{\link{SingleDimPlot}})
 #' @param legend.title Optional legend title
 #' @param raster Convert points to raster format, default is \code{NULL}
@@ -7842,7 +7842,7 @@ SingleCorPlot <- function(
   jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+  if ((nrow(x = data) > 1e5) & !is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
@@ -8051,7 +8051,7 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+  if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
@@ -8245,7 +8245,7 @@ SingleExIPlot <- function(
   if (PackageCheck('ggrastr', error = FALSE)) {
     # Set rasterization to true if ggrastr is installed and
     # number of points exceeds 100,000
-    if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    if ((nrow(x = data) > 1e5) & is.null(x = raster)){
       message("Rasterizing points since number of points exceeds 100,000.",
               "\nTo disable this behavior set `raster=FALSE`")
       # change raster to TRUE
