@@ -8123,7 +8123,7 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+  if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
@@ -8321,7 +8321,7 @@ SingleExIPlot <- function(
   if (PackageCheck('ggrastr', error = FALSE)) {
     # Set rasterization to true if ggrastr is installed and
     # number of points exceeds 100,000
-    if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    if ((nrow(x = data) > 1e5) & is.null(x = raster)){
       message("Rasterizing points since number of points exceeds 100,000.",
               "\nTo disable this behavior set `raster=FALSE`")
       # change raster to TRUE
