@@ -5285,7 +5285,13 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       ))
   } else {
     query <- query[features,]
-    reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features, ]
+    reference.data.list <- c()
+    for (i in Layers(object = reference[[reference.assay]], 
+                     layer = "data")) {
+      reference.data.list[[i]] <- LayerData(object = reference[[reference.assay]], 
+                                            layer = i)[features, ]
+    }
+    reference.data <- do.call(cbind, reference.data.list)
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
         feature.mean <- RowMeanSparse(mat = reference.data)
