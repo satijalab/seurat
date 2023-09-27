@@ -488,6 +488,7 @@ GetResidual <- function(
 #' @importFrom png readPNG
 #' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
+#' @importFrom purrr imap
 #'
 #' @export
 #' @concept preprocessing
@@ -519,7 +520,7 @@ Load10X_Spatial <- function(
 
   if (to.upper) {
     data <- imap(data, ~{
-      rownames(.x) <- toupper(rownames(.x))
+      rownames(.x) <- toupper(x = rownames(.x))
       .x
     })
   }
