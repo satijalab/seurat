@@ -1150,7 +1150,7 @@ CreateSCTAssay <- function(vst.out,  do.correct.umi, residual.type, clip.range){
 }
 
 #' @importFrom SeuratObject Cells DefaultLayer DefaultLayer<- Features
-#' LayerData LayerData<-
+#' LayerData LayerData<- as.sparse
 #'
 #' @method SCTransform StdAssay
 #' @export
@@ -1385,6 +1385,7 @@ SCTransform.StdAssay <- function(
           layer = paste0(layer, ".", layer.name),
           cells = all_cells
           )
+        layer.counts.tmp <- as.sparse(x = layer.counts.tmp)
         vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
         vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
         new_residual <- GetResidualsChunked(vst_out = vst_out, layer.counts = layer.counts.tmp,
@@ -1620,8 +1621,8 @@ FetchResidualSCTModel <- function(
   clip.range = NULL,
   replace.value = FALSE,
   verbose = FALSE
-) {  
-  
+) {
+
   model.cells <- character()
   model.features <- Features(x = object, assay = assay)
   if (is.null(x = reference.SCT.model)){
