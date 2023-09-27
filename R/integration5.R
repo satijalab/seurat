@@ -13,7 +13,6 @@ NULL
 
 #' Harmony Integration
 #'
-#' @inheritParams harmony::HarmonyMatrix
 #' @param object An \code{\link[SeuratObject]{Assay5}} object
 # @param assay Name of \code{object} in the containing \code{Seurat} object
 #' @param orig A \link[SeuratObject:DimReduc]{dimensional reduction} to correct
@@ -22,6 +21,19 @@ NULL
 #' @param features Ignored
 #' @param scale.layer Ignored
 #' @param layers Ignored
+#' @param key Key for Harmony dimensional reduction
+#' @param npcs If doing PCA on input matrix, number of PCs to compute
+#' @param theta Diversity clustering penalty parameter
+#' @param lambda Ridge regression penalty parameter
+#' @param sigma Width of soft kmeans clusters
+#' @param nclust Number of clusters in model
+#' @param tau Protection against overclustering small datasets with large ones
+#' @param block.size What proportion of cells to update during clustering
+#' @param max.iter.harmony Maximum number of rounds to run Harmony
+#' @param max.iter.cluster Maximum number of rounds to run clustering at each round of Harmony
+#' @param epsilon.cluster Convergence tolerance for clustering round of Harmony
+#' @param epsilon.harmony Convergence tolerance for Harmony
+#' @param verbose Whether to print progress messages. TRUE to print, FALSE to suppress
 #' @param ... Ignored
 #'
 #' @return ...
@@ -33,7 +45,7 @@ NULL
 # @templateVar pkg harmony
 # @template note-reqdpkg
 #'
-#' @examples 
+#' @examples
 #' \dontrun{
 #' # Preprocessing
 #' obj <- SeuratData::LoadData("pbmcsca")
@@ -42,24 +54,23 @@ NULL
 #' obj <- FindVariableFeatures(obj)
 #' obj <- ScaleData(obj)
 #' obj <- RunPCA(obj)
-#' 
+#'
 #' # After preprocessing, we integrate layers with added parameters specific to Harmony:
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca",
 #'   new.reduction = 'harmony', verbose = FALSE)
-#' 
+#'
 #' # Modifying Parameters
-#' # We can also add arguments specific to Harmony such as theta, to give more diverse clusters 
+#' # We can also add arguments specific to Harmony such as theta, to give more diverse clusters
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca",
 #'   new.reduction = 'harmony', verbose = FALSE, theta = 3)
-#' }
-#' 
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
-#' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'harmony', 
+#' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
+#'   orig.reduction = "pca", new.reduction = 'harmony',
 #'   assay = "SCT", verbose = FALSE)
-#'   
-#' 
+#' }
+#'
+#'
 #' @export
 #'
 #' @concept integration
@@ -145,11 +156,9 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-CCA Integration
 #'
-#' @inheritParams FindIntegrationAnchors
-#' @inheritParams IntegrateEmbeddings
-#' @param ... Arguments passed on to \code{FindIntegrationAnchors}
+#' @inheritParams RPCAIntegration
 #' @export
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' # Preprocessing
@@ -159,23 +168,24 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #' obj <- FindVariableFeatures(obj)
 #' obj <- ScaleData(obj)
 #' obj <- RunPCA(obj)
-#' 
-#' # After preprocessing, we integrate layers. 
-#' obj <- IntegrateLayers(object = obj, method = CCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.cca', 
+#'
+#' # After preprocessing, we integrate layers.
+#' obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+#'   orig.reduction = "pca", new.reduction = "integrated.cca",
 #'   verbose = FALSE)
-#'   
+#'
 #' # Modifying parameters
-#' # We can also specify parameters such as `k.anchor` to increase the strength of integration 
-#' obj <- IntegrateLayers(object = obj, method = CCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.cca', 
+#' # We can also specify parameters such as `k.anchor` to increase the strength of integration
+#' obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+#'   orig.reduction = "pca", new.reduction = "integrated.cca",
 #'   k.anchor = 20, verbose = FALSE)
 #'
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
-#' obj <- IntegrateLayers(object = obj, method = CCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.cca', 
+#' obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+#'   orig.reduction = "pca", new.reduction = "integrated.cca",
 #'   assay = "SCT", verbose = FALSE)
+#' }
 #'
 CCAIntegration <- function(
     object = NULL,
@@ -215,9 +225,9 @@ CCAIntegration <- function(
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     if (inherits(x = object[[layers[i]]], what = "IterableMatrix")) {
-      warning("Converting BPCells matrix to dgCMatrix for integration ", 
+      warning("Converting BPCells matrix to dgCMatrix for integration ",
         "as on-disk CCA Integration is not currently supported", call. = FALSE, immediate. = TRUE)
-      counts <- as(object = object[[layers[i]]][features, ], 
+      counts <- as(object = object[[layers[i]]][features, ],
                    Class = "dgCMatrix")
     }
     else {
@@ -225,12 +235,12 @@ CCAIntegration <- function(
     }
     object.list[[i]] <- CreateSeuratObject(counts = counts)
     if (inherits(x = object[[scale.layer]], what = "IterableMatrix")) {
-      scale.data.layer <- as.matrix(object[[scale.layer]][features, 
+      scale.data.layer <- as.matrix(object[[scale.layer]][features,
                                                           Cells(object.list[[i]])])
       object.list[[i]][["RNA"]]$scale.data <- scale.data.layer
     }
     else {
-      object.list[[i]][["RNA"]]$scale.data <- object[[scale.layer]][features, 
+      object.list[[i]][["RNA"]]$scale.data <- object[[scale.layer]][features,
                                                                     Cells(object.list[[i]])]
     }
     object.list[[i]][['RNA']]$counts <- NULL
@@ -274,7 +284,23 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-RPCA Integration
 #'
-#' @examples 
+#' @param object A \code{Seurat} object
+#' @param assay Name of \code{Assay} in the \code{Seurat} object
+#' @param layers Names of layers in \code{assay}
+#' @param orig A \link[SeuratObject:DimReduc]{dimensional reduction} to correct
+#' @param new.reduction Name of new integrated dimensional reduction
+#' @param reference A reference \code{Seurat} object
+#' @param features A vector of features to use for integration
+#' @param normalization.method Name of normalization method used: LogNormalize
+#' or SCT
+#' @param dims Dimensions of dimensional reduction to use for integration
+#' @param k.filter Number of anchors to filter
+#' @param scale.layer Name of scaled layer in \code{Assay}
+#' @param groups A one-column data frame with grouping information
+#' @param verbose Print progress
+#' @param ... Additional arguments passed to \code{FindIntegrationAnchors}
+#'
+#' @examples
 #' \dontrun{
 #' # Preprocessing
 #' obj <- SeuratData::LoadData("pbmcsca")
@@ -283,32 +309,35 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' obj <- FindVariableFeatures(obj)
 #' obj <- ScaleData(obj)
 #' obj <- RunPCA(obj)
-#' 
+#'
 #' # After preprocessing, we run integration
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   verbose = FALSE)
-#'   
+#'
 #' # Reference-based Integration
 #' # Here, we use the first layer as a reference for integraion
-#' # Thus, we only identify anchors between the reference and the rest of the datasets, saving computational resources
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' # Thus, we only identify anchors between the reference and the rest of the datasets,
+#' # saving computational resources
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   reference = 1, verbose = FALSE)
 #'
 #' # Modifying parameters
-#' # We can also specify parameters such as `k.anchor` to increase the strength of integration 
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' # We can also specify parameters such as `k.anchor` to increase the strength of
+#' # integration
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   k.anchor = 20, verbose = FALSE)
 #'
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   assay = "SCT", verbose = FALSE)
 #' }
-#'   
+#'
+
 #' @inheritParams FindIntegrationAnchors
 #' @inheritParams IntegrateEmbeddings
 #' @param ... Arguments passed on to \code{FindIntegrationAnchors}
@@ -342,13 +371,19 @@ RPCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object = object, search = 'data')
+  #check that there enough cells present
+  ncells <- sapply(X = layers, FUN = function(x) {ncell <-  dim(object[[x]])[2]
+  return(ncell) })
+  if (min(ncells) < max(dims))  {
+    abort(message = "At least one layer has fewer cells than dimensions specified, please lower 'dims' accordingly.")
+  }
   if (normalization.method == 'SCT') {
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct, split.by = 'split')
     object.list <- PrepSCTIntegration(object.list = object.list, anchor.features = features)
     object.list <- lapply(X = object.list, FUN = function(x) {
-      x <- RunPCA(object = x, features = features, verbose = FALSE)
+      x <- RunPCA(object = x, features = features, verbose = FALSE, npcs = max(dims))
       return(x)
     }
     )
@@ -358,7 +393,7 @@ RPCAIntegration <- function(
       object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = object[[layers[i]]][features,])))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
-      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
+      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
       suppressWarnings(object.list[[i]][['RNA']]$counts <- NULL)
     }
   }
@@ -402,6 +437,7 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-Joint PCA Integration
 #'
+#' @inheritParams RPCAIntegration
 #' @inheritParams FindIntegrationAnchors
 #' @inheritParams IntegrateEmbeddings
 #' @param ... Arguments passed on to \code{FindIntegrationAnchors}

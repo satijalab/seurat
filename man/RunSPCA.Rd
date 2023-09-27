@@ -82,6 +82,8 @@ NULL will not set a seed.}
 \item{features}{Features to compute SPCA on. If features=NULL, SPCA will be run
 using the variable features for the Assay.}
 
+\item{layer}{Layer to run SPCA on}
+
 \item{reduction.name}{dimensional reduction name, spca by default}
 }
 \value{

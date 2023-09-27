@@ -76,6 +76,7 @@ For details about stored CCA calculation parameters, see
 \code{PrintCCAParams}.
 }
 \examples{
+\dontrun{
 data("pbmc_small")
 pbmc_small
 # As CCA requires two datasets, we will split our test object into two just for this example
@@ -86,6 +87,7 @@ pbmc2[["group"]] <- "group2"
 pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 # Print results
 print(x = pbmc_cca[["cca"]])
+}
 
 }
 \seealso{

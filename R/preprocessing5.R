@@ -27,7 +27,7 @@ hvf.methods <- list()
 FindVariableFeatures.default <- function(
   object,
   method = VST,
-  nselect = 2000L,
+  nfeatures = 2000L,
   verbose = TRUE,
   ...
 ) {
@@ -48,7 +48,7 @@ FindVariableFeatures.default <- function(
   }
   var.gene.ouput <- method(
     data = object,
-    nselect = nselect,
+    nselect = nfeatures,
     verbose = verbose,
     ...
   )
@@ -65,7 +65,7 @@ FindVariableFeatures.default <- function(
 FindVariableFeatures.StdAssay <- function(
   object,
   method = NULL,
-  nselect = 2000L,
+  nfeatures = 2000L,
   layer = NULL,
   span = 0.3,
   clip = NULL,
@@ -123,7 +123,7 @@ FindVariableFeatures.StdAssay <- function(
     hvf.info <- hvf.function(
       object = data,
       method = method,
-      nselect = nselect,
+      nfeatures = nfeatures,
       span = span,
       clip = clip,
       verbose = verbose,
@@ -161,7 +161,7 @@ FindVariableFeatures.StdAssay <- function(
     object[colnames(x = hvf.info)] <- hvf.info
   }
   object@meta.data$var.features <- NULL
-  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nselect)
+  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nfeatures)
   return(object)
 }
 
@@ -235,6 +235,9 @@ FindSpatiallyVariableFeatures.StdAssay <- function(
 
 #' @rdname LogNormalize
 #' @method LogNormalize default
+#'
+#' @param margin Margin to normalize over
+#'
 #' @export
 #'
 LogNormalize.default <- function(
@@ -271,137 +274,6 @@ LogNormalize.default <- function(
   return(data)
 }
 
-#' @method LogNormalize DelayedMatrix
-#' @export
-#'
-LogNormalize.DelayedMatrix <- function(
-  data,
-  scale.factor = 1e4,
-  margin = 2L,
-  verbose = TRUE,
-  sink = NULL,
-  ...
-) {
-  check_installed(
-    pkg = 'DelayedArray',
-    reason = 'for working with delayed matrices'
-  )
-  if (is.null(x = sink)) {
-    sink <- DelayedArray::AutoRealizationSink(
-      dim = dim(x = data),
-      dimnames = dimnames(x = data),
-      as.sparse = DelayedArray::is_sparse(x = data)
-    )
-  }
-  if (!inherits(x = sink, what = 'RealizationSink')) {
-    abort(message = "'sink' must be a RealizationSink")
-  } else if (inherits(x = sink, what = 'arrayRealizationSink')) {
-    # arrayRealizationSinks do not support write_block with rowAutoGrid or colAutoGrid
-    # Because of course they don't
-    abort(message = "Array RealizationSinks are not supported due to issues with {DelayedArray}")
-  } else if (!all(dim(x = sink) == dim(x = data))) {
-    abort(message = "'sink' must be the same size as 'data'")
-  }
-  if (!margin %in% c(1L, 2L)) {
-    abort(message = "'margin' must be 1 or 2")
-  }
-  grid <- if (margin == 1L) {
-    DelayedArray::rowAutoGrid(x = data)
-  } else {
-    DelayedArray::colAutoGrid(x = data)
-  }
-  sparse <- DelayedArray::is_sparse(x = data)
-  if (isTRUE(x = verbose)) {
-    pb <- txtProgressBar(file = stderr(), style = 3)
-  }
-  for (i in seq_len(length.out = length(x = grid))) {
-    vp <- grid[[i]]
-    x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
-    if (isTRUE(x = sparse)) {
-      x <- as(object = x, Class = 'dgCMatrix')
-    }
-    x <- LogNormalize(
-      data = x,
-      scale.factor = scale.factor,
-      margin = margin,
-      verbose = FALSE,
-      ...
-    )
-    DelayedArray::write_block(sink = sink, viewport = vp, block = x)
-    if (isTRUE(x = verbose)) {
-      setTxtProgressBar(pb = pb, value = i / length(x = grid))
-    }
-  }
-  if (isTRUE(x = verbose)) {
-    close(con = pb)
-  }
-  DelayedArray::close(con = sink)
-  return(as(object = sink, Class = "DelayedArray"))
-}
-
-#' @method LogNormalize H5ADMatrix
-#' @export
-#'
-LogNormalize.H5ADMatrix <- function(
-  data,
-  scale.factor = 1e4,
-  margin = 2L,
-  verbose = TRUE,
-  layer = 'data',
-  ...
-) {
-  results <- LogNormalize.HDF5Matrix(
-    data = data,
-    scale.factor = scale.factor,
-    margin = margin,
-    verbose = verbose,
-    layer = file.path('layers', layer, fsep = '/'),
-    ...
-  )
-  rpath <- slot(object = slot(object = results, name = 'seed'), name = 'filepath')
-  return(HDF5Array::H5ADMatrix(filepath = rpath, layer = layer))
-}
-
-#' @method LogNormalize HDF5Matrix
-#' @export
-#'
-LogNormalize.HDF5Matrix <- function(
-  data,
-  scale.factor = 1e4,
-  margin = 2L,
-  verbose = TRUE,
-  layer = 'data',
-  ...
-) {
-  check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 matrices')
-  fpath <- DelayedArray::path(object = data)
-  if (.DelayedH5DExists(object = data, path = layer)) {
-    rhdf5::h5delete(file = fpath, name = layer)
-    dpath <- file.path(
-      dirname(path = layer),
-      paste0('.', basename(layer), '_dimnames'),
-      fsep = '/'
-    )
-    rhdf5::h5delete(file = fpath, name = dpath)
-  }
-  sink <- HDF5Array::HDF5RealizationSink(
-    dim = dim(x = data),
-    dimnames = dimnames(x = data),
-    as.sparse = DelayedArray::is_sparse(x = data),
-    filepath = fpath,
-    name = layer
-  )
-  return(LogNormalize.DelayedMatrix(
-    data = data,
-    scale.factor = scale.factor,
-    margin = margin,
-    verbose = verbose,
-    sink = sink,
-    ...
-  ))
-}
-
-
 #' @method LogNormalize IterableMatrix
 #' @export
 #'
@@ -416,87 +288,6 @@ LogNormalize.IterableMatrix <- function(
   # Log normalization
   data <- log1p(data * scale.factor)
   return(data)
-}
-#' @method LogNormalize TileDBMatrix
-#' @export
-#'
-LogNormalize.TileDBMatrix <- function(
-  data,
-  scale.factor = 1e4,
-  margin = 2L,
-  verbose= TRUE,
-  layer = 'data',
-  ...
-) {
-  check_installed(
-    pkg = 'TileDBArray',
-    reason = 'for working with TileDB matrices'
-  )
-  odir <- c(
-    dirname(path = DelayedArray::path(object = data)),
-    getwd(),
-    tempdir(check = TRUE)
-  )
-  # file.access returns 0 (FALSE) for true and -1 (TRUE) for false
-  idx <- which(x = !file.access(names = odir, mode = 2L))[1L]
-  if (rlang::is_na(x = idx)) {
-    abort(message = "Unable to find a directory to write normalized TileDB matrix")
-  }
-  out <- file.path(odir[idx], layer)
-  if (!file.access(names = out, mode = 0L)) {
-    warn(message = paste(sQuote(x = out), "exists, overwriting"))
-    unlink(x = out, recursive = TRUE, force = TRUE)
-  }
-  sink <- TileDBArray::TileDBRealizationSink(
-    dim = dim(x = data),
-    dimnames = dimnames(x = data),
-    type = BiocGenerics::type(x = data),
-    path = out,
-    attr = layer,
-    sparse = DelayedArray::is_sparse(x = data)
-  )
-  return(NextMethod(
-    generic = 'LogNormalize',
-    object = data,
-    scale.factor = scale.factor,
-    margin = margin,
-    verbose = verbose,
-    sink = sink,
-    ...
-  ))
-}
-
-#' @method LogNormalize TENxMatrix
-#' @export
-#'
-LogNormalize.TENxMatrix <- function(
-  data,
-  scale.factor = 1e4,
-  margin = 2L,
-  verbose= TRUE,
-  layer = 'data',
-  ...
-) {
-  check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 matrices')
-  fpath <- DelayedArray::path(object = data)
-  if (.DelayedH5DExists(object = data, path = layer)) {
-    rhdf5::h5delete(file = fpath, name = layer)
-  }
-  sink <- HDF5Array::TENxRealizationSink(
-    dim = dim(x = data),
-    dimnames = dimnames(x = data),
-    filepath = fpath,
-    group = layer
-  )
-  return(NextMethod(
-    generic = 'LogNormalize',
-    object = data,
-    scale.factor = scale.factor,
-    margin = margin,
-    verbose = verbose,
-    sink = sink,
-    ...
-  ))
 }
 
 #' @importFrom SeuratObject IsSparse
@@ -566,50 +357,6 @@ NormalizeData.default <- function(
   return(normalized)
 }
 
-.DelayedH5DExists <- function(object, path) {
-  check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 files')
-  if (!inherits(x = object, what = c('HDF5Array', 'H5ADMatrix', 'TENxMatrix'))) {
-    abort(message = "'object' must be an HDF5Array or H5ADMatrix")
-  }
-  on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
-  fpath <- DelayedArray::path(object = object)
-  h5loc <- rhdf5::H5Fopen(
-    name = fpath,
-    flags = 'H5F_ACC_RDWR',
-    fapl = NULL,
-    native = FALSE
-  )
-  return(rhdf5::H5Lexists(h5loc = h5loc, name = path))
-}
-
-# #' @method NormalizeData DelayedArray
-# #' @export
-# #'
-# NormalizeData.DelayedArray <- function(
-#   object,
-#   method = c('LogNormalize'),
-#   scale.factor = 1e4,
-#   cmargin = 2L,
-#   margin = 1L,
-#   layer = 'data',
-#   verbose = TRUE,
-#   ...
-# ) {
-#   method <- arg_match(arg = method)
-#   normalized <- switch(
-#     EXPR = method,
-#     LogNormalize = LogNormalize(
-#       data = object,
-#       scale.factor = scale.factor,
-#       margin = 2L,
-#       verbose = TRUE,
-#       layer = layer,
-#       ...
-#     )
-#   )
-#   return(normalized)
-# }
-
 #' @importFrom SeuratObject Cells DefaultLayer DefaultLayer<- Features
 #' LayerData LayerData<-
 #'
@@ -651,7 +398,6 @@ NormalizeData.StdAssay <- function(
       scale.factor = scale.factor,
       margin = margin,
       verbose = verbose,
-      layer = save,
       ...
     )
   }
@@ -688,6 +434,7 @@ ScaleData.StdAssay <- function(
   olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
+    layer <- "counts"
     inform(
       message = "'use.umi' is TRUE, please make sure 'layer' specifies raw counts"
     )
@@ -784,10 +531,12 @@ VST.default <- function(
 
 #' @rdname VST
 #' @method VST IterableMatrix
+#' @importFrom SeuratObject EmptyDF
 #' @export
 #'
-VST.IterableMatrix <-function(
+VST.IterableMatrix <- function(
     data,
+    margin = 1L,
     nselect = 2000L,
     span = 0.3,
     clip = NULL,
@@ -795,14 +544,14 @@ VST.IterableMatrix <-function(
     ...
 ) {
   nfeatures <- nrow(x = data)
-  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
   hvf.stats <- BPCells::matrix_stats(
     matrix = data,
     row_stats = 'variance')$row_stats
   # Calculate feature means
-  hvf.info$mean <- hvf.stats['mean',]
+  hvf.info$mean <- hvf.stats['mean' ]
   # Calculate feature variance
-  hvf.info$variance <- hvf.stats['variance',]
+  hvf.info$variance <- hvf.stats['variance', ]
   hvf.info$variance.expected <- 0L
   not.const <- hvf.info$variance > 0
   fit <- loess(
@@ -816,11 +565,11 @@ VST.IterableMatrix <-function(
   standard.max <- clip %||% sqrt(x = ncol(x = data))
   feature.mean[feature.mean == 0] <- 0.1
   data <- BPCells::min_by_row(mat = data, vals = standard.max*feature.sd + feature.mean)
-  data.standard <- (data - feature.mean)/feature.sd
+  data.standard <- (data - feature.mean) / feature.sd
   hvf.info$variance.standardized <- BPCells::matrix_stats(
     matrix = data.standard,
     row_stats = 'variance'
-    )$row_stats['variance',]
+    )$row_stats['variance', ]
   # Set variable features
   hvf.info$variable <- FALSE
   hvf.info$rank <- NA
@@ -831,84 +580,6 @@ VST.IterableMatrix <-function(
   hvf.info$variable[vf] <- TRUE
   hvf.info$rank[vf] <- seq_along(along.with = vf)
   rownames(x = hvf.info) <- rownames(x = data)
-  return(hvf.info)
-}
-
-#' @method VST DelayedMatrix
-#' @export
-#'
-VST.DelayedMatrix <- function(
-  data,
-  margin = 2L,
-  nselect = 2000L,
-  span = 0.3,
-  clip = NULL,
-  verbose = TRUE,
-  block.size = 1e8,
-  ...
-) {
-  check_installed(
-    pkg = 'DelayedArray',
-    reason = 'for working with delayed matrices'
-  )
-  if (!margin %in% c(1L, 2L)) {
-    abort(message = "'margin' must be 1 or 2")
-  }
-  nfeatures <- dim(x = data)[-margin]
-  ncells <- dim(x = data)[margin]
-  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
-  hvf.info$mean <- RowMeanDelayedAssay(x = data, block.size = block.size)
-  # Calculate feature variance
-  hvf.info$variance <- RowVarDelayedAssay(x = data, block.size = block.size)
-  hvf.info$variance.expected <- 0L
-  not.const <- hvf.info$variance > 0
-  fit <- loess(
-    formula = log10(x = variance) ~ log10(x = mean),
-    data = hvf.info[not.const, , drop = TRUE],
-    span = span
-  )
-  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-
-  suppressMessages(setAutoBlockSize(size = block.size))
-  grid <- if (margin == 1L) {
-    DelayedArray::rowAutoGrid(x = data)
-  } else {
-    DelayedArray::colAutoGrid(x = data)
-  }
-  sparse <- DelayedArray::is_sparse(x = data)
-  if (sparse) {
-    sweep.func <- SweepSparse
-    rowsum.func <- RowSumSparse
-  } else {
-    sweep.func <- sweep
-    rowsum.func <- rowSums2
-  }
-  var_stand.list <- list()
-  for (i in seq_len(length.out = length(x = grid))) {
-    vp <- grid[[i]]
-    block <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
-    block <- as(object = block, Class = 'dgCMatrix')
-    block.stat <- SparseRowVarStd(mat = block,
-                                  mu = hvf.info$mean,
-                                  sd = sqrt(hvf.info$variance.expected),
-                                  vmax =  clip %||% sqrt(x = ncol(x = data)),
-                                  display_progress = FALSE)
-
-    var_stand.list[[i]] <- block.stat * (ncol(block) - 1)
-  }
-  hvf.info$variance.standardized <- Reduce(f = '+', x = var_stand.list)/
-    (ncol(data) - 1)
-  # Set variable features
-  hvf.info$variable <- FALSE
-  hvf.info$rank <- NA
-  vf <- head(
-    x = order(hvf.info$variance.standardized, decreasing = TRUE),
-    n = nselect
-  )
-  hvf.info$variable[vf] <- TRUE
-  hvf.info$rank[vf] <- seq_along(along.with = vf)
- rownames(hvf.info) <- rownames(data)
-
   return(hvf.info)
 }
 
@@ -928,7 +599,7 @@ VST.dgCMatrix <- function(
   ...
 ) {
   nfeatures <- nrow(x = data)
-  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
   # Calculate feature means
   hvf.info$mean <- Matrix::rowMeans(x = data)
   # Calculate feature variance
@@ -997,6 +668,13 @@ VST.matrix <- function(
 
 #' Calculate dispersion of features
 #'
+#' @param object Data matrix
+#' @param mean.function Function to calculate mean
+#' @param dispersion.function Function to calculate dispersion
+#' @param num.bin Number of bins to use
+#' @param binning.method Method to use for binning. Options are 'equal_width' or 'equal_frequency'
+#' @param verbose Display progress
+#' @keywords internal
 #'
 CalcDispersion <- function(
   object,
@@ -1008,7 +686,8 @@ CalcDispersion <- function(
   ...
 ) {
   if (!inherits(x = object, what = c('dgCMatrix', 'matrix'))) {
-    stop('mean.var.plot and dispersion methods only support dense and sparse matrix input')
+    stop('mean.var.plot and dispersion methods only \
+     support dense and sparse matrix input')
   }
   if (inherits(x = object, what =  'matrix')) {
     object <- as.sparse(x = object)
@@ -1016,7 +695,8 @@ CalcDispersion <- function(
   feature.mean <- mean.function(object, verbose)
   feature.dispersion <- dispersion.function(object, verbose)
 
-  names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
+  names(x = feature.mean) <- names(
+    x = feature.dispersion) <- rownames(x = object)
   feature.dispersion[is.na(x = feature.dispersion)] <- 0
   feature.mean[is.na(x = feature.mean)] <- 0
   data.x.breaks <- switch(
@@ -1038,31 +718,38 @@ CalcDispersion <- function(
   feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
     sd.y[as.numeric(x = data.x.bin)]
   names(x = feature.dispersion.scaled) <- names(x = feature.mean)
-  hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
+  hvf.info <- data.frame(
+    feature.mean, feature.dispersion, feature.dispersion.scaled)
   rownames(x = hvf.info) <- rownames(x = object)
-  colnames(x = hvf.info) <- paste0('mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
+  colnames(x = hvf.info) <- paste0(
+    'mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
   return(hvf.info)
 }
 
 
 #' @importFrom SeuratObject .CalcN
 #'
-CalcN <- function(object) {
-  return(.CalcN(object))
+CalcN <- function(object, ...) {
+  return(.CalcN(object, ...))
 }
 
 #' @method .CalcN IterableMatrix
 #' @export
 #'
-.CalcN.IterableMatrix <- function(object) {
+.CalcN.IterableMatrix <- function(object, ...) {
   col_stat <- BPCells::matrix_stats(matrix = object, col_stats = 'mean')$col_stats
   return(list(
-    nCount = round(col_stat['mean',] *nrow(object)),
-    nFeature = col_stat['nonzero',]
+    nCount = round(col_stat['mean', ] * nrow(object)),
+    nFeature = col_stat['nonzero', ]
   ))
 }
 
 #' Find variable features based on dispersion
+#'
+#' @param data Data matrix
+#' @param nselect Number of top features to select based on dispersion values
+#' @param verbose Display progress
+#' @keywords internal
 #'
 DISP <- function(
   data,
@@ -1320,7 +1007,7 @@ DISP <- function(
     mean.func <- .Mean
     var.func <- .FeatureVar
   }
-  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
   # hvf.info$mean <- mean.func(data = data, margin = fmargin)
   hvf.info$mean <- rowMeans(x = data)
   hvf.info$variance <- var.func(
@@ -1372,9 +1059,98 @@ DISP <- function(
 ################################# SCTransform ##################################
 ################################################################################
 
+#' @importFrom SeuratObject Cells as.sparse
+#'
+#' @method SCTransform IterableMatrix
+#' @rdname SCTransform
+#' @concept preprocessing
+#' @export
+SCTransform.IterableMatrix <- function(
+    object,
+    cell.attr,
+    reference.SCT.model = NULL,
+    do.correct.umi = TRUE,
+    ncells = 5000,
+    residual.features = NULL,
+    variable.features.n = 3000,
+    variable.features.rv.th = 1.3,
+    vars.to.regress = NULL,
+    do.scale = FALSE,
+    do.center = TRUE,
+    clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
+    vst.flavor = 'v2',
+    conserve.memory = FALSE,
+    return.only.var.genes = TRUE,
+    seed.use = 1448145,
+    verbose = TRUE,
+    ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  if (!is.null(reference.SCT.model)){
+    do.correct.umi <- FALSE
+    do.center <- FALSE
+  }
+  sampled_cells <- sample.int(n = ncol(x = object), size = min(ncells, ncol(x = object)))
+  umi <- as.sparse(x = object[, sampled_cells])
+  cell.attr <- cell.attr[colnames(x = umi),,drop=FALSE]
+  vst.out <- SCTransform(object = umi,
+                         cell.attr = cell.attr,
+                         reference.SCT.model = reference.SCT.model,
+                         do.correct.umi = do.correct.umi,
+                         ncells = ncells,
+                         residual.features = residual.features,
+                         variable.features.n = variable.features.n,
+                         variable.features.rv.th = variable.features.rv.th,
+                         vars.to.regress = vars.to.regress,
+                         do.scale = do.scale,
+                         do.center = do.center,
+                         clip.range = clip.range,
+                         vst.flavor = vst.flavor,
+                         conserve.memory = conserve.memory,
+                         return.only.var.genes = return.only.var.genes,
+                         seed.use = seed.use,
+                         verbose = verbose,
+                         ...)
+  if (!do.correct.umi) {
+    vst.out$umi_corrected <- umi
+  }
+  return(vst.out)
+}
+
+
+#' @importFrom SeuratObject CreateAssayObject SetAssayData GetAssayData
+CreateSCTAssay <- function(vst.out,  do.correct.umi, residual.type, clip.range){
+  residual.type <- vst.out[['residual_type']] %||% 'pearson'
+  sct.method <- vst.out[['sct.method']]
+  assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+
+  # set the variable genes
+  VariableFeatures(object = assay.out) <- vst.out$variable_features
+  # put log1p transformed counts in data
+  assay.out <- SetAssayData(
+    object = assay.out,
+    slot = 'data',
+    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+  )
+  scale.data <- vst.out$y
+  assay.out <- SetAssayData(
+    object = assay.out,
+    slot = 'scale.data',
+    new.data = scale.data
+  )
+  vst.out$y <- NULL
+  # save clip.range into vst model
+  vst.out$arguments$sct.clip.range <- clip.range
+  vst.out$arguments$sct.method <- sct.method
+  Misc(object = assay.out, slot = 'vst.out') <- vst.out
+  assay.out <- as(object = assay.out, Class = "SCTAssay")
+  return (assay.out)
+}
 
 #' @importFrom SeuratObject Cells DefaultLayer DefaultLayer<- Features
-#' LayerData LayerData<-
+#' LayerData LayerData<- as.sparse
 #'
 #' @method SCTransform StdAssay
 #' @export
@@ -1393,12 +1169,15 @@ SCTransform.StdAssay <- function(
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
+  vst.flavor = 'v2',
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
   verbose = TRUE,
-  ...
-) {
+  ...) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
@@ -1406,7 +1185,11 @@ SCTransform.StdAssay <- function(
   olayer <- layer <- unique(x = layer)
   layers <- Layers(object = object, search = layer)
   dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
+  # loop over layers performing SCTransform() on individual layers
   sct.assay.list <- list()
+  # Keep a tab of variable features per chunk
+  variable.feature.list <- list()
+
   for (dataset.index in seq_along(along.with = layers)) {
     l <- layers[dataset.index]
     if (isTRUE(x = verbose)) {
@@ -1414,243 +1197,144 @@ SCTransform.StdAssay <- function(
     }
     all_cells <-  Cells(x = object, layer = l)
     all_features <- Features(x = object, layer = l)
-    counts <- LayerData(
+    layer.data <- LayerData(
       object = object,
       layer = l,
       features = all_features,
       cells = all_cells
     )
-    sparse <- DelayedArray::is_sparse(x = counts)
-    ## Sample  cells
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(ncells, ncol(counts)))
-    # if there is no reference model we randomly select a subset of cells
-    # TODO: randomize this set of cells
-    variable.feature.list <- list()
-    GetSCT.Chunked <- function(vp, reference.SCT.model = NULL, do.correct.umi = TRUE){
-      # counts here is global
-      block <- DelayedArray::read_block(x = counts,
-                                        viewport = vp,
-                                        as.sparse = sparse)
-      counts.chunk <- as(object = block, Class = 'dgCMatrix')
-      cell.attr.object <- cell.attr[colnames(x = counts.chunk),, drop=FALSE]
-
-      if (!identical(rownames(cell.attr.object), colnames(counts.chunk))) {
-        stop("cell attribute row names must match column names of count matrix")
-      }
-      vst.out <- SCTransform(object = counts.chunk,
-                             cell.attr = cell.attr.object,
-                             reference.SCT.model = reference.SCT.model,
-                             do.correct.umi = do.correct.umi,
-                             ncells = ncells,
-                             residual.features = residual.features,
-                             variable.features.n = variable.features.n,
-                             variable.features.rv.th = variable.features.rv.th,
-                             vars.to.regress = vars.to.regress,
-                             do.scale = FALSE,
-                             do.center = FALSE,
-                             clip.range = clip.range,
-                             conserve.memory = conserve.memory,
-                             return.only.var.genes = return.only.var.genes,
-                             seed.use = seed.use,
-                             verbose = FALSE,
-                             ...)
-      residual.type <- vst.out[['residual_type']] %||% 'pearson'
-      sct.method <- vst.out[['sct.method']]
-      # create output assay and put (corrected) umi counts in count slot
-      if (do.correct.umi & residual.type == 'pearson') {
-        if (verbose) {
-          message('Place corrected count matrix in counts slot')
-        }
-        assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
-        vst.out$umi_corrected <- NULL
-      } else {
-        # TODO: restore once check.matrix is in SeuratObject
-        # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
-        assay.out <- CreateAssayObject(counts = counts.chunk)
-      }
-      # set the variable genes
-      VariableFeatures(object = assay.out) <- vst.out$variable_features
-      # put log1p transformed counts in data
-      assay.out <- SetAssayData(
-        object = assay.out,
-        slot = 'data',
-        new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
-      )
-      scale.data <- vst.out$y
-      assay.out <- SetAssayData(
-        object = assay.out,
-        slot = 'scale.data',
-        new.data = scale.data
-      )
-      vst.out$y <- NULL
-      # save clip.range into vst model
-      vst.out$arguments$sct.clip.range <- clip.range
-      vst.out$arguments$sct.method <- sct.method
-      Misc(object = assay.out, slot = 'vst.out') <- vst.out
-      assay.out <- as(object = assay.out, Class = "SCTAssay")
-      # does not like character(0) keys being merged
-      return (assay.out)
-    }
     local.reference.SCT.model <- NULL
-    if (is.null(reference.SCT.model)){
-      # No reference model so just select the some block of cells
-      set.seed(seed = seed.use)
-      selected.block <-  sample(x = seq.int(from = 1, to = length(cells.grid)), size = 1)
-      if (verbose){
-        message("Using block ", selected.block, " from ", dataset.names[[dataset.index]], " to learn model.")
-      }
-      vp <- cells.grid[[selected.block]]
+    set.seed(seed = seed.use)
+    do.correct.umi.chunk <- FALSE
+    sct.function <- if (inherits(x = layer.data, what = 'V3Matrix')) {
+      SCTransform.default
+    } else {
+      SCTransform
+    }
+    if (is.null(x = cell.attr) && is.null(x = reference.SCT.model)){
+      calcn <- CalcN(object = layer.data)
+      cell.attr.layer <-  data.frame(umi = calcn$nCount,
+                               log_umi = log10(x = calcn$nCount))
+      rownames(cell.attr.layer) <- colnames(x = layer.data)
+    } else {
+      cell.attr.layer <- cell.attr[colnames(x = layer.data),, drop=FALSE]
+    }
+    if (!"umi" %in% cell.attr.layer && is.null(x = reference.SCT.model)){
+      calcn <- CalcN(object = layer.data)
+      cell.attr.tmp <-  data.frame(umi = calcn$nCount)
+      rownames(cell.attr.tmp) <- colnames(x = layer.data)
+      cell.attr.layer$umi <- NA
+      cell.attr.layer$log_umi <- NA
+      cell.attr.layer[rownames(cell.attr.tmp), "umi"] <- cell.attr.tmp$umi
+      cell.attr.layer[rownames(cell.attr.tmp), "log_umi"] <- log10(x = cell.attr.tmp$umi)
+    }
 
-      do.correct.umi.chunk <- FALSE
-      # correct umi if only single chunk
-      if (length(x = cells.grid) == 1) {
-        do.correct.umi.chunk <- TRUE
-      }
-      assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = do.correct.umi.chunk)
+    # Step 1: Learn model
+    vst.out <- sct.function(object = layer.data,
+                            do.correct.umi = FALSE,
+                            cell.attr = cell.attr.layer,
+                            reference.SCT.model = reference.SCT.model,
+                            ncells = ncells,
+                            residual.features = residual.features,
+                            variable.features.n = variable.features.n,
+                            variable.features.rv.th = variable.features.rv.th,
+                            vars.to.regress = vars.to.regress,
+                            do.scale = do.scale,
+                            do.center = do.center,
+                            clip.range = clip.range,
+                            vst.flavor = vst.flavor,
+                            conserve.memory = conserve.memory,
+                            return.only.var.genes = return.only.var.genes,
+                            seed.use = seed.use,
+                            verbose = FALSE)
+    min_var <- vst.out$arguments$min_variance
+    assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
+                                clip.range = clip.range)
+
+    # If there is no reference model, use the model learned on subset of cells to calculate residuals
+    # by setting the learned model as the reference model (local.reference.SCT.model)
+    if (is.null(x = reference.SCT.model)) {
       local.reference.SCT.model <- assay.out@SCTModel.list[[1]]
-      variable.features <- VariableFeatures(assay.out)
-      # once we have the model, just calculate residuals for all
-      # cells
-      vst_out.reference <- SCTModel_to_vst(SCTModel = local.reference.SCT.model)
-      vst_out.reference$gene_attr <- local.reference.SCT.model@feature.attributes
-      min_var <- vst_out.reference$arguments$min_variance
-      if (min_var == "umi_median"){
-        block <- DelayedArray::read_block(x = counts,
-                                          viewport = vp,
-                                          as.sparse = TRUE)
+    } else {
+      local.reference.SCT.model <- reference.SCT.model
+    }
+    variable.features <- VariableFeatures(assay.out)
 
-        counts.x <- as(object = block, Class = 'dgCMatrix')
-        min_var <- (median(counts.x@x)/5)^2
+    # once we have the model, just calculate residuals for all cells
+    # local.reference.SCT.model set to reference.model if it is non null
+    vst_out.reference <- SCTModel_to_vst(SCTModel = local.reference.SCT.model)
+    vst_out.reference$gene_attr <- local.reference.SCT.model@feature.attributes
+    min_var <- vst_out.reference$arguments$min_variance
+    if (min_var == "umi_median"){
+      counts.x <- as.sparse(x = layer.data[, sample.int(n = ncol(x = layer.data), size =  min(ncells, ncol(x = layer.data)) )])
+      min_var <- (median(counts.x@x)/5)^2
       }
-      res_clip_range <-  vst_out.reference$arguments$res_clip_range
-      residuals <- list()
-      corrected_counts <- list()
-      cell_attrs <- list()
-      if (length(x = cells.grid) == 1){
-        merged.assay <- assay.out
-        corrected_counts[[1]] <- GetAssayData(object = assay.out, slot="data")
-        residuals[[1]] <- GetAssayData(object = assay.out, slot="scale.data")
-        cell_attrs[[1]] <- vst_out.reference$cell_attr
-        sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
-      } else {
-        # iterate over chunks to get residuals
-        for (i in seq_len(length.out = length(x = cells.grid))) {
-          vp <- cells.grid[[i]]
-          if (verbose){
-            message("Getting residuals for block ", i, "(of ", length(cells.grid), ") for ", dataset.names[[dataset.index]], " dataset")
-          }
-          block <- DelayedArray::read_block(x = counts,
-                                            viewport = vp,
-                                            as.sparse = TRUE)
+    res_clip_range <-  vst_out.reference$arguments$res_clip_range
 
-          counts.vp <- as(object = block, Class = 'dgCMatrix')
-          cell.attr.object <- cell.attr[colnames(x = counts.vp),, drop=FALSE]
-          vst_out <- vst_out.reference
-          cell_attr <- data.frame(
-            umi = colSums(counts.vp),
-            log_umi = log10(x = colSums(counts.vp))
-          )
-          rownames(cell_attr) <- colnames(counts.vp)
-          vst_out$cell_attr <- cell_attr
-          vst_out$gene_attr <- vst_out$gene_attr[variable.features,]
-          if (return.only.var.genes){
-            new_residual <- get_residuals(
-              vst_out = vst_out,
-              umi = counts.vp[variable.features,],
-              residual_type = "pearson",
-              min_variance = min_var,
-              res_clip_range = res_clip_range,
-              verbosity =  FALSE#as.numeric(x = verbose) * 2
-              )
-          } else {
-            new_residual <- get_residuals(
-              vst_out = vst_out,
-              umi = counts.vp[all.features,],
-              residual_type = "pearson",
-              min_variance = min_var,
-              res_clip_range = res_clip_range,
-              verbosity =  FALSE#as.numeric(x = verbose) * 2
-            )
-          }
-          vst_out$y <- new_residual
-          corrected_counts[[i]] <- correct_counts(
-            x = vst_out,
-            umi = counts.vp[all_features,],
-            verbosity = FALSE# as.numeric(x = verbose) * 2
-          )
-          residuals[[i]] <- new_residual
-          cell_attrs[[i]] <- cell_attr
-        }
-        new.residuals <- Reduce(cbind, residuals)
+    # Step 2: Use learned model to calculate residuals in chunks
+    cells.vector <- 1:ncol(x = layer.data)
+    cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/ncells))
+    # Single block
+    residuals <- list()
+    corrected_counts <- list()
+    cell_attrs <- list()
 
-        corrected_counts <- Reduce(cbind, corrected_counts)
-        cell_attrs <- Reduce(rbind, cell_attrs)
-
-        vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),]
-        SCTModel.list <- PrepVSTResults(
-          vst.res = vst_out.reference,
-          cell.names = all_cells
-        )
-        SCTModel.list <- list(model1 = SCTModel.list)
-
-        # scale data here as do.center and do.scale are set to FALSE inside
-        new.residuals <- ScaleData(
-          new.residuals,
-          features = NULL,
-          #vars.to.regress = vars.to.regress,
-          #latent.data = cell.attr[, vars.to.regress, drop = FALSE],
-          model.use = 'linear',
-          use.umi = FALSE,
-          do.scale = do.scale,
-          do.center = do.center,
-          scale.max = Inf,
-          block.size = 750,
-          min.cells.to.block = 3000,
-          verbose = verbose
-        )
-        assay.out <- CreateSCTAssayObject(
-          counts = corrected_counts,
-          scale.data = new.residuals,
-          SCTModel.list = SCTModel.list
-          )
-        assay.out$data <- log1p(x = corrected_counts)
-        VariableFeatures(assay.out) <- variable.features
-        # one assay per dataset
-        if (verbose){
-          message("Finished calculating residuals for ", dataset.names[dataset.index])
-        }
-        sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
-        variable.feature.list[[dataset.names[dataset.index]]] <- VariableFeatures(assay.out)
-      }
-    } else { ### With reference model
-      sct.assay.list.temp <- list()
+    if (length(x = cells.grid) == 1){
+      merged.assay <- assay.out
+      corrected_counts[[1]] <- GetAssayData(object = assay.out, slot = "data")
+      residuals[[1]] <- GetAssayData(object = assay.out, slot = "scale.data")
+      cell_attrs[[1]] <- vst_out.reference$cell_attr
+      sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
+    } else {
+      # iterate over chunks to get residuals
       for (i in seq_len(length.out = length(x = cells.grid))) {
         vp <- cells.grid[[i]]
-
         if (verbose){
           message("Getting residuals for block ", i, "(of ", length(cells.grid), ") for ", dataset.names[[dataset.index]], " dataset")
         }
+        counts.vp <- as.sparse(x = layer.data[, vp])
+        cell.attr.object <- cell.attr.layer[colnames(x = counts.vp),, drop=FALSE]
+        vst_out <- vst_out.reference
 
-        assay.out <- GetSCT.Chunked(vp = vp,
-                                    reference.SCT.model = reference.SCT.model,
-                                    do.correct.umi = do.correct.umi)
-        sct.assay.list.temp[[paste0("chunk", i)]] <- assay.out
-        }
-      if (length(sct.assay.list.temp)>1){
-        # this currently fails in merge.StdAssay step
-        # assignment of an object of class “list” is not valid for
-        # slot ‘key’ in an object of class “Assay”; is(value, "character") is not TRUE
-        assay.out <- merge(x = sct.assay.list.temp[[1]],
-                           y = sct.assay.list.temp[2:length(sct.assay.list.temp)])
-
+        vst_out$cell_attr <- cell.attr.object
+        vst_out$gene_attr <- vst_out$gene_attr[variable.features,]
+        if (return.only.var.genes){
+          new_residual <- get_residuals(
+            vst_out = vst_out,
+            umi = counts.vp[variable.features,],
+            residual_type = "pearson",
+            min_variance = min_var,
+            res_clip_range = res_clip_range,
+            verbosity =  FALSE
+          )
         } else {
-          assay.out <- sct.assay.list.temp[[1]]
+          new_residual <- get_residuals(
+            vst_out = vst_out,
+            umi = counts.vp[all.features,],
+            residual_type = "pearson",
+            min_variance = min_var,
+            res_clip_range = res_clip_range,
+            verbosity =  FALSE
+          )
         }
-      ## DoScaling
-      scale.data <- GetAssayData(object = assay.out, slot = "scale.data")
+        vst_out$y <- new_residual
+        corrected_counts[[i]] <- correct_counts(
+          x = vst_out,
+          umi = counts.vp[all_features,],
+          verbosity = FALSE# as.numeric(x = verbose) * 2
+        )
+        residuals[[i]] <- new_residual
+        cell_attrs[[i]] <- cell.attr.object
+      }
+      new.residuals <- Reduce(cbind, residuals)
+      corrected_counts <- Reduce(cbind, corrected_counts)
+      cell_attrs <- Reduce(rbind, cell_attrs)
+      vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),]
+      SCTModel.list <- PrepVSTResults(vst.res = vst_out.reference, cell.names = all_cells)
+      SCTModel.list <- list(model1 = SCTModel.list)
       # scale data here as do.center and do.scale are set to FALSE inside
-      scale.data <- ScaleData(
-        scale.data,
+      new.residuals <- ScaleData(
+        new.residuals,
         features = NULL,
         #vars.to.regress = vars.to.regress,
         #latent.data = cell.attr[, vars.to.regress, drop = FALSE],
@@ -1663,84 +1347,66 @@ SCTransform.StdAssay <- function(
         min.cells.to.block = 3000,
         verbose = verbose
       )
-      assay.out <- SetAssayData(object = assay.out, slot = "scale.data", new.data = scale.data)
+      assay.out <- CreateSCTAssayObject(counts = corrected_counts, scale.data = new.residuals,  SCTModel.list = SCTModel.list)
+      assay.out$data <- log1p(x = corrected_counts)
+      VariableFeatures(assay.out) <- variable.features
+      # one assay per dataset
       if (verbose){
         message("Finished calculating residuals for ", dataset.names[dataset.index])
       }
       sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
-      variable.feature.list[[dataset.names[dataset.index]]] <- rownames(assay.out)
+      variable.feature.list[[dataset.names[dataset.index]]] <- VariableFeatures(assay.out)
     }
   }
-# Return array by merging everythin
-  if (length(x = sct.assay.list) > 1){
-    vf.list <- lapply(X  = sct.assay.list, FUN = function(object.i) VariableFeatures(object = object.i))
-    variable.features.union <- Reduce(f = union, x = vf.list)
-    var.features.sorted <- sort(
-      x = table(unlist(x = vf.list, use.names = FALSE)),
-      decreasing = TRUE
-    )
-    # idx <- which(x = var.features == length(x = sct.assay.list))
-    # select top ranking features
-    #var.features <- names(x = var.features.sorted[1:variable.features.n])
-    # calculate residuals for union of features
-    var.features <- variable.features.union
-    for (layer.name in names(sct.assay.list)){
-      vst_out <- SCTModel_to_vst(SCTModel = slot(object = sct.assay.list[[layer.name]], name = "SCTModel.list")[[1]])
-      all_cells <-  Cells(x = object, layer = paste0(layer, ".", layer.name))
-      all_features <- Features(x = object, layer = paste0(layer, ".", layer.name))
-      variable.features.target <- intersect(x = rownames(x = vst_out$model_pars_fit), y = var.features)
-      variable.features.target <- setdiff(x = variable.features.target, y = VariableFeatures(sct.assay.list[[layer.name]]))
-      if (length(variable.features.target )<1){
-        next
-      }
-      counts <- LayerData(
-        object = object,
-        layer = paste0(layer, ".", layer.name),
-        cells = all_cells
-      )
-      cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = ncol(counts))
-      vp <- cells.grid[[1L]]
-      block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = TRUE)
-      counts.vp <- as(object = block, Class = 'dgCMatrix')
-
-      if (vst_out$arguments$min_var == "umi_median"){
-        nz_median <- median(counts.vp@x)
-        min_var_custom <- (nz_median / 5)^2
-      } else {
-        min_var_custom <- vst_out$arguments$min_var
-      }
-      vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
-      vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
-
-      new_residual <- get_residuals(
-        vst_out = vst_out,
-        umi = counts.vp[variable.features.target,],
-        residual_type = "pearson",
-        min_variance = min_var_custom,
-        verbosity =  FALSE
-      )
-      old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
-      merged_residual <- rbind(old_residual, new_residual)
-      sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
-      VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
-    }
-    merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
-    VariableFeatures(object = merged.assay) <- VariableFeatures(
-      object = merged.assay,
-      use.var.features = FALSE,
-      nfeatures = variable.features.n
-      )
-    # set the names of SCTmodels to be layer names
-    models <- slot(object = merged.assay, name="SCTModel.list")
-    names(models) <- names(x = sct.assay.list)
-    slot(object = merged.assay, name="SCTModel.list") <- models
-  } else {
+  # Return array by merging everythin
+  if (length(x = sct.assay.list) == 1){
     merged.assay <- sct.assay.list[[1]]
-  }
+    } else {
+      vf.list <- lapply(X  = sct.assay.list, FUN = function(object.i) VariableFeatures(object = object.i))
+      variable.features.union <- Reduce(f = union, x = vf.list)
+      var.features.sorted <- sort(
+        x = table(unlist(x = vf.list, use.names = FALSE)),
+        decreasing = TRUE
+        )
+      # select top ranking features
+      var.features <- variable.features.union
+      # calculate residuals for union of features
+      for (layer.name in names(x = sct.assay.list)){
+        vst_out <- SCTModel_to_vst(SCTModel = slot(object = sct.assay.list[[layer.name]], name = "SCTModel.list")[[1]])
+        all_cells <-  Cells(x = object, layer = paste0(layer, ".", layer.name))
+        all_features <- Features(x = object, layer = paste0(layer, ".", layer.name))
+        variable.features.target <- intersect(x = rownames(x = vst_out$model_pars_fit), y = var.features)
+        variable.features.target <- setdiff(x = variable.features.target, y = VariableFeatures(sct.assay.list[[layer.name]]))
+        if (length(x = variable.features.target )<1){
+          next
+          }
+        layer.counts.tmp <- LayerData(
+          object = object,
+          layer = paste0(layer, ".", layer.name),
+          cells = all_cells
+          )
+        layer.counts.tmp <- as.sparse(x = layer.counts.tmp)
+        vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
+        vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
+        new_residual <- GetResidualsChunked(vst_out = vst_out, layer.counts = layer.counts.tmp,
+                                            residual_type = "pearson", min_variance = min_var, res_clip_range = res_clip_range,
+                                            verbose = FALSE)
+        old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
+        merged_residual <- rbind(old_residual, new_residual)
+        sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
+        VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
+      }
+      merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
+      VariableFeatures(object = merged.assay) <- VariableFeatures(object = merged.assay, use.var.features = FALSE, nfeatures = variable.features.n)
+
+    }
+  # set the names of SCTmodels to be layer names
+  models <- slot(object = merged.assay, name="SCTModel.list")
+  names(models) <- names(x = sct.assay.list)
+  slot(object = merged.assay, name="SCTModel.list") <- models
   gc(verbose = FALSE)
   return(merged.assay)
-}
-
+  }
 
 #' Calculate pearson residuals of features not in the scale.data
 #'
@@ -1754,6 +1420,9 @@ SCTransform.StdAssay <- function(
 #' and the default is RNA
 #' @param clip.range Numeric of length two specifying the min and max values the
 #' Pearson residual will be clipped to
+#' @param reference.SCT.model reference.SCT.model If a reference SCT model should be used
+#' for calculating the residuals. When set to not NULL, ignores the `SCTModel`
+#' paramater.
 #' @param replace.value Recalculate residuals for all features, even if they are
 #' already present. Useful if you want to change the clip.range.
 #' @param na.rm For features where there is no feature model stored, return NA
@@ -1777,16 +1446,17 @@ SCTransform.StdAssay <- function(
 #' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
 #'
-FetchResiduals <- function(object,
-                           features,
-                           assay = NULL,
-                           umi.assay = "RNA",
-                           layer = "counts",
-                           clip.range = NULL,
-                           reference.SCT.model = NULL,
-                           replace.value = FALSE,
-                           na.rm = TRUE,
-                           verbose = TRUE) {
+FetchResiduals <- function(
+  object,
+  features,
+  assay = NULL,
+  umi.assay = "RNA",
+  layer = "counts",
+  clip.range = NULL,
+  reference.SCT.model = NULL,
+  replace.value = FALSE,
+  na.rm = TRUE,
+  verbose = TRUE) {
   assay <- assay %||% DefaultAssay(object = object)
   if (IsSCT(assay = object[[assay]])) {
     object[[assay]] <- as(object[[assay]], "SCTAssay")
@@ -1833,7 +1503,7 @@ FetchResiduals <- function(object,
             paste(features.orig, collapse = ", "),
             call. = FALSE
     )
-    return (NULL)
+    return(NULL)
   }  #if (length(x = sct.models) > 1 & verbose) {
   #  message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
   #}
@@ -1905,47 +1575,54 @@ FetchResiduals <- function(object,
     new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
   }
 
-  return(new.scale[features,])
+  return(new.scale[features, ])
 }
 
-
-# Calculate pearson residuals of features not in the scale.data
-# This function is the secondary function under FetchResiduals
-#
-# @param object A seurat object
-# @param assay Name of the assay of the seurat object generated by SCTransform. Default
-# is "SCT"
-# @param umi.assay Name of the assay of the seurat object to fetch UMIs from. Default
-# is "RNA"
-# @param layer Name of the layer under `umi.assay` to fetch UMIs from. Default is
-# "counts"
-# @param layer.cells Vector of cells to calculate the residual for. Default is NULL
-# which uses all cells in the layer
-# @param SCTModel Which SCTmodel to use from the object for calculating the residual.
-# Will be ignored if reference.SCT.model is set
-# @param reference.SCT.model If a reference SCT model should be used for calculating
-# the residuals. When set to not NULL, ignores the `SCTModel` paramater.
-# @param new_features A vector of features to calculate the residuals for
-# @param clip.range Numeric of length two specifying the min and max values the Pearson residual will be clipped to. Useful if you want to change the clip.range.
-# @param replace.value Whether to replace the value of residuals if it already exists
-# @param verbose Whether to print messages and progress bars
-#
-# @return Returns a matrix containing centered pearson residuals of added features
-#
+#' Calculate pearson residuals of features not in the scale.data
+#' This function is the secondary function under FetchResiduals
+#'
+#' @param object A seurat object
+#' @param assay Name of the assay of the seurat object generated by
+#' SCTransform. Default is "SCT"
+#' @param umi.assay Name of the assay of the seurat object to fetch
+#' UMIs from. Default is "RNA"
+#' @param layer Name of the layer under `umi.assay` to fetch UMIs from.
+#' Default is "counts"
+#' @param layer.cells Vector of cells to calculate the residual for.
+#' Default is NULL which uses all cells in the layer
+#' @param SCTModel Which SCTmodel to use from the object for calculating
+#' the residual. Will be ignored if reference.SCT.model is set
+#' @param reference.SCT.model If a reference SCT model should be used
+#' for calculating the residuals. When set to not NULL, ignores the `SCTModel`
+#' paramater.
+#' @param new_features A vector of features to calculate the residuals for
+#' @param clip.range Numeric of length two specifying the min and max values
+#' the Pearson residual will be clipped to. Useful if you want to change the
+#' clip.range.
+#' @param replace.value Whether to replace the value of residuals if it
+#' already exists
+#' @param verbose Whether to print messages and progress bars
+#'
+#' @return Returns a matrix containing centered pearson residuals of
+#' added features
+#'
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
 #
-FetchResidualSCTModel <- function(object,
-                                  assay = "SCT",
-                                  umi.assay = "RNA",
-                                  layer = "counts",
-                                  layer.cells = NULL,
-                                  SCTModel = NULL,
-                                  reference.SCT.model = NULL,
-                                  new_features = NULL,
-                                  clip.range = NULL,
-                                  replace.value = FALSE,
-                                  verbose = FALSE) {
+FetchResidualSCTModel <- function(
+  object,
+  assay = "SCT",
+  umi.assay = "RNA",
+  layer = "counts",
+  layer.cells = NULL,
+  SCTModel = NULL,
+  reference.SCT.model = NULL,
+  new_features = NULL,
+  clip.range = NULL,
+  replace.value = FALSE,
+  verbose = FALSE
+) {
+
   model.cells <- character()
   model.features <- Features(x = object, assay = assay)
   if (is.null(x = reference.SCT.model)){
@@ -2043,17 +1720,14 @@ FetchResidualSCTModel <- function(object,
       layer = layer,
       cells = layer.cells
     )
-
-    # iterate over 2k cells at once
-    #cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(2000, length(x = layer.cells)))
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = length(x = layer.cells))
+    cells.vector <- 1:length(x = layer.cells)
+    cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/chunk_size))
     new_residuals <- list()
 
     for (i in seq_len(length.out = length(x = cells.grid))) {
       vp <- cells.grid[[i]]
-      block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = TRUE)
-      ## TODO: Maybe read only interesting genes
-      umi.all <- as(object = block, Class = "dgCMatrix")
+      block <- counts[,vp, drop=FALSE]
+      umi.all <- as.sparse(x = block)
 
       # calculate min_variance for get_residuals
       # required when vst_out$arguments$min_variance == "umi_median"
@@ -2165,6 +1839,45 @@ FetchResidualSCTModel <- function(object,
   return(new_residual)
 }
 
+#' @importFrom sctransform get_residuals
+GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_variance, res_clip_range, verbose, chunk_size=5000) {
+  if (inherits(x = layer.counts, what = 'V3Matrix')) {
+    residuals <- get_residuals(
+      vst_out = vst_out,
+      umi = layer.counts,
+      residual_type = residual_type,
+      min_variance = min_variance,
+      res_clip_range = res_clip_range,
+      verbosity = as.numeric(x = verbose) * 2
+    )
+  } else if (inherits(x = layer.counts, what = "IterableMatrix")) {
+    cells.vector <- 1:ncol(x = layer.counts)
+    residuals.list <- list()
+    cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/chunk_size))
+    for (i in seq_len(length.out = length(x = cells.grid))) {
+      vp <- cells.grid[[i]]
+      counts.vp <- as.sparse(x = layer.data[, vp])
+      vst.out <- vst_out
+      vst.out$cell_attr <- vst.out$cell_attr[colnames(x = counts.vp),,drop=FALSE]
+      residuals.list[[i]] <- get_residuals(
+        vst_out = vst.out,
+        umi = counts.vp,
+        residual_type = residual_type,
+        min_variance = min_variance,
+        res_clip_range = res_clip_range,
+        verbosity = as.numeric(x = verbose) * 2
+      )
+    }
+    residuals <- Reduce(f = cbind, x = residuals.list)
+  } else {
+    stop("Data type not supported")
+  }
+  return (residuals)
+
+
+
+}
+
 #' temporal function to get residuals from reference
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
@@ -2238,13 +1951,20 @@ FetchResiduals_reference <- function(object,
 
 #' Find variable features based on mean.var.plot
 #'
+#' @param data Data matrix
+#' @param nselect Number of features to select based on dispersion values
+#' @param verbose Whether to print messages and progress bars
+#' @param mean.cutoff Numeric of length two specifying the min and max values
+#' @param dispersion.cutoff Numeric of length two specifying the min and max values
+#'
+#' @keywords internal
+#'
 MVP <- function(
   data,
   verbose = TRUE,
   nselect = 2000L,
   mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf),
-  ...
+  dispersion.cutoff = c(1, Inf)
 ) {
   hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)
   hvf.info$variable <- FALSE

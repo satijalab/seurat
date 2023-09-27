@@ -35,6 +35,12 @@ remove all Graphs)}
 
 \item{misc}{Preserve the \code{misc} slot; default is \code{TRUE}}
 
+\item{counts}{Preserve the count matrices for the assays specified}
+
+\item{data}{Preserve the data matrices for the assays specified}
+
+\item{scale.data}{Preserve the scale data matrices for the assays specified}
+
 \item{...}{Ignored}
 }
 \value{

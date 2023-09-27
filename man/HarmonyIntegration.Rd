@@ -10,6 +10,7 @@ HarmonyIntegration(
   groups,
   features = NULL,
   scale.layer = "scale.data",
+  new.reduction = "harmony",
   layers = NULL,
   npcs = 50L,
   key = "harmony_",
@@ -41,8 +42,6 @@ should be called \code{group}}
 
 \item{layers}{Ignored}
 
-<<<<<<< Updated upstream
-=======
 \item{npcs}{If doing PCA on input matrix, number of PCs to compute}
 
 \item{key}{Key for Harmony dimensional reduction}
@@ -69,7 +68,6 @@ should be called \code{group}}
 
 \item{verbose}{Whether to print progress messages. TRUE to print, FALSE to suppress}
 
->>>>>>> Stashed changes
 \item{...}{Ignored}
 }
 \value{
@@ -98,17 +96,16 @@ obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction
   new.reduction = 'harmony', verbose = FALSE)
 
 # Modifying Parameters
-# We can also add arguments specific to Harmony such as theta, to give more diverse clusters 
+# We can also add arguments specific to Harmony such as theta, to give more diverse clusters
 obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca",
   new.reduction = 'harmony', verbose = FALSE, theta = 3)
-}
-
 # Integrating SCTransformed data
 obj <- SCTransform(object = obj)
-obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, 
-  orig.reduction = "pca", new.reduction = 'harmony', 
+obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
+  orig.reduction = "pca", new.reduction = 'harmony',
   assay = "SCT", verbose = FALSE)
-  
+}
+
 
 }
 \seealso{

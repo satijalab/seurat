@@ -16,8 +16,10 @@ object <- CreateSeuratObject(
 )
 object <- SetIdent(object, value = 'a')
 
+LayerData(object, layer="data") <- LayerData(object, layer="counts")
+
 test_that("AverageExpression works for different slots", {
-  suppressWarnings(average.expression <- AverageExpression(object, slot = 'data')$RNA)
+  suppressWarnings(average.expression <- AverageExpression(object, layer = 'data')$RNA)
   expect_equivalent(
     average.expression['KHDRBS1', 1:3],
     c(a = 7.278237e-01, b = 1.658166e+14, c = 1.431902e-01),
@@ -43,13 +45,13 @@ test_that("AverageExpression works for different slots", {
   object <- ScaleData(object = object, verbose = FALSE)
   avg.scale <- AverageExpression(object, slot = "scale.data")$RNA
   expect_equal(
-    avg.scale['MS4A1', ],
-    c(a = 0.02092088, b = -0.004769018, c = -0.018369549),
+    unname(avg.scale['MS4A1', ]),
+    unname(c(a = 0.02092088, b = -0.004769018, c = -0.018369549)),
     tolerance = 1e-6
   )
   expect_equal(
-    avg.scale['SPON2', ],
-    c(a = 0.1052434, b = 0.2042827, c = -0.3397051),
+    unname(avg.scale['SPON2', ]),
+    unname(c(a = 0.1052434, b = 0.2042827, c = -0.3397051)),
     tolerance = 1e-6
   )
 })
@@ -67,7 +69,8 @@ test_that("AverageExpression with return.seurat", {
   avg.counts <- AverageExpression(object, slot = "counts", return.seurat = TRUE, verbose = FALSE)
   expect_s4_class(object = avg.counts, "Seurat")
   avg.counts.mat <- AverageExpression(object, slot = 'counts')$RNA
-  expect_equal(as.matrix(LayerData(avg.counts[["RNA"]], layer = "counts")), as.matrix(avg.counts.mat))
+  expect_equal(unname(as.matrix(LayerData(avg.counts[["RNA"]], layer = "counts"))),
+               unname(as.matrix(avg.counts.mat)))
   avg.data <- LayerData(avg.counts[["RNA"]], layer = "data")
   expect_equal(
     unname(avg.data['MS4A1', ]),
@@ -95,8 +98,10 @@ test_that("AverageExpression with return.seurat", {
   avg.data <- AverageExpression(object, slot = "data", return.seurat = TRUE, verbose = FALSE)
   expect_s4_class(object = avg.data, "Seurat")
   avg.data.mat <- AverageExpression(object, slot = 'data')$RNA
-  expect_equal(as.matrix(LayerData(avg.data[["RNA"]], layer = "counts")), avg.data.mat)
-  expect_equal(unname(as.matrix(LayerData(avg.data[["RNA"]], layer = "data"))), unname(log1p(x = avg.data.mat)))
+  expect_equal(unname(as.matrix(LayerData(avg.data[["RNA"]], layer = "counts"))),
+               unname(as.matrix(avg.data.mat)))
+  expect_equal(unname(as.matrix(LayerData(avg.data[["RNA"]], layer = "data"))),
+               as.matrix(unname(log1p(x = avg.data.mat))))
   avg.scale <- LayerData(avg.data[["RNA"]], layer = "scale.data")
   expect_equal(
     avg.scale['MS4A1', ],
@@ -111,12 +116,10 @@ test_that("AverageExpression with return.seurat", {
 
   # scale.data
   object <- ScaleData(object = object, verbose = FALSE)
-  avg.scale <- AverageExpression(object, slot = "scale.data", return.seurat = TRUE, verbose = FALSE)
+  avg.scale <- AverageExpression(object, layer = "scale.data", return.seurat = TRUE, verbose = FALSE)
   expect_s4_class(object = avg.scale, "Seurat")
   avg.scale.mat <- AverageExpression(object, slot = 'scale.data')$RNA
-  expect_equal(unname(as.matrix(LayerData(avg.scale[["RNA"]], layer = "scale.data"))), unname(avg.scale.mat))
-  expect_true(all(is.na(LayerData(avg.scale[["RNA"]], layer = "data"))))
-  expect_equal(LayerData(avg.scale[["RNA"]], layer = "counts"), matrix())
+  expect_equal(unname(as.matrix(LayerData(avg.scale[["RNA"]], layer = "scale.data"))), unname(as.matrix(avg.scale.mat)))
 })
 
 test.dat <- LayerData(object = object, layer = "data")

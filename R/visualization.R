@@ -510,6 +510,7 @@ HTOHeatmap <- function(
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param slot Slot to pull expression data from (e.g. "counts" or "data")
+#' @param layer Layer to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot
@@ -701,11 +702,13 @@ VlnPlot <- function(
 #' @seealso \code{\link{DimPlot}}
 #'
 #' @examples
+#' \dontrun{
 #' if (requireNamespace("ape", quietly = TRUE)) {
 #'   data("pbmc_small")
 #'   pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 #'   PlotClusterTree(pbmc_small)
 #'   ColorDimSplit(pbmc_small, node = 5)
+#' }
 #' }
 #'
 ColorDimSplit <- function(
@@ -827,7 +830,7 @@ ColorDimSplit <- function(
 #' @examples
 #' data("pbmc_small")
 #' DimPlot(object = pbmc_small)
-#' DimPlot(object = pbmc_small, split.by = 'ident')
+#' DimPlot(object = pbmc_small, split.by = 'letter.idents')
 #'
 DimPlot <- function(
   object,
@@ -4062,7 +4065,7 @@ SpatialPlot <- function(
       }
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && class(x = data[, features[j]]) != "factor") {
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], "factor")) {
         max.feature.value <- max(data[, features[j]])
       }
 
@@ -4138,7 +4141,7 @@ SpatialPlot <- function(
       }
 
       # Plot multiple images depending on keep.scale
-      if (!(is.null(x = keep.scale)) && class(x = data[, features[j]]) != "factor") {
+      if (!(is.null(x = keep.scale)) && !inherits(x = data[, features[j]], "factor")) {
         plot <- suppressMessages(plot & scale_fill_gradientn(colors = SpatialColors(n = 100), limits = c(NA, max.feature.value)))
       }
 
@@ -4737,10 +4740,12 @@ JackStrawPlot <- function(
 #' @concept visualization
 #'
 #' @examples
+#' \dontrun{
 #' if (requireNamespace("ape", quietly = TRUE)) {
 #'   data("pbmc_small")
 #'   pbmc_small <- BuildClusterTree(object = pbmc_small)
 #'   PlotClusterTree(object = pbmc_small)
+#' }
 #' }
 PlotClusterTree <- function(object, direction = "downwards", ...) {
   if (!PackageCheck('ape', error = FALSE)) {
