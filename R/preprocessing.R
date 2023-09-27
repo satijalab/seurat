@@ -3156,6 +3156,7 @@ SampleUMI <- function(
 #'
 #' @importFrom stats setNames
 #' @importFrom Matrix colSums
+#' @importFrom SeuratObject as.sparse
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
@@ -3188,6 +3189,7 @@ SCTransform.default <- function(
     set.seed(seed = seed.use)
   }
   vst.args <- list(...)
+  object <- as.sparse(x = object)
   umi <- object
   # check for batch_var in meta data
   if ('batch_var' %in% names(x = vst.args)) {
