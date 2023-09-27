@@ -344,8 +344,6 @@ AddModuleScore <- function(
 #' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
 #' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
 #' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
-#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
-#' the order of 'assays' (if specified) or object's assays
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}#'
 #' @return Returns a matrix with genes as rows, identity classes as columns.
@@ -551,7 +549,7 @@ AverageExpression <- function(
       )
       LayerData(object = toRet,
                 layer = "data",
-                assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[i]]),
+                assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[1]]),
                                                                     normalization.method = normalization.method,
                                                                     scale.factor = scale.factor,
                                                                     margin = margin,

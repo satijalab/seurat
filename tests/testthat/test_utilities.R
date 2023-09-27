@@ -95,9 +95,9 @@ test_that("AverageExpression with return.seurat", {
   )
 
   # data
-  avg.data <- AverageExpression(object, slot = "data", return.seurat = TRUE, verbose = FALSE)
+  avg.data <- AverageExpression(object, layer = "data", return.seurat = TRUE, verbose = FALSE)
   expect_s4_class(object = avg.data, "Seurat")
-  avg.data.mat <- AverageExpression(object, slot = 'data')$RNA
+  avg.data.mat <- AverageExpression(object, layer = 'data')$RNA
   expect_equal(unname(as.matrix(LayerData(avg.data[["RNA"]], layer = "counts"))),
                unname(as.matrix(avg.data.mat)))
   expect_equal(unname(as.matrix(LayerData(avg.data[["RNA"]], layer = "data"))),
