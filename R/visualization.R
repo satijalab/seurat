@@ -638,15 +638,18 @@ VlnPlot <- function(
     )
     layer <- slot %||% layer
   }
-  layer.set <- Layers(
-    object = object,
-    search = layer %||% 'data'
+  layer.set <- suppressWarnings(
+    Layers(
+      object = object,
+      search = layer %||% 'data'
+    )
   )
   if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
     warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
   }
+  assay.name <- DefaultAssay(object)
   if (is.null(layer.set) & is.null(layer) ) {
-    warning('Default search for "data" layer yielded no results; utilizing "counts" layer instead.', 
+    warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.', 
             call. = FALSE, immediate. = TRUE)
     layer.set <- Layers(
       object = object,
@@ -654,7 +657,6 @@ VlnPlot <- function(
     )
   }
   if (is.null(layer.set)) {
-    assay.name <- DefaultAssay(object)
     stop('layer "', layer,'" is not found in assay: "', assay.name, '"')
   } else {
     layer <- layer.set
