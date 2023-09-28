@@ -5198,7 +5198,7 @@ if (normalization.method == 'SCT') {
   query <- query[features,]
   if(inherits(x = reference[[reference.assay]], what = "Assay5")){
     reference.data.list <- c()
-    for (i in Layers(object = reference[[reference.assay]], layer = "data")) {
+    for (i in Layers(object = reference[[reference.assay]], search = "data")) {
       reference.data.list[[i]] <- LayerData(
         object = reference[[reference.assay]], 
         layer = i
@@ -5298,7 +5298,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
     query <- query[features,]
     reference.data.list <- c()
     for (i in Layers(object = reference[[reference.assay]], 
-                     layer = "data")) {
+                     search = "data")) {
       reference.data.list[[i]] <- LayerData(object = reference[[reference.assay]], 
                                             layer = i)[features, ]
     }
