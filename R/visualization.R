@@ -654,7 +654,8 @@ VlnPlot <- function(
     )
   }
   if (is.null(layer.set)) {
-    stop('layer "', layer,'" is not found in the object')
+    assay.name <- DefaultAssay(object)
+    stop('layer "', layer,'" is not found in assay: "', assay.name, '"')
   } else {
     layer <- layer.set
   }
