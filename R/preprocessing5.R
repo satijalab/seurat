@@ -549,7 +549,7 @@ VST.IterableMatrix <- function(
     matrix = data,
     row_stats = 'variance')$row_stats
   # Calculate feature means
-  hvf.info$mean <- hvf.stats['mean' ]
+  hvf.info$mean <- hvf.stats['mean', ]
   # Calculate feature variance
   hvf.info$variance <- hvf.stats['variance', ]
   hvf.info$variance.expected <- 0L
