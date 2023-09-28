@@ -488,6 +488,7 @@ GetResidual <- function(
 #' @importFrom png readPNG
 #' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
+#' @importFrom purrr imap
 #'
 #' @export
 #' @concept preprocessing
@@ -510,27 +511,79 @@ Load10X_Spatial <- function(
   ...
 ) {
   if (length(x = data.dir) > 1) {
-    warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+    warning("'Load10X_Spatial' accepts only one 'data.dir'",
+            immediate. = TRUE)
     data.dir <- data.dir[1]
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
+  data <- Read10X_h5(filename = file.path(data.dir, filename),
+                     ...)
+
   if (to.upper) {
-    rownames(x = data) <- toupper(x = rownames(x = data))
+    data <- imap(data, ~{
+      rownames(.x) <- toupper(x = rownames(.x))
+      .x
+    })
   }
-  object <- CreateSeuratObject(counts = data, assay = assay)
+  if (is.list(data) & "Antibody Capture" %in% names(data)) {
+    matrix_gex <- data$`Gene Expression`
+    matrix_protein <- data$`Antibody Capture`
+    object <- CreateSeuratObject(counts = matrix_gex, assay = assay)
+    object_protein <- CreateAssayObject(counts = matrix_protein)
+    object[["Protein"]] <- object_protein
+  }
+  else {
+    object <- CreateSeuratObject(counts = data, assay = assay)
+  }
   if (is.null(x = image)) {
-    image <- Read10X_Image(
-	    image.dir = file.path(data.dir, 'spatial'),
-	    filter.matrix = filter.matrix
-  	)
-  } else {
+    image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
+                           filter.matrix = filter.matrix)
+  }
+  else {
     if (!inherits(x = image, what = "VisiumV1"))
       stop("Image must be an object of class 'VisiumV1'.")
   }
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
+
+  # if using the meta-data available for probes add to @misc slot
+  file_path <- file.path(data.dir, filename)
+  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe.metadata <- Read10X_probe_metadata(data.dir, filename)
+    Misc(object = object[['Spatial']], slot = "probe_metadata") <- probe.metadata
+  }
   return(object)
+}
+
+#' Read10x Probe Metadata
+#'
+#' This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
+#'
+#' @param data.dir The directory where the file is located.
+#' @param filename The name of the file containing the raw probe barcode matrix in HDF5 format. The default filename is 'raw_probe_bc_matrix.h5'.
+#'
+#' @return Returns a data.frame containing the probe metadata.
+#'
+#' @export
+Read10X_probe_metadata <- function(
+  data.dir,
+  filename = 'raw_probe_bc_matrix.h5'
+) {
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+    stop("Please install hdf5r to read HDF5 files")
+  }
+  file.path = paste0(data.dir,"/", filename)
+  if (!file.exists(file.path)) {
+    stop("File not found")
+  }
+  infile <- hdf5r::H5File$new(filename = file.path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe.name <- infile[['matrix/features/name']][]
+    probe.region<- infile[['matrix/features/probe_region']][]
+    meta.data <- data.frame(probe.name, probe.region)
+    return(meta.data)
+  }
 }
 
 #' Load STARmap data
@@ -602,6 +655,91 @@ LoadSTARmap <- function(
     qhulls = qhulls
   )
   return(starmap)
+}
+
+#' Load Curio Seeker data
+#'
+#' @param data.dir location of data directory that contains the counts matrix,
+#' gene names, barcodes/beads, and barcodes/bead location files.
+#' @param assay Name of assay to associate spatial data to
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @importFrom Matrix readMM
+#'
+#' @export
+#' @concept preprocessing
+#'
+LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
+  # check and find input files
+  if (length(x = data.dir) > 1) {
+    warning("'LoadCurioSeeker' accepts only one 'data.dir'",
+            immediate. = TRUE)
+    data.dir <- data.dir[1]
+  }
+  mtx.file <- list.files(
+    data.dir,
+    pattern = "*MoleculesPerMatchedBead.mtx",
+    full.names = TRUE)
+  if (length(x = mtx.file) > 1) {
+    warning("Multiple files matched the pattern '*MoleculesPerMatchedBead.mtx'",
+            immediate. = TRUE)
+  } else if (length(x = mtx.file) == 0) {
+    stop("No file matched the pattern '*MoleculesPerMatchedBead.mtx'", call. = FALSE)
+  }
+  mtx.file <- mtx.file[1]
+  barcodes.file <- list.files(
+    data.dir,
+    pattern = "*barcodes.tsv",
+    full.names = TRUE)
+  if (length(x = barcodes.file) > 1) {
+    warning("Multiple files matched the pattern '*barcodes.tsv'",
+            immediate. = TRUE)
+  } else if (length(x = barcodes.file) == 0) {
+    stop("No file matched the pattern '*barcodes.tsv'", call. = FALSE)
+  }
+  barcodes.file <- barcodes.file[1]
+  genes.file <- list.files(
+    data.dir,
+    pattern = "*genes.tsv",
+    full.names = TRUE)
+  if (length(x = genes.file) > 1) {
+    warning("Multiple files matched the pattern '*genes.tsv'",
+            immediate. = TRUE)
+  } else if (length(x = genes.file) == 0) {
+    stop("No file matched the pattern '*genes.tsv'", call. = FALSE)
+  }
+  genes.file <- genes.file[1]
+  coordinates.file <- list.files(
+    data.dir,
+    pattern = "*MatchedBeadLocation.csv",
+    full.names = TRUE)
+  if (length(x = coordinates.file) > 1) {
+    warning("Multiple files matched the pattern '*MatchedBeadLocation.csv'",
+            immediate. = TRUE)
+  } else if (length(x = coordinates.file) == 0) {
+    stop("No file matched the pattern '*MatchedBeadLocation.csv'", call. = FALSE)
+  }
+  coordinates.file <- coordinates.file[1]
+
+  # load counts matrix and create seurat object
+  mtx <- readMM(mtx.file)
+  mtx <- as.sparse(mtx)
+  barcodes <- read.csv(barcodes.file, header = FALSE)
+  genes <- read.csv(genes.file, header = FALSE)
+  colnames(mtx) <- barcodes$V1
+  rownames(mtx) <- genes$V1
+  object <- CreateSeuratObject(counts = mtx, assay = assay)
+
+  # load positions of each bead and store in a SlideSeq object in images slot
+  coords <- read.csv(coordinates.file)
+  colnames(coords) <- c("cell", "x", "y")
+  coords$y <- -coords$y
+  rownames(coords) <- coords$cell
+  coords$cell <- NULL
+  image <- new(Class = 'SlideSeq', assay = assay, coordinates = coords)
+  object[["Slice"]] <- image
+  return(object)
 }
 
 #' Normalize raw data
@@ -1054,7 +1192,7 @@ Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", fil
     Class = 'VisiumV1',
     image = image,
     scale.factors = scalefactors(
-      spot = scale.factors$tissue_hires_scalef,
+      spot = scale.factors$spot_diameter_fullres,
       fiducial = scale.factors$fiducial_diameter_fullres,
       hires = scale.factors$tissue_hires_scalef,
       scale.factors$tissue_lowres_scalef
@@ -1870,7 +2008,7 @@ ReadNanostring <- function(
           tx <- subset(tx, select = -c(fov, cell_ID))
         }
 
-        tx <- as.data.frame(t(x = as.matrix(x = tx[, -1, drop = FALSE])))
+        tx <- as.data.frame(t(x = as.matrix(x = tx)))
         if (!is.na(x = genes.filter)) {
           ptx(
             message = paste("Filtering genes with pattern", genes.filter),
@@ -2993,7 +3131,7 @@ SampleUMI <- function(
 #' Use regularized negative binomial regression to normalize UMI count data
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
-#' https://github.com/ChristophH/sctransform.
+#' https://github.com/satijalab/sctransform.
 #' Use this function as an alternative to the NormalizeData,
 #' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 #' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),

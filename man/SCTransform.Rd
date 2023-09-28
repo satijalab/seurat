@@ -86,7 +86,7 @@ slot of the new assay.
 }
 \description{
 This function calls sctransform::vst. The sctransform package is available at
-https://github.com/ChristophH/sctransform.
+https://github.com/satijalab/sctransform.
 Use this function as an alternative to the NormalizeData,
 FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 (named SCT by default) with counts being (corrected) counts, data being log1p(counts),

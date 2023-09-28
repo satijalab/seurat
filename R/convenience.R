@@ -201,7 +201,10 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
   )
 
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
-  xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
+  if("Blank Codeword" %in% names(data$matrix))
+    xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
+  else
+    xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Unassigned Codeword"]])
   xenium.obj[["ControlCodeword"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Codeword"]])
   xenium.obj[["ControlProbe"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Probe"]])
 
@@ -296,6 +299,7 @@ SpatialFeaturePlot <- function(
   images = NULL,
   crop = TRUE,
   slot = 'data',
+  keep.scale = "feature",
   min.cutoff = NA,
   max.cutoff = NA,
   ncol = NULL,
@@ -313,6 +317,7 @@ SpatialFeaturePlot <- function(
     images = images,
     crop = crop,
     slot = slot,
+    keep.scale = keep.scale,
     min.cutoff = min.cutoff,
     max.cutoff = max.cutoff,
     ncol = ncol,
@@ -386,7 +391,8 @@ SpecificDimPlot <- function(object, ...) {
 #' @export
 #'
 ReadParseBio <- function(data.dir, ...) {
-  mtx <- file.path(data.dir, "DGE.mtx")
+  file.dir <- list.files(path = data.dir, pattern = ".mtx")
+  mtx <- file.path(data.dir, file.dir)
   cells <- file.path(data.dir, "cell_metadata.csv")
   features <- file.path(data.dir, "all_genes.csv")
   return(ReadMtx(
