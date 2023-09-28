@@ -5196,13 +5196,21 @@ if (normalization.method == 'SCT') {
     nCount_UMI = nCount_UMI)
 } else {
   query <- query[features,]
-  reference.data.list <- c()
-  for (i in Layers(object = reference[[reference.assay]], 
-                   layer = "data")) {
-    reference.data.list[[i]] <- LayerData(object = reference[[reference.assay]], 
-                                          layer = i)[features, ]
+  if(inherits(x = reference[[reference.assay]], what = "Assay5")){
+    reference.data.list <- c()
+    for (i in Layers(object = reference[[reference.assay]], layer = "data")) {
+      reference.data.list[[i]] <- LayerData(
+        object = reference[[reference.assay]], 
+        layer = i
+        )[features, ]
+    }
+    reference.data <- do.call(cbind, reference.data.list)
+  } else {
+    reference.data <- GetAssayData(
+      object = reference,
+      assay = reference.assay,
+      slot = "data")[features, ]
   }
-  reference.data <- do.call(cbind, reference.data.list)
   if (is.null(x = feature.mean)) {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
