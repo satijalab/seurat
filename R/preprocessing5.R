@@ -333,7 +333,7 @@ NormalizeData.default <- function(
       }
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
-        stop('CLR normalization only supports for dense and dgCMatrix')
+        stop('CLR normalization is only supported for dense and dgCMatrix')
       }
       CustomNormalize(
         data = object,
@@ -347,7 +347,7 @@ NormalizeData.default <- function(
     'RC' = {
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
-        stop('RC normalization only supports for dense and dgCMatrix')
+        stop('RC normalization is only supported for dense and dgCMatrix')
       }
       RelativeCounts(data = object,
                      scale.factor = scale.factor,
