@@ -329,6 +329,9 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(object[["RNA"]]["vst.variance.standardized", drop = TRUE][VariableFeatures(object = object)])))
 })
 
+#object <- FindVariableFeatures(object, assay = "RNAbp")
+#this breaks currently
+
 # Tests for internal functions
 # ------------------------------------------------------------------------------
 norm.fxn <- function(x) {x / mean(x)}
@@ -352,6 +355,8 @@ test_that("CustomNormalize works as expected", {
   expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 10))
 })
 
+# Tests for SCTransform
+# --------------------------------------------------------------------------------
 context("SCTransform")
 object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v1",  seed.use = 1448145))
 
@@ -439,4 +444,12 @@ test_that("SCTransform v2 works as expected", {
   expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
   expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
   expect_equal(fa["FCER2", "theta"], Inf)
+})
+
+object <- suppressWarnings(SCTransform(object = object, assay = "RNAbp", new.assay.name = "SCTbp",
+                                       verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+test_that("SCTransform is equivalent for BPcells ", {
+  expect_equal(as.matrix(LayerData(object = object[["SCT"]], layer = "data")), 
+               as.matrix(LayerData(object = object[["SCTbp"]], layer = "data")),
+               tolerance = 1e-6)
 })
