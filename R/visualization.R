@@ -4387,8 +4387,7 @@ DotPlot <- function(
     features <- unlist(x = features)
     names(x = feature.groups) <- features
   }
-  cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
-
+  cells <- unlist(x = CellsByIdentities(object = object, cells = colnames(object[[assay]]), idents = idents))
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
