@@ -56,6 +56,7 @@ Other contributors:
   \item Austin Hartman \email{ahartman@nygenome.org} (\href{https://orcid.org/0000-0001-7278-1852}{ORCID}) [contributor]
   \item Jaison Jain \email{jjain@nygenome.org} (\href{https://orcid.org/0000-0002-9478-5018}{ORCID}) [contributor]
   \item Madeline Kowalski \email{mkowalski@nygenome.org} (\href{https://orcid.org/0000-0002-5655-7620}{ORCID}) [contributor]
+  \item Gesmira Molla \email{gmolla@nygenome.org} (\href{https://orcid.org/0000-0002-8628-5056}{ORCID}) [contributor]
   \item Efthymia Papalexi \email{epapalexi@nygenome.org} (\href{https://orcid.org/0000-0001-5898-694X}{ORCID}) [contributor]
   \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
   \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID}) [contributor]

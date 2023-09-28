@@ -26,6 +26,7 @@ DimPlot(
   label.color = "black",
   label.box = FALSE,
   repel = FALSE,
+  alpha = 1,
   cells.highlight = NULL,
   cols.highlight = "#DE2D26",
   sizes.highlight = 1,
@@ -61,8 +62,8 @@ See \code{\link{DiscretePalette}} for details.}
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
 
-\item{split.by}{Name of a metadata column to split plot by;
-see \code{\link{FetchData}} for more details}
+\item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
+to split by cell identity'}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
@@ -87,6 +88,8 @@ useful for crowded plots if points of interest are being buried. (default is FAL
 geom_label)}
 
 \item{repel}{Repel labels}
+
+\item{alpha}{Alpha value for plotting (default is 1)}
 
 \item{cells.highlight}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply
@@ -131,7 +134,7 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 \examples{
 data("pbmc_small")
 DimPlot(object = pbmc_small)
-DimPlot(object = pbmc_small, split.by = 'ident')
+DimPlot(object = pbmc_small, split.by = 'letter.idents')
 
 }
 \seealso{

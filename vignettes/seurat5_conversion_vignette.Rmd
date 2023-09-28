@@ -1,0 +1,132 @@
+---
+title: "Interoperability between single-cell object formats"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+
+```{r, include = FALSE, cache=FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+In this vignette, we demonstrate the ability to convert between Seurat objects, SingleCellExperiment objects, and anndata objects. 
+
+```{r packages}
+# install scater
+# https://bioconductor.org/packages/release/bioc/html/scater.html
+library(scater)
+library(Seurat)
+# install SeuratDisk from GitHub using the remotes package
+# remotes::install_github(repo = 'mojaveazure/seurat-disk', ref = 'develop')
+library(SeuratDisk)
+library(SeuratData)
+library(patchwork)
+```
+
+# Converting to/from `SingleCellExperiment`
+
+[`SingleCellExperiment`](https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) is a class for storing single-cell experiment data, created by Davide Risso, Aaron Lun, and Keegan Korthauer, and is used by many Bioconductor analysis packages. Here we demonstrate converting the Seurat object produced in our 3k PBMC tutorial to SingleCellExperiment for use with Davis McCarthy's [scater](https://bioconductor.org/packages/release/bioc/html/scater.html) package. 
+
+```{r seurat_singlecell}
+# Use PBMC3K from SeuratData
+InstallData("pbmc3k")
+pbmc <- LoadData(ds = "pbmc3k", type = "pbmc3k.final")
+pbmc.sce <- as.SingleCellExperiment(pbmc)
+p1 <- plotExpression(pbmc.sce, features = 'MS4A1', x = 'ident') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p2 <- plotPCA(pbmc.sce, colour_by = 'ident')
+p1 + p2
+```
+
+Seurat also allows conversion from `SingleCellExperiment` objects to Seurat objects; we demonstrate this on some publicly available data downloaded from a repository maintained by [Martin Hemberg's group](http://www.sanger.ac.uk/science/groups/hemberg-group).
+
+```{r singlecell_seurat}
+# download from hemberg lab
+# https://scrnaseq-public-datasets.s3.amazonaws.com/scater-objects/manno_human.rds
+manno <- readRDS(file = '../data/manno_human.rds')
+manno <- runPCA(manno)
+manno.seurat <- as.Seurat(manno, counts = 'counts', data = 'logcounts')
+# gives the same results; but omits defaults provided in the last line
+manno.seurat <- as.Seurat(manno)
+Idents(manno.seurat) <- 'cell_type1'
+p1 <- DimPlot(manno.seurat, reduction = 'PCA', group.by = 'Source') + NoLegend()
+p2 <- RidgePlot(manno.seurat, features = 'ACTB', group.by = 'Source')
+p1 + p2
+```
+
+# Converting to/from `loom`
+
+The [`loom`](http://loompy.org/) format is a file structure imposed on [HDF5 files](http://portal.hdfgroup.org/display/support) designed by [Sten Linnarsson's](http://linnarssonlab.org/) group. It is designed to efficiently hold large single-cell genomics datasets. The ability to save Seurat objects as `loom` files is implemented in [SeuratDisk](https://mojaveazure.github.io/seurat-disk) For more details about the `loom` format, please see the [`loom` file format specification](http://linnarssonlab.org/loompy/format/index.html).
+
+```{r prepare_loom, echo=FALSE}
+if (file.exists('../output/pbmc3k.loom')) {
+  file.remove('../output/pbmc3k.loom')
+}
+```
+
+```{r seruat_loom}
+pbmc.loom <- as.loom(pbmc, filename = '../output/pbmc3k.loom', verbose = FALSE)
+pbmc.loom
+# Always remember to close loom files when done
+pbmc.loom$close_all()
+```
+
+Seurat can also read in `loom` files connected via [SeuratDisk](https://github.com/mojaveazure/seurat-disk) into a Seurat object; we demonstrate this on a subset of the [Mouse Brain Atlas](http://mousebrain.org/) created by the Linnarsson lab.
+
+```{r loom_seurat, fig.height=10}
+# download from linnarsson lab
+# https://storage.googleapis.com/linnarsson-lab-loom/l6_r1_immune_cells.loom
+l6.immune <- Connect(filename = '../data/l6_r1_immune_cells.loom', mode = 'r')
+l6.immune
+l6.seurat <- as.Seurat(l6.immune)
+Idents(l6.seurat) <- "ClusterName"
+VlnPlot(l6.seurat, features = c('Sparc', 'Ftl1', 'Junb', 'Ccl4'), ncol = 2)
+# Always remember to close loom files when done
+l6.immune$close_all()
+```
+
+For more details about interacting with loom files in R and Seurat, please see [loomR on GitHub](https://github.com/mojaveazure/loomR).
+
+# Converting to/from `AnnData`
+
+[`AnnData`](https://anndata.readthedocs.io/en/latest/) provides a Python class, created by Alex Wolf and Philipp Angerer, that can be used to store single-cell data. This data format is also use for storage in their [Scanpy](https://scanpy.readthedocs.io/en/latest/index.html) package for which we now support interoperability. Support for reading data from and saving data to `AnnData` files is provided by [SeuratDisk](https://mojaveazure.github.io/seurat-disk); please see their [vignette](https://mojaveazure.github.io/seurat-disk/articles/convert-anndata.html) showcasing the interoperability.
+
+# Acknowledgments
+
+Many thanks to [Davis McCarthy](https://twitter.com/davisjmcc?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor) and [Alex Wolf](https://twitter.com/falexwolf) for their help in drafting the conversion functions. 
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_conversion_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

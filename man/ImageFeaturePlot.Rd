@@ -71,8 +71,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 \item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
-\item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
-to split by cell identity'; similar to the old \code{FeatureHeatmap}}
+\item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
+to split by cell identity'}
 
 \item{molecules}{A vector of molecules to plot}
 
@@ -83,8 +83,7 @@ RColorBrewer is used by default.}
 
 \item{nmols}{Max number of each molecule specified in `molecules` to plot}
 
-\item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
-boundaries, \code{alpha} is equivalent to max alpha}
+\item{alpha}{Alpha value for plotting (default is 1)}
 
 \item{border.color}{Color of cell segmentation border; pass \code{NA}
 to suppress borders for segmentation-based plots}

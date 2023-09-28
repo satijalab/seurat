@@ -3,6 +3,7 @@
 \name{ScaleData}
 \alias{ScaleData}
 \alias{ScaleData.default}
+\alias{ScaleData.IterableMatrix}
 \alias{ScaleData.Assay}
 \alias{ScaleData.Seurat}
 \title{Scale and center the data.}
@@ -23,6 +24,15 @@ ScaleData(object, ...)
   block.size = 1000,
   min.cells.to.block = 3000,
   verbose = TRUE,
+  ...
+)
+
+\method{ScaleData}{IterableMatrix}(
+  object,
+  features = NULL,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
   ...
 )
 

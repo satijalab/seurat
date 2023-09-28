@@ -1,0 +1,90 @@
+---
+title: 'Integration of SCTransform normalized datasets'
+output:
+  html_document:
+    theme: united
+  pdf_document: default
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+## Setup the Seurat objects
+
+
+
+```{r data}
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+library(SeuratData)
+library(patchwork)
+```
+
+
+```{r installdata, eval=FALSE}
+# install dataset
+InstallData('pbmcsca')
+```
+
+```{r init, results='hide', message=FALSE, fig.keep='none'}
+# load dataset
+pbmcsca <- LoadData("pbmcsca")
+pbmcsca <-  UpdateSeuratObject(object = pbmcsca)
+pbmcsca[["RNA"]] <- as(pbmcsca[["RNA"]], Class = "Assay5")
+
+# split the dataset into layers 
+pbmcsca[["RNA"]] <- split(pbmcsca[["RNA"]], f = pbmcsca$Method)
+```
+
+## Run SCTransform
+
+```{r}
+pbmcsca <- SCTransform(pbmcsca)
+pbmcsca <- RunPCA(pbmcsca, npcs = 30, verbose = FALSE)
+```
+
+## Perform integration
+
+We then integrate all the layers using the `IntegrateLayers()` function.
+
+```{r}
+pbmcsca <- IntegrateLayers(object = pbmcsca, 
+                           method = RPCAIntegration,
+                           normalization.method="SCT",
+                           verbose = F)
+```
+
+
+```{r}
+pbmcsca <- FindNeighbors(pbmcsca, dims = 1:30)
+pbmcsca <- FindClusters(pbmcsca, resolution = 2)
+pbmcsca <- RunUMAP(pbmcsca, dims = 1:30)
+```
+
+```{r viz, results='hide', message=FALSE}
+# Visualization
+p1 <- DimPlot(pbmcsca, reduction = "umap", group.by = "Method")
+p2 <- DimPlot(pbmcsca, reduction = "umap", group.by = "CellType", label = TRUE, repel = TRUE)
+p1 + p2
+```

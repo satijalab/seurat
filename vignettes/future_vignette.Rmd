@@ -25,7 +25,8 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 In Seurat, we have chosen to use the `future` framework for parallelization. In this vignette, we will demonstrate how you can take advantage of the `future` implementation of certain Seurat functions from a user's perspective. If you are interested in learning more about the `future` framework beyond what is described here, please see the package vignettes [here](https://cran.r-project.org/web/packages/future/index.html) for a comprehensive and detailed description. 
@@ -59,6 +60,7 @@ For example, to run the parallel version of `FindMarkers()`, you simply need to 
 ```{r demo}
 library(Seurat)
 pbmc <- readRDS("../data/pbmc3k_final.rds")
+pbmc <- UpdateSeuratObject(pbmc)
 
 # Enable parallelization
 plan('multiprocess', workers = 4)

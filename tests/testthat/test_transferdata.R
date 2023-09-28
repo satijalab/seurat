@@ -5,7 +5,13 @@ pbmc_small <- suppressWarnings(UpdateSeuratObject(pbmc_small))
 # Setup test objects
 ref <- pbmc_small
 query <- CreateSeuratObject(
-  counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts") + rpois(n = ncol(pbmc_small), lambda = 1)
+  counts = as.sparse(
+    GetAssayData(
+      object = pbmc_small[['RNA']],
+      slot = "counts") + rpois(n = ncol(pbmc_small),
+      lambda = 1
+    )
+  )
 )
 query <- NormalizeData(object = query, verbose = FALSE)
 query <- FindVariableFeatures(object = query, verbose = FALSE, nfeatures = 100)

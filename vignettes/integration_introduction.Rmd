@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   fig.width = 10,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -66,7 +67,7 @@ InstallData('ifnb')
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
-LoadData('ifnb')
+ifnb <- LoadData('ifnb')
 
 # split the dataset into a list of two seurat objects (stim and CTRL)
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
@@ -154,7 +155,7 @@ markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7
 DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'), dot.scale = 8, split.by = "stim") + RotatedAxis()
 ```
 
-```{r save.img, include = FALSE}
+```{r save.img, include = TRUE}
 library(ggplot2)
 plot <- DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'),
                       dot.scale = 6, split.by = "stim") + RotatedAxis() 
@@ -210,7 +211,7 @@ plots <- VlnPlot(immune.combined, features = c("LYZ", "ISG15", "CXCL10"), split.
 wrap_plots(plots = plots, ncol = 1)
 ```
 
-```{r save, include = FALSE}
+```{r save, include = TRUE}
 saveRDS(immune.combined, file = "../output/immune.combined.rds")
 ```
 
@@ -228,7 +229,7 @@ Below, we demonstrate how to modify the Seurat integration workflow for datasets
 
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
-LoadData('ifnb')
+ifnb <- LoadData('ifnb')
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
 ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform) 
 features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)

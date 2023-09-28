@@ -27,7 +27,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -140,7 +141,7 @@ SpatialFeaturePlot(brain, features = c("Hpca", "Ttr"))
 ```
 
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- SpatialFeaturePlot(brain, features = c("Ttr")) + 
   theme(legend.text = element_text(size = 0), legend.title = element_text(size = 20), legend.key.size = unit(1, "cm")) 
@@ -233,12 +234,12 @@ An alternative approach, implemented in `FindSpatiallyVariables()`, is to search
 We note that there are multiple methods in the literature to accomplish this task, including [SpatialDE](https://www.nature.com/articles/nmeth.4636), and [Splotch](https://www.biorxiv.org/content/10.1101/757096v1.article-metrics). We encourage interested users to explore these methods, and hope to add support for them in the near future.
 
 ```{r spatial.vf}
-brain <- FindSpatiallyVariableFeatures(brain, assay = 'SCT', features = VariableFeatures(brain)[1:1000], selection.method = 'markvariogram')
+brain <- FindSpatiallyVariableFeatures(brain, assay = 'SCT', features = VariableFeatures(brain)[1:1000], selection.method = 'moransi')
 ```
 
 Now we visualize the expression of the top 6 features identified by this measure. 
 ```{r spatial.vf.plot, fig.height=8}
-top.features <- head(SpatiallyVariableFeatures(brain, selection.method = 'markvariogram'),6)
+top.features <- head(SpatiallyVariableFeatures(brain, selection.method = 'moransi'),6)
 SpatialFeaturePlot(brain, features = top.features, ncol = 3, alpha = c(0.1, 1))
 ```
 
@@ -302,8 +303,8 @@ SpatialFeaturePlot(cortex, features = c("L2/3 IT", "L4"), pt.size.factor = 1.6, 
 Based on these prediction scores, we can also predict *cell types* whose location is spatially restricted. We use the same methods based on marked point processes to define spatially variable features, but use the cell type prediction scores as the "marks" rather than gene expression.
 
 ```{r sc.data8, fig.height = 10}
-cortex <- FindSpatiallyVariableFeatures(cortex, assay = "predictions", selection.method = "markvariogram", features = rownames(cortex), r.metric = 5, slot = "data")
-top.clusters <- head(SpatiallyVariableFeatures(cortex), 4)
+cortex <- FindSpatiallyVariableFeatures(cortex, assay = "predictions", selection.method = "moransi", features = rownames(cortex), r.metric = 5, slot = "data")
+top.clusters <- head(SpatiallyVariableFeatures(cortex, selection.method = "moransi"), 4)
 SpatialPlot(object = cortex, features = top.clusters, ncol = 2)
 ```
 
@@ -398,8 +399,8 @@ slide.seq <- FindClusters(slide.seq, resolution = 0.3, verbose = FALSE)
 We can then visualize the results of the clustering either in UMAP space (with `DimPlot()`) or in the bead coordinate space with `SpatialDimPlot()`. 
 
 ```{r dim.plots.ss,fig.height=5}
-plot1 <- DimPlot(slide.seq, reduction = "umap", label = TRUE) 
-plot2 <- SpatialDimPlot(slide.seq, stroke = 0) 
+plot1 <- DimPlot(slide.seq, reduction = "umap", label = TRUE)
+plot2 <- SpatialDimPlot(slide.seq, stroke = 0)
 plot1 + plot2
 SpatialDimPlot(slide.seq, cells.highlight = CellsByIdentities(object = slide.seq, idents = c(1, 6, 13)), facet.highlight = TRUE)
 ```
@@ -410,6 +411,7 @@ To facilitate cell-type annotation of the Slide-seq dataset, we are leveraging a
 
 ```{r ref.saunders}
 ref <- readRDS("../data/mouse_hippocampus_reference.rds")
+ref <- UpdateSeuratObject(ref)
 ```
 
 The original annotations from the paper are provided in the cell metadata of the Seurat object. These annotations are provided at several "resolutions", from broad classes (`ref$class`) to subclusters within celltypes (`ref$subcluster`). For the purposes of this vignette, we'll work off of a modification of the celltype annotations (`ref$celltype`) which we felt struck a good balance. 
@@ -452,7 +454,60 @@ Now we visualize the expression of the top 6 features identified by Moran's I.
 SpatialFeaturePlot(slide.seq, features = head(SpatiallyVariableFeatures(slide.seq, selection.method = "moransi"), 6), ncol = 3, alpha = c(0.1, 1), max.cutoff = "q95")
 ```
 
-```{r save.times, include = FALSE}
+## Spatial deconvolution using RCTD
+
+While `FindTransferAnchors` can be used to integrate spot-level data from spatial transcriptomic datasets, Seurat v5 also includes support for the [Robust Cell Type Decomposition](https://www.nature.com/articles/s41587-021-00830-w), a computational approach to deconvolve spot-level data from spatial datasets, when provided with an scRNA-seq reference. RCTD has been shown to accurately annotate spatial data from a variety of technologies, including SLIDE-seq, Visium, and the 10x Xenium in-situ spatial platform. 
+
+To run RCTD, we first install the `spacexr` package from GitHub which implements RCTD.
+
+```{r, eval=FALSE}
+devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+```
+
+Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation.
+
+```{r rctd.setup, warning=FALSE, results=FALSE}
+library(spacexr)
+
+# set up reference
+ref <- readRDS("../data/mouse_hippocampus_reference.rds")
+ref <- UpdateSeuratObject(ref)
+Idents(ref) <- "celltype"
+
+# extract information to pass to the RCTD Reference function
+counts <- ref[["RNA"]]$counts
+cluster <- as.factor(ref$celltype)
+names(cluster) <- colnames(ref)
+nUMI <- ref$nCount_RNA
+names(nUMI) <- colnames(ref)
+reference <- Reference(counts, cluster, nUMI)
+
+# set up query with the RCTD function SpatialRNA
+slide.seq <- SeuratData::LoadData("ssHippo")
+counts <- slide.seq[["Spatial"]]$counts
+coords <- GetTissueCoordinates(slide.seq)
+colnames(coords) <- c("x", "y")
+coords[is.na(colnames(coords))] <- NULL
+query <- SpatialRNA(coords, counts, colSums(counts))
+```
+
+Using the `reference` and `query` object, we annotate the dataset and add the cell type labels to the query Seurat object. RCTD parallelizes well, so multiple cores can be specified for faster performance.
+
+```{r run.rctd, warning=FALSE, results=FALSE}
+RCTD <- create.RCTD(query, reference, max_cores = 8)
+RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
+slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
+```
+
+Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the algorithm assigns a `first_type` and `second_type` for each barcode or spot.
+
+```{r rctd_results, fig.height=8, fig.width=14}
+p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
+p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
+p1 | p2
+```
+
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/spatial_vignette_times.csv")
 ```
 

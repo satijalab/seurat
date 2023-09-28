@@ -3,7 +3,7 @@
 \name{FindVariableFeatures}
 \alias{FindVariableFeatures}
 \alias{FindVariableGenes}
-\alias{FindVariableFeatures.default}
+\alias{FindVariableFeatures.V3Matrix}
 \alias{FindVariableFeatures.Assay}
 \alias{FindVariableFeatures.SCTAssay}
 \alias{FindVariableFeatures.Seurat}
@@ -11,7 +11,7 @@
 \usage{
 FindVariableFeatures(object, ...)
 
-\method{FindVariableFeatures}{default}(
+\method{FindVariableFeatures}{V3Matrix}(
   object,
   selection.method = "vst",
   loess.span = 0.3,

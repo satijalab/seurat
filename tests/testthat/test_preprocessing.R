@@ -17,13 +17,14 @@ test_that("object initialization actually creates seurat object", {
   expect_is(object, "Seurat")
 })
 
-test_that("meta.data slot generated correctly", {
-  expect_equal(dim(object[[]]), c(80, 4))
-  expect_equal(colnames(object[[]]), c("orig.ident", "nCount_RNA", "nFeature_RNA", "FMD"))
-  expect_equal(rownames(object[[]]), colnames(object))
-  expect_equal(object[["nFeature_RNA"]][1:5, ], c(47, 52, 50, 56, 53))
-  expect_equal(object[["nCount_RNA"]][75:80, ], c(228, 527, 202, 157, 150, 233))
-})
+#this should be moved to seurat object
+# test_that("meta.data slot generated correctly", {
+#   expect_equal(dim(object[[]]), c(80, 4))
+#   expect_equal(colnames(object[[]]), c("orig.ident", "nCount_RNA", "nFeature_RNA", "FMD"))
+#   expect_equal(rownames(object[[]]), colnames(object))
+#   expect_equal(object[["nFeature_RNA"]][1:5, ], c(47, 52, 50, 56, 53))
+#   expect_equal(object[["nCount_RNA"]][75:80, ], c(228, 527, 202, 157, 150, 233))
+# })
 
 object.filtered <- CreateSeuratObject(
   counts = pbmc.test,
@@ -36,13 +37,14 @@ test_that("Filtering handled properly", {
   expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
 })
 
-test_that("Metadata check errors correctly", {
-  pbmc.md <- pbmc_small[[]]
-  pbmc.md.norownames <- as.matrix(pbmc.md)
-  rownames(pbmc.md.norownames) <- NULL
-  expect_error(CreateSeuratObject(counts = pbmc.test, meta.data = pbmc.md.norownames),
-               "Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
-})
+#this should be moved to seurat object
+# test_that("Metadata check errors correctly", {
+#   pbmc.md <- pbmc_small[[]]
+#   pbmc.md.norownames <- as.matrix(pbmc.md)
+#   rownames(pbmc.md.norownames) <- NULL
+#   expect_error(CreateSeuratObject(counts = pbmc.test, meta.data = pbmc.md.norownames),
+#                "Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
+# })
 
 # Tests for NormalizeData
 # --------------------------------------------------------------------------------
@@ -70,11 +72,11 @@ test_that("NormalizeData scales properly", {
   expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
 test_that("LogNormalize normalizes properly", {
   expect_equal(
-    LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
-    LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE)
+    as.matrix(LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)),
+    as.matrix(LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE))
   )
 })
 
@@ -94,6 +96,40 @@ test_that("Relative count normalization returns expected values", {
   rc.counts <- NormalizeData(object = pbmc.test, normalization.method = "RC", verbose = FALSE, scale.factor = 1e6)
   expect_equal(rc.counts[2, 1], 14285.71, tolerance = 1e-6)
 })
+
+# Tests for v5 NormalizeData
+# --------------------------------------------------------------------------------
+context("v5 NormalizeData")
+
+if(class(object[['RNA']]) == "Assay5")  {
+  fake.groups <- c(rep(1, floor(ncol(pbmc.test)/2)),
+                   rep(2, ncol(pbmc.test) - (floor(ncol(pbmc.test)/2))) )
+  object$groups <- fake.groups
+  object.split[["RNA"]] <- split(object[["RNA"]], f = object$groups)
+  object.split <-  NormalizeData(object = object.split)
+  
+  group1 <- subset(object, groups==1)
+  group1 <- NormalizeData(group1)
+  
+  test_that("Normalization is performed for each layer", {
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
+  })
+  
+  object.split <- NormalizeData(object = object.split, normalization.method = "CLR", verbose = FALSE)
+  group1 <- NormalizeData(object = group1, normalization.method = "CLR", verbose = FALSE)
+  test_that("CLR normalization works with multiple layers", {
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
+  })        
+  
+  object.split <- NormalizeData(object = object.split, normalization.method = "RC", verbose = FALSE)
+  group1 <- NormalizeData(object = group1, normalization.method = "RC", verbose = FALSE)
+  test_that("RC normalization works with multiple layers", {
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
+  })
+}
 
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
@@ -135,12 +171,13 @@ g2 <- subset(x = object, group == "g2")
 g2 <- ScaleData(object = g2, features = rownames(x = g2), verbose = FALSE)
 object <- ScaleData(object = object, features = rownames(x = object), verbose = FALSE, split.by = "group")
 
-test_that("split.by option works", {
-  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
-               GetAssayData(object = g1, slot = "scale.data"))
-  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
-               GetAssayData(object = g2, slot = "scale.data"))
-})
+#move to SeuratObject
+# test_that("split.by option works", {
+#   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
+#                GetAssayData(object = g1, slot = "scale.data"))
+#   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
+#                GetAssayData(object = g2, slot = "scale.data"))
+# })
 
 g1 <- ScaleData(object = g1, features = rownames(x = g1), vars.to.regress = "nCount_RNA", verbose = FALSE)
 g2 <- ScaleData(object = g2, features = rownames(x = g2), vars.to.regress = "nCount_RNA", verbose = FALSE)
@@ -238,29 +275,29 @@ object <- FindVariableFeatures(object = object, selection.method = "mean.var.plo
 test_that("mean.var.plot selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PTGDR", "SATB1", "ZNF330", "S100B"))
   expect_equal(length(x = VariableFeatures(object = object)), 20)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
-  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
 })
 
 object <- FindVariableFeatures(object, selection.method = "dispersion", verbose = FALSE)
 test_that("dispersion selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PCMT1", "PPBP", "LYAR", "VDAC3"))
   expect_equal(length(x = VariableFeatures(object = object)), 230)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
-  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
-  expect_true(!is.unsorted(rev(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')[VariableFeatures(object = object), "dispersion"])))
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
+  expect_true(!is.unsorted(rev(HVFInfo(object = object[["RNA"]], method = 'mvp')[VariableFeatures(object = object), "dispersion"])))
 })
 
 object <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
 test_that("vst selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PPBP", "IGLL5", "VDAC3", "CD1C"))
   expect_equal(length(x = VariableFeatures(object = object)), 230)
-  expect_equal(unname(object[["RNA"]][["vst.variance", drop = TRUE]][1:2]), c(1.0251582, 1.2810127), tolerance = 1e-6)
-  expect_equal(unname(object[["RNA"]][["vst.variance.expected", drop = TRUE]][1:2]), c(1.1411616, 2.7076228), tolerance = 1e-6)
-  expect_equal(unname(object[["RNA"]][["vst.variance.standardized", drop = TRUE]][1:2]), c(0.8983463, 0.4731134), tolerance = 1e-6)
-  expect_true(!is.unsorted(rev(object[["RNA"]][["vst.variance.standardized", drop = TRUE]][VariableFeatures(object = object)])))
+  expect_equal(unname(object[["RNA"]]["vst.variance", drop = TRUE][1:2]), c(1.0251582, 1.2810127), tolerance = 1e-6)
+  expect_equal(unname(object[["RNA"]]["vst.variance.expected", drop = TRUE][1:2]), c(1.1411616, 2.7076228), tolerance = 1e-6)
+  expect_equal(unname(object[["RNA"]]["vst.variance.standardized", drop = TRUE][1:2]), c(0.8983463, 0.4731134), tolerance = 1e-6)
+  expect_true(!is.unsorted(rev(object[["RNA"]]["vst.variance.standardized", drop = TRUE][VariableFeatures(object = object)])))
 })
 
 # Tests for internal functions
@@ -286,19 +323,17 @@ test_that("CustomNormalize works as expected", {
   expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 10))
 })
 
-# Tests for SCTransform
-# ------------------------------------------------------------------------------
 context("SCTransform")
-object <- suppressWarnings(SCTransform(object = object, verbose = FALSE))
+object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v1",  seed.use = 1448145))
 
 test_that("SCTransform wrapper works as expected", {
   expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 11.40288448)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 57.7295742, tolerance = 1e-6)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 11.74403719, tolerance = 1e-6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 129)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 28)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 11.40288448)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 57.7295742, tolerance = 1e-6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 11.74403719, tolerance = 1e-6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 129)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 28)
   expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
   fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
   expect_equal(fa["MS4A1", "detection_rate"], 0.15)
@@ -308,16 +343,34 @@ test_that("SCTransform wrapper works as expected", {
   expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-6)
 })
 
+object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+test_that("SCTransform v2 works as expected", {
+  expect_true("SCT" %in% names(object))
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5183, tolerance = 1e-2)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 58.65829, tolerance = 1e-6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 13.75449, tolerance = 1e-6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 141)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 40)
+  expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
+  fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
+  expect_equal(fa["MS4A1", "detection_rate"], 0.15)
+  expect_equal(fa["MS4A1", "gmean"], 0.2027364, tolerance = 1e-6)
+  expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
+  expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
+  expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
+})
+
 suppressWarnings(RNGversion(vstr = "3.5.0"))
-object <- suppressWarnings(SCTransform(object = object, ncells = 40, verbose = FALSE, seed.use =  42))
+object <- suppressWarnings(SCTransform(object = object, vst.flavor = "v1", ncells = 40, verbose = FALSE, seed.use =  42))
 test_that("SCTransform ncells param works", {
   expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 12.02126, tolerance = 1e6)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 60.65299, tolerance = 1e-6)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 11.74404, tolerance = 1e-6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 136)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 28)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 12.02126, tolerance = 1e6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 60.65299, tolerance = 1e-6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 11.74404, tolerance = 1e-6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 136)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 28)
   expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
   fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
   expect_equal(fa["MS4A1", "detection_rate"], 0.15)
@@ -339,3 +392,22 @@ test_that("GetResidual works", {
   expect_warning(GetResidual(object, features = "asd"))
 })
 
+object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+
+test_that("SCTransform v2 works as expected", {
+  expect_true("SCT" %in% names(object))
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 24.5813, tolerance = 1e-4)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 58.65829, tolerance = 1e-6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 13.75449, tolerance = 1e-6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 141)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 40)
+  expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
+  fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
+  expect_equal(fa["MS4A1", "detection_rate"], 0.15)
+  expect_equal(fa["MS4A1", "gmean"], 0.2027364, tolerance = 1e-6)
+  expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
+  expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
+  expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
+  expect_equal(fa["FCER2", "theta"], Inf)
+})

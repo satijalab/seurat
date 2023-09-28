@@ -8,7 +8,7 @@ GetResidual(
   object,
   features,
   assay = NULL,
-  umi.assay = NULL,
+  umi.assay = "RNA",
   clip.range = NULL,
   replace.value = FALSE,
   na.rm = TRUE,
@@ -45,9 +45,11 @@ features in its scale.data
 This function calls sctransform::get_residuals.
 }
 \examples{
+\dontrun{
 data("pbmc_small")
 pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
 pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
+}
 
 }
 \seealso{

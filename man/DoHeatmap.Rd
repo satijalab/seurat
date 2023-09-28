@@ -18,6 +18,7 @@ DoHeatmap(
   label = TRUE,
   size = 5.5,
   hjust = 0,
+  vjust = 0,
   angle = 45,
   raster = TRUE,
   draw.lines = TRUE,
@@ -53,6 +54,8 @@ if \code{slot} is 'scale.data', 6 otherwise}
 \item{size}{Size of text above color bar}
 
 \item{hjust}{Horizontal justification of text above color bar}
+
+\item{vjust}{Vertical justification of text above color bar}
 
 \item{angle}{Angle of text above color bar}
 

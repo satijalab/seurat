@@ -19,7 +19,7 @@ FoldChange(object, ...)
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
@@ -46,7 +46,7 @@ FoldChange(object, ...)
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
@@ -62,7 +62,7 @@ FoldChange(object, ...)
   slot = "data",
   reduction = NULL,
   features = NULL,
-  pseudocount.use = NULL,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
@@ -127,8 +127,10 @@ is returned instead of log fold change and the column is named "avg_diff".
 Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 }
 \examples{
+\dontrun{
 data("pbmc_small")
 FoldChange(pbmc_small, ident.1 = 1)
+}
 
 }
 \seealso{

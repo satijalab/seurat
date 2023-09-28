@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   fig.width = 10,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 
 ```
@@ -85,7 +86,7 @@ InstallData("ifnb")
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
-LoadData("ifnb")
+ifnb <- LoadData("ifnb")
 
 # split the dataset into a list of two seurat objects (stim and CTRL)
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
