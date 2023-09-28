@@ -11,15 +11,15 @@ typedef Eigen::Triplet<double> T;
 
 // [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> FindWeightsC(
-  NumericVector cells2,
-  Eigen::MatrixXd distances,
-  std::vector<std::string> anchor_cells2,
-  std::vector<std::string> integration_matrix_rownames,
-  Eigen::MatrixXd cell_index,
-  Eigen::VectorXd anchor_score,
-  double min_dist,
-  double sd,
-  bool display_progress
+    NumericVector cells2,
+    Eigen::MatrixXd distances,
+    std::vector<std::string> anchor_cells2,
+    std::vector<std::string> integration_matrix_rownames,
+    Eigen::MatrixXd cell_index,
+    Eigen::VectorXd anchor_score,
+    double min_dist,
+    double sd,
+    bool display_progress
 ) {
   std::vector<T> tripletList;
   tripletList.reserve(anchor_cells2.size() * 10);
@@ -87,12 +87,22 @@ Eigen::SparseMatrix<double> FindWeightsC(
 
 // [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> IntegrateDataC(
-  Eigen::SparseMatrix<double> integration_matrix,
-  Eigen::SparseMatrix<double> weights,
-  Eigen::SparseMatrix<double> expression_cells2
+    Eigen::SparseMatrix<double> integration_matrix,
+    Eigen::SparseMatrix<double> weights,
+    Eigen::SparseMatrix<double> expression_cells2
 ) {
   Eigen::SparseMatrix<double> corrected = expression_cells2 - weights.transpose() * integration_matrix;
   return(corrected);
+}
+
+template <typename S>
+std::vector<size_t> sort_indexes(const std::vector<S> &v) {
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::stable_sort(idx.begin(), idx.end(),
+                   [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+  return idx;
 }
 
 // [[Rcpp::export]]

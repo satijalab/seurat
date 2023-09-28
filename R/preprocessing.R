@@ -507,6 +507,7 @@ GetResidual <- function(
 #' @importFrom png readPNG
 #' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
+#' @importFrom purrr imap
 #'
 #' @export
 #' @concept preprocessing
@@ -535,9 +536,10 @@ Load10X_Spatial <- function(
   }
   data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
-    for(i in seq_along(data)) {
-      rownames(data[[i]]) <- toupper(rownames(data[[i]]))
-    }
+    data <- imap(data, ~{
+      rownames(.x) <- toupper(x = rownames(.x))
+      .x
+    })
   }
   if (is.list(data) & "Antibody Capture" %in% names(data)) {
     matrix_gex <- data$`Gene Expression`
@@ -1167,7 +1169,7 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
     Class = 'VisiumV1',
     image = image,
     scale.factors = scalefactors(
-      spot = scale.factors$tissue_hires_scalef,
+      spot = scale.factors$spot_diameter_fullres,
       fiducial = scale.factors$fiducial_diameter_fullres,
       hires = scale.factors$tissue_hires_scalef,
       scale.factors$tissue_lowres_scalef
@@ -1983,7 +1985,7 @@ ReadNanostring <- function(
           tx <- subset(tx, select = -c(fov, cell_ID))
         }
 
-        tx <- as.data.frame(t(x = as.matrix(x = tx[, -1, drop = FALSE])))
+        tx <- as.data.frame(t(x = as.matrix(x = tx)))
         if (!is.na(x = genes.filter)) {
           ptx(
             message = paste("Filtering genes with pattern", genes.filter),
