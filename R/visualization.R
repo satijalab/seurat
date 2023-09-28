@@ -621,7 +621,7 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = deprecated(),
-  layer = 'data',
+  layer = NULL,
   split.plot = FALSE,
   stack = FALSE,
   combine = TRUE,
@@ -637,6 +637,26 @@ VlnPlot <- function(
       with = 'VlnPlot(layer = )'
     )
     layer <- slot %||% layer
+  }
+  layer.set <- Layers(
+    object = object,
+    search = layer %||% 'data'
+  )
+  if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
+    warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
+  }
+  if (is.null(layer.set) & is.null(layer) ) {
+    warning('Default search for "data" layer yielded no results; utilizing "counts" layer instead.', 
+            call. = FALSE, immediate. = TRUE)
+    layer.set <- Layers(
+      object = object,
+      search = 'counts'
+    )
+  }
+  if (is.null(layer.set)) {
+    stop('layer "', layer,'" is not found in the object')
+  } else {
+    layer <- layer.set
   }
   if (
     !is.null(x = split.by) &
@@ -6770,7 +6790,8 @@ ExIPlot <- function(
     if (length(x = obj) == 1) {
       if (inherits(x = object[[obj]], what = 'DimReduc')) {
         plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
-      } else if (inherits(x = object[[obj]], what = 'Assay')) {
+      } else if (inherits(x = object[[obj]], what = 'Assay') || 
+                 inherits(x = object[[obj]], what = 'Assay5')) {
         next
       } else {
         warning("Unknown object type ", class(x = object), immediate. = TRUE, call. = FALSE)
