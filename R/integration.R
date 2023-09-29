@@ -3865,10 +3865,12 @@ FilterAnchors <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
   if (inherits(x = object[[assay[1]]], what = 'Assay5')) {
     message("Anchor filtering is currently not supported with v5 assays.")
-  } else {
-  if (verbose) {
+  } 
+  else {
+    if (verbose) {
       message("Filtering anchors")
     }
     assay <- assay %||% DefaultAssay(object = object)
@@ -3903,7 +3905,6 @@ FilterAnchors <- function(
         n.trees = n.trees,
         eps = eps
       )
-
       anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
       position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
         which(x = anchors[x, "cell2"] == Indices(object = nn)[anchors[x, "cell1"], ])[1]
@@ -4227,7 +4228,9 @@ FindIntegrationMatrix <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
-  object <- JoinLayers(object)
+  if (inherits(x = object[[assay[1]]], what = 'Assay5')) {
+    object <- JoinLayers(object)
+  }
   anchors <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
