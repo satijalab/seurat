@@ -50,6 +50,8 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{slot}{Slot to pull expression data from (e.g. "counts" or "data")}
 
+\item{layer}{Layer to pull expression data from (e.g. "counts" or "data")}
+
 \item{stack}{Horizontally stack plots for each feature}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}

@@ -22,7 +22,7 @@ hexadecimal codes}
 \item{threshold}{Intensity threshold for light/dark cutoff; intensities
 greater than \code{theshold} yield \code{dark}, others yield \code{light}}
 
-\item{w3c}{Use \href{http://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
+\item{w3c}{Use \href{https://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
 background text color; ignores \code{threshold}}
 
 \item{dark}{Color for dark text}

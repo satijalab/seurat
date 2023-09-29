@@ -363,9 +363,11 @@ HTODemux <- function(
 #' @seealso \code{\link[sctransform]{get_residuals}}
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
+#' }
 #'
 GetResidual <- function(
   object,
@@ -505,6 +507,7 @@ GetResidual <- function(
 #' @importFrom png readPNG
 #' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
+#' @importFrom purrr imap
 #'
 #' @export
 #' @concept preprocessing
@@ -523,6 +526,7 @@ Load10X_Spatial <- function(
   slice = 'slice1',
   filter.matrix = TRUE,
   to.upper = FALSE,
+  image = NULL,
   ...
 ) {
   if (length(x = data.dir) > 1) {
@@ -530,12 +534,10 @@ Load10X_Spatial <- function(
             immediate. = TRUE)
     data.dir <- data.dir[1]
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename),
-                     ...)
-
+  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
     data <- imap(data, ~{
-      rownames(.x) <- toupper(rownames(.x))
+      rownames(.x) <- toupper(x = rownames(.x))
       .x
     })
   }
@@ -552,8 +554,7 @@ Load10X_Spatial <- function(
   if (is.null(x = image)) {
     image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
                            filter.matrix = filter.matrix)
-  }
-  else {
+  } else {
     if (!inherits(x = image, what = "VisiumV1"))
       stop("Image must be an object of class 'VisiumV1'.")
   }
@@ -1168,7 +1169,7 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
     Class = 'VisiumV1',
     image = image,
     scale.factors = scalefactors(
-      spot = scale.factors$tissue_hires_scalef,
+      spot = scale.factors$spot_diameter_fullres,
       fiducial = scale.factors$fiducial_diameter_fullres,
       hires = scale.factors$tissue_hires_scalef,
       scale.factors$tissue_lowres_scalef
@@ -1503,8 +1504,11 @@ ReadAkoya <- function(
 #' @param features Name or remote URL of the features/genes file
 #' @param cell.column Specify which column of cells file to use for cell names; default is 1
 #' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
+#' @param cell.sep Specify the delimiter in the cell name file
+#' @param feature.sep Specify the delimiter in the feature name file
 #' @param skip.cell Number of lines to skip in the cells file before beginning to read cell names
 #' @param skip.feature Number of lines to skip in the features file before beginning to gene names
+#' @param mtx.transpose Transpose the matrix after reading in
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
@@ -1538,18 +1542,18 @@ ReadAkoya <- function(
 #' }
 #'
 ReadMtx <- function(
-    mtx,
-    cells,
-    features,
-    cell.column = 1,
-    feature.column = 2,
-    cell.sep = "\t",
-    feature.sep = "\t",
-    skip.cell = 0,
-    skip.feature = 0,
-    mtx.transpose = FALSE,
-    unique.features = TRUE,
-    strip.suffix = FALSE
+  mtx,
+  cells,
+  features,
+  cell.column = 1,
+  feature.column = 2,
+  cell.sep = "\t",
+  feature.sep = "\t",
+  skip.cell = 0,
+  skip.feature = 0,
+  mtx.transpose = FALSE,
+  unique.features = TRUE,
+  strip.suffix = FALSE
 ) {
   all.files <- list(
     "expression matrix" = mtx,
@@ -1981,7 +1985,7 @@ ReadNanostring <- function(
           tx <- subset(tx, select = -c(fov, cell_ID))
         }
 
-        tx <- as.data.frame(t(x = as.matrix(x = tx[, -1, drop = FALSE])))
+        tx <- as.data.frame(t(x = as.matrix(x = tx)))
         if (!is.na(x = genes.filter)) {
           ptx(
             message = paste("Filtering genes with pattern", genes.filter),
@@ -3154,6 +3158,7 @@ SampleUMI <- function(
 #'
 #' @importFrom stats setNames
 #' @importFrom Matrix colSums
+#' @importFrom SeuratObject as.sparse
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
@@ -3182,7 +3187,11 @@ SCTransform.default <- function(
   verbose = TRUE,
   ...
 ) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   vst.args <- list(...)
+  object <- as.sparse(x = object)
   umi <- object
   # check for batch_var in meta data
   if ('batch_var' %in% names(x = vst.args)) {
@@ -3233,6 +3242,13 @@ SCTransform.default <- function(
       call. = FALSE,
       immediate. = TRUE
     )
+  }
+
+  if (!is.null(x = vst.flavor) && !vst.flavor %in% c("v1", "v2")){
+    stop("vst.flavor can be 'v1' or 'v2'. Default is 'v2'")
+  }
+  if (!is.null(x = vst.flavor) && vst.flavor == "v1"){
+    vst.flavor <- NULL
   }
 
   vst.args[['vst.flavor']] <- vst.flavor
@@ -3411,7 +3427,10 @@ SCTransform.default <- function(
   )
   vst.out$y <- scale.data
   vst.out$variable_features <- residual.features %||% top.features
-
+  if (!do.correct.umi) {
+    vst.out$umi_corrected <- umi
+  }
+  min_var <- vst.out$arguments$min_variance
   return(vst.out)
 }
 
@@ -3447,6 +3466,7 @@ SCTransform.Assay <- function(
     do.correct.umi <- FALSE
     do.center <- FALSE
   }
+
   umi <- GetAssayData(object = object, slot = 'counts')
   vst.out <- SCTransform(object = umi,
                          cell.attr = cell.attr,
@@ -3513,7 +3533,7 @@ SCTransform.Assay <- function(
 #'
 SCTransform.Seurat <- function(
     object,
-    assay = NULL,
+    assay = "RNA",
     new.assay.name = 'SCT',
     reference.SCT.model = NULL,
     do.correct.umi = TRUE,
@@ -3532,12 +3552,20 @@ SCTransform.Seurat <- function(
     verbose = TRUE,
     ...
 ) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   assay <- assay %||% DefaultAssay(object = object)
+  if (assay == "SCT") {
+    # if re-running SCTransform, use the RNA assay
+    assay <- "RNA"
+    warning("Running SCTransform on the RNA assay while default assay is SCT.")
+  }
+
   if (verbose){
     message("Running SCTransform on assay: ", assay)
   }
   cell.attr <- slot(object = object, name = 'meta.data')[colnames(object[[assay]]),]
-
   assay.data <- SCTransform(object = object[[assay]],
                             cell.attr = cell.attr,
                             reference.SCT.model = reference.SCT.model,
@@ -3877,7 +3905,6 @@ FindVariableFeatures.Seurat <- function(
     num.bin = num.bin,
     binning.method = binning.method,
     nfeatures = nfeatures,
-    nselect = nfeatures,
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
@@ -4079,6 +4106,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 LogNormalize.data.frame <- function(
   data,
   scale.factor = 1e4,
+  margin = 2L,
   verbose = TRUE,
   ...
 ) {
@@ -4097,6 +4125,7 @@ LogNormalize.data.frame <- function(
 LogNormalize.V3Matrix <- function(
   data,
   scale.factor = 1e4,
+  margin = 2L,
   verbose = TRUE,
   ...
 ) {

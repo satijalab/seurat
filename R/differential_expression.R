@@ -572,18 +572,31 @@ FindMarkers.default <- function(
       latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
     }
   }
-  de.results <- PerformDE(
-    object = object,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    features = features,
-    test.use = test.use,
-    verbose = verbose,
-    min.cells.feature = min.cells.feature,
-    latent.vars = latent.vars,
-    densify = densify,
-    ...
-  )
+  if (inherits(x = object, what = "IterableMatrix")){
+    data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
+    groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
+    de.results <- suppressMessages(
+      BPCells::marker_features(data.use, group = groups, method = "wilcoxon")
+    )
+    de.results <- subset(de.results, foreground == "foreground")
+    de.results <- data.frame(feature = de.results$feature,
+                             p_val = de.results$p_val_raw)
+    rownames(de.results) <- de.results$feature
+    de.results$feature <- NULL
+  } else {
+    de.results <- PerformDE(
+      object = object,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      features = features,
+      test.use = test.use,
+      verbose = verbose,
+      min.cells.feature = min.cells.feature,
+      latent.vars = latent.vars,
+      densify = densify,
+      ...
+    )
+  }
   de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
   if (only.pos) {
     de.results <- de.results[de.results[, 2] > 0, , drop = FALSE]
@@ -2141,10 +2154,12 @@ PerformDE <- function(
 #' @param assay Assay name where for SCT objects are stored; Default is 'SCT'
 #' @param verbose Print messages and progress
 #' @importFrom Matrix Matrix
+#' @importFrom SeuratObject SparseEmptyMatrix
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #' @importFrom sctransform correct_counts
+#' @importFrom SeuratObject JoinLayers
 #'
 #' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
@@ -2229,8 +2244,9 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   }
   umi.layers <- Layers(object = object, assay = umi.assay, search = 'counts')
   if (length(x = umi.layers) > 1) {
-    object[[umi.assay]] <- JoinLayers(object = object[[umi.assay]],
-                                      layers = "counts", new = "counts")
+    object[[umi.assay]] <- JoinLayers(
+      object = object[[umi.assay]],
+      layers = "counts", new = "counts")
   }
   raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
   corrected_counts <- Matrix(
@@ -2250,7 +2266,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- rep(min_median_umi, length(levels(x = object[[assay]])))
   names(set_median_umi) <- levels(x = object[[assay]])
   set_median_umi <- as.list(set_median_umi)
-
+  all_genes <- rownames(x = object[[assay]])
   # correct counts
   my.correct_counts <- function(model_name){
     model_genes <- rownames(x = model_pars_fit[[model_name]])
@@ -2261,7 +2277,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
         cell_attr = cell_attr[[model_name]]
       )
       cells <- rownames(x = cell_attr[[model_name]])
-      umi <- raw_umi[model_genes, cells]
+      umi <- raw_umi[all_genes, cells]
 
       umi_corrected <- correct_counts(
         x = x,
@@ -2269,14 +2285,23 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
         verbosity = 0,
         scale_factor = min_median_umi
       )
+      missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
+      corrected_counts.list <- NULL
+      gc(verbose = FALSE)
+      empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
+      rownames(x = empty) <- missing_features
+      colnames(x = umi_corrected) <- colnames(x = umi_corrected)
+
+      umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
+
       return(umi_corrected)
   }
   corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
                                      FUN = my.correct_counts)
   names(x = corrected_counts.list) <- levels(x = object[[assay]])
-  corrected_counts <- do.call(what = MergeSparseMatrices, args = corrected_counts.list)
-  corrected_counts.list <- NULL
 
+  corrected_counts <- do.call(what = MergeSparseMatrices, args = corrected_counts.list)
+  corrected_counts <- as.sparse(x = corrected_counts)
   corrected_data <- log1p(x = corrected_counts)
   suppressWarnings({object <- SetAssayData(object = object,
                                            assay = assay,
@@ -2291,7 +2316,6 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
 }
 
 PrepSCTFindMarkers.V5 <- function(object, assay = "SCT", umi.assay = "RNA", layer = "counts", verbose = TRUE) {
-
   layers <- Layers(object = object[[umi.assay]], search = layer)
   dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
   for (i in seq_along(along.with = layers)) {
@@ -2301,7 +2325,7 @@ PrepSCTFindMarkers.V5 <- function(object, assay = "SCT", umi.assay = "RNA", laye
       layer = l
       )
   }
-  cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(ncells, ncol(counts)))
+  cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(length(Cells(object)), ncol(counts)))
 }
 
 # given a UMI count matrix, estimate NB theta parameter for each gene

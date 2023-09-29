@@ -134,7 +134,7 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 \examples{
 data("pbmc_small")
 DimPlot(object = pbmc_small)
-DimPlot(object = pbmc_small, split.by = 'ident')
+DimPlot(object = pbmc_small, split.by = 'letter.idents')
 
 }
 \seealso{

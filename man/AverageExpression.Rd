@@ -11,7 +11,8 @@ AverageExpression(
   return.seurat = FALSE,
   group.by = "ident",
   add.ident = NULL,
-  slot = "counts",
+  layer = "data",
+  slot = deprecated(),
   method = "average",
   verbose = TRUE,
   ...
@@ -33,6 +34,8 @@ AverageExpression(
 
 \item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
 the order of 'assays' (if specified) or object's assays}
+
+\item{method}{Method of collapsing expression values. Either 'average' or 'aggregate'}
 
 \item{verbose}{Print messages and show progress bar}
 
