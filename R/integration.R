@@ -3865,53 +3865,49 @@ FilterAnchors <- function(
   eps = 0,
   verbose = TRUE
 ) {
-  if (inherits(x = object[[assay[1]]], what = 'Assay5')) {
-    message("Anchor filtering is currently not supported with v5 assays.")
-  } else {
   if (verbose) {
-      message("Filtering anchors")
-    }
-    assay <- assay %||% DefaultAssay(object = object)
-    features <- features %||% VariableFeatures(object = object)
-    if (length(x = features) == 0) {
-      stop("No features provided and no VariableFeatures computed.")
-    }
-    features <- unique(x = features)
-    neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
-    nn.cells1 <- neighbors$cells1
-    nn.cells2 <- neighbors$cells2
-    if (min(length(x = nn.cells1), length(x = nn.cells2)) < k.filter) {
-      warning("Number of anchor cells is less than k.filter. Retaining all anchors.")
-      k.filter <- min(length(x = nn.cells1), length(x = nn.cells2))
-      anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
-    } else {
-      cn.data1 <- L2Norm(
-        mat = as.matrix(x = t(x = GetAssayData(
-          object = object[[assay[1]]],
-          slot = slot)[features, nn.cells1])),
-        MARGIN = 1)
-      cn.data2 <- L2Norm(
-        mat = as.matrix(x = t(x = GetAssayData(
-          object = object[[assay[2]]],
-          slot = slot)[features, nn.cells2])),
-        MARGIN = 1)
-      nn <- NNHelper(
-        data = cn.data2[nn.cells2, ],
-        query = cn.data1[nn.cells1, ],
-        k = k.filter,
-        method = nn.method,
-        n.trees = n.trees,
-        eps = eps
-      )
+    message("Filtering anchors")
+  }
+  assay <- assay %||% DefaultAssay(object = object)
+  features <- features %||% VariableFeatures(object = object)
+  if (length(x = features) == 0) {
+    stop("No features provided and no VariableFeatures computed.")
+  }
+  features <- unique(x = features)
+  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
+  nn.cells1 <- neighbors$cells1
+  nn.cells2 <- neighbors$cells2
+  if (min(length(x = nn.cells1), length(x = nn.cells2)) < k.filter) {
+    warning("Number of anchor cells is less than k.filter. Retaining all anchors.")
+    k.filter <- min(length(x = nn.cells1), length(x = nn.cells2))
+    anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
+  } else {
+    cn.data1 <- L2Norm(
+      mat = as.matrix(x = t(x = GetAssayData(
+        object = object[[assay[1]]],
+        slot = slot)[features, nn.cells1])),
+      MARGIN = 1)
+    cn.data2 <- L2Norm(
+      mat = as.matrix(x = t(x = GetAssayData(
+        object = object[[assay[2]]],
+        slot = slot)[features, nn.cells2])),
+      MARGIN = 1)
+    nn <- NNHelper(
+      data = cn.data2[nn.cells2, ],
+      query = cn.data1[nn.cells1, ],
+      k = k.filter,
+      method = nn.method,
+      n.trees = n.trees,
+      eps = eps
+    )
 
-      anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
-      position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-        which(x = anchors[x, "cell2"] == Indices(object = nn)[anchors[x, "cell1"], ])[1]
-      })
-      anchors <- anchors[!is.na(x = position), ]
-      if (verbose) {
-        message("\tRetained ", nrow(x = anchors), " anchors")
-      }
+    anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
+    position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+      which(x = anchors[x, "cell2"] == Indices(object = nn)[anchors[x, "cell1"], ])[1]
+    })
+    anchors <- anchors[!is.na(x = position), ]
+    if (verbose) {
+      message("\tRetained ", nrow(x = anchors), " anchors")
     }
   }
   object <- SetIntegrationData(
@@ -4227,6 +4223,9 @@ FindIntegrationMatrix <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
+  if (inherits(x = object[[assay[1]]], what = 'Assay5')) {
+    object <- JoinLayers(object)
+  }
   anchors <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
