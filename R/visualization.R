@@ -251,12 +251,12 @@ DoHeatmap <- function(
   group.bar.height = 0.02,
   combine = TRUE
 ) {
-  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
+  cells <- cells %||% colnames(x = object[[assay]])
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
   }
-  assay <- assay %||% DefaultAssay(object = object)
-  DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
   features <- rev(x = unique(x = features))
   disp.max <- disp.max %||% ifelse(
