@@ -32,6 +32,8 @@ AverageExpression(
 \item{add.ident}{(Deprecated) Place an additional label on each cell prior to pseudobulking
 (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)}
 
+\item{layer}{Name of the layer in assay to use}
+
 \item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
 the order of 'assays' (if specified) or object's assays}
 
