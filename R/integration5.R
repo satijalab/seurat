@@ -20,6 +20,7 @@ NULL
 #' should be called \code{group}
 #' @param features Ignored
 #' @param scale.layer Ignored
+#' @param new.reduction Name of new integrated dimensional reduction
 #' @param layers Ignored
 #' @param key Key for Harmony dimensional reduction
 #' @param npcs If doing PCA on input matrix, number of PCs to compute

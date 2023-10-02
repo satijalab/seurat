@@ -409,6 +409,7 @@ AggregateExpression <- function(
 #' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
 #' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
 #' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+#' @param layer Name of the layer in assay to use
 #' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
 #' the order of 'assays' (if specified) or object's assays
 #' @param method Method of collapsing expression values. Either 'average' or 'aggregate'
