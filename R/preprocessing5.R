@@ -1879,6 +1879,13 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
 }
 
 #' temporal function to get residuals from reference
+#' @param object A seurat object
+#' @param reference.SCT.model a reference SCT model that should be used
+#' for calculating the residuals
+#' @param features Names of features to compute
+#' @param nCount_UMI UMI counts. If not specified, defaults to 
+#' column sums of object
+#' @param verbose Whether to print messages and progress bars
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
 #'
