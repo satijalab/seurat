@@ -134,10 +134,7 @@ if(class(object[['RNA']]) == "Assay5")  {
 # Tests for BPCells NormalizeData
 # --------------------------------------------------------------------------------
 #make Iterable matrix
-mat_bpcells <- object[['RNA']]$counts %>%
-  t() %>%
-  as("IterableMatrix") %>%
-  t()
+mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
 object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
 
 object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
