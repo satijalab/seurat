@@ -432,6 +432,9 @@ ScaleData.StdAssay <- function(
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   olayer <- layer <- unique(x = layer)
+  if (!(layer %in% Layers(object = object))) {
+    abort(paste0("Layer '", layer, "' not found. Please run NormalizeData and retry"))
+  }
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
     layer <- "counts"
