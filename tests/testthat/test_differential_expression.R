@@ -281,6 +281,23 @@ test_that("LR test works", {
   expect_equal(rownames(x = results)[1], "LYZ")
 })
 
+mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
+pbmc_small[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbp")
+
+markers.bp <- suppressWarnings(FindMarkers(object = pbmc_small, assay = "RNAbp", ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1))
+
+test_that("BPCells FindMarkers gives same results", {
+  expect_equal(colnames(x = markers.bp), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
+  expect_equal(markers.bp[1, "p_val"], 9.572778e-13)
+  expect_equal(markers.bp[1, "avg_logFC"], -4.034691, tolerance = 1e-6)
+  expect_equal(markers.bp[1, "pct.1"], 0.083)
+  expect_equal(markers.bp[1, "pct.2"], 0.909)
+  expect_equal(markers.bp[1, "p_val_adj"], 2.201739e-10)
+  expect_equal(nrow(x = markers.bp), 204)
+  expect_equal(rownames(markers.bp)[1], "HLA-DPB1")
+})
+
 # Tests for FindAllMarkers
 # -------------------------------------------------------------------------------
 results <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small,pseudocount.use=1)))
@@ -358,6 +375,19 @@ test_that("FindMarkers recognizes log normalizatio", {
   expect_equal(markers[1, "avg_log2FC"], -2.614686, tolerance = 1e-6)
 })
 
+results.bp <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, assay = "RNAbp", pseudocount.use=1)))
+
+test_that("BPCells FindAllMarkers gives same results", {
+  expect_equal(colnames(x = results.bp), c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_equal(results.bp[1, "p_val"], 9.572778e-13)
+  expect_equal(results.bp[1, "avg_log2FC"], -5.820829, tolerance = 1e-6)
+  expect_equal(results.bp[1, "pct.1"], 0.083)
+  expect_equal(results.bp[1, "pct.2"], 0.909)
+  expect_equal(results.bp[1, "p_val_adj"], 2.201739e-10)
+  expect_equal(nrow(x = results.bp), 222)
+  expect_equal(rownames(results.bp)[1], "HLA-DPB1")
+})
+
 
 
 # Tests for FindConservedMarkers
@@ -414,3 +444,4 @@ if (requireNamespace('metap', quietly = TRUE)) {
     expect_equal(rownames(markers.missing)[1], "HLA-DPB1")
   })
 }
+
