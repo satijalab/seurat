@@ -494,7 +494,7 @@ ScaleData.StdAssay <- function(
     } else {
       LayerData(object = object, layer = layer, features = features)
     }
-    LayerData(object = object, layer = save, features = features) <- ScaleData(
+    ldata <- ScaleData(
       object = ldata,
       features = features,
       vars.to.regress = vars.to.regress,
@@ -510,6 +510,7 @@ ScaleData.StdAssay <- function(
       verbose = verbose,
       ...
     )
+    LayerData(object = object, layer = save, features = rownames(ldata)) <- ldata
   }
   return(object)
 }
