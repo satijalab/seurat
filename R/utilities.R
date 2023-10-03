@@ -414,7 +414,7 @@ AggregateExpression <- function(
 #' @param margin Margin to perform CLR normalization, see \code{\link{NormalizeData}}
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
-#' 
+#'
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @export
@@ -440,7 +440,7 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
-  #CheckDots(..., fxns = 'CreateSeuratObject')
+  CheckDots(..., fxns = 'CreateSeuratObject')
   if (!is.null(x = add.ident)) {
     .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
     group.by <- c('ident', add.ident)
