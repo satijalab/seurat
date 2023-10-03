@@ -82,6 +82,17 @@ defaults to 0.5.}
 \item{seed}{A positive integer. The seed for the random number generator, defaults to 123.}
 
 \item{verbose}{Print progress and diagnostic messages}
+
+\item{vf.method}{VariableFeatures method}
+
+\item{layer}{layer to use}
+
+\item{assay}{assay to use}
+
+\item{var.name}{name of slot to store leverage scores}
+
+\item{over.write}{whether to overwrite slot that currently stores leverage scores. Defaults 
+to FALSE, in which case the 'var.name' is modified if it already exists in the object}
 }
 \description{
 This function computes the leverage scores for a given object

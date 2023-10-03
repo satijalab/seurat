@@ -1672,6 +1672,7 @@ GetTissueCoordinates.VisiumV1 <- function(
 #' Get variable feature information from \code{\link{SCTAssay}} objects
 #'
 #' @inheritParams SeuratObject::HVFInfo
+#' @param method method to determine variable features
 #'
 #' @export
 #' @method HVFInfo SCTAssay
