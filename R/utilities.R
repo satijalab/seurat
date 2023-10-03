@@ -1462,9 +1462,6 @@ PseudobulkExpression.StdAssay <- function(
     )
     layer <- slot
   }
-  if (layer == 'data') {
-    message("Assay5 will use arithmetic mean for data slot.")
-  }
   layers.set <- Layers(object = object, search = layer)
   features.to.avg <- features %||% rownames(x = object)
   bad.features <- setdiff(x = features.to.avg, y = rownames(x = object))
@@ -1497,16 +1494,21 @@ PseudobulkExpression.StdAssay <- function(
                         layer = layers.set[i],
                         features = features.assay
                         )
+    if (layers.set[i] == "data") {
+      data.use.i <- expm1(x = data.i)
+      if (any(data.use.i == Inf)) {
+        warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
+      }
+    } else {
+      data.use.i <- data.i
+    }
     category.matrix.i <- category.matrix[colnames(x = data.i),]
     if (inherits(x = data.i, what = 'DelayedArray')) {
-      data.return.i<- tcrossprod_DelayedAssay(x = data.i, y = t(category.matrix.i))
+      data.return.i<- tcrossprod_DelayedAssay(x = data.use.i, y = t(category.matrix.i))
     } else {
-      data.return.i <- as.sparse(x = data.i %*% category.matrix.i)
+      data.return.i <- as.sparse(x = data.use.i %*% category.matrix.i)
     }
     data.return <- data.return + data.return.i
-  }
-  if (layer == 'data') {
-    data.return <- expm1(x = data.return)
   }
   return(data.return)
 }

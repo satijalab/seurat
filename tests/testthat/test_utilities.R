@@ -68,18 +68,23 @@ test_that("AverageExpression handles features properly", {
 test_that("AverageExpression with return.seurat", {
   # counts
   avg.counts <- AverageExpression(object, layer = "counts", return.seurat = TRUE, verbose = FALSE)
+  avg.counts.calc <- object[['RNA']]$counts %*% category.matrix.avg
+  #test that counts are indeed equal to average counts
+  expect_equivalent(
+    as.matrix(avg.counts[['RNA']]$counts),
+    as.matrix(avg.counts.calc),
+    tolerance = 1e-6
+  )
   expect_s4_class(object = avg.counts, "Seurat")
   avg.counts.mat <- AverageExpression(object, layer = 'counts')$RNA
   expect_equal(unname(as.matrix(LayerData(avg.counts[["RNA"]], layer = "counts"))),
                unname(as.matrix(avg.counts.mat)))
   avg.data <- LayerData(avg.counts[["RNA"]], layer = "data")
-
   expect_equivalent(
     as.matrix(NormalizeData(avg.counts.mat)),
     as.matrix(avg.data),
     tolerance = 1e-6
   )
-
   avg.scale <- LayerData(avg.counts[["RNA"]], layer = "scale.data")
   expect_equal(
     avg.scale['MS4A1', ],
