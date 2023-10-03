@@ -465,7 +465,7 @@ AverageExpression <- function(
   }
   
   if (method =="average") {
-    message("As of Seurat v5, it is recommended to use AggregateExpression rather than AverageExpression.")
+    message("As of Seurat v5, As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.")
   }
   
   object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
