@@ -578,7 +578,7 @@ FindMarkers.default <- function(
     de.results <- suppressMessages(
       BPCells::marker_features(data.use, group = groups, method = "wilcoxon")
     )
-    de.results <- subset(de.results, foreground == "foreground")
+    de.results <- subset(de.results, de.results$foreground == "foreground")
     de.results <- data.frame(feature = de.results$feature,
                              p_val = de.results$p_val_raw)
     rownames(de.results) <- de.results$feature
