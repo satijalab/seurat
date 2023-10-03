@@ -467,6 +467,18 @@ LeverageScore.default <- function(
   return(Z.score)
 }
 
+#' @param nsketch A positive integer. The number of sketches to be used in the approximation. 
+#'                Default is 5000.
+#' @param ndims A positive integer or NULL. The number of dimensions to use. If NULL, the number 
+#'              of dimensions will default to the number of columns in the object.
+#' @param method The sketching method to use, defaults to CountSketch.
+#' @param vf.method VariableFeatures method
+#' @param layer layer to use
+#' @param eps A numeric. The error tolerance for the approximation in Johnson–Lindenstrauss embeddings, 
+#'            defaults to 0.5.
+#' @param seed A positive integer. The seed for the random number generator, defaults to 123.
+#' @param verbose Print progress and diagnostic messages
+#' 
 #' @rdname LeverageScore
 #' @method LeverageScore StdAssay
 #' 
@@ -526,6 +538,17 @@ LeverageScore.StdAssay <- function(
 #'
 LeverageScore.Assay <- LeverageScore.StdAssay
 
+
+#' @param assay assay to use
+#' @param nsketch A positive integer. The number of sketches to be used in the approximation. 
+#'                Default is 5000.
+#' @param ndims A positive integer or NULL. The number of dimensions to use. If NULL, the number 
+#'              of dimensions will default to the number of columns in the object.
+#' @param method The sketching method to use, defaults to CountSketch.
+#' @param var.name name of slot to store leverage scores
+#' @param over.write whether to overwrite slot that currently stores leverage scores. Defaults 
+#' to FALSE, in which case the 'var.name' is modified if it already exists in the object
+#' 
 #' @rdname LeverageScore
 #' @method LeverageScore Seurat
 #' @export
