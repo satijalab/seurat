@@ -148,3 +148,30 @@ test_that("AverageExpression with multiple assays", {
   expect_equal(length(x = avg.all), 2)
 })
 
+
+meta.data.2 <- data.frame(
+  b = rep(as.factor(c('c', 'd', 'e')), length.out = ncol(pbmc.test)),
+  row.names = colnames(pbmc.test)
+)
+object <- AddMetaData(object, meta.data.2)
+if(class(object[['RNA']]) == "Assay5")  {
+  test_that("AggregateExpression works with multiple layers", {
+    object.split <- split(object, f = object$b)
+    aggregate.split <- AggregateExpression(object.split)
+    aggregate <- AggregateExpression(object)
+    expect_equivalent(
+      aggregate.split,
+      aggregate,
+      tolerance = 1e-6
+    )
+  })
+  test_that("AverageExpression works with multiple layers", {
+    avg.split <- AverageExpression(object.split)
+    avg <- AverageExpression(object)
+    expect_equivalent(
+      avg.split,
+      avg,
+      tolerance = 1e-6
+    )
+  })
+}
