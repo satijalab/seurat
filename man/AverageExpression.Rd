@@ -14,6 +14,9 @@ AverageExpression(
   layer = "data",
   slot = deprecated(),
   method = "average",
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
   verbose = TRUE,
   ...
 )
@@ -29,13 +32,19 @@ AverageExpression(
 
 \item{group.by}{Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default}
 
-\item{add.ident}{(Deprecated) Place an additional label on each cell prior to pseudobulking
+\item{add.ident}{(Deprecated). Place an additional label on each cell prior to pseudobulking
 (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)}
 
-\item{layer}{Name of the layer in assay to use}
-
-\item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
+\item{layer}{Layer(s) to use; if multiple layers are given, assumed to follow
 the order of 'assays' (if specified) or object's assays}
+
+\item{slot}{(Deprecated). Slots(s) to use}
+
+\item{normalization.method}{Method for normalization, see \code{\link{NormalizeData}}}
+
+\item{scale.factor}{Scale factor for normalization, see \code{\link{NormalizeData}}}
+
+\item{margin}{Margin to perform CLR normalization, see \code{\link{NormalizeData}}}
 
 \item{method}{Method of collapsing expression values. Either 'average' or 'aggregate'}
 
@@ -48,20 +57,19 @@ Returns a matrix with genes as rows, identity classes as columns.
 If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 }
 \description{
-Returns averaged expression values for each identity class
+Returns averaged expression values for each identity class.
 }
 \details{
-If slot is set to 'data', this function assumes that the data has been log
+If layer is set to 'data', this function assumes that the data has been log
 normalized and therefore feature values are exponentiated prior to averaging
-so that averaging is done in non-log space. Otherwise, if slot is set to
-either 'counts' or 'scale.data', no exponentiation is performed prior to
-averaging
-If \code{return.seurat = TRUE} and slot is not 'scale.data', averaged values
-are placed in the 'counts' slot of the returned object and the log of averaged values
-are placed in the 'data' slot. \code{\link{ScaleData}} is then run on the default assay
-before returning the object.
-If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
-the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
+so that averaging is done in non-log space. Otherwise, if layer is set to
+either 'counts' or 'scale.data', no exponentiation is performed prior to  averaging.
+If \code{return.seurat = TRUE} and layer is not 'scale.data', averaged values
+are placed in the 'counts' layer of the returned object and \code{\link{NormalizeData}}
+is run on the averaged counts and placed in the 'data' layer \code{\link{ScaleData}}
+is then run on the default assay before returning the object.
+If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' layer contains
+average counts and 'scale.data' is set to the averaged values.
 }
 \examples{
 data("pbmc_small")
