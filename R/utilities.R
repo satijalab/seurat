@@ -1387,7 +1387,7 @@ PseudobulkExpression.Assay <- function(
   }
     data.use <- GetAssayData(
       object = object,
-      slot = slot
+      layer = layer
     )
     features.to.avg <- features %||% rownames(x = data.use)
     if (IsMatrixEmpty(x = data.use)) {
