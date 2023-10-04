@@ -46,6 +46,8 @@ the order of 'assays' (if specified) or object's assays}
 
 \item{margin}{Margin to perform CLR normalization, see \code{\link{NormalizeData}}}
 
+\item{method}{Method of collapsing expression values. Either 'average' or 'aggregate'}
+
 \item{verbose}{Print messages and show progress bar}
 
 \item{...}{Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}}

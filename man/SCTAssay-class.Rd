@@ -78,9 +78,11 @@ the conversion will automagically fill the new slots with the data
 pbmc_small <- SCTransform(pbmc_small)
 }
 
+\dontrun{
 # SCTAssay objects are generated from SCTransform
 pbmc_small <- SCTransform(pbmc_small)
 pbmc_small[["SCT"]]
+}
 
 \dontrun{
 # Query and change SCT model names

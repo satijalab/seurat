@@ -56,8 +56,10 @@ on the aggregated counts. \code{\link{ScaleData}} is then run on the default ass
 before returning the object.
 }
 \examples{
+\dontrun{
 data("pbmc_small")
 head(AggregateExpression(object = pbmc_small))
+}
 
 }
 \concept{utilities}

@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 4.9.9.9061
-Date: 2023-09-22
+Version: 4.9.9.9068
+Date: 2023-10-03
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 Authors@R: c(
@@ -66,6 +66,7 @@ Imports:
     plotly (>= 4.9.0),
     png,
     progressr,
+    purrr,
     RANN,
     RColorBrewer,
     Rcpp (>= 1.0.7),
@@ -77,8 +78,9 @@ Imports:
     RSpectra,
     Rtsne,
     scales,
-    scattermore (>= 0.7),
+    scattermore (>= 1.2),
     sctransform (>= 0.4.0),
+    SeuratObject (>= 4.1.4),
     shiny,
     spatstat.explore,
     spatstat.geom,
@@ -86,7 +88,8 @@ Imports:
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.10)
+    uwot (>= 0.1.10),
+    BPCells (>= 0.0.0.9000)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: MIT + file LICENSE
 LazyData: true
@@ -137,6 +140,8 @@ Suggests:
     enrichR,
     mixtools,
     ggrastr,
-    BPCells (>= 0.0.0.9000),
     data.table,
-    R.utils
+    R.utils,
+    presto,
+    DelayedArray,
+    harmony

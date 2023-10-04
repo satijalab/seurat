@@ -12,7 +12,15 @@ VST(data, margin = 1L, nselect = 2000L, span = 0.3, clip = NULL, ...)
 
 \method{VST}{default}(data, margin = 1L, nselect = 2000L, span = 0.3, clip = NULL, ...)
 
-\method{VST}{IterableMatrix}(data, nselect = 2000L, span = 0.3, clip = NULL, verbose = TRUE, ...)
+\method{VST}{IterableMatrix}(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  verbose = TRUE,
+  ...
+)
 
 \method{VST}{dgCMatrix}(
   data,

@@ -349,9 +349,11 @@ AddModuleScore <- function(
 #' @concept utilities
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' head(AggregateExpression(object = pbmc_small))
-#'
+#' }
+#' 
 AggregateExpression <- function(
   object,
   assays = NULL,
@@ -412,6 +414,7 @@ AggregateExpression <- function(
 #' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
 #' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
 #' @param margin Margin to perform CLR normalization, see \code{\link{NormalizeData}}
+#' @param method Method of collapsing expression values. Either 'average' or 'aggregate'
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
@@ -1397,7 +1400,7 @@ PseudobulkExpression.Assay <- function(
     layer <- slot
   }
     data.use <- GetAssayData(
-      object = object, 
+      object = object,
       layer = layer
     )
     features.to.avg <- features %||% rownames(x = data.use)
@@ -1429,8 +1432,7 @@ PseudobulkExpression.Assay <- function(
       }
     }
     data.return <- data.use %*% category.matrix
-   return(data.return)
-
+    return(data.return)
 }
 
 #' @method PseudobulkExpression StdAssay
@@ -1504,7 +1506,7 @@ PseudobulkExpression.StdAssay <- function(
     }
     category.matrix.i <- category.matrix[colnames(x = data.i),]
     if (inherits(x = data.i, what = 'DelayedArray')) {
-      data.return.i<- tcrossprod_DelayedAssay(x = data.use.i, y = t(category.matrix.i))
+      stop("PseudobulkExpression does not support DelayedArray objects")
     } else {
       data.return.i <- as.sparse(x = data.use.i %*% category.matrix.i)
     }
@@ -2672,134 +2674,6 @@ crossprod_BPCells <- function(x, y) {
   return(product.mat)
 }
 
-# transpose cross product from delayed array
-#
-tcrossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
-  # perform  x  %*% t(y) in blocks for x
-  if (!inherits(x = x, 'DelayedMatrix')) {
-    stop('y should a DelayedMatrix')
-  }
-  if (ncol(x) != ncol(y)) {
-    stop('column of x and y should be the same')
-  }
-  sparse <- DelayedArray::is_sparse(x = x)
-  suppressMessages(setAutoBlockSize(size = block.size))
-  cells.grid <- DelayedArray::colAutoGrid(x = x)
-  product.list <- list()
-  for (i in seq_len(length.out = length(x = cells.grid))) {
-    vp <- cells.grid[[i]]
-    vp.range <- vp@ranges[2]@start : (vp@ranges[2]@start + vp@ranges[2]@width - 1)
-    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
-    if (sparse) {
-      block <- as(object = block, Class = 'dgCMatrix')
-    } else {
-      block <- as(object = block, Class = 'Matrix')
-    }
-    product.list[[i]] <- as.matrix( block %*% t(y[,vp.range]))
-  }
-  product.mat <-  Reduce(f = '+', product.list)
-  colnames(product.mat) <- rownames(y)
-  rownames(product.mat) <- rownames(x)
-  return(product.mat)
-}
-
-# cross product row norm from delayed array
-#
-crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e8) {
-  # perform t(x) %*% y in blocks for y
-  if (!inherits(x = y, 'DelayedMatrix')) {
-    stop('y should a DelayedMatrix')
-  }
-  if (nrow(x) != nrow(y)) {
-    stop('row of x and y should be the same')
-  }
-  sparse <- DelayedArray::is_sparse(x = y)
-  suppressMessages(setAutoBlockSize(size = block.size))
-  cells.grid <- DelayedArray::colAutoGrid(x = y)
-  norm.list <- list()
-  for (i in seq_len(length.out = length(x = cells.grid))) {
-    vp <- cells.grid[[i]]
-    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
-    if (sparse) {
-      block <- as(object = block, Class = 'dgCMatrix')
-    } else {
-      block <- as(object = block, Class = 'Matrix')
-    }
-    norm.list[[i]] <- colSums(x = as.matrix(t(x) %*% block) ^ 2)
-  }
-  norm.vector <- unlist(norm.list)
-  return(norm.vector)
-
-}
-
-# row mean from delayed array
-#
-RowMeanDelayedAssay <- function(x, block.size = 1e8) {
-  if (!inherits(x = x, 'DelayedMatrix')) {
-    stop('input x should a DelayedMatrix')
-  }
-  sparse <- DelayedArray::is_sparse(x = x)
-  if (sparse ) {
-    row.sum.function <- RowSumSparse
-  } else {
-    row.sum.function <- rowSums2
-  }
-  suppressMessages(setAutoBlockSize(size = block.size))
-  cells.grid <- DelayedArray::colAutoGrid(x = x)
-  sum.list <- list()
-  for (i in seq_len(length.out = length(x = cells.grid))) {
-    vp <- cells.grid[[i]]
-    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
-    if (sparse) {
-      block <- as(object = block, Class = 'dgCMatrix')
-    } else {
-      block <- as(object = block, Class = 'Matrix')
-    }
-    sum.list[[i]] <- row.sum.function(mat = block)
-  }
-  mean.mat <- Reduce('+', sum.list)
-  mean.mat <- mean.mat/ncol(x)
-  return(mean.mat)
-}
-
-# row variance from delayed array
-#
-RowVarDelayedAssay <- function(x, block.size = 1e8) {
-  if (!inherits(x = x, 'DelayedMatrix')) {
-    stop('input x should a DelayedMatrix')
-  }
-  sparse <- DelayedArray::is_sparse(x = x)
-  if (sparse ) {
-    row.sum.function <- RowSumSparse
-  } else {
-    row.sum.function <- rowSums2
-  }
-
-  suppressMessages(setAutoBlockSize(size = block.size))
-  cells.grid <- DelayedArray::colAutoGrid(x = x)
-  sum2.list <- list()
-  sum.list <- list()
-
-  for (i in seq_len(length.out = length(x = cells.grid))) {
-    vp <- cells.grid[[i]]
-    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
-    if (sparse) {
-      block <- as(object = block, Class = 'dgCMatrix')
-    } else {
-      block <- as(object = block, Class = 'Matrix')
-    }
-    sum2.list[[i]] <- row.sum.function(mat = block**2)
-    sum.list[[i]] <- row.sum.function(mat = block)
-  }
-  sum.mat <- Reduce('+', sum.list)
-  sum2.mat <- Reduce('+', sum2.list)
-  var.mat <- sum2.mat/ncol(x) - (sum.mat/ncol(x))**2
-  var.mat <- var.mat * ncol(counts) / (ncol(counts) - 1)
-  return(var.mat)
-}
-
-
-
 # nonzero element version of sweep
 #
 SweepNonzero <- function(
@@ -2829,10 +2703,15 @@ SweepNonzero <- function(
 
 
 #' Create one hot matrix for a given label
+#' 
+#' @param labels A vector of labels
+#' @param method Method to aggregate cells with the same label. Either 'aggregate' or 'average'
+#' @param cells.name A vector of cell names
+#' 
 #' @importFrom Matrix colSums sparse.model.matrix
 #' @importFrom stats as.formula
 #' @export
-
+#'
 CreateCategoryMatrix <- function(
   labels,
   method = c('aggregate', 'average'),

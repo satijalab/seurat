@@ -67,6 +67,8 @@ to split by cell identity'}
 
 \item{slot}{Slot to pull expression data from (e.g. "counts" or "data")}
 
+\item{layer}{Layer to pull expression data from (e.g. "counts" or "data")}
+
 \item{split.plot}{plot each group of the split violin plots by multiple or
 single violin shapes.}
 
