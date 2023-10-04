@@ -113,6 +113,9 @@ subset(pbmc, idents = c('NK', 'B'), invert = TRUE)
 
 ```{r avg.exp, fig.height=8}
 # How can I pseudobulk cells within a cluster?
+# First, replace spaces with underscores '_' so ggplot2 doesn't fail
+pbmc$CellType <- gsub(" ", "_", pbmc$CellType)
+Idents(pbmc) <- pbmc$CellType
 # Return this information as a Seurat object (enables downstream plotting and analysis)
 # The summed counts are stored in the counts layer and normalized value are stored in the data layer
 cluster.pseudobulk <- AggregateExpression(pbmc, return.seurat=TRUE)
@@ -121,11 +124,11 @@ head(cluster.pseudobulk[['RNA']]$data[1:5, ])
 
 # How can I plot the average expression of NK cells vs. CD8 T cells?
 # Pass do.hover = T for an interactive plot to identify gene outliers
-CellScatter(cluster.pseudobulk, cell1 = "NK", cell2 = "CD8 T")
+CellScatter(cluster.pseudobulk, cell1 = "NK", cell2 = "CD8-T")
 
 # How can I calculate pseudobulked expression values separately for each replicate?
 cluster.pseudobulk <- AggregateExpression(pbmc, return.seurat = TRUE, group.by = c("CellType", "replicate"))
-CellScatter(cluster.pseudobulk, cell1 = "CD8 T_rep1", cell2 = "CD8 T_rep2")
+CellScatter(cluster.pseudobulk, cell1 = "CD8-T_rep1", cell2 = "CD8-T_rep2")
 
 # You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between replicates
 DoHeatmap(cluster.pseudobulk, features = unlist(TopFeatures(pbmc[['pca']], balanced = TRUE)), size = 3, draw.lines = FALSE)
