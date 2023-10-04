@@ -920,7 +920,7 @@ FindMarkers.DimReduc <- function(
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
-      n = nrow(x = object)
+      n = ncol(x = object)
     )
   }
   return(de.results)
