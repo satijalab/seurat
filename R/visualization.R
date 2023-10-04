@@ -251,12 +251,12 @@ DoHeatmap <- function(
   group.bar.height = 0.02,
   combine = TRUE
 ) {
-  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
+  cells <- cells %||% colnames(x = object[[assay]])
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
   }
-  assay <- assay %||% DefaultAssay(object = object)
-  DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
   features <- rev(x = unique(x = features))
   disp.max <- disp.max %||% ifelse(
@@ -621,7 +621,7 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = deprecated(),
-  layer = 'data',
+  layer = NULL,
   split.plot = FALSE,
   stack = FALSE,
   combine = TRUE,
@@ -637,6 +637,29 @@ VlnPlot <- function(
       with = 'VlnPlot(layer = )'
     )
     layer <- slot %||% layer
+  }
+  layer.set <- suppressWarnings(
+    Layers(
+      object = object,
+      search = layer %||% 'data'
+    )
+  )
+  if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
+    warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
+  }
+  assay.name <- DefaultAssay(object)
+  if (is.null(layer.set) & is.null(layer) ) {
+    warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.', 
+            call. = FALSE, immediate. = TRUE)
+    layer.set <- Layers(
+      object = object,
+      search = 'counts'
+    )
+  }
+  if (is.null(layer.set)) {
+    stop('layer "', layer,'" is not found in assay: "', assay.name, '"')
+  } else {
+    layer <- layer.set
   }
   if (
     !is.null(x = split.by) &
@@ -4065,7 +4088,7 @@ SpatialPlot <- function(
       }
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], "factor")) {
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], what = "factor") ) {
         max.feature.value <- max(data[, features[j]])
       }
 
@@ -4364,8 +4387,7 @@ DotPlot <- function(
     features <- unlist(x = features)
     names(x = feature.groups) <- features
   }
-  cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
-
+  cells <- unlist(x = CellsByIdentities(object = object, cells = colnames(object[[assay]]), idents = idents))
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -4945,7 +4967,7 @@ AutoPointSize <- function(data, raster = NULL) {
 #' hexadecimal codes
 #' @param threshold Intensity threshold for light/dark cutoff; intensities
 #' greater than \code{theshold} yield \code{dark}, others yield \code{light}
-#' @param w3c Use \href{http://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
+#' @param w3c Use \href{https://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
 #' background text color; ignores \code{threshold}
 #' @param dark Color for dark text
 #' @param light Color for light text
@@ -6770,7 +6792,8 @@ ExIPlot <- function(
     if (length(x = obj) == 1) {
       if (inherits(x = object[[obj]], what = 'DimReduc')) {
         plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
-      } else if (inherits(x = object[[obj]], what = 'Assay')) {
+      } else if (inherits(x = object[[obj]], what = 'Assay') || 
+                 inherits(x = object[[obj]], what = 'Assay5')) {
         next
       } else {
         warning("Unknown object type ", class(x = object), immediate. = TRUE, call. = FALSE)
@@ -7871,7 +7894,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 #' @param cols An optional vector of colors to use
 #' @param pt.size Point size for the plot
 #' @param smooth Make a smoothed scatter plot
-#' @param rows.highight A vector of rows to highlight (like cells.highlight in
+#' @param rows.highlight A vector of rows to highlight (like cells.highlight in
 #' \code{\link{SingleDimPlot}})
 #' @param legend.title Optional legend title
 #' @param raster Convert points to raster format, default is \code{NULL}
@@ -7911,7 +7934,7 @@ SingleCorPlot <- function(
   jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+  if ((nrow(x = data) > 1e5) & !is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
@@ -8128,7 +8151,7 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+  if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
@@ -8326,7 +8349,7 @@ SingleExIPlot <- function(
   if (PackageCheck('ggrastr', error = FALSE)) {
     # Set rasterization to true if ggrastr is installed and
     # number of points exceeds 100,000
-    if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    if ((nrow(x = data) > 1e5) & is.null(x = raster)){
       message("Rasterizing points since number of points exceeds 100,000.",
               "\nTo disable this behavior set `raster=FALSE`")
       # change raster to TRUE

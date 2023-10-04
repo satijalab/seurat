@@ -4223,6 +4223,9 @@ FindIntegrationMatrix <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
+  if (inherits(x = object[[assay[1]]], what = 'Assay5')) {
+    object <- JoinLayers(object)
+  }
   anchors <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -5196,10 +5199,21 @@ if (normalization.method == 'SCT') {
     nCount_UMI = nCount_UMI)
 } else {
   query <- query[features,]
-  reference.data <-  GetAssayData(
-    object = reference,
-    assay = reference.assay,
-    slot = "data")[features, ]
+  if(inherits(x = reference[[reference.assay]], what = "Assay5")){
+    reference.data.list <- c()
+    for (i in Layers(object = reference[[reference.assay]], search = "data")) {
+      reference.data.list[[i]] <- LayerData(
+        object = reference[[reference.assay]], 
+        layer = i
+        )[features, ]
+    }
+    reference.data <- do.call(cbind, reference.data.list)
+  } else {
+    reference.data <- GetAssayData(
+      object = reference,
+      assay = reference.assay,
+      slot = "data")[features, ]
+  }
   if (is.null(x = feature.mean)) {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
@@ -5285,7 +5299,13 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       ))
   } else {
     query <- query[features,]
-    reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features, ]
+    reference.data.list <- c()
+    for (i in Layers(object = reference[[reference.assay]], 
+                     search = "data")) {
+      reference.data.list[[i]] <- LayerData(object = reference[[reference.assay]], 
+                                            layer = i)[features, ]
+    }
+    reference.data <- do.call(cbind, reference.data.list)
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
         feature.mean <- RowMeanSparse(mat = reference.data)
@@ -5833,11 +5853,12 @@ ValidateParams_FindTransferAnchors <- function(
   if (reduction == "lsiproject") {
     ModifyParam(param = "k.filter", value = NA)
   }
-  if (inherits(x = reference[[reference.assay]], what = 'Assay5') ||
-      inherits(x = query[[query.assay]], what = 'Assay5')) {
-    # current filter anchors not support for v5 assay
-    ModifyParam(param = "k.filter", value = NA)
-  }
+  # commented out to enable filter anchors for v5 assay
+  # if (inherits(x = reference[[reference.assay]], what = 'Assay5') ||
+  #     inherits(x = query[[query.assay]], what = 'Assay5')) {
+  #   # current filter anchors not support for v5 assay
+  #   ModifyParam(param = "k.filter", value = NA)
+  # }
   if (!is.na(x = k.filter) && k.filter > ncol(x = query)) {
     warning("k.filter is larger than the number of cells present in the query.\n",
             "Continuing without anchor filtering.",

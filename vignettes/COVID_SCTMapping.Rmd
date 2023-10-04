@@ -142,10 +142,8 @@ p1 + p2 + plot_layout(ncol = 2)
 In addition to composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy individuals and COVID-19 donors. We aggregate all cells within the same cell type and donor using the `AggregateExpression` function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
 
 ```{r}
-bulk <- AverageExpression(object,
-  method = 'aggregate',
+bulk <- AggregateExpression(object,
   return.seurat = TRUE,
-  slot = 'counts',
   assays  = 'RNA',
   group.by = c("predicted.celltype.l2", "donor_id", "disease")
 )
