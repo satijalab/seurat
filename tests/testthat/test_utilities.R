@@ -157,20 +157,18 @@ object <- AddMetaData(object, meta.data.2)
 if(class(object[['RNA']]) == "Assay5")  {
   test_that("AggregateExpression works with multiple layers", {
     object.split <- split(object, f = object$b)
-    aggregate.split <- AggregateExpression(object.split)
-    aggregate <- AggregateExpression(object)
+    aggregate.split <- AggregateExpression(object.split, assay = "RNA")
+    aggregate <- AggregateExpression(object, assay = "RNA")
     expect_equivalent(
-      aggregate.split,
-      aggregate,
+      aggregate.split$RNA,
+      aggregate$RNA,
       tolerance = 1e-6
     )
-  })
-  test_that("AverageExpression works with multiple layers", {
-    avg.split <- AverageExpression(object.split)
-    avg <- AverageExpression(object)
+    avg.split <- AverageExpression(object.split, assay = "RNA")
+    avg <- AverageExpression(object, assay = "RNA")
     expect_equivalent(
-      avg.split,
-      avg,
+      avg.split$RNA,
+      avg$RNA,
       tolerance = 1e-6
     )
   })
