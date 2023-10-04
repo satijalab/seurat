@@ -494,7 +494,7 @@ ScaleData.StdAssay <- function(
     } else {
       LayerData(object = object, layer = layer, features = features)
     }
-    LayerData(object = object, layer = save, features = features) <- ScaleData(
+    ldata <- ScaleData(
       object = ldata,
       features = features,
       vars.to.regress = vars.to.regress,
@@ -510,6 +510,7 @@ ScaleData.StdAssay <- function(
       verbose = verbose,
       ...
     )
+    LayerData(object = object, layer = save, features = rownames(ldata)) <- ldata
   }
   return(object)
 }
@@ -549,7 +550,7 @@ VST.IterableMatrix <- function(
     matrix = data,
     row_stats = 'variance')$row_stats
   # Calculate feature means
-  hvf.info$mean <- hvf.stats['mean' ]
+  hvf.info$mean <- hvf.stats['mean', ]
   # Calculate feature variance
   hvf.info$variance <- hvf.stats['variance', ]
   hvf.info$variance.expected <- 0L
@@ -1150,7 +1151,7 @@ CreateSCTAssay <- function(vst.out,  do.correct.umi, residual.type, clip.range){
 }
 
 #' @importFrom SeuratObject Cells DefaultLayer DefaultLayer<- Features
-#' LayerData LayerData<-
+#' LayerData LayerData<- as.sparse
 #'
 #' @method SCTransform StdAssay
 #' @export
@@ -1231,7 +1232,7 @@ SCTransform.StdAssay <- function(
 
     # Step 1: Learn model
     vst.out <- sct.function(object = layer.data,
-                            do.correct.umi = FALSE,
+                            do.correct.umi = TRUE,
                             cell.attr = cell.attr.layer,
                             reference.SCT.model = reference.SCT.model,
                             ncells = ncells,
@@ -1246,7 +1247,7 @@ SCTransform.StdAssay <- function(
                             conserve.memory = conserve.memory,
                             return.only.var.genes = return.only.var.genes,
                             seed.use = seed.use,
-                            verbose = FALSE)
+                            verbose = verbose)
     min_var <- vst.out$arguments$min_variance
     assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
                                 clip.range = clip.range)
@@ -1385,6 +1386,7 @@ SCTransform.StdAssay <- function(
           layer = paste0(layer, ".", layer.name),
           cells = all_cells
           )
+        layer.counts.tmp <- as.sparse(x = layer.counts.tmp)
         vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
         vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
         new_residual <- GetResidualsChunked(vst_out = vst_out, layer.counts = layer.counts.tmp,
@@ -1620,8 +1622,8 @@ FetchResidualSCTModel <- function(
   clip.range = NULL,
   replace.value = FALSE,
   verbose = FALSE
-) {  
-  
+) {
+
   model.cells <- character()
   model.features <- Features(x = object, assay = assay)
   if (is.null(x = reference.SCT.model)){
