@@ -1249,6 +1249,7 @@ SCTransform.StdAssay <- function(
                             seed.use = seed.use,
                             verbose = verbose)
     min_var <- vst.out$arguments$min_variance
+    residual.type <- vst.out[['residual_type']] %||% 'pearson'
     assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
                                 clip.range = clip.range)
 
@@ -1311,7 +1312,7 @@ SCTransform.StdAssay <- function(
         } else {
           new_residual <- get_residuals(
             vst_out = vst_out,
-            umi = counts.vp[all.features,],
+            umi = counts.vp[all_features,],
             residual_type = "pearson",
             min_variance = min_var,
             res_clip_range = res_clip_range,
@@ -1615,6 +1616,7 @@ FetchResidualSCTModel <- function(
   assay = "SCT",
   umi.assay = "RNA",
   layer = "counts",
+  chunk_size = 2000,
   layer.cells = NULL,
   SCTModel = NULL,
   reference.SCT.model = NULL,
@@ -1857,7 +1859,7 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
     cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/chunk_size))
     for (i in seq_len(length.out = length(x = cells.grid))) {
       vp <- cells.grid[[i]]
-      counts.vp <- as.sparse(x = layer.data[, vp])
+      counts.vp <- as.sparse(x = layer.counts[, vp])
       vst.out <- vst_out
       vst.out$cell_attr <- vst.out$cell_attr[colnames(x = counts.vp),,drop=FALSE]
       residuals.list[[i]] <- get_residuals(
@@ -1874,9 +1876,6 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
     stop("Data type not supported")
   }
   return (residuals)
-
-
-
 }
 
 #' temporal function to get residuals from reference
@@ -1884,7 +1883,7 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
 #' @param reference.SCT.model a reference SCT model that should be used
 #' for calculating the residuals
 #' @param features Names of features to compute
-#' @param nCount_UMI UMI counts. If not specified, defaults to 
+#' @param nCount_UMI UMI counts. If not specified, defaults to
 #' column sums of object
 #' @param verbose Whether to print messages and progress bars
 #' @importFrom sctransform get_residuals

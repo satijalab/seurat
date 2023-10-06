@@ -29,7 +29,6 @@ URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://satijalab.r-universe.dev
 Remotes: 
-    bnprks/BPCells,
     mojaveazure/seurat-object@seurat5
 Depends:
     R (>= 4.0.0),
@@ -89,8 +88,7 @@ Imports:
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.10),
-    BPCells (>= 0.0.0.9000)
+    uwot (>= 0.1.10)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: MIT + file LICENSE
 LazyData: true
@@ -119,6 +117,7 @@ RoxygenNote: 7.2.3
 Encoding: UTF-8
 Suggests:
     ape,
+    BPCells,
     rsvd,
     testthat,
     hdf5r,
