@@ -105,7 +105,7 @@ if(class(object[['RNA']]) == "Assay5")  {
   fake.groups <- c(rep(1, floor(ncol(pbmc.test)/2)),
                    rep(2, ncol(pbmc.test) - (floor(ncol(pbmc.test)/2))) )
   object$groups <- fake.groups
-  object.split[["RNA"]] <- split(object[["RNA"]], f = object$groups)
+  object.split <- CreateSeuratObject(split(object[["RNA"]], f = object$groups))
   object.split <-  NormalizeData(object = object.split)
   
   group1 <- subset(object, groups==1)

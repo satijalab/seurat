@@ -174,32 +174,32 @@ ProjectData <- function(
       message(full.reduction, ' is not in the object.'
               ,' Data from all cells will be projected to ', sketched.reduction)
     }
-    proj.emb <- ProjectCellEmbeddings(query = object,
-                                      reference = object,
-                                      query.assay = assay,
-                                      dims = dims,
-                                      normalization.method = normalization.method,
-                                      reference.assay = sketched.assay,
-                                      reduction = sketched.reduction,
-                                      verbose = verbose)
+    proj.emb <- ProjectCellEmbeddings(
+      query = object,
+      reference = object,
+      query.assay = assay,
+      dims = dims,
+      normalization.method = normalization.method,
+      reference.assay = sketched.assay,
+      reduction = sketched.reduction,
+      verbose = verbose)
     object[[full.reduction]] <- CreateDimReducObject(
       embeddings = proj.emb,
       assay = assay,
       key = Key(object = full.reduction, quiet = TRUE)
     )
   }
-  
-  object <- TransferSketchLabels(object = object,
-                                 sketched.assay = sketched.assay,
-                                 reduction = full.reduction,
-                                 dims = dims,
-                                 k = k.weight,
-                                 refdata = refdata,
-                                 reduction.model = umap.model,
-                                 recompute.neighbors = recompute.neighbors,
-                                 recompute.weights = recompute.weights,
-                                 verbose = verbose
-  )
+  object <- TransferSketchLabels(
+    object = object,
+    sketched.assay = sketched.assay,
+    reduction = full.reduction,
+    dims = dims,
+    k = k.weight,
+    refdata = refdata,
+    reduction.model = umap.model,
+    recompute.neighbors = recompute.neighbors,
+    recompute.weights = recompute.weights,
+    verbose = verbose)
   return(object)
 }
 
@@ -249,20 +249,20 @@ TransferSketchLabels <- function(
     object = object,
     slot = 'TransferSketchLabels'
   )$full_sketch.weight
-  
+
   compute.neighbors <- is.null(x = full_sketch.nn) ||
     !all(Cells(full_sketch.nn) == Cells(object[[reduction]])) ||
     max(Indices(full_sketch.nn)) >  ncol(object[[sketched.assay]]) ||
     !identical(x = full_sketch.nn@alg.info$dims, y =  dims) ||
     !identical(x = full_sketch.nn@alg.info$reduction, y =  reduction) ||
     recompute.neighbors
-  
+
   compute.weights <- is.null(x = full_sketch.weight) ||
     !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
     !all(rownames(full_sketch.weight) == colnames(object[[sketched.assay]]))  ||
     recompute.weights || 
     recompute.neighbors
-  
+
   if (compute.neighbors) {
     if (verbose) {
       message("Finding sketch neighbors")
@@ -280,16 +280,21 @@ TransferSketchLabels <- function(
     if (verbose) {
       message("Finding sketch weight matrix")
     }
-    full_sketch.weight <- FindWeightsNN(nn.obj = full_sketch.nn,
-                                        query.cells = Cells(object[[reduction]]),
-                                        reference = colnames(object[[sketched.assay]]),
-                                        verbose = verbose)
+    full_sketch.weight <- FindWeightsNN(
+      nn.obj = full_sketch.nn,
+      query.cells = Cells(object[[reduction]]),
+      reference.cells = colnames(object[[sketched.assay]]),
+      verbose = verbose)
     rownames(full_sketch.weight) <- colnames(object[[sketched.assay]])
     colnames(full_sketch.weight) <- Cells(object[[reduction]])
   }
-  slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
-  slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
-  
+  slot(
+    object = object, name = 'tools'
+    )$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
+  slot(
+    object = object, name = 'tools'
+    )$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
+
   if (!is.null(refdata)) {
     if (length(refdata) == 1  & is.character(refdata)) {
       refdata <- list(refdata)
@@ -365,7 +370,8 @@ TransferSketchLabels <- function(
 #' @param verbose Print progress and diagnostic messages
 #' @importFrom Matrix qrR t
 #' @importFrom irlba irlba
-#' 
+#' @importFrom BPCells transpose_storage_order matrix_stats
+#'
 #' @rdname LeverageScore
 #' @method LeverageScore default
 #' @export
@@ -382,9 +388,9 @@ LeverageScore.default <- function(
 ) {
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
-  if (ncells < nsketch*1.5) {
+  if (ncells < nsketch * 1.5) {
     nv <- ifelse(nrow(x = object) < 50, nrow(x = object) - 1, 50)
-    Z <- irlba(A = object, nv = nv, nu = 0, verbose = FALSE)$v
+    Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
   if (nrow(x = object) > 5000L) {
@@ -462,71 +468,6 @@ LeverageScore.default <- function(
 }
 
 #' @rdname LeverageScore
-#' @importFrom Matrix qrR t
-#' @method LeverageScore DelayedMatrix
-#' @export
-#'
-LeverageScore.DelayedMatrix <- function(
-  object,
-  nsketch = 5000L,
-  ndims = NULL,
-  method = CountSketch,
-  eps = 0.5,
-  seed = 123L,
-  block.size = 1e8,
-  verbose = TRUE,
-  ...
-) {
-  check_installed(
-    pkg = 'DelayedArray',
-    reason = 'for working with delayed matrices'
-  )
-  if (!is_quosure(x = method)) {
-    method <- enquo(arg = method)
-  }
-  sa <- SketchMatrixProd(object = object,
-                         block.size = block.size,
-                         nsketch = nsketch,
-                         method = method,
-                         ...)
-  qr.sa <- base::qr(x = sa)
-  R <- if (inherits(x = qr.sa, what = 'sparseQR')) {
-    qrR(qr = qr.sa)
-  } else {
-    base::qr.R(qr = qr.sa)
-  }
-  if (length(x = which(x = diag(x = R) == 0))> 0) {
-    warning("not all features are variable features")
-    var.index <- which(x = diag(x = R) != 0)
-    R <- R[var.index, var.index]
-  }
-  R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
-  JL <- as.sparse(x = JLEmbed(
-    nrow = ncol(x = R.inv),
-    ncol = ndims,
-    eps = eps,
-    seed = seed
-  ))
-  RP.mat <- R.inv %*% JL
-  sparse <- DelayedArray::is_sparse(x = object)
-  suppressMessages(setAutoBlockSize(size = block.size))
-  cells.grid <- DelayedArray::colAutoGrid(x = object)
-  norm.list <- list()
-  for (i in seq_len(length.out = length(x = cells.grid))) {
-    vp <- cells.grid[[i]]
-    block <- DelayedArray::read_block(x = object, viewport = vp, as.sparse = sparse)
-    if (sparse) {
-      block <- as(object = block, Class = 'dgCMatrix')
-    } else {
-      block <- as(object = block, Class = 'Matrix')
-    }
-    norm.list[[i]] <- colSums(x = as.matrix(t(RP.mat) %*% block[1:ncol(R),]) ^ 2)
-  }
- scores <- unlist(norm.list)
-  return(scores)
-}
-
-#' @rdname LeverageScore
 #' @method LeverageScore StdAssay
 #' 
 #' @export
@@ -548,7 +489,7 @@ LeverageScore.StdAssay <- function(
   if (!is_quosure(x = method)) {
     method <- enquo(arg = method)
   }
-  scores <- SeuratObject:::EmptyDF(n = ncol(x = object))
+  scores <- SeuratObject::EmptyDF(n = ncol(x = object))
   row.names(x = scores) <- colnames(x = object)
   scores[, 1] <- NA_real_
   for (i in seq_along(along.with = layer)) {
@@ -739,47 +680,6 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA_integer_, method = "li") {
   )
   return(m)
 }
-
-
-
-SketchMatrixProd <- function(
-    object,
-    method = CountSketch,
-    block.size = 1e9,
-    nsketch = 5000L,
-    seed = 123L,
-    ...) {
-
-  if (is_quosure(x = method)) {
-    method <- eval(
-      expr = quo_get_expr(quo = method),
-      envir = quo_get_env(quo = method)
-    )
-  }
-  if (is.character(x = method)) {
-    method <- match.fun(FUN = method)
-  }
-  stopifnot(is.function(x = method))
-  sparse <- DelayedArray::is_sparse(x = object)
-  suppressMessages(setAutoBlockSize(size = block.size))
-  cells.grid <- DelayedArray::colAutoGrid(x = object)
-  SA.mat <- matrix(data = 0, nrow = nsketch, ncol = nrow(object))
-  for (i in seq_len(length.out = length(x = cells.grid))) {
-    vp <- cells.grid[[i]]
-    block <- DelayedArray::read_block(x = object, viewport = vp, as.sparse = sparse)
-
-    if (sparse) {
-      block <- as(object = block, Class = 'dgCMatrix')
-    } else {
-      block <- as(object = block, Class = 'Matrix')
-    }
-    ncells.block <- ncol(block)
-    S.block <- method(nsketch = nsketch, ncells = ncells.block, seed = seed, ...)
-    SA.mat <- SA.mat + as.matrix(S.block %*% t(block))
-  }
-  return(SA.mat)
-}
-
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 Methods
