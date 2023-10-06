@@ -106,7 +106,7 @@ HarmonyIntegration <- function(
   #   verbose = verbose
   # )
   #create grouping variables
-  groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
+  groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
   # Run Harmony
   harmony.embed <- harmony::HarmonyMatrix(
     data_mat = Embeddings(object = orig),
@@ -205,7 +205,7 @@ CCAIntegration <- function(
   layers <- layers %||% Layers(object, search = 'data')
   if (normalization.method == 'SCT') {
     #create grouping variables
-    groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
+    groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct,split.by = 'split')
@@ -342,7 +342,7 @@ RPCAIntegration <- function(
   layers <- layers %||% Layers(object = object, search = 'data')
   if (normalization.method == 'SCT') {
     #create grouping variables
-    groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
+    groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct, split.by = 'split')
@@ -438,7 +438,7 @@ JointPCAIntegration <- function(
 
   if (normalization.method == 'SCT') {
     #create grouping variables
-    groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
+    groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct <- DietSeurat(object = object.sct, features = features.diet)
     object.sct[['joint.pca']] <- CreateDimReducObject(
@@ -612,7 +612,9 @@ IntegrateLayers <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-CreateGroupVariable <- function(object, layers, scale.layer) {
+# Creates data.frame with cell group assignments for integration
+# uses SCT models if SCTAssay and layers otherwise
+CreateIntegrationGroups <- function(object, layers, scale.layer) {
     groups <- if (inherits(x = object, what = 'SCTAssay')) {
         df <- SeuratObject::EmptyDF(n = ncol(x = object))
         row.names(x = df) <- colnames(x = object)
