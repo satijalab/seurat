@@ -10,6 +10,7 @@ FetchResidualSCTModel(
   assay = "SCT",
   umi.assay = "RNA",
   layer = "counts",
+  chunk_size = 2000,
   layer.cells = NULL,
   SCTModel = NULL,
   reference.SCT.model = NULL,

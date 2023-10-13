@@ -20,7 +20,7 @@ for calculating the residuals}
 
 \item{features}{Names of features to compute}
 
-\item{nCount_UMI}{UMI counts. If not specified, defaults to 
+\item{nCount_UMI}{UMI counts. If not specified, defaults to
 column sums of object}
 
 \item{verbose}{Whether to print messages and progress bars}
