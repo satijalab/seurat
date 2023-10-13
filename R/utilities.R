@@ -538,7 +538,7 @@ AverageExpression <- function(
         assay = assays[1],
         category.matrix = category.matrix,
         features = features[[1]],
-        slot = "counts"
+        layer = "counts"
       )
       toRet <- CreateSeuratObject(
         counts = summed.counts,

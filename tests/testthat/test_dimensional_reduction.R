@@ -51,7 +51,7 @@ test_that("pca returns total variance (see #982)", {
   ))
 
   # Using stats::prcomp
-  scaled_data <- Seurat::LayerData(object = obj, layer = "scale.data")
+  scaled_data <- LayerData(object = obj, layer = "scale.data")
   prcomp_result <- stats::prcomp(scaled_data, center = FALSE, scale. = FALSE)
 
   # Compare
