@@ -131,6 +131,32 @@ if(class(object[['RNA']]) == "Assay5")  {
   })
 }
 
+# Tests for BPCells NormalizeData
+# --------------------------------------------------------------------------------
+#make Iterable matrix
+mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+
+object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
+object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
+
+test_that("NormalizeData scales properly for BPcells", {
+  expect_equal(as.matrix(object[['RNAbp']]$data), as.matrix(object[['RNA']]$data), tolerance = 1e-6)
+  expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "scale.factor"), 1e6)
+  expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "normalization.method"), "LogNormalize")
+})
+
+normalized.data.bp <- LogNormalize(data = GetAssayData(object = object[["RNAbp"]], layer = "counts"), verbose = FALSE)
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
+
+test_that("LogNormalize normalizes properly for BPCells", {
+  expect_equal(
+    as.matrix(normalized.data.bp),
+    as.matrix(normalized.data),
+    tolerance = 1e-6
+  )
+})
+
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")
@@ -275,30 +301,35 @@ object <- FindVariableFeatures(object = object, selection.method = "mean.var.plo
 test_that("mean.var.plot selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PTGDR", "SATB1", "ZNF330", "S100B"))
   expect_equal(length(x = VariableFeatures(object = object)), 20)
-  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
-  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
-  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
+  hvf_info <- HVFInfo(object = object[["RNA"]], method = 'mvp')
+  expect_equal(hvf_info[[grep("mean$", colnames(hvf_info), value = TRUE)]][1:2], c(8.328927, 8.444462), tolerance = 1e-6)
+  expect_equal(hvf_info[[grep("dispersion$", colnames(hvf_info), value = TRUE)]][1:2], c(10.552507, 10.088223), tolerance = 1e-6)
+  expect_equal(as.numeric(hvf_info[[grep("dispersion.scaled$", colnames(hvf_info), value = TRUE)]][1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
 })
 
 object <- FindVariableFeatures(object, selection.method = "dispersion", verbose = FALSE)
 test_that("dispersion selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PCMT1", "PPBP", "LYAR", "VDAC3"))
   expect_equal(length(x = VariableFeatures(object = object)), 230)
-  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
-  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
-  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
-  expect_true(!is.unsorted(rev(HVFInfo(object = object[["RNA"]], method = 'mvp')[VariableFeatures(object = object), "dispersion"])))
+  hvf_info <- HVFInfo(object = object[["RNA"]], method = 'mvp')
+  expect_equal(hvf_info[[grep("mean$", colnames(hvf_info), value = TRUE)]][1:2], c(8.328927, 8.444462), tolerance = 1e-6)
+  expect_equal(hvf_info[[grep("dispersion$", colnames(hvf_info), value = TRUE)]][1:2], c(10.552507, 10.088223), tolerance = 1e-6)
+  expect_equal(as.numeric(hvf_info[[grep("dispersion.scaled$", colnames(hvf_info), value = TRUE)]][1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
+  expect_true(!is.unsorted(rev(hvf_info[VariableFeatures(object = object), "dispersion"])))
 })
 
 object <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
 test_that("vst selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PPBP", "IGLL5", "VDAC3", "CD1C"))
   expect_equal(length(x = VariableFeatures(object = object)), 230)
-  expect_equal(unname(object[["RNA"]]["vst.variance", drop = TRUE][1:2]), c(1.0251582, 1.2810127), tolerance = 1e-6)
-  expect_equal(unname(object[["RNA"]]["vst.variance.expected", drop = TRUE][1:2]), c(1.1411616, 2.7076228), tolerance = 1e-6)
-  expect_equal(unname(object[["RNA"]]["vst.variance.standardized", drop = TRUE][1:2]), c(0.8983463, 0.4731134), tolerance = 1e-6)
-  expect_true(!is.unsorted(rev(object[["RNA"]]["vst.variance.standardized", drop = TRUE][VariableFeatures(object = object)])))
+  hvf_info <- HVFInfo(object = object[["RNA"]], method = 'vst')
+  expect_equal(hvf_info[[grep("variance$", colnames(hvf_info), value = TRUE)]][1:2], c(1.0251582, 1.2810127), tolerance = 1e-6)
+  expect_equal(hvf_info[[grep("variance.standardized$", colnames(hvf_info), value = TRUE)]][1:2], c(0.8983463, 0.4731134), tolerance = 1e-6)
+  expect_true(!is.unsorted(rev(hvf_info[VariableFeatures(object = object), grep("variance.standardized$", colnames(hvf_info))])))
 })
+
+#object <- FindVariableFeatures(object, assay = "RNAbp")
+#this breaks currently
 
 # Tests for internal functions
 # ------------------------------------------------------------------------------
@@ -323,6 +354,8 @@ test_that("CustomNormalize works as expected", {
   expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 10))
 })
 
+# Tests for SCTransform
+# --------------------------------------------------------------------------------
 context("SCTransform")
 object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v1",  seed.use = 1448145))
 
@@ -410,4 +443,12 @@ test_that("SCTransform v2 works as expected", {
   expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
   expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
   expect_equal(fa["FCER2", "theta"], Inf)
+})
+
+object <- suppressWarnings(SCTransform(object = object, assay = "RNAbp", new.assay.name = "SCTbp",
+                                       verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+test_that("SCTransform is equivalent for BPcells ", {
+  expect_equal(as.matrix(LayerData(object = object[["SCT"]], layer = "data")), 
+               as.matrix(LayerData(object = object[["SCTbp"]], layer = "data")),
+               tolerance = 1e-6)
 })

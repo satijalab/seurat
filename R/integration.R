@@ -913,6 +913,7 @@ FindTransferAnchors <- function(
         query = reference,
         scale = scale,
         dims = dims,
+        feature.mean = feature.mean,
         verbose = verbose,
         normalization.method = normalization.method
       )
