@@ -333,7 +333,7 @@ NormalizeData.default <- function(
       }
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
-        stop('CLR normalization only supports for dense and dgCMatrix')
+        stop('CLR normalization is only supported for dense and dgCMatrix')
       }
       CustomNormalize(
         data = object,
@@ -347,7 +347,7 @@ NormalizeData.default <- function(
     'RC' = {
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
-        stop('RC normalization only supports for dense and dgCMatrix')
+        stop('RC normalization is only supported for dense and dgCMatrix')
       }
       RelativeCounts(data = object,
                      scale.factor = scale.factor,
@@ -432,6 +432,9 @@ ScaleData.StdAssay <- function(
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   olayer <- layer <- unique(x = layer)
+  if (!(layer %in% Layers(object = object))) {
+    abort(paste0("Layer '", layer, "' not found. Please run NormalizeData and retry"))
+  }
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
     layer <- "counts"

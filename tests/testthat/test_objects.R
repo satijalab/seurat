@@ -7,7 +7,7 @@ test_that("as.SingleCellExperiment works", {
   if (requireNamespace('SingleCellExperiment', quietly = TRUE)) {
     mat <- pbmc_small[["RNA"]]$counts
     seuratObj <- Seurat::CreateSeuratObject(mat)
-    sce <- as.SingleCellExperiment(seuratObj)
+    sce <- suppressWarnings(as.SingleCellExperiment(seuratObj))
 
     expect_equal(ncol(sce), 80)
     expect_equal(nrow(sce), 230)
@@ -16,7 +16,7 @@ test_that("as.SingleCellExperiment works", {
 
     seuratObj <- Seurat::CreateSeuratObject(mat)
     seuratObj[['ADT']] <- CreateAssayObject(mat)
-    sce <- as.SingleCellExperiment(seuratObj)
+    sce <- suppressWarnings(as.SingleCellExperiment(seuratObj))
     expect_equal(ncol(sce), 80)
     expect_equal(nrow(sce), 230)
     # expect_equal(names(SingleCellExperiment::altExps(sce)), 'ADT')
