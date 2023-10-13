@@ -2118,7 +2118,7 @@ VariableFeaturePlot <- function(
   hvf.info <- HVFInfo(
     object = object,
     assay = assay,
-    selection.method = selection.method,
+    method = selection.method,
     status = TRUE
   )
   status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]

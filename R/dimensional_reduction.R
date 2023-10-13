@@ -2418,15 +2418,16 @@ PrepDR <- function(
 
 PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
   layer <- layer[1L]
-  if (!(layer %in% Layers(object = object))) {
-    abort(paste0("Layer '", layer, "' not found. Please run ScaleData and retry"))
+  olayer <- layer
+  layer <- Layers(object = object, search = layer)
+  if (is.null(layer)) {
+    abort(paste0("No layer matching pattern '", olayer, "' not found. Please run ScaleData and retry"))
   }
-  layer <- match.arg(arg = layer, choices = Layers(object = object))
+  data.use <- LayerData(object = object, layer = layer)
   features <- features %||% VariableFeatures(object = object)
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
-  data.use <- LayerData(object = object, layer = layer, features = features)
   features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
   features.keep <- features[features.var > 0]
   if (!length(x = features.keep)) {
@@ -2444,9 +2445,10 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
       )
     }
   }
-  # features <- features.keep
-  # features <- features[!is.na(x = features)]
-  return(LayerData(object = object, layer = layer, features = features.keep))
+  features <- features.keep
+  features <- features[!is.na(x = features)]
+  data.use <- data.use[features, ]
+  return(data.use)
 }
 
 #' @param assay Name of Assay SPCA is being run on
