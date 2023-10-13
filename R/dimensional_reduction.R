@@ -2418,6 +2418,9 @@ PrepDR <- function(
 
 PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
   layer <- layer[1L]
+  if (!(layer %in% Layers(object = object))) {
+    abort(paste0("Layer '", layer, "' not found. Please run ScaleData and retry"))
+  }
   layer <- match.arg(arg = layer, choices = Layers(object = object))
   data.use <- LayerData(object = object, layer = layer)
   features <- features %||% VariableFeatures(object = object)

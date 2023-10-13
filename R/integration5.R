@@ -16,8 +16,6 @@ NULL
 #' @param object An \code{\link[SeuratObject]{Assay5}} object
 # @param assay Name of \code{object} in the containing \code{Seurat} object
 #' @param orig A \link[SeuratObject:DimReduc]{dimensional reduction} to correct
-#' @param groups A one-column data frame with grouping information; column
-#' should be called \code{group}
 #' @param features Ignored
 #' @param scale.layer Ignored
 #' @param layers Ignored
@@ -80,7 +78,6 @@ NULL
 HarmonyIntegration <- function(
   object,
   orig,
-  groups,
   features = NULL,
   scale.layer = 'scale.data',
   new.reduction = 'harmony',
@@ -119,6 +116,8 @@ HarmonyIntegration <- function(
   #   npcs = npcs,
   #   verbose = verbose
   # )
+  #create grouping variables
+  groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
   # Run Harmony
   harmony.embed <- harmony::HarmonyMatrix(
     data_mat = Embeddings(object = orig),
@@ -197,7 +196,6 @@ CCAIntegration <- function(
     features = NULL,
     normalization.method = c("LogNormalize", "SCT"),
     dims = 1:30,
-    groups = NULL,
     k.filter = NA,
     scale.layer = 'scale.data',
     dims.to.integrate = NULL,
@@ -216,11 +214,12 @@ CCAIntegration <- function(
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
   if (normalization.method == 'SCT') {
+    #create grouping variables
+    groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct,split.by = 'split')
     object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
-
   } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
@@ -355,7 +354,6 @@ RPCAIntegration <- function(
     dims = 1:30,
     k.filter = NA,
     scale.layer = 'scale.data',
-    groups = NULL,
     dims.to.integrate = NULL,
     k.weight = 100,
     weight.reduction = NULL,
@@ -378,6 +376,8 @@ RPCAIntegration <- function(
     abort(message = "At least one layer has fewer cells than dimensions specified, please lower 'dims' accordingly.")
   }
   if (normalization.method == 'SCT') {
+    #create grouping variables
+    groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct, split.by = 'split')
@@ -461,7 +461,6 @@ JointPCAIntegration <- function(
     sd.weight = 1,
     sample.tree = NULL,
     preserve.order = FALSE,
-    groups = NULL,
     verbose = TRUE,
     ...
 ) {
@@ -472,7 +471,10 @@ JointPCAIntegration <- function(
   features.diet <- features[1:2]
   assay <- assay %||%  DefaultAssay(object)
   layers <- layers %||% Layers(object, search = 'data')
+
   if (normalization.method == 'SCT') {
+    #create grouping variables
+    groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct <- DietSeurat(object = object.sct, features = features.diet)
     object.sct[['joint.pca']] <- CreateDimReducObject(
@@ -537,8 +539,6 @@ attr(x = JointPCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @param object A \code{\link[SeuratObject]{Seurat}} object
 #' @param method Integration method function
 #' @param orig.reduction Name of dimensional reduction for correction
-#' @param group.by Name of meta data to group cells by; defaults to splits
-#' assay layers
 #' @param assay Name of assay for integration
 #' @param features A vector of features to use for integration
 #' @param layers Names of normalized layers in \code{assay}
@@ -561,7 +561,6 @@ IntegrateLayers <- function(
   object,
   method,
   orig.reduction = 'pca',
-  group.by = NULL,
   assay = NULL,
   features = NULL,
   layers = NULL,
@@ -621,36 +620,6 @@ IntegrateLayers <- function(
       DefaultAssay(object = obj.orig) <- assay
     }
   }
-  # Check our groups
-  groups <- if (inherits(x = object[[assay]], what = 'SCTAssay')) {
-    if (!is.null(x = group.by)) {
-      warn(
-        message = "Groups are set automatically by model when integrating SCT assays"
-      )
-    }
-    df <- SeuratObject::EmptyDF(n = ncol(x = object[[assay]]))
-    row.names(x = df) <- colnames(x = object[[assay]])
-    for (model in levels(x = object[[assay]])) {
-      cc <- Cells(x = object[[assay]], layer = model)
-      df[cc, "group"] <- model
-    }
-    df
-  } else if (is.null(x = group.by) && length(x = layers) > 1L) {
-    cmap <- slot(object = object[[assay]], name = 'cells')[, layers]
-    as.data.frame(x = labels(
-      object = cmap,
-      values = Cells(x = object[[assay]], layer = scale.layer)
-    ))
-  } else if (rlang::is_scalar_character(x = group.by) && group.by %in% names(x = object[[]])) {
-    FetchData(
-      object = object,
-      vars = group.by,
-      cells = colnames(x = object[[assay]])
-    )
-  } else {
-    abort(message = "'group.by' must correspond to a column of cell-level meta data")
-  }
-  names(x = groups) <- 'group'
   # Run the integration method
   value <- method(
     object = object[[assay]],
@@ -659,7 +628,6 @@ IntegrateLayers <- function(
     layers = layers,
     scale.layer = scale.layer,
     features = features,
-    groups = groups,
     ...
   )
   for (i in names(x = value)) {
@@ -680,6 +648,27 @@ IntegrateLayers <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Creates data.frame with cell group assignments for integration
+# uses SCT models if SCTAssay and layers otherwise
+CreateIntegrationGroups <- function(object, layers, scale.layer) {
+    groups <- if (inherits(x = object, what = 'SCTAssay')) {
+        df <- SeuratObject::EmptyDF(n = ncol(x = object))
+        row.names(x = df) <- colnames(x = object)
+        for (model in levels(x = object)) {
+            cc <- Cells(x = object, layer = model)
+            df[cc, "group"] <- model
+        }
+       df
+      } else if (length(x = layers) > 1L) {
+          cmap <- slot(object = object, name = 'cells')[, layers]
+          as.data.frame(x = labels(
+              object = cmap,
+              values = Cells(x = object, layer = scale.layer)
+            ))
+      }
+    names(x = groups) <- 'group'
+    return(groups)
+}
 
 #' Writing Integration Method Functions
 #'
