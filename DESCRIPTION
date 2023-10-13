@@ -28,8 +28,6 @@ Authors@R: c(
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://satijalab.r-universe.dev
-Remotes: 
-    mojaveazure/seurat-object@seurat5
 Depends:
     R (>= 4.0.0),
     methods,
