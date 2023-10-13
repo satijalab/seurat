@@ -430,7 +430,7 @@ LeverageScore.default <- function(
   }
   if (inherits(x = object, what = 'IterableMatrix')) {
     temp <- tempdir()
-    object.gene_index <- transpose_storage_order(matrix = object, tmpdir = temp)
+    object.gene_index <- BPCells::transpose_storage_order(matrix = object, tmpdir = temp)
     sa <- as(object = S %*% object.gene_index, Class = 'dgCMatrix')
     rm(object.gene_index)
     unlink(list.files(path = temp, full.names = TRUE))
@@ -458,7 +458,7 @@ LeverageScore.default <- function(
   ))
   Z <- object %*% (R.inv %*% JL)
   if (inherits(x = Z, what = 'IterableMatrix')) {
-    Z.score <- matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
+    Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
                             )$row_stats['mean',]*ncol(x = Z)
     } else {
     Z.score <- rowSums(x = Z ^ 2)

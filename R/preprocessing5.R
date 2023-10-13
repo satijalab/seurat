@@ -1590,6 +1590,8 @@ FetchResiduals <- function(
 #' UMIs from. Default is "RNA"
 #' @param layer Name of the layer under `umi.assay` to fetch UMIs from.
 #' Default is "counts"
+#' @param chunk_size Number of cells to load in memory for calculating
+#' residuals
 #' @param layer.cells Vector of cells to calculate the residual for.
 #' Default is NULL which uses all cells in the layer
 #' @param SCTModel Which SCTmodel to use from the object for calculating

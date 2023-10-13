@@ -342,7 +342,7 @@ AddModuleScore <- function(
 #' @param margin Margin to perform CLR normalization, see \code{\link{NormalizeData}}
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
-#' 
+#'
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @export
@@ -353,7 +353,7 @@ AddModuleScore <- function(
 #' data("pbmc_small")
 #' head(AggregateExpression(object = pbmc_small))
 #' }
-#' 
+#'
 AggregateExpression <- function(
   object,
   assays = NULL,
@@ -466,11 +466,11 @@ AverageExpression <- function(
     )
     layer <- slot
   }
-  
+
   if (method =="average") {
     message("As of Seurat v5, As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.")
   }
-  
+
   object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
@@ -546,7 +546,7 @@ AverageExpression <- function(
         ...
       )
       LayerData(object = toRet,
-                layer = "scale.data", 
+                layer = "scale.data",
                 assay = names(x = data.return)[1]) <- data.return[[1]]
     } else {
       toRet <- CreateSeuratObject(
@@ -575,9 +575,9 @@ AverageExpression <- function(
             features = features[[i]],
             slot = "counts"
           )
-          toRet[[names(x = data.return)[i]]] <- CreateAssay5Object(counts = summed.counts)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = summed.counts)
           LayerData(object = toRet,
-                    layer = "scale.data", 
+                    layer = "scale.data",
                     assay = names(x = data.return)[i]) <- data.return[[i]]
         } else {
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
@@ -1333,11 +1333,11 @@ PercentageFeatureSet <- function(
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
     features.layer <- features %||% grep(
-      pattern = pattern, 
-      x = rownames(x = object[[assay]][[layer]]), 
+      pattern = pattern,
+      x = rownames(x = object[[assay]][[layer]]),
       value = TRUE)
-    layer.data <- LayerData(object = object, 
-                            assay = assay, 
+    layer.data <- LayerData(object = object,
+                            assay = assay,
                             layer = layer)
     layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
     layer.perc <- layer.sums / object[[]][colnames(layer.data), paste0("nCount_", assay)] * 100
@@ -1371,6 +1371,7 @@ PercentageFeatureSet <- function(
 # @return Returns a matrix with genes as rows, identity classes as columns.
 # If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
+#' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #
 #
@@ -2633,6 +2634,7 @@ MergeSparseMatrices <- function(...) {
                              dimnames=list(rowname.new, colname.new))
   return (merged.mat)
 }
+
 # cross product from delayed array
 #
 crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
@@ -2644,7 +2646,7 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
     stop('row of x and y should be the same')
   }
   sparse <- DelayedArray::is_sparse(x = y)
-  suppressMessages(setAutoBlockSize(size = block.size))
+  suppressMessages(expr = DelayedArray::setAutoBlockSize(size = block.size))
   cells.grid <- DelayedArray::colAutoGrid(x = y)
   product.list <- list()
   for (i in seq_len(length.out = length(x = cells.grid))) {
@@ -2703,11 +2705,11 @@ SweepNonzero <- function(
 
 
 #' Create one hot matrix for a given label
-#' 
+#'
 #' @param labels A vector of labels
 #' @param method Method to aggregate cells with the same label. Either 'aggregate' or 'average'
 #' @param cells.name A vector of cell names
-#' 
+#'
 #' @importFrom Matrix colSums sparse.model.matrix
 #' @importFrom stats as.formula
 #' @export
@@ -2725,7 +2727,7 @@ CreateCategoryMatrix <- function(
       data <- cbind(labels = labels)
     }
   } else {
-    data <- labels 
+    data <- labels
   }
   cells.name <- cells.name %||% rownames(data)
   if (!is.null(cells.name) & length(cells.name) != nrow(data)) {
@@ -2758,7 +2760,7 @@ CreateCategoryMatrix <- function(
   colsums <- colSums(x = category.matrix)
   category.matrix <- category.matrix[, colsums > 0]
   colsums <- colsums[colsums > 0]
-  
+
   if (method =='average') {
     category.matrix <- SweepNonzero(
       x = category.matrix,
@@ -2792,7 +2794,7 @@ CreateCategoryMatrix <- function(
 #' @param assay Name for spatial neighborhoods assay
 #' @param neighbors.k Number of neighbors to consider for each cell
 #' @param niches.k Number of clusters to return based on the niche assay
-#' 
+#'
 #' @importFrom stats kmeans
 #' @return Seurat object containing a new assay
 #' @concept clustering
@@ -2813,7 +2815,7 @@ BuildNicheAssay <- function(
   coords <- as.matrix(coords[ , c("x", "y")])
   neighbors <- FindNeighbors(coords, k.param = neighbors.k)
   neighbors$nn <- neighbors$nn[Cells(object), Cells(object)]
-  
+
   # build cell x cell type matrix
   ct.mtx <- matrix(
     data = 0,
@@ -2827,13 +2829,13 @@ BuildNicheAssay <- function(
     ct <- as.character(cts[cells[[i]], ])
     ct.mtx[cells[[i]], ct] <- 1
   }
-  
+
   # create niche assay
   sum.mtx <- as.matrix(neighbors$nn %*% ct.mtx)
   niche.assay <- CreateAssayObject(counts = t(sum.mtx))
   object[[assay]] <- niche.assay
   DefaultAssay(object) <- assay
-  
+
   # cluster niches assay
   object <- ScaleData(object)
   results <- kmeans(
@@ -2842,6 +2844,6 @@ BuildNicheAssay <- function(
     nstart = 30
   )
   object$niches <- results[["cluster"]]
-  
-  return(object)  
+
+  return(object)
 }

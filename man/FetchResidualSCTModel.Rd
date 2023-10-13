@@ -32,6 +32,9 @@ UMIs from. Default is "RNA"}
 \item{layer}{Name of the layer under `umi.assay` to fetch UMIs from.
 Default is "counts"}
 
+\item{chunk_size}{Number of cells to load in memory for calculating
+residuals}
+
 \item{layer.cells}{Vector of cells to calculate the residual for.
 Default is NULL which uses all cells in the layer}
 
