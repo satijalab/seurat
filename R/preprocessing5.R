@@ -29,6 +29,7 @@ FindVariableFeatures.default <- function(
   method = VST,
   nfeatures = 2000L,
   verbose = TRUE,
+  selection.method = selection.method,
   ...
 ) {
   if (is_quosure(x = method)) {
