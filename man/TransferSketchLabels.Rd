@@ -43,10 +43,10 @@ Similar to refdata in `MapQuery`}
 \item{verbose}{Print progress and diagnostic messages}
 }
 \value{
-A Seurat object with transferred labels stored in the metadata. If a UMAP model is provided, 
+A Seurat object with transferred labels stored in the metadata. If a UMAP model is provided,
 the full data are also projected onto the UMAP space, with the results stored in a new reduction, full.`reduction.model`
 }
 \description{
-This function transfers cell type labels from a sketched dataset to a full dataset 
+This function transfers cell type labels from a sketched dataset to a full dataset
 based on the similarities in the lower dimensional space.
 }

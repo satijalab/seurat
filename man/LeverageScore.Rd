@@ -68,15 +68,15 @@ LeverageScore(object, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{nsketch}{A positive integer. The number of sketches to be used in the approximation. 
+\item{nsketch}{A positive integer. The number of sketches to be used in the approximation.
 Default is 5000.}
 
-\item{ndims}{A positive integer or NULL. The number of dimensions to use. If NULL, the number 
+\item{ndims}{A positive integer or NULL. The number of dimensions to use. If NULL, the number
 of dimensions will default to the number of columns in the object.}
 
 \item{method}{The sketching method to use, defaults to CountSketch.}
 
-\item{eps}{A numeric. The error tolerance for the approximation in Johnson–Lindenstrauss embeddings, 
+\item{eps}{A numeric. The error tolerance for the approximation in Johnson–Lindenstrauss embeddings,
 defaults to 0.5.}
 
 \item{seed}{A positive integer. The seed for the random number generator, defaults to 123.}
@@ -91,7 +91,7 @@ defaults to 0.5.}
 
 \item{var.name}{name of slot to store leverage scores}
 
-\item{over.write}{whether to overwrite slot that currently stores leverage scores. Defaults 
+\item{over.write}{whether to overwrite slot that currently stores leverage scores. Defaults
 to FALSE, in which case the 'var.name' is modified if it already exists in the object}
 }
 \description{
