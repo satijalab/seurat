@@ -8,7 +8,7 @@ query <- CreateSeuratObject(
   counts = as.sparse(
     GetAssayData(
       object = pbmc_small[['RNA']],
-      slot = "counts") + rpois(n = ncol(pbmc_small),
+      layer = "counts") + rpois(n = ncol(pbmc_small),
       lambda = 1
     )
   )
@@ -36,8 +36,8 @@ test_that("TransferData default work", {
   # continuous assay data
   pred.assay <- TransferData(anchorset = anchors, refdata = GetAssayData(ref[["RNA"]]), verbose = FALSE)
   expect_equal(dim(pred.assay), c(230, 80))
-  expect_equal(GetAssayData(pred.assay, slot = "counts"), new("matrix"))
-  expect_equal(GetAssayData(pred.assay, slot = "scale.data"), new("matrix"))
+  expect_equal(GetAssayData(pred.assay, layer = "counts"), new("matrix"))
+  expect_equal(GetAssayData(pred.assay, layer = "scale.data"), new("matrix"))
   expect_equal(colnames(pred.assay), Cells(query))
   expect_equal(rownames(pred.assay), rownames(ref[["RNA"]]))
   expect_equal(sum(GetAssayData(pred.assay)[1, ]), 64.46388, tolerance = 1e-6)
@@ -51,8 +51,8 @@ test_that("TransferData can return predictions assay, ", {
   pred.assay <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, prediction.assay = TRUE, verbose = FALSE)
   expect_true(inherits(pred.assay, "Assay"))
   expect_equal(dim(pred.assay), c(4, 80))
-  expect_equal(GetAssayData(pred.assay, slot = "counts"), new("matrix"))
-  expect_equal(GetAssayData(pred.assay, slot = "scale.data"), new("matrix"))
+  expect_equal(GetAssayData(pred.assay, layer = "counts"), new("matrix"))
+  expect_equal(GetAssayData(pred.assay, layer = "scale.data"), new("matrix"))
   expect_equal(colnames(pred.assay), Cells(query))
   expect_equal(pred.assay@var.features, logical(0))
   expect_equal(ncol(pred.assay@meta.features), 0)

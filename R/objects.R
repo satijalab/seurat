@@ -3146,7 +3146,7 @@ UpdateSlots <- function(object) {
   object.list <- c('Class' = class(x = object)[1], object.list)
   object <- rlang::exec(
      .fn = new,
-     .args  = object.list
+      !!! object.list
    )
   for (x in setdiff(x = slotNames(x = object), y = names(x = object.list))) {
     xobj <- slot(object = object, name = x)
