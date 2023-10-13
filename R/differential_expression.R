@@ -575,6 +575,10 @@ FindMarkers.default <- function(
     }
   }
   if (inherits(x = object, what = "IterableMatrix")){
+    if(test.use != "wilcox"){
+      stop("Differential expression with BPCells currently only supports the 'wilcox' method.", 
+           " Please rerun with test.use = 'wilcox'")
+    }
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
     groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
     de.results <- suppressMessages(
