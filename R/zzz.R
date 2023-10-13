@@ -96,6 +96,7 @@ AttachDeps <- function(deps) {
     x = names(x = seurat_default_options),
     y = names(x = options())
   )
+  # toset <- names(x = seurat_default_options)
   if (length(x = toset)) {
     options(seurat_default_options[toset])
   }
