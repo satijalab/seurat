@@ -497,7 +497,7 @@ ScaleData.StdAssay <- function(
     } else {
       LayerData(object = object, layer = layer, features = features)
     }
-    LayerData(object = object, layer = save, features = features) <- ScaleData(
+    ldata <- ScaleData(
       object = ldata,
       features = features,
       vars.to.regress = vars.to.regress,
@@ -513,6 +513,7 @@ ScaleData.StdAssay <- function(
       verbose = verbose,
       ...
     )
+    LayerData(object = object, layer = save, features = rownames(ldata)) <- ldata
   }
   return(object)
 }
@@ -1234,7 +1235,7 @@ SCTransform.StdAssay <- function(
 
     # Step 1: Learn model
     vst.out <- sct.function(object = layer.data,
-                            do.correct.umi = FALSE,
+                            do.correct.umi = TRUE,
                             cell.attr = cell.attr.layer,
                             reference.SCT.model = reference.SCT.model,
                             ncells = ncells,
@@ -1249,7 +1250,7 @@ SCTransform.StdAssay <- function(
                             conserve.memory = conserve.memory,
                             return.only.var.genes = return.only.var.genes,
                             seed.use = seed.use,
-                            verbose = FALSE)
+                            verbose = verbose)
     min_var <- vst.out$arguments$min_variance
     assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
                                 clip.range = clip.range)

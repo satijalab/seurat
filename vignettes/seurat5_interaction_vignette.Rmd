@@ -112,29 +112,26 @@ subset(pbmc, idents = c('NK', 'B'), invert = TRUE)
 # Calculating the average gene expression within a cluster
 
 ```{r avg.exp, fig.height=8}
-# How can I calculate the average expression of all cells within a cluster?
-cluster.averages <- AverageExpression(pbmc)
-head(cluster.averages[['RNA']][, 1:5])
-
-# Return this information as a Seurat object (enables downstream plotting and analysis)
+# How can I pseudobulk cells within a cluster?
 # First, replace spaces with underscores '_' so ggplot2 doesn't fail
-orig.levels <- levels(pbmc)
-Idents(pbmc) <- gsub(pattern = ' ', replacement = '-', x = Idents(pbmc))
-orig.levels <- gsub(pattern = ' ', replacement = '-', x = orig.levels)
-levels(pbmc) <- orig.levels
-cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE)
-cluster.averages
+pbmc$CellType <- gsub(" ", "_", pbmc$CellType)
+Idents(pbmc) <- pbmc$CellType
+# Return this information as a Seurat object (enables downstream plotting and analysis)
+# The summed counts are stored in the counts layer and normalized value are stored in the data layer
+cluster.pseudobulk <- AggregateExpression(pbmc, return.seurat=TRUE)
+cluster.pseudobulk
+head(cluster.pseudobulk[['RNA']]$data[1:5, ])
 
 # How can I plot the average expression of NK cells vs. CD8 T cells?
 # Pass do.hover = T for an interactive plot to identify gene outliers
-CellScatter(cluster.averages, cell1 = "NK", cell2 = "CD8-T")
+CellScatter(cluster.pseudobulk, cell1 = "NK", cell2 = "CD8-T")
 
-# How can I calculate expression averages separately for each replicate?
-cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE, add.ident = "replicate")
-CellScatter(cluster.averages, cell1 = "CD8-T_rep1", cell2 = "CD8-T_rep2")
+# How can I calculate pseudobulked expression values separately for each replicate?
+cluster.pseudobulk <- AggregateExpression(pbmc, return.seurat = TRUE, group.by = c("CellType", "replicate"))
+CellScatter(cluster.pseudobulk, cell1 = "CD8-T_rep1", cell2 = "CD8-T_rep2")
 
 # You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between replicates
-DoHeatmap(cluster.averages, features = unlist(TopFeatures(pbmc[['pca']], balanced = TRUE)), size = 3, draw.lines = FALSE)
+DoHeatmap(cluster.pseudobulk, features = unlist(TopFeatures(pbmc[['pca']], balanced = TRUE)), size = 3, draw.lines = FALSE)
 ```
 
 ```{r save.times, include=TRUE}

@@ -422,6 +422,8 @@ FindConservedMarkers <- function(
 #' \itemize{
 #'  \item{"wilcox"} : Identifies differentially expressed genes between two
 #'  groups of cells using a Wilcoxon Rank Sum test (default)
+#'  \item{"wilcox_limma"} : Identifies differentially expressed genes between two
+#'  groups of cells using the limma implementation of the Wilcoxon Rank Sum test
 #'  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
 #'  (McDavid et al., Bioinformatics, 2013)
 #'  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
@@ -922,7 +924,7 @@ FindMarkers.DimReduc <- function(
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
-      n = nrow(x = object)
+      n = ncol(x = object)
     )
   }
   return(de.results)
@@ -1444,7 +1446,7 @@ DEmethods_latent <- function() {
 
 # returns tests that require CheckDots
 DEmethods_checkdots <- function() {
-  c('wilcox', 'MAST', 'DESeq2')
+  c('wilcox', 'wilcox_limma', 'MAST', 'DESeq2')
 }
 
 # returns tests that do not use Bonferroni correction on the DE results
@@ -2083,6 +2085,14 @@ PerformDE <- function(
       verbose = verbose,
       ...
     ),
+    'wilcox_limma' = WilcoxDETest(
+      data.use = data.use,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose,
+      limma = TRUE,
+      ...
+    ),
     'bimod' = DiffExpTest(
       data.use = data.use,
       cells.1 = cells.1,
@@ -2436,14 +2446,18 @@ ValidateCellGroups <- function(
 # Differential expression using Wilcoxon Rank Sum
 #
 # Identifies differentially expressed genes between two groups of cells using
-# a Wilcoxon Rank Sum test. Makes use of limma::rankSumTestWithCorrelation for a
+# a Wilcoxon Rank Sum test. Makes use of presto::wilcoxauc for a more efficient
+# implementation of the wilcoxon test. If presto is not installed, or if limma
+# is requested, makes use of limma::rankSumTestWithCorrelation for a
 # more efficient implementation of the wilcoxon test. Thanks to Yunshun Chen and
-# Gordon Smyth for suggesting the limma implementation.
+# Gordon Smyth for suggesting the limma implementation. If limma is also not installed,
+# uses wilcox.test. 
 #
 # @param data.use Data matrix to test
 # @param cells.1 Group 1 cells
 # @param cells.2 Group 2 cells
 # @param verbose Print a progress bar
+# @param limma If limma should be used for testing; default is FALSE
 # @param ... Extra parameters passed to wilcox.test
 #
 # @return Returns a p-value ranked matrix of putative differentially expressed
@@ -2467,6 +2481,7 @@ WilcoxDETest <- function(
   cells.1,
   cells.2,
   verbose = TRUE,
+  limma = FALSE, 
   ...
 ) {
   data.use <- data.use[, c(cells.1, cells.2), drop = FALSE]
@@ -2487,40 +2502,53 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (FALSE) {
-    data.use <- data.use[, names(x = group.info), drop = FALSE]
-    res <- presto::wilcoxauc(X = data.use, y = group.info)
+  if (presto.check[1] && overflow.check && (!limma)) { 
+    data.use <- data.use[, rownames(group.info), drop = FALSE] 
+    res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"]) 
     res <- res[1:(nrow(x = res)/2),]
     p_val <- res$pval
-  } else if (limma.check[1] && overflow.check) {
-    p_val <- my.sapply(
-      X = 1:nrow(x = data.use),
-      FUN = function(x) {
-        return(min(2 * min(limma::rankSumTestWithCorrelation(index = j, statistics = data.use[x, ])), 1))
-      }
-    )
-  } else {
-    if (getOption('Seurat.limma.wilcox.msg', TRUE) && overflow.check) {
+  } else if (overflow.check) {
+    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) { # if you didnt request limma, output message
       message(
         "For a more efficient implementation of the Wilcoxon Rank Sum Test,",
-        "\n(default method for FindMarkers) please install the limma package",
+        "\n(default method for FindMarkers) please install the presto package",
         "\n--------------------------------------------",
-        "\ninstall.packages('BiocManager')",
-        "\nBiocManager::install('limma')",
+        "\ninstall.packages('devtools')",
+        "\ndevtools::install_github('immunogenomics/presto')",
         "\n--------------------------------------------",
-        "\nAfter installation of limma, Seurat will automatically use the more ",
+        "\nAfter installation of presto, Seurat will automatically use the more ",
         "\nefficient implementation (no further action necessary).",
         "\nThis message will be shown once per session"
       )
-      options(Seurat.limma.wilcox.msg = FALSE)
+      options(Seurat.presto.wilcox.msg = FALSE)
     }
-    data.use <- data.use[, rownames(x = group.info), drop = FALSE]
-    p_val <- my.sapply(
-      X = 1:nrow(x = data.use),
-      FUN = function(x) {
-        return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+    if (limma.check[1]) { 
+      p_val <- my.sapply(
+        X = 1:nrow(x = data.use),
+        FUN = function(x) {
+          return(min(2 * min(limma::rankSumTestWithCorrelation(index = j, statistics = data.use[x, ])), 1))
+        }
+      )
+    } else {
+      if (limma) { 
+        stop(
+          "To use the limma implementation of the Wilcoxon Rank Sum Test,
+        please install the limma package:
+        --------------------------------------------
+        install.packages('BiocManager')
+        BiocManager::install('limma')
+        --------------------------------------------"
+        )
+      } else { 
+        data.use <- data.use[, rownames(x = group.info), drop = FALSE]
+        p_val <- my.sapply(
+          X = 1:nrow(x = data.use),
+          FUN = function(x) {
+            return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+          }
+        )
       }
-    )
+    }
   }
   return(data.frame(p_val, row.names = rownames(x = data.use)))
 }
