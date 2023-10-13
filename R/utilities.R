@@ -422,6 +422,7 @@ AggregateExpression <- function(
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @export
 #' @concept utilities
+#' @importFrom SeuratObject .FilterObjects
 #'
 #' @examples
 #' data("pbmc_small")
@@ -471,7 +472,7 @@ AverageExpression <- function(
     message("As of Seurat v5, As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.")
   }
 
-  object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
+  object.assays <- .FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
     assays <- assays[assays %in% object.assays]
