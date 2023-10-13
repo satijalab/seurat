@@ -3199,6 +3199,7 @@ SelectSCTIntegrationFeatures <- function(
 #' }
 #' @param reference Reference object from which to pull data to transfer
 #' @param query Query object into which the data will be transferred.
+#' @param query.assay Name of the Assay to use from query
 #' @param weight.reduction Dimensional reduction to use for the weighting
 #' anchors. Options are:
 #' \itemize{
@@ -3284,6 +3285,7 @@ TransferData <- function(
   refdata,
   reference = NULL,
   query = NULL,
+  query.assay = NULL,
   weight.reduction = 'pcaproject',
   l2.norm = FALSE,
   dims = NULL,
@@ -3301,6 +3303,7 @@ TransferData <- function(
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
+  query.assay <- query.assay %||% DefaultAssay(query)
   label.transfer <- list()
   ValidateParams_TransferData(
     anchorset = anchorset,
@@ -3311,6 +3314,7 @@ TransferData <- function(
     refdata = refdata,
     reference = reference,
     query = query,
+    query.assay = query.assay,
     weight.reduction = weight.reduction,
     l2.norm = l2.norm,
     dims = dims,
@@ -3331,6 +3335,7 @@ TransferData <- function(
 
     features <- slot(object = anchorset, name = "anchor.features")
     query.ob <- query
+    DefaultAssay(query.ob) <- query.assay
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
     query.ob <- RunPCA(object = query.ob, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query.ob[['pca']])
@@ -6106,6 +6111,7 @@ ValidateParams_TransferData <- function(
   query.cells,
   reference,
   query,
+  query.assay, 
   refdata,
   weight.reduction,
   l2.norm,
@@ -6246,7 +6252,7 @@ ValidateParams_TransferData <- function(
   if (!is.null(x = query)) {
     if (!isTRUE(x = all.equal(
       target = gsub(pattern = "_query", replacement = "", x = query.cells),
-      current = colnames(x = query),
+      current = colnames(x = query[[query.assay]]),
       check.attributes = FALSE)
       )) {
       stop("Query object provided contains a different set of cells from the ",
