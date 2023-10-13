@@ -40,13 +40,13 @@ the order of 'assays' (if specified) or object's assays}
 
 \item{slot}{(Deprecated). Slots(s) to use}
 
+\item{method}{Method of collapsing expression values. Either 'average' or 'aggregate'}
+
 \item{normalization.method}{Method for normalization, see \code{\link{NormalizeData}}}
 
 \item{scale.factor}{Scale factor for normalization, see \code{\link{NormalizeData}}}
 
 \item{margin}{Margin to perform CLR normalization, see \code{\link{NormalizeData}}}
-
-\item{method}{Method of collapsing expression values. Either 'average' or 'aggregate'}
 
 \item{verbose}{Print messages and show progress bar}
 

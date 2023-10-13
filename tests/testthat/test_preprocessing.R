@@ -33,8 +33,8 @@ object.filtered <- CreateSeuratObject(
 )
 
 test_that("Filtering handled properly", {
-  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 163)
-  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
+  expect_equal(nrow(x = LayerData(object = object.filtered, layer = "counts")), 163)
+  expect_equal(ncol(x = LayerData(object = object.filtered, layer = "counts")), 77)
 })
 
 #this should be moved to seurat object
@@ -52,22 +52,22 @@ context("NormalizeData")
 test_that("NormalizeData error handling", {
   expect_error(NormalizeData(object = object, assay = "FAKE"))
   expect_equal(
-    object = GetAssayData(
+    object = LayerData(
       object = NormalizeData(
         object = object,
         normalization.method = NULL,
         verbose = FALSE
       ),
-      slot = "data"
+      layer = "data"
     ),
-    expected = GetAssayData(object = object, slot = "counts")
+    expected = LayerData(object = object, layer = "counts")
   )
 })
 
 object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6)
 test_that("NormalizeData scales properly", {
-  expect_equal(GetAssayData(object = object, slot = "data")[2, 1], 9.567085, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object, slot = "data")[161, 55], 8.415309, tolerance = 1e-6)
+  expect_equal(LayerData(object = object, layer = "data")[2, 1], 9.567085, tolerance = 1e-6)
+  expect_equal(LayerData(object = object, layer = "data")[161, 55], 8.415309, tolerance = 1e-6)
   expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "scale.factor"), 1e6)
   expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
@@ -75,8 +75,8 @@ test_that("NormalizeData scales properly", {
 normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
 test_that("LogNormalize normalizes properly", {
   expect_equal(
-    as.matrix(LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)),
-    as.matrix(LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE))
+    as.matrix(LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)),
+    as.matrix(LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], layer = "counts"))), verbose = FALSE))
   )
 })
 
@@ -107,26 +107,26 @@ if(class(object[['RNA']]) == "Assay5")  {
   object$groups <- fake.groups
   object.split <- CreateSeuratObject(split(object[["RNA"]], f = object$groups))
   object.split <-  NormalizeData(object = object.split)
-  
+
   group1 <- subset(object, groups==1)
   group1 <- NormalizeData(group1)
-  
+
   test_that("Normalization is performed for each layer", {
-    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2"))
     expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
   })
-  
+
   object.split <- NormalizeData(object = object.split, normalization.method = "CLR", verbose = FALSE)
   group1 <- NormalizeData(object = group1, normalization.method = "CLR", verbose = FALSE)
   test_that("CLR normalization works with multiple layers", {
-    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2"))
     expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
-  })        
-  
+  })
+
   object.split <- NormalizeData(object = object.split, normalization.method = "RC", verbose = FALSE)
   group1 <- NormalizeData(object = group1, normalization.method = "RC", verbose = FALSE)
   test_that("RC normalization works with multiple layers", {
-    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2"))
     expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
   })
 }
@@ -162,12 +162,12 @@ test_that("LogNormalize normalizes properly for BPCells", {
 context("ScaleData")
 object <- ScaleData(object, verbose = FALSE)
 test_that("ScaleData returns expected values when input is a sparse matrix", {
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4148587, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[1, 1], -0.4148587, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
 })
 
-new.data <- as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
+new.data <- as.matrix(GetAssayData(object = object[["RNA"]], layer = "data"))
 new.data[1, ] <- rep(x = 0, times = ncol(x = new.data))
 object2 <- object
 
@@ -180,13 +180,13 @@ object2 <- ScaleData(object = object2, verbose = FALSE)
 
 object <- ScaleData(object = object, verbose = FALSE)
 test_that("ScaleData returns expected values when input is not sparse", {
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
 })
 
 test_that("ScaleData handles zero variance features properly", {
-  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 1], 0)
-  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 80], 0)
+  expect_equal(GetAssayData(object = object2[["RNA"]], layer = "scale.data")[1, 1], 0)
+  expect_equal(GetAssayData(object = object2[["RNA"]], layer = "scale.data")[1, 80], 0)
 })
 
 ng1 <- rep(x = "g1", times = round(x = ncol(x = object) / 2))
@@ -199,20 +199,20 @@ object <- ScaleData(object = object, features = rownames(x = object), verbose = 
 
 #move to SeuratObject
 # test_that("split.by option works", {
-#   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
-#                GetAssayData(object = g1, slot = "scale.data"))
-#   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
-#                GetAssayData(object = g2, slot = "scale.data"))
+#   expect_equal(GetAssayData(object = object, layer = "scale.data")[, Cells(x = g1)],
+#                GetAssayData(object = g1, layer = "scale.data"))
+#   expect_equal(GetAssayData(object = object, layer = "scale.data")[, Cells(x = g2)],
+#                GetAssayData(object = g2, layer = "scale.data"))
 # })
 
 g1 <- ScaleData(object = g1, features = rownames(x = g1), vars.to.regress = "nCount_RNA", verbose = FALSE)
 g2 <- ScaleData(object = g2, features = rownames(x = g2), vars.to.regress = "nCount_RNA", verbose = FALSE)
 object <- ScaleData(object = object, features = rownames(x = object), verbose = FALSE, split.by = "group", vars.to.regress = "nCount_RNA")
 test_that("split.by option works with regression", {
-  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
-               GetAssayData(object = g1, slot = "scale.data"))
-  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
-               GetAssayData(object = g2, slot = "scale.data"))
+  expect_equal(LayerData(object = object, layer = "scale.data")[, Cells(x = g1)],
+               LayerData(object = g1, layer = "scale.data"))
+  expect_equal(LayerData(object = object, layer = "scale.data")[, Cells(x = g2)],
+               LayerData(object = g2, layer = "scale.data"))
 })
 
 
@@ -227,10 +227,10 @@ object <- ScaleData(
   model.use = "linear")
 
 test_that("Linear regression works as expected", {
-  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.6436435, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.09035383, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.2723782, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], layer = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[1, 1], -0.6436435, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[5, 25], -0.09035383, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[10, 80], -0.2723782, tolerance = 1e-6)
 })
 
 object <- ScaleData(
@@ -241,10 +241,10 @@ object <- ScaleData(
   model.use = "negbinom")
 
 test_that("Negative binomial regression works as expected", {
-  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.5888811, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.2553394, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.1921429, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], layer = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[1, 1], -0.5888811, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[5, 25], -0.2553394, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[10, 80], -0.1921429, tolerance = 1e-6)
 })
 
 test_that("Regression error handling checks out", {
@@ -259,10 +259,10 @@ object <- ScaleData(
   model.use = "poisson")
 
 test_that("Poisson regression works as expected", {
-  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -1.011717, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], 0.05575307, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.1662119, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], layer = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[1, 1], -1.011717, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[5, 25], 0.05575307, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], layer = "scale.data")[10, 80], -0.1662119, tolerance = 1e-6)
 })
 
 
@@ -271,22 +271,22 @@ test_that("Poisson regression works as expected", {
 context("SampleUMI")
 
 downsampled.umis <- SampleUMI(
-  data = GetAssayData(object = object, slot = "counts"),
+  data = LayerData(object = object, layer = "counts"),
   max.umi = 100,
   verbose = FALSE
 )
 downsampled.umis.p.cell <- SampleUMI(
-  data = GetAssayData(object = object, slot = "counts"),
+  data = LayerData(object = object, layer = "counts"),
   max.umi = seq(50, 1640, 20),
   verbose = FALSE,
   upsample = TRUE
 )
 test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
   expect_true(!any(colSums(x = downsampled.umis) < 30, colSums(x = downsampled.umis) > 120))
-  expect_error(SampleUMI(data = GetAssayData(object = object, slot = "raw.data"), max.umi = rep(1, 5)))
+  expect_error(SampleUMI(data = LayerData(object = object, layer = "raw.data"), max.umi = rep(1, 5)))
   expect_true(!is.unsorted(x = colSums(x = downsampled.umis.p.cell)))
   expect_error(SampleUMI(
-    data = GetAssayData(object = object, slot = "counts"),
+    data = LayerData(object = object, layer = "counts"),
     max.umi = seq(50, 900, 10),
     verbose = FALSE,
     upsample = TRUE
@@ -414,13 +414,13 @@ test_that("SCTransform ncells param works", {
 })
 
 suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
-object[["SCT"]] <- SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], slot = "scale.data")[1:100, ])
+object[["SCT"]] <- SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])
 object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
 test_that("GetResidual works", {
-  expect_equal(dim(GetAssayData(object = object[["SCT"]], slot = "scale.data")), c(220, 80))
+  expect_equal(dim(GetAssayData(object = object[["SCT"]], layer = "scale.data")), c(220, 80))
   expect_equal(
-    GetAssayData(object = object[["SCT"]], slot = "scale.data"),
-    GetAssayData(object = object[["SCT_SAVE"]], slot = "scale.data")
+    GetAssayData(object = object[["SCT"]], layer = "scale.data"),
+    GetAssayData(object = object[["SCT_SAVE"]], layer = "scale.data")
   )
   expect_warning(GetResidual(object, features = "asd"))
 })
@@ -429,12 +429,12 @@ object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.fla
 
 test_that("SCTransform v2 works as expected", {
   expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 24.5813, tolerance = 1e-4)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 58.65829, tolerance = 1e-6)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 13.75449, tolerance = 1e-6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 141)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 40)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5813, tolerance = 1e-4)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 58.65829, tolerance = 1e-6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 13.75449, tolerance = 1e-6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 141)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 40)
   expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
   fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
   expect_equal(fa["MS4A1", "detection_rate"], 0.15)

@@ -31,6 +31,8 @@ tissue}
 \item{to.upper}{Converts all feature names to upper case. Can be useful when
 analyses require comparisons between human and mouse gene names for example.}
 
+\item{image}{Name of image to pull the coordinates from}
+
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }
 \value{

@@ -65,6 +65,8 @@ to split by cell identity'}
 
 \item{plot.cor}{Display correlation in plot title}
 
+\item{ncol}{Number of columns if plotting multiple plots}
+
 \item{raster}{Convert points to raster format, default is \code{NULL}
 which will automatically use raster if the number of points plotted is greater than
 100,000}

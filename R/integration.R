@@ -1869,7 +1869,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' @param reduction.key Key for new dimensional reduction; defaults to creating
 #' one from \code{reduction.name}
 #' @param layers Names of layers for correction.
-#' @param sketched.layers Names of sketched layers, defaults to all 
+#' @param sketched.layers Names of sketched layers, defaults to all
 #' layers of \dQuote{\code{object[[assay]]}}
 #' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and message
@@ -2166,7 +2166,7 @@ LocalStruct <- function(
 #'   reference UMAP using \code{\link{ProjectUMAP}}}
 #' }
 #'
-#' @importFrom rlang invoke
+#' @importFrom rlang exec
 #'
 #' @export
 #' @concept integration
@@ -2286,7 +2286,7 @@ MapQuery <- function(
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
-  query <- invoke(
+  query <- exec(
     .fn = TransferData,
     .args  = c(list(
       anchorset = anchorset,
@@ -2304,7 +2304,7 @@ MapQuery <- function(
     reuse.weights.matrix <- TRUE
   }
   if (anchor.reduction != "cca") {
-    query <- invoke(
+    query <- exec(
       .fn = IntegrateEmbeddings,
       .args  = c(list(
         anchorset = anchorset,
@@ -2341,7 +2341,7 @@ MapQuery <- function(
       query.dims <- reference.dims
     }
     ref_nn.num <- Misc(object = reference[[reduction.model]], slot = "model")$n_neighbors
-    query <- invoke(
+    query <- exec(
       .fn = ProjectUMAP,
       .args  = c(list(
         query = query,
@@ -3029,7 +3029,7 @@ SelectIntegrationFeatures <- function(
 }
 
 #' Select integration features
-#' 
+#'
 #' @param object Seurat object
 #' @param nfeatures Number of features to return for integration
 #' @param assay Name of assay to use for integration feature selection
@@ -3045,7 +3045,7 @@ SelectIntegrationFeatures <- function(
 #' @param layers Name of layers to use for integration feature selection
 #' @param verbose Print messages
 #' @param ... Arguments passed on to \code{method}
-#' 
+#'
 #' @export
 #'
 SelectIntegrationFeatures5 <- function(
@@ -3071,13 +3071,13 @@ SelectIntegrationFeatures5 <- function(
 }
 
 #' Select SCT integration features
-#' 
+#'
 #' @param object Seurat object
 #' @param nfeatures Number of features to return for integration
 #' @param assay Name of assay to use for integration feature selection
 #' @param verbose Print messages
 #' @param ... Arguments passed on to \code{method}
-#' 
+#'
 #' @export
 #'
 SelectSCTIntegrationFeatures <- function(
@@ -5204,7 +5204,7 @@ if (normalization.method == 'SCT') {
     reference.data.list <- c()
     for (i in Layers(object = reference[[reference.assay]], search = "data")) {
       reference.data.list[[i]] <- LayerData(
-        object = reference[[reference.assay]], 
+        object = reference[[reference.assay]],
         layer = i
         )[features, ]
     }
@@ -5301,9 +5301,9 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   } else {
     query <- query[features,]
     reference.data.list <- c()
-    for (i in Layers(object = reference[[reference.assay]], 
+    for (i in Layers(object = reference[[reference.assay]],
                      search = "data")) {
-      reference.data.list[[i]] <- LayerData(object = reference[[reference.assay]], 
+      reference.data.list[[i]] <- LayerData(object = reference[[reference.assay]],
                                             layer = i)[features, ]
     }
     reference.data <- do.call(cbind, reference.data.list)
@@ -5312,7 +5312,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
         feature.mean <- RowMeanSparse(mat = reference.data)
       } else if (inherits(x = reference.data, what = "IterableMatrix")) {
         bp.stats <- BPCells::matrix_stats(
-          matrix = reference.data, 
+          matrix = reference.data,
           row_stats = "variance")
         feature.mean <- bp.stats$row_stats["mean",]
       } else {
@@ -7784,7 +7784,7 @@ FindBridgeIntegrationAnchors <- function(
 #' \code{\link{FindIntegrationAnchors}}
 #' @param verbose Print messages and progress
 #'
-#' @importFrom rlang invoke
+#' @importFrom rlang exec
 #' @return Returns a Seurat object with integrated dimensional reduction
 #' @export
 #'
@@ -7835,7 +7835,7 @@ FastRPCAIntegration <- function(
                            }
   )
 
-  anchor <- invoke(
+  anchor <- exec(
     .fn = FindIntegrationAnchors,
     .args = c(list(
       object.list = object.list,

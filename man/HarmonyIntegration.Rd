@@ -40,6 +40,8 @@ should be called \code{group}}
 
 \item{scale.layer}{Ignored}
 
+\item{new.reduction}{Name of new integrated dimensional reduction}
+
 \item{layers}{Ignored}
 
 \item{npcs}{If doing PCA on input matrix, number of PCs to compute}
