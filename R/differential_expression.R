@@ -2498,12 +2498,12 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (presto.check[1] && overflow.check && (!limma)) { 
+  if (presto.check[1] && (!limma)) { 
     data.use <- data.use[, rownames(group.info), drop = FALSE] 
     res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"]) 
     res <- res[1:(nrow(x = res)/2),]
     p_val <- res$pval
-  } else if (overflow.check) {
+  } else {
     if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) { 
       message(
         "For a (much!) faster implementation of the Wilcoxon Rank Sum Test,",
@@ -2518,7 +2518,7 @@ WilcoxDETest <- function(
       )
       options(Seurat.presto.wilcox.msg = FALSE)
     }
-    if (limma.check[1]) { 
+    if (limma.check[1] && overflow.check) { 
       p_val <- my.sapply(
         X = 1:nrow(x = data.use),
         FUN = function(x) {
@@ -2526,7 +2526,7 @@ WilcoxDETest <- function(
         }
       )
     } else {
-      if (limma) { 
+      if (limma && overflow.check) { 
         stop(
           "To use the limma implementation of the Wilcoxon Rank Sum Test,
         please install the limma package:
