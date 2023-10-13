@@ -46,10 +46,10 @@ FindAllMarkers <- function(
   object,
   assay = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
   slot = 'data',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   node = NULL,
   verbose = TRUE,
@@ -416,7 +416,7 @@ FindConservedMarkers <- function(
 #' expressing
 #' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Available options are:
 #' \itemize{
@@ -462,7 +462,7 @@ FindConservedMarkers <- function(
 #' }
 #' @param min.pct  only test genes that are detected in a minimum fraction of
 #' min.pct cells in either of the two populations. Meant to speed up the function
-#' by not testing genes that are very infrequently expressed. Default is 0.1
+#' by not testing genes that are very infrequently expressed. Default is 0.01
 #' @param min.diff.pct  only test genes that show a minimum difference in the
 #' fraction of detection between the two groups. Set to -Inf by default
 #' @param only.pos Only return positive markers (FALSE by default)
@@ -496,9 +496,9 @@ FindMarkers.default <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -630,9 +630,9 @@ FindMarkers.Assay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -719,9 +719,9 @@ FindMarkers.SCTAssay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -840,9 +840,9 @@ FindMarkers.DimReduc <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -961,10 +961,10 @@ FindMarkers.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   pseudocount.use = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -2504,9 +2504,9 @@ WilcoxDETest <- function(
     res <- res[1:(nrow(x = res)/2),]
     p_val <- res$pval
   } else if (overflow.check) {
-    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) { # if you didnt request limma, output message
+    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) { 
       message(
-        "For a more efficient implementation of the Wilcoxon Rank Sum Test,",
+        "For a (much!) faster implementation of the Wilcoxon Rank Sum Test,",
         "\n(default method for FindMarkers) please install the presto package",
         "\n--------------------------------------------",
         "\ninstall.packages('devtools')",

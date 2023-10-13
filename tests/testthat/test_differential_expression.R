@@ -30,7 +30,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(markers.0[1, "pct.1"], 0.083)
   expect_equal(markers.0[1, "pct.2"], 0.909)
   expect_equal(markers.0[1, "p_val_adj"], 2.201739e-10, tolerance = 1e-15)
-  expect_equal(nrow(x = markers.0), 204)
+  expect_equal(nrow(x = markers.0), 227)
   expect_equal(rownames(markers.0)[1], "HLA-DPB1")
   
   expect_equal(colnames(x = markers.0.limma), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
@@ -39,7 +39,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(markers.0.limma[1, "pct.1"], 0.083)
   expect_equal(markers.0.limma[1, "pct.2"], 0.909)
   expect_equal(markers.0.limma[1, "p_val_adj"], 2.201739e-10, tolerance = 1e-15)
-  expect_equal(nrow(x = markers.0.limma), 204)
+  expect_equal(nrow(x = markers.0.limma), 227)
   expect_equal(rownames(markers.0.limma)[1], "HLA-DPB1")
 
   expect_equal(markers.01[1, "p_val"], 1.702818e-11, tolerance = 1e-16)
@@ -47,7 +47,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(markers.01[1, "pct.1"], 0.111)
   expect_equal(markers.01[1, "pct.2"], 1.00)
   expect_equal(markers.01[1, "p_val_adj"], 3.916481e-09, tolerance = 1e-14)
-  expect_equal(nrow(x = markers.01), 201)
+  expect_equal(nrow(x = markers.01), 222)
   expect_equal(rownames(x = markers.01)[1], "TYMP")
   
   expect_equal(markers.01.limma[1, "p_val"], 1.702818e-11, tolerance = 1e-16)
@@ -55,7 +55,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(markers.01.limma[1, "pct.1"], 0.111)
   expect_equal(markers.01.limma[1, "pct.2"], 1.00)
   expect_equal(markers.01.limma[1, "p_val_adj"], 3.916481e-09, tolerance = 1e-14)
-  expect_equal(nrow(x = markers.01.limma), 201)
+  expect_equal(nrow(x = markers.01.limma), 222)
   expect_equal(rownames(x = markers.01.limma)[1], "TYMP")
 
   # CLR normalization
@@ -64,7 +64,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(results.clr[1, "pct.1"], 0.111)
   expect_equal(results.clr[1, "pct.2"], 0.96)
   expect_equal(results.clr[1, "p_val_adj"], 2.781762e-09, tolerance = 1e-14)
-  expect_equal(nrow(x = results.clr), 85)
+  expect_equal(nrow(x = results.clr), 167)
   expect_equal(rownames(x = results.clr)[1], "S100A8")
   
   expect_equal(results.clr.limma[1, "p_val"], 1.209462e-11, tolerance = 1e-16)
@@ -72,7 +72,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(results.clr.limma[1, "pct.1"], 0.111)
   expect_equal(results.clr.limma[1, "pct.2"], 0.96)
   expect_equal(results.clr.limma[1, "p_val_adj"], 2.781762e-09, tolerance = 1e-14)
-  expect_equal(nrow(x = results.clr.limma), 85)
+  expect_equal(nrow(x = results.clr.limma), 167)
   expect_equal(rownames(x = results.clr.limma)[1], "S100A8")
 
   # SCT normalization
@@ -81,7 +81,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(results.sct[1, "pct.1"], 0.333)
   expect_equal(results.sct[1, "pct.2"], 1.00)
   expect_equal(results.sct[1, "p_val_adj"], 1.022333e-08, tolerance = 1e-13)
-  expect_equal(nrow(x = results.sct), 156)
+  expect_equal(nrow(x = results.sct), 197)
   expect_equal(rownames(x = results.sct)[1], "CST3")
   
   expect_equal(results.sct.limma[1, "p_val"], 4.646968e-11, tolerance = 1e-16)
@@ -89,7 +89,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(results.sct.limma[1, "pct.1"], 0.333)
   expect_equal(results.sct.limma[1, "pct.2"], 1.00)
   expect_equal(results.sct.limma[1, "p_val_adj"], 1.022333e-08, tolerance = 1e-13)
-  expect_equal(nrow(x = results.sct.limma), 156)
+  expect_equal(nrow(x = results.sct.limma), 197)
   expect_equal(rownames(x = results.sct.limma)[1], "CST3")
 })
 
@@ -106,19 +106,19 @@ test_that("features parameter behaves correctly ", {
   expect_equal(tymp.results[1, "p_val_adj"], 7.423123e-05, tolerance = 1e-10)
   expect_equal(rownames(x = tymp.results)[1], "TYMP")
 
-  expect_equal(nrow(x = vargenes.results), 19)
-  expect_equal(vargenes.results[19, "p_val"], 4.225151e-01, tolerance = 1e-6)
-  expect_equal(vargenes.results[19, "avg_logFC"], 1.5976958, tolerance = 1e-6)
-  expect_equal(vargenes.results[19, "pct.1"], 0.139)
-  expect_equal(vargenes.results[19, "pct.2"], 0.091)
-  expect_equal(vargenes.results[19, "p_val_adj"], 1.000000e+00)
-  expect_equal(rownames(x = vargenes.results)[19], "PARVB")
+  expect_equal(nrow(x = vargenes.results), 20)
+  expect_equal(vargenes.results[20, "p_val"], 4.225151e-01, tolerance = 1e-6)
+  expect_equal(vargenes.results[20, "avg_logFC"], 1.5976958, tolerance = 1e-6)
+  expect_equal(vargenes.results[20, "pct.1"], 0.139)
+  expect_equal(vargenes.results[20, "pct.2"], 0.091)
+  expect_equal(vargenes.results[20, "p_val_adj"], 1.000000e+00)
+  expect_equal(rownames(x = vargenes.results)[20], "PARVB")
 })
 
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = Cells(x = pbmc_small)[1:40], ident.2 = Cells(x = pbmc_small)[41:80], verbose = FALSE, base = exp(1),pseudocount.use = 1))
 test_that("passing cell names works", {
-  expect_equal(nrow(x = results), 190)
+  expect_equal(nrow(x = results), 216)
   expect_equal(results[1, "p_val"], 0.0001690882)
   expect_equal(results[1, "avg_logFC"], -1.790824, tolerance = 1e-6)
   expect_equal(results[1, "pct.1"], 0.075)
@@ -131,11 +131,11 @@ results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.
 results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1))
 results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1))
 test_that("setting pseudocount.use works", {
-  expect_equal(nrow(x = results), 202)
+  expect_equal(nrow(x = results), 222)
   expect_equal(results[1, "avg_logFC"], -2.630395, tolerance = 1e-6)
-  expect_equal(nrow(x = results.clr), 182)
+  expect_equal(nrow(x = results.clr), 212)
   expect_equal(results.clr[1, "avg_logFC"], -2.317338, tolerance = 1e-6)
-  expect_equal(nrow(results.sct), 194)
+  expect_equal(nrow(results.sct), 215)
   expect_equal(results.sct[1, "avg_logFC"], -2.421716, tolerance = 1e-6)
 })
 
@@ -143,7 +143,7 @@ results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.
 results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1, mean.fxn = rowMeans))
 results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1,mean.fxn = rowMeans))
 test_that("setting mean.fxn works", {
-  expect_equal(nrow(x = results), 191)
+  expect_equal(nrow(x = results), 216)
   expect_equal(results[1, "avg_logFC"], -4.204346, tolerance = 1e-6)
   expect_equal(results.clr[1, "avg_logFC"], -1.353025, tolerance = 1e-6)
   expect_equal(results.sct[1, "avg_logFC"], -2.021490, tolerance = 1e-6)
@@ -151,7 +151,7 @@ test_that("setting mean.fxn works", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, logfc.threshold = 2, verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("logfc.threshold works", {
-  expect_equal(nrow(x = results), 112)
+  expect_equal(nrow(x = results), 118)
   expect_gte(min(abs(x = results$avg_logFC)), 2)
 })
 
@@ -162,7 +162,7 @@ test_that("logfc.threshold warns when none met", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, min.pct = 0.5, verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("min.pct works", {
-  expect_equal(nrow(x = results), 65)
+  expect_equal(nrow(x = results), 66)
   expect_gte(min(apply(X = results, MARGIN = 1, FUN = function(x) max(x[3], x[4]))), 0.5)
 })
 
@@ -184,13 +184,13 @@ test_that("min.diff.pct warns when none met", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, only.pos = TRUE, verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("only.pos works", {
-  expect_equal(nrow(x = results), 116)
+  expect_equal(nrow(x = results), 127)
   expect_true(all(results$avg_logFC > 0))
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, max.cells.per.ident = 20, verbose = FALSE, base = exp(1),pseudocount.use = 1))
 test_that("max.cells.per.ident works", {
-  expect_equal(nrow(x = results), 201)
+  expect_equal(nrow(x = results), 222)
   expect_equal(results[1, "p_val"], 3.428568e-08, tolerance = 1e-13)
   expect_equal(results[1, "avg_logFC"], -2.539289, tolerance = 1e-6)
   expect_equal(results[1, "pct.1"], 0.111)
@@ -203,7 +203,7 @@ results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.
 test_that("latent.vars works", {
   expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "fake", verbose = FALSE))
   expect_warning(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "groups", verbose = FALSE))
-  expect_equal(nrow(x = results), 201)
+  expect_equal(nrow(x = results), 222)
   expect_equal(results[1, "p_val"], 2.130202e-16, tolerance = 1e-21)
   expect_equal(results[1, "avg_logFC"], -3.082150, tolerance = 1e-6)
   expect_equal(results[1, "pct.1"], 0.417)
@@ -218,7 +218,7 @@ Idents(object = t2) <- "groups"
 results2 <- suppressWarnings(FindMarkers(object = t2, ident.1 = "g1", ident.2 = "g2", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 
 test_that("group.by works", {
-  expect_equal(nrow(x = results), 136)
+  expect_equal(nrow(x = results), 188)
   expect_equal(results, results2)
   expect_equal(results[1, "p_val"], 0.02870319)
   expect_equal(results[1, "avg_logFC"], 0.8226720, tolerance = 1e-6)
@@ -234,7 +234,7 @@ Idents(object = t2) <- "groups"
 results2 <- suppressWarnings(FindMarkers(object = t2, ident.1 = "g1", ident.2 = "g2", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 
 test_that("subset.ident works", {
-  expect_equal(nrow(x = results), 127)
+  expect_equal(nrow(x = results), 182)
   expect_equal(results, results2)
   expect_equal(results[1, "p_val"], 0.01293720)
   expect_equal(results[1, "avg_logFC"], 1.799280, tolerance = 1e-6)
@@ -254,7 +254,7 @@ test_that("reduction works", {
 
 results <- FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "bimod", verbose = FALSE, base = exp(1), pseudocount.use = 1)
 test_that("bimod test works", {
-  expect_equal(nrow(x = results), 201)
+  expect_equal(nrow(x = results), 222)
   expect_equal(results[1, "p_val"], 4.751376e-17, tolerance = 1e-22)
   expect_equal(results[1, "avg_logFC"], -2.552769, tolerance = 1e-6)
   expect_equal(results[1, "pct.1"], 0.306)
@@ -265,7 +265,7 @@ test_that("bimod test works", {
 
 results <- FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "roc", verbose = FALSE, base = exp(1), pseudocount.use = 1)
 test_that("roc test works", {
-  expect_equal(nrow(x = results), 201)
+  expect_equal(nrow(x = results), 222)
   # expect_equal(colnames(x = results), c("myAUC", "avg_diff", "power", "pct.1", "pct.2"))
   expect_equal(colnames(x = results), c("myAUC", "avg_diff", "power", "avg_logFC", "pct.1", "pct.2"))
   expect_equal(results["CST3", "myAUC"], 0.018)
@@ -278,7 +278,7 @@ test_that("roc test works", {
 
 results <- FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "t", verbose = FALSE, base = exp(1), pseudocount.use = 1)
 test_that("t test works", {
-  expect_equal(nrow(x = results), 201)
+  expect_equal(nrow(x = results), 222)
   expect_equal(results["CST3", "p_val"], 1.170112e-15, tolerance = 1e-20)
   expect_equal(results["CST3", "avg_logFC"], -2.552769 , tolerance = 1e-6)
   expect_equal(results["CST3", "pct.1"], 0.306)
@@ -289,7 +289,7 @@ test_that("t test works", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "negbinom", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("negbinom test works", {
-  expect_equal(nrow(x = results), 149)
+  expect_equal(nrow(x = results), 188)
   expect_equal(results["CST3", "p_val"], 1.354443e-17, tolerance = 1e-22)
   expect_equal(results["CST3", "avg_logFC"], -2.353701, tolerance = 1e-6)
   expect_equal(results["CST3", "pct.1"], 0.306)
@@ -300,7 +300,7 @@ test_that("negbinom test works", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "poisson", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("poisson test works", {
-  expect_equal(nrow(x = results), 149)
+  expect_equal(nrow(x = results), 188)
   expect_equal(results["CST3", "p_val"], 3.792196e-78, tolerance = 1e-83)
   expect_equal(results["CST3", "avg_logFC"], -2.353701, tolerance = 1e-6)
   expect_equal(results["CST3", "pct.1"], 0.306)
@@ -311,7 +311,7 @@ test_that("poisson test works", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "LR", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("LR test works", {
-  expect_equal(nrow(x = results), 201)
+  expect_equal(nrow(x = results), 222)
   expect_equal(results["CST3", "p_val"], 3.990707e-16, tolerance = 1e-21)
   expect_equal(results["CST3", "avg_logFC"], -2.552769, tolerance = 1e-6)
   expect_equal(results["CST3", "pct.1"], 0.306)
@@ -343,7 +343,7 @@ test_that("FindAllMarkers works as expected", {
   expect_equal(results.clr[1, "pct.1"], 0.083)
   expect_equal(results.clr[1, "pct.2"], 0.909)
   expect_equal(results.clr[1, "p_val_adj"], 3.079373e-10, tolerance = 1e-15)
-  expect_equal(nrow(x = results.clr), 200)
+  expect_equal(nrow(x = results.clr), 222)
   expect_equal(rownames(x = results.clr)[1], "HLA-DPB1")
 
   # SCT normalization
@@ -352,7 +352,7 @@ test_that("FindAllMarkers works as expected", {
   expect_equal(results.sct[1, "pct.1"], 0.111)
   expect_equal(results.sct[1, "pct.2"], 0.909)
   expect_equal(results.sct[1, "p_val_adj"], 3.006566e-10, tolerance = 1e-15)
-  expect_equal(nrow(x = results.sct), 202)
+  expect_equal(nrow(x = results.sct), 204)
   expect_equal(rownames(x = results.sct)[1], "HLA-DPB1")
 
   # pseudocount.use = 0.1
@@ -424,7 +424,7 @@ if (requireNamespace('metap', quietly = TRUE)) {
     expect_equal(markers[1, "g1_p_val_adj"], 9.077279e-06)
     expect_equal(markers[1, "max_pval"], 4.983576e-05)
     expect_equal(markers[1, "minimump_p_val"], 7.893286e-08, tolerance = 1e-13)
-    expect_equal(nrow(markers), 179)
+    expect_equal(nrow(markers), 217)
     expect_equal(rownames(markers)[1], "HLA-DRB1")
     expect_equal(markers[, "max_pval"], unname(obj = apply(X = markers, MARGIN = 1, FUN = function(x) max(x[c("g1_p_val", "g2_p_val")]))))
   })
@@ -449,7 +449,7 @@ if (requireNamespace('metap', quietly = TRUE)) {
     # expect_equal(markers.missing[1, "g2_pct.1"], 0.062)
     expect_equal(markers.missing[1, "g2_pct.2"], 0.95)
     expect_equal(markers.missing[1, "g2_p_val_adj"], 3.847695e-11, tolerance = 1e-16)
-    expect_equal(nrow(markers.missing), 205)
+    expect_equal(nrow(markers.missing), 225)
     expect_equal(rownames(markers.missing)[1], "HLA-DPB1")
   })
 }
