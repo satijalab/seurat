@@ -572,6 +572,8 @@ RunCCA.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   assay1 <- assay1 %||% DefaultAssay(object = object1)
   assay2 <- assay2 %||% DefaultAssay(object = object2)
   if (assay1 != assay2) {
