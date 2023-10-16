@@ -572,6 +572,8 @@ RunCCA.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   assay1 <- assay1 %||% DefaultAssay(object = object1)
   assay2 <- assay2 %||% DefaultAssay(object = object2)
   if (assay1 != assay2) {
@@ -649,7 +651,7 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, slot = "scale.data")
   ## combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
