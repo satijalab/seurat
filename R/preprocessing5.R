@@ -1978,7 +1978,8 @@ MVP <- function(
   verbose = TRUE,
   nselect = 2000L,
   mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf)
+  dispersion.cutoff = c(1, Inf), 
+  ...
 ) {
   hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)
   hvf.info$variable <- FALSE
