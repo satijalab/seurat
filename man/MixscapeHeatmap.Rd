@@ -37,7 +37,7 @@ use all other cells for comparison; if an object of class \code{phylo} or
 \item{balanced}{Plot an equal number of genes with both groups of cells.}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells. Default is 0.25
+X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{assay}{Assay to use in differential expression testing}
@@ -48,6 +48,8 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 \itemize{
  \item{"wilcox"} : Identifies differentially expressed genes between two
  groups of cells using a Wilcoxon Rank Sum test (default)
+ \item{"wilcox_limma"} : Identifies differentially expressed genes between two
+ groups of cells using the limma implementation of the Wilcoxon Rank Sum test
  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
  (McDavid et al., Bioinformatics, 2013)
  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
