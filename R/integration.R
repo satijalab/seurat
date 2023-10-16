@@ -1831,7 +1831,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   )
   integrated.embeddings <- as.matrix(x = integrated.embeddings)
   query[[new.reduction.name]]  <- CreateDimReducObject(
-    embeddings = t(x = integrated.embeddings[, Cells(x = query)]),
+    embeddings = t(x = integrated.embeddings[, Cells(x = query[[query.assay]])]),
     assay = DefaultAssay(object = query[[reductions[1]]]),
     key = paste0(new.reduction.name.safe, "_")
   )
