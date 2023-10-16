@@ -22,7 +22,6 @@ JointPCAIntegration(
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
-  groups = NULL,
   verbose = TRUE,
   ...
 )
@@ -89,8 +88,6 @@ If NULL, the sample tree will be computed automatically.}
 
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}
-
-\item{groups}{A one-column data frame with grouping information}
 
 \item{verbose}{Print progress}
 

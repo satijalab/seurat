@@ -1787,8 +1787,10 @@ FetchResidualSCTModel <- function(
         min_var <- vst_out$arguments$min_variance
       }
       if (nrow(umi)>0){
+        vst_out.tmp <- vst_out
+        vst_out.tmp$cell_attr <- vst_out.tmp$cell_attr[colnames(x = umi),]
         new_residual <- get_residuals(
-          vst_out = vst_out,
+          vst_out = vst_out.tmp,
           umi = umi,
           residual_type = "pearson",
           min_variance = min_var,
