@@ -1743,6 +1743,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
 }
 #' @param reference Reference object used in anchorset construction
 #' @param query Query object used in anchorset construction
+#' @param query.assay Name of the Assay to use from query
 #' @param reuse.weights.matrix Can be used in conjunction with the store.weights
 #' parameter in TransferData to reuse a precomputed weights matrix.
 #'
@@ -1755,6 +1756,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   anchorset,
   reference,
   query,
+  query.assay = NULL,
   new.reduction.name = "integrated_dr",
   reductions = 'pcaproject',
   dims.to.integrate = NULL,
@@ -1770,11 +1772,13 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   combined.object <- slot(object = anchorset, name = 'object.list')[[1]]
   anchors <- slot(object = anchorset, name = 'anchors')
   weights.matrix <- NULL
+  query.assay <- query.assay %||% DefaultAssay(query)
   ValidateParams_IntegrateEmbeddings_TransferAnchors(
     anchorset = anchorset,
     combined.object = combined.object,
     reference = reference,
     query = query,
+    query.assay = query.assay,
     reductions = reductions,
     dims.to.integrate = dims.to.integrate,
     k.weight = k.weight,
@@ -1827,7 +1831,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   )
   integrated.embeddings <- as.matrix(x = integrated.embeddings)
   query[[new.reduction.name]]  <- CreateDimReducObject(
-    embeddings = t(x = integrated.embeddings[, Cells(x = query)]),
+    embeddings = t(x = integrated.embeddings[, Cells(x = query[[query.assay]])]),
     assay = DefaultAssay(object = query[[reductions[1]]]),
     key = paste0(new.reduction.name.safe, "_")
   )
@@ -3199,6 +3203,7 @@ SelectSCTIntegrationFeatures <- function(
 #' }
 #' @param reference Reference object from which to pull data to transfer
 #' @param query Query object into which the data will be transferred.
+#' @param query.assay Name of the Assay to use from query
 #' @param weight.reduction Dimensional reduction to use for the weighting
 #' anchors. Options are:
 #' \itemize{
@@ -3284,6 +3289,7 @@ TransferData <- function(
   refdata,
   reference = NULL,
   query = NULL,
+  query.assay = NULL,
   weight.reduction = 'pcaproject',
   l2.norm = FALSE,
   dims = NULL,
@@ -3301,6 +3307,7 @@ TransferData <- function(
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
+  query.assay <- query.assay %||% DefaultAssay(query)
   label.transfer <- list()
   ValidateParams_TransferData(
     anchorset = anchorset,
@@ -3311,6 +3318,7 @@ TransferData <- function(
     refdata = refdata,
     reference = reference,
     query = query,
+    query.assay = query.assay,
     weight.reduction = weight.reduction,
     l2.norm = l2.norm,
     dims = dims,
@@ -3331,6 +3339,7 @@ TransferData <- function(
 
     features <- slot(object = anchorset, name = "anchor.features")
     query.ob <- query
+    DefaultAssay(query.ob) <- query.assay
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
     query.ob <- RunPCA(object = query.ob, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query.ob[['pca']])
@@ -6106,6 +6115,7 @@ ValidateParams_TransferData <- function(
   query.cells,
   reference,
   query,
+  query.assay, 
   refdata,
   weight.reduction,
   l2.norm,
@@ -6246,7 +6256,7 @@ ValidateParams_TransferData <- function(
   if (!is.null(x = query)) {
     if (!isTRUE(x = all.equal(
       target = gsub(pattern = "_query", replacement = "", x = query.cells),
-      current = colnames(x = query),
+      current = colnames(x = query[[query.assay]]),
       check.attributes = FALSE)
       )) {
       stop("Query object provided contains a different set of cells from the ",
@@ -6358,6 +6368,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   combined.object ,
   reference,
   query,
+  query.assay,
   reductions,
   dims.to.integrate,
   k.weight,
@@ -6378,7 +6389,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   query.cells <- slot(object = anchorset, name = "query.cells")
   query.cells <- gsub(pattern = "_query", replacement = "", x = query.cells)
-  if (!isTRUE(x = all.equal(target = query.cells, current = colnames(x = query), check.attributes = FALSE))) {
+  if (!isTRUE(x = all.equal(target = query.cells, current = colnames(x = query[[query.assay]]), check.attributes = FALSE))) {
     stop("The set of cells used as a query in the AnchorSet does not match ",
          "the set of cells provided in the query object.")
   }
@@ -6395,7 +6406,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   reference[[reductions]] <- CreateDimReducObject(embeddings = reference.embeddings, assay = DefaultAssay(object = reference))
   ModifyParam(param = "reference", value = reference)
   query <- RenameCells(object = query, new.names = paste0(Cells(x = query), "_query"))
-  query.embeddings <- Embeddings(object = combined.object[[reductions]])[Cells(x = query), ]
+  query.embeddings <- Embeddings(object = combined.object[[reductions]])[Cells(x = query[[query.assay]]), ]
   query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
   ModifyParam(param = "query", value = query)
   ModifyParam(param = "reductions", value = c(reductions, reductions))
