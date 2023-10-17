@@ -249,11 +249,11 @@ HTODemux <- function(
   )
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  average.expression <- AverageExpression(
+  average.expression <- suppressWarnings(AverageExpression(
     object = object,
     assays = assay,
     verbose = FALSE
-  )[[assay]]
+  )[[assay]])
   #checking for any cluster with all zero counts for any barcode
   if (sum(average.expression == 0) > 0) {
     stop("Cells with zero counts exist as a cluster.")
