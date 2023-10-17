@@ -2449,7 +2449,17 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   }
   features <- features.keep
   features <- features[!is.na(x = features)]
-  data.use <- data.use[features, ]
+  features.use <- features[features %in% rownames(data.use)]
+  if(!isTRUE(all.equal(features, features.use))) {
+    missing_features <- setdiff(features, features.use)
+    if(length(missing_features) > 0) {
+    warning_message <- paste("The following features were not available: ", 
+                             paste(missing_features, collapse = ", "), 
+                             ".", sep = "")
+    warning(warning_message, immediate. = TRUE)
+    }
+  }
+  data.use <- data.use[features.use, ]
   return(data.use)
 }
 
