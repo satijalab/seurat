@@ -7,7 +7,7 @@ set.seed(seed = 42)
 context("FindMarkers")
 
 clr.obj <- suppressWarnings(NormalizeData(pbmc_small, normalization.method = "CLR"))
-sct.obj <- suppressWarnings(suppressMessages(SCTransform(pbmc_small)))
+sct.obj <- suppressWarnings(suppressMessages(SCTransform(pbmc_small, vst.flavor = "v2")))
 
 markers.0 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1))
 markers.01 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1),pseudocount.use = 1))

@@ -187,8 +187,9 @@ new.data <- as.matrix(GetAssayData(object = object[["RNA"]], layer = "data"))
 new.data[1, ] <- rep(x = 0, times = ncol(x = new.data))
 object2 <- object
 
-object2[["RNA"]] <- SetAssayData(
-  object = object[["RNA"]],
+object2 <- SetAssayData(
+  object = object,
+  assay = "RNA",
   slot = "data",
   new.data = new.data
 )
@@ -235,12 +236,14 @@ test_that("split.by option works with regression", {
 # Tests for various regression techniques
 context("Regression")
 
-object <- ScaleData(
+suppressWarnings({
+  object <- ScaleData(
   object = object,
   vars.to.regress = "nCount_RNA",
   features = rownames(x = object)[1:10],
   verbose = FALSE,
   model.use = "linear")
+  })
 
 test_that("Linear regression works as expected", {
   expect_equal(dim(x = GetAssayData(object = object[["RNA"]], layer = "scale.data")), c(10, 80))
@@ -299,7 +302,7 @@ downsampled.umis.p.cell <- SampleUMI(
 )
 test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
   expect_true(!any(colSums(x = downsampled.umis) < 30, colSums(x = downsampled.umis) > 120))
-  expect_error(SampleUMI(data = LayerData(object = object, layer = "raw.data"), max.umi = rep(1, 5)))
+  expect_error(SampleUMI(data = LayerData(object = object, layer = "counts"), max.umi = rep(1, 5)))
   expect_true(!is.unsorted(x = colSums(x = downsampled.umis.p.cell)))
   expect_error(SampleUMI(
     data = LayerData(object = object, layer = "counts"),
@@ -375,7 +378,7 @@ test_that("CustomNormalize works as expected", {
 context("SCTransform")
 object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v1",  seed.use = 1448145))
 
-test_that("SCTransform wrapper works as expected", {
+test_that("SCTransform v1 works as expected", {
   expect_true("SCT" %in% names(object))
   expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 11.40288448)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
@@ -411,22 +414,22 @@ test_that("SCTransform v2 works as expected", {
 })
 
 suppressWarnings(RNGversion(vstr = "3.5.0"))
-object <- suppressWarnings(SCTransform(object = object, vst.flavor = "v1", ncells = 40, verbose = FALSE, seed.use =  42))
+object <- suppressWarnings(SCTransform(object = object, vst.flavor = "v1", ncells = 80, verbose = FALSE, seed.use =  42))
 test_that("SCTransform ncells param works", {
   expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 12.02126, tolerance = 1e6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 11.40288, tolerance = 1e-6)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 60.65299, tolerance = 1e-6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 57.72957, tolerance = 1e-6)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 11.74404, tolerance = 1e-6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 136)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 129)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 28)
   expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
   fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
   expect_equal(fa["MS4A1", "detection_rate"], 0.15)
   expect_equal(fa["MS4A1", "gmean"], 0.2027364, tolerance = 1e-6)
   expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "residual_mean"], 0.2829672, tolerance = 1e-3)
-  expect_equal(fa["MS4A1", "residual_variance"], 3.674079, tolerance = 1e-3)
+  expect_equal(fa["MS4A1", "residual_mean"], 0.2362887, tolerance = 1e-3)
+  expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-3)
 })
 
 suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])

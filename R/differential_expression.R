@@ -576,7 +576,7 @@ FindMarkers.default <- function(
   }
   if (inherits(x = object, what = "IterableMatrix")){
     if(test.use != "wilcox"){
-      stop("Differential expression with BPCells currently only supports the 'wilcox' method.", 
+      stop("Differential expression with BPCells currently only supports the 'wilcox' method.",
            " Please rerun with test.use = 'wilcox'")
     }
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
@@ -2183,8 +2183,8 @@ PerformDE <- function(
 #' @template section-future
 #' @examples
 #' data("pbmc_small")
-#' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
-#' pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20)
+#' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
+#' pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
 #' pbmc_merged <- merge(x = pbmc_small1, y = pbmc_small2)
 #' pbmc_merged <- PrepSCTFindMarkers(object = pbmc_merged)
 #' markers <- FindMarkers(
@@ -2451,7 +2451,7 @@ ValidateCellGroups <- function(
 # is requested, makes use of limma::rankSumTestWithCorrelation for a
 # more efficient implementation of the wilcoxon test. Thanks to Yunshun Chen and
 # Gordon Smyth for suggesting the limma implementation. If limma is also not installed,
-# uses wilcox.test. 
+# uses wilcox.test.
 #
 # @param data.use Data matrix to test
 # @param cells.1 Group 1 cells
@@ -2481,7 +2481,7 @@ WilcoxDETest <- function(
   cells.1,
   cells.2,
   verbose = TRUE,
-  limma = FALSE, 
+  limma = FALSE,
   ...
 ) {
   data.use <- data.use[, c(cells.1, cells.2), drop = FALSE]
@@ -2502,13 +2502,13 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (presto.check[1] && (!limma)) { 
-    data.use <- data.use[, rownames(group.info), drop = FALSE] 
-    res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"]) 
+  if (presto.check[1] && (!limma)) {
+    data.use <- data.use[, rownames(group.info), drop = FALSE]
+    res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"])
     res <- res[1:(nrow(x = res)/2),]
     p_val <- res$pval
   } else {
-    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) { 
+    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) {
       message(
         "For a (much!) faster implementation of the Wilcoxon Rank Sum Test,",
         "\n(default method for FindMarkers) please install the presto package",
@@ -2522,7 +2522,7 @@ WilcoxDETest <- function(
       )
       options(Seurat.presto.wilcox.msg = FALSE)
     }
-    if (limma.check[1] && overflow.check) { 
+    if (limma.check[1] && overflow.check) {
       p_val <- my.sapply(
         X = 1:nrow(x = data.use),
         FUN = function(x) {
@@ -2530,7 +2530,7 @@ WilcoxDETest <- function(
         }
       )
     } else {
-      if (limma && overflow.check) { 
+      if (limma && overflow.check) {
         stop(
           "To use the limma implementation of the Wilcoxon Rank Sum Test,
         please install the limma package:
@@ -2539,7 +2539,7 @@ WilcoxDETest <- function(
         BiocManager::install('limma')
         --------------------------------------------"
         )
-      } else { 
+      } else {
         data.use <- data.use[, rownames(x = group.info), drop = FALSE]
         p_val <- my.sapply(
           X = 1:nrow(x = data.use),

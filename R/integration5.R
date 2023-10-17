@@ -296,7 +296,6 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @param dims Dimensions of dimensional reduction to use for integration
 #' @param k.filter Number of anchors to filter
 #' @param scale.layer Name of scaled layer in \code{Assay}
-#' @param groups A one-column data frame with grouping information
 #' @param verbose Print progress
 #' @param ... Additional arguments passed to \code{FindIntegrationAnchors}
 #'
