@@ -131,25 +131,41 @@ if(class(object[['RNA']]) == "Assay5")  {
   })
 }
 
-# Tests for BPCells NormalizeData
-# --------------------------------------------------------------------------------
-#make Iterable matrix
-mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
-object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
 
-object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
-object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
 
 test_that("NormalizeData scales properly for BPcells", {
+  # Tests for BPCells NormalizeData
+  # --------------------------------------------------------------------------------
+
+  skip_on_cran()
+  library(Matrix)
+  library(BPCells)
+  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+  object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+
+  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
+  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
+
   expect_equal(as.matrix(object[['RNAbp']]$data), as.matrix(object[['RNA']]$data), tolerance = 1e-6)
   expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "scale.factor"), 1e6)
   expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data.bp <- LogNormalize(data = GetAssayData(object = object[["RNAbp"]], layer = "counts"), verbose = FALSE)
-normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
+
 
 test_that("LogNormalize normalizes properly for BPCells", {
+  skip_on_cran()
+  library(Matrix)
+  library(BPCells)
+  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+  object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+
+  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
+  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
+
+  normalized.data.bp <- LogNormalize(data = GetAssayData(object = object[["RNAbp"]], layer = "counts"), verbose = FALSE)
+  normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
+
   expect_equal(
     as.matrix(normalized.data.bp),
     as.matrix(normalized.data),
@@ -445,10 +461,17 @@ test_that("SCTransform v2 works as expected", {
   expect_equal(fa["FCER2", "theta"], Inf)
 })
 
-object <- suppressWarnings(SCTransform(object = object, assay = "RNAbp", new.assay.name = "SCTbp",
-                                       verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 test_that("SCTransform is equivalent for BPcells ", {
-  expect_equal(as.matrix(LayerData(object = object[["SCT"]], layer = "data")), 
+  skip_on_cran()
+  library(Matrix)
+  library(BPCells)
+  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+  object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+
+  object <- suppressWarnings(SCTransform(object = object, assay = "RNAbp", new.assay.name = "SCTbp",
+                                         verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+
+  expect_equal(as.matrix(LayerData(object = object[["SCT"]], layer = "data")),
                as.matrix(LayerData(object = object[["SCTbp"]], layer = "data")),
                tolerance = 1e-6)
 })
