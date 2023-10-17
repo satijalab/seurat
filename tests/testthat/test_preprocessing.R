@@ -378,7 +378,7 @@ test_that("CustomNormalize works as expected", {
 context("SCTransform")
 object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v1",  seed.use = 1448145))
 
-test_that("SCTransform wrapper works as expected", {
+test_that("SCTransform v1 works as expected", {
   expect_true("SCT" %in% names(object))
   expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 11.40288448)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
