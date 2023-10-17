@@ -334,9 +334,9 @@ AddModuleScore <- function(
 #' @param assays Which assays to use. Default is all assays
 #' @param features Features to analyze. Default is all features in the assay
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
-#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+#' @param group.by Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')
+#' @param add.ident (Deprecated). Place an additional label on each cell prior to pseudobulking
 #' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
 #' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
 #' @param margin Margin to perform CLR normalization, see \code{\link{NormalizeData}}
@@ -351,7 +351,8 @@ AddModuleScore <- function(
 #' @examples
 #' \dontrun{
 #' data("pbmc_small")
-#' head(AggregateExpression(object = pbmc_small))
+#' head(AggregateExpression(object = pbmc_small)$RNA)
+#' head(AggregateExpression(object = pbmc_small, group.by = c('ident', 'groups'))$RNA)
 #' }
 #'
 AggregateExpression <- function(
@@ -405,9 +406,9 @@ AggregateExpression <- function(
 #' @param assays Which assays to use. Default is all assays
 #' @param features Features to analyze. Default is all features in the assay
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' @param group.by Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')
 #' @param add.ident (Deprecated). Place an additional label on each cell prior to pseudobulking
-#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
 #' @param layer Layer(s) to use; if multiple layers are given, assumed to follow
 #' the order of 'assays' (if specified) or object's assays
 #' @param slot (Deprecated). Slots(s) to use
@@ -426,7 +427,8 @@ AggregateExpression <- function(
 #'
 #' @examples
 #' data("pbmc_small")
-#' head(AverageExpression(object = pbmc_small))
+#' head(AverageExpression(object = pbmc_small)$RNA)
+#' head(AverageExpression(object = pbmc_small, group.by = c('ident', 'groups'))$RNA)
 #'
 AverageExpression <- function(
   object,
@@ -446,7 +448,7 @@ AverageExpression <- function(
 ) {
   CheckDots(..., fxns = 'CreateSeuratObject')
   if (!is.null(x = add.ident)) {
-    .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
+    .Deprecated(msg = "'add.ident' is a deprecated argument. Please see documentation to see how to pass a vector to the 'group.by' argument to specify multiple grouping variables")
     group.by <- c('ident', add.ident)
   }
   if (!(method %in% c('average', 'aggregate'))) {
@@ -469,7 +471,9 @@ AverageExpression <- function(
   }
 
   if (method =="average") {
-    message("As of Seurat v5, As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.")
+    inform(message = "As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.", 
+           .frequency = "once", 
+           .frequency_id = "AverageExpression")
   }
 
   object.assays <- .FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))

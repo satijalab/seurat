@@ -27,10 +27,10 @@ AggregateExpression(
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is FALSE}
 
-\item{group.by}{Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default}
+\item{group.by}{Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default. 
+To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')}
 
-\item{add.ident}{(Deprecated) Place an additional label on each cell prior to pseudobulking
-(very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)}
+\item{add.ident}{(Deprecated). Place an additional label on each cell prior to pseudobulking}
 
 \item{normalization.method}{Method for normalization, see \code{\link{NormalizeData}}}
 
@@ -58,7 +58,8 @@ before returning the object.
 \examples{
 \dontrun{
 data("pbmc_small")
-head(AggregateExpression(object = pbmc_small))
+head(AggregateExpression(object = pbmc_small)$RNA)
+head(AggregateExpression(object = pbmc_small, group.by = c('ident', 'groups'))$RNA)
 }
 
 }
