@@ -8147,7 +8147,7 @@ SingleDimPlot <- function(
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
 
   if (!is.null(x = cells.highlight) && pt.size == AutoPointSize(data = data, raster = raster) && sizes.highlight != pt.size && raster = TRUE) {
-    warning("When `raster = TRUE` highlighted and non-highlighted cells must be the same size. Plot will use the value provided to 'sizes.highlight.")
+    warning("When `raster = TRUE` highlighted and non-highlighted cells must be the same size. Plot will use the value provided to 'sizes.highlight'.")
   }
 
   if (!is.null(x = raster.dpi)) {
