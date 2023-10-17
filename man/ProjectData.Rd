@@ -33,7 +33,7 @@ ProjectData(
 
 \item{dims}{Dimensions to include in the projection.}
 
-\item{normalization.method}{Normalization method to use. Can be 'LogNormalize' or 'SCT'. 
+\item{normalization.method}{Normalization method to use. Can be 'LogNormalize' or 'SCT'.
 Default is 'LogNormalize'.}
 
 \item{refdata}{An optional list for label transfer from sketch to full data. Default is NULL.
@@ -50,10 +50,10 @@ Similar to refdata in `MapQuery`}
 \item{verbose}{Print progress and diagnostic messages.}
 }
 \value{
-A Seurat object with the full data projected onto the sketched dimensional reduction results. 
+A Seurat object with the full data projected onto the sketched dimensional reduction results.
 The projected data are stored in the specified full reduction.
 }
 \description{
-This function allows projection of high-dimensional single-cell RNA expression data from a full dataset 
+This function allows projection of high-dimensional single-cell RNA expression data from a full dataset
 onto the lower-dimensional embedding of the sketch of the dataset.
 }

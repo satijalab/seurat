@@ -15,14 +15,14 @@ NULL
 
 #' Sketch Data
 #'
-#' This function uses sketching methods to downsample high-dimensional single-cell RNA expression data, 
+#' This function uses sketching methods to downsample high-dimensional single-cell RNA expression data,
 #' which can help with scalability for large datasets.
 #'
 #' @param object A Seurat object.
 #' @param assay Assay name. Default is NULL, in which case the default assay of the object is used.
 #' @param ncells A positive integer indicating the number of cells to sample for the sketching. Default is 5000.
 #' @param sketched.assay Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.
-#' @param method  Sketching method to use. Can be 'LeverageScore' or 'Uniform'. 
+#' @param method  Sketching method to use. Can be 'LeverageScore' or 'Uniform'.
 #'               Default is 'LeverageScore'.
 #' @param var.name A metadata column name to store the leverage scores. Default is 'leverage.score'.
 #' @param over.write whether to overwrite existing column in the metadata. Default is FALSE.
@@ -130,7 +130,7 @@ SketchData <- function(
 #' Project full data to the sketch assay
 #'
 #'
-#' This function allows projection of high-dimensional single-cell RNA expression data from a full dataset 
+#' This function allows projection of high-dimensional single-cell RNA expression data from a full dataset
 #' onto the lower-dimensional embedding of the sketch of the dataset.
 #'
 #' @param object A Seurat object.
@@ -139,7 +139,7 @@ SketchData <- function(
 #' @param sketched.reduction Dimensional reduction results of the sketched assay to project onto.
 #' @param full.reduction Dimensional reduction name for the projected full dataset.
 #' @param dims Dimensions to include in the projection.
-#' @param normalization.method Normalization method to use. Can be 'LogNormalize' or 'SCT'. 
+#' @param normalization.method Normalization method to use. Can be 'LogNormalize' or 'SCT'.
 #'               Default is 'LogNormalize'.
 #' @param refdata An optional list for label transfer from sketch to full data. Default is NULL.
 #'        Similar to refdata in `MapQuery`
@@ -149,7 +149,7 @@ SketchData <- function(
 #' @param recompute.weights Whether to recompute the weights for label transfer. Default is FALSE.
 #' @param verbose Print progress and diagnostic messages.
 #'
-#' @return A Seurat object with the full data projected onto the sketched dimensional reduction results. 
+#' @return A Seurat object with the full data projected onto the sketched dimensional reduction results.
 #' The projected data are stored in the specified full reduction.
 #'
 #' @export
@@ -206,7 +206,7 @@ ProjectData <- function(
 
 #' Transfer data from sketch data to full data
 #'
-#' This function transfers cell type labels from a sketched dataset to a full dataset 
+#' This function transfers cell type labels from a sketched dataset to a full dataset
 #' based on the similarities in the lower dimensional space.
 #'
 #' @param object A Seurat object.
@@ -222,10 +222,10 @@ ProjectData <- function(
 #' @param recompute.weights Whether to recompute the weights for label transfer. Default is FALSE.
 #' @param verbose Print progress and diagnostic messages
 #'
-#' @return A Seurat object with transferred labels stored in the metadata. If a UMAP model is provided, 
+#' @return A Seurat object with transferred labels stored in the metadata. If a UMAP model is provided,
 #' the full data are also projected onto the UMAP space, with the results stored in a new reduction, full.`reduction.model`
 #'
-#' 
+#'
 #' @export
 #'
 TransferSketchLabels <- function(
@@ -260,7 +260,7 @@ TransferSketchLabels <- function(
   compute.weights <- is.null(x = full_sketch.weight) ||
     !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
     !all(rownames(full_sketch.weight) == colnames(object[[sketched.assay]]))  ||
-    recompute.weights || 
+    recompute.weights ||
     recompute.neighbors
 
   if (compute.neighbors) {
@@ -359,18 +359,17 @@ TransferSketchLabels <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @param nsketch A positive integer. The number of sketches to be used in the approximation. 
+#' @param nsketch A positive integer. The number of sketches to be used in the approximation.
 #'                Default is 5000.
-#' @param ndims A positive integer or NULL. The number of dimensions to use. If NULL, the number 
+#' @param ndims A positive integer or NULL. The number of dimensions to use. If NULL, the number
 #'              of dimensions will default to the number of columns in the object.
 #' @param method The sketching method to use, defaults to CountSketch.
-#' @param eps A numeric. The error tolerance for the approximation in Johnson–Lindenstrauss embeddings, 
+#' @param eps A numeric. The error tolerance for the approximation in Johnson–Lindenstrauss embeddings,
 #'            defaults to 0.5.
 #' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and diagnostic messages
 #' @importFrom Matrix qrR t
 #' @importFrom irlba irlba
-#' @importFrom BPCells transpose_storage_order matrix_stats
 #'
 #' @rdname LeverageScore
 #' @method LeverageScore default
@@ -431,7 +430,7 @@ LeverageScore.default <- function(
   }
   if (inherits(x = object, what = 'IterableMatrix')) {
     temp <- tempdir()
-    object.gene_index <- transpose_storage_order(matrix = object, tmpdir = temp)
+    object.gene_index <- BPCells::transpose_storage_order(matrix = object, tmpdir = temp)
     sa <- as(object = S %*% object.gene_index, Class = 'dgCMatrix')
     rm(object.gene_index)
     unlink(list.files(path = temp, full.names = TRUE))
@@ -459,7 +458,7 @@ LeverageScore.default <- function(
   ))
   Z <- object %*% (R.inv %*% JL)
   if (inherits(x = Z, what = 'IterableMatrix')) {
-    Z.score <- matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
+    Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
                             )$row_stats['mean',]*ncol(x = Z)
     } else {
     Z.score <- rowSums(x = Z ^ 2)
@@ -467,9 +466,21 @@ LeverageScore.default <- function(
   return(Z.score)
 }
 
+#' @param nsketch A positive integer. The number of sketches to be used in the approximation.
+#'                Default is 5000.
+#' @param ndims A positive integer or NULL. The number of dimensions to use. If NULL, the number
+#'              of dimensions will default to the number of columns in the object.
+#' @param method The sketching method to use, defaults to CountSketch.
+#' @param vf.method VariableFeatures method
+#' @param layer layer to use
+#' @param eps A numeric. The error tolerance for the approximation in Johnson–Lindenstrauss embeddings,
+#'            defaults to 0.5.
+#' @param seed A positive integer. The seed for the random number generator, defaults to 123.
+#' @param verbose Print progress and diagnostic messages
+#'
 #' @rdname LeverageScore
 #' @method LeverageScore StdAssay
-#' 
+#'
 #' @export
 #'
 LeverageScore.StdAssay <- function(
@@ -526,6 +537,17 @@ LeverageScore.StdAssay <- function(
 #'
 LeverageScore.Assay <- LeverageScore.StdAssay
 
+
+#' @param assay assay to use
+#' @param nsketch A positive integer. The number of sketches to be used in the approximation.
+#'                Default is 5000.
+#' @param ndims A positive integer or NULL. The number of dimensions to use. If NULL, the number
+#'              of dimensions will default to the number of columns in the object.
+#' @param method The sketching method to use, defaults to CountSketch.
+#' @param var.name name of slot to store leverage scores
+#' @param over.write whether to overwrite slot that currently stores leverage scores. Defaults
+#' to FALSE, in which case the 'var.name' is modified if it already exists in the object
+#'
 #' @rdname LeverageScore
 #' @method LeverageScore Seurat
 #' @export

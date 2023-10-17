@@ -8,7 +8,7 @@ query <- CreateSeuratObject(
   counts = as.sparse(
     GetAssayData(
       object = pbmc_small[['RNA']],
-      slot = "counts") + rpois(n = ncol(pbmc_small),
+      layer = "counts") + rpois(n = ncol(pbmc_small),
       lambda = 1
     )
   )
@@ -26,8 +26,8 @@ test_that("FindTransferAnchors defaults work", {
   co <- anchors@object.list[[1]]
   expect_equal(dim(co), c(100, 160))
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
-  expect_equal(GetAssayData(co[["RNA"]])[1, 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer ="data")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], 0.4840944592, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)[1, 1], 0.2103563963, tolerance = 1e-7)
@@ -79,7 +79,7 @@ test_that("FindTransferAnchors allows reference.reduction to be precomputed", {
   expect_equal(dim(co), c(100, 160))
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
   expect_equal(GetAssayData(co[["RNA"]])[1, 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], 0.4840944592, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)[1, 1], 0.2103563963, tolerance = 1e-7)
@@ -109,8 +109,8 @@ test_that("FindTransferAnchors with cca defaults work", {
   expect_equal(Reductions(co), c("cca", "cca.l2"))
   expect_equal(GetAssayData(co[["RNA"]])["PPBP", 3], 0)
   expect_equal(GetAssayData(co[["RNA"]])["PPBP", 1], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")["PPBP", 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")["PPBP", 1], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")["PPBP", 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")["PPBP", 1], 0)
   expect_equal(dim(co[['cca']]), c(160, 30))
   expect_equal(Embeddings(co[['cca']])[1, 1], 0.04611130861, tolerance = 1e-7)
   expect_equal(Loadings(co[['cca']], projected = T)["PPBP", 1], 12.32379661, tolerance = 1e-7)
@@ -138,10 +138,10 @@ test_that("FindTransferAnchors with project.query defaults work", {
   co <- anchors@object.list[[1]]
   expect_equal(dim(co), c(100, 160))
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
-  expect_equal(GetAssayData(co[["RNA"]])["PPBP", 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]])["PPBP", 1], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")["PPBP", 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")["PPBP", 1], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "data")["PPBP", 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "data")["PPBP", 1], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")["PPBP", 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")["PPBP", 1], 0)
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], 1.577959404, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)["PPBP", 1], 0.1145472305, tolerance = 1e-7)
@@ -174,8 +174,8 @@ test_that("FindTransferAnchors with project.query and reference.reduction works"
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
   expect_equal(GetAssayData(co[["RNA"]])["PPBP", 3], 0)
   expect_equal(GetAssayData(co[["RNA"]])["PPBP", 1], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")["PPBP", 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")["PPBP", 1], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")["PPBP", 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")["PPBP", 1], 0)
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], 1.577959404, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)["PPBP", 1], 0.1145472305, tolerance = 1e-7)
@@ -208,7 +208,7 @@ test_that("FindTransferAnchors with reference.neighbors precomputed works", {
   expect_equal(dim(co), c(100, 160))
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
   expect_equal(GetAssayData(co[["RNA"]])[1, 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], 0.4840944592, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)[1, 1], 0.2103563963, tolerance = 1e-7)
@@ -237,7 +237,7 @@ test_that("FindTransferAnchors with no l2 works", {
   expect_equal(dim(co), c(100, 160))
   expect_equal(Reductions(co), c("pcaproject"))
   expect_equal(GetAssayData(co[["RNA"]])[1, 3], 0)
-  expect_equal(GetAssayData(co[["RNA"]], slot = "counts")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], 0.4840944592, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)[1, 1], 0.2103563963, tolerance = 1e-7)
@@ -267,7 +267,7 @@ test_that("FindTransferAnchors with default SCT works", {
   expect_equal(dim(co), c(220, 160))
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
   expect_equal(DefaultAssay(co), "SCT")
-  expect_equal(GetAssayData(co[["SCT"]], slot = "scale.data"), new(Class = "matrix"))
+  expect_equal(GetAssayData(co[["SCT"]], layer = "scale.data"), new(Class = "matrix"))
   expect_equal(GetAssayData(co[["SCT"]])[1, 1], 0)
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], -1.852491719, tolerance = 1e-7)
@@ -361,7 +361,6 @@ test_that("FindTransferAnchors with SCT and project.query work", {
   expect_equal(anchors@neighbors, list())
 })
 
-
 test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
   skip_on_cran()
   anchors <- FindTransferAnchors(reference = ref, query = query, normalization.method = "SCT", l2.norm = FALSE, k.filter = 50)
@@ -370,7 +369,7 @@ test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
   expect_equal(Reductions(co), c("pcaproject"))
   expect_equal(DefaultAssay(co), "SCT")
   expect_equal(GetAssayData(co[["SCT"]])[1, 1], 0)
-  expect_equal(GetAssayData(co[["SCT"]], slot = "scale.data"), new("matrix"))
+  expect_equal(GetAssayData(co[["SCT"]], layer = "scale.data"), new("matrix"))
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], -1.852491719, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)[1, 1], -0.1829401539, tolerance = 1e-7)

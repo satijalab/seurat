@@ -27,9 +27,7 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Remotes: 
-    bnprks/BPCells,
-    mojaveazure/seurat-object@seurat5
+Additional_repositories: https://satijalab.r-universe.dev
 Depends:
     R (>= 4.0.0),
     methods,
@@ -80,7 +78,6 @@ Imports:
     scales,
     scattermore (>= 1.2),
     sctransform (>= 0.4.0),
-    SeuratObject (>= 4.1.4),
     shiny,
     spatstat.explore,
     spatstat.geom,
@@ -88,8 +85,7 @@ Imports:
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.10),
-    BPCells (>= 0.0.0.9000)
+    uwot (>= 0.1.10)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: MIT + file LICENSE
 LazyData: true
@@ -118,6 +114,7 @@ RoxygenNote: 7.2.3
 Encoding: UTF-8
 Suggests:
     ape,
+    BPCells,
     rsvd,
     testthat,
     hdf5r,

@@ -34,8 +34,7 @@ is not NULL.}
 \item{graph}{If graph is passed, build tree based on graph connectivity between
 clusters; overrides \code{dims} and \code{features}}
 
-\item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
-the order of 'assays' (if specified) or object's assays}
+\item{slot}{(Deprecated). Slots(s) to use}
 
 \item{reorder}{Re-order identity classes (factor ordering), according to
 position on the tree. This groups similar classes together which can be

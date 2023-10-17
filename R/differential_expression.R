@@ -46,10 +46,10 @@ FindAllMarkers <- function(
   object,
   assay = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
   slot = 'data',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   node = NULL,
   verbose = TRUE,
@@ -416,7 +416,7 @@ FindConservedMarkers <- function(
 #' expressing
 #' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Available options are:
 #' \itemize{
@@ -462,7 +462,7 @@ FindConservedMarkers <- function(
 #' }
 #' @param min.pct  only test genes that are detected in a minimum fraction of
 #' min.pct cells in either of the two populations. Meant to speed up the function
-#' by not testing genes that are very infrequently expressed. Default is 0.1
+#' by not testing genes that are very infrequently expressed. Default is 0.01
 #' @param min.diff.pct  only test genes that show a minimum difference in the
 #' fraction of detection between the two groups. Set to -Inf by default
 #' @param only.pos Only return positive markers (FALSE by default)
@@ -496,9 +496,9 @@ FindMarkers.default <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -575,12 +575,16 @@ FindMarkers.default <- function(
     }
   }
   if (inherits(x = object, what = "IterableMatrix")){
+    if(test.use != "wilcox"){
+      stop("Differential expression with BPCells currently only supports the 'wilcox' method.", 
+           " Please rerun with test.use = 'wilcox'")
+    }
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
     groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
     de.results <- suppressMessages(
       BPCells::marker_features(data.use, group = groups, method = "wilcoxon")
     )
-    de.results <- subset(de.results, foreground == "foreground")
+    de.results <- subset(de.results, de.results$foreground == "foreground")
     de.results <- data.frame(feature = de.results$feature,
                              p_val = de.results$p_val_raw)
     rownames(de.results) <- de.results$feature
@@ -630,9 +634,9 @@ FindMarkers.Assay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -719,9 +723,9 @@ FindMarkers.SCTAssay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -840,9 +844,9 @@ FindMarkers.DimReduc <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -961,10 +965,10 @@ FindMarkers.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   pseudocount.use = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -2498,15 +2502,15 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (presto.check[1] && overflow.check && (!limma)) { 
+  if (presto.check[1] && (!limma)) { 
     data.use <- data.use[, rownames(group.info), drop = FALSE] 
     res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"]) 
     res <- res[1:(nrow(x = res)/2),]
     p_val <- res$pval
-  } else if (overflow.check) {
-    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) { # if you didnt request limma, output message
+  } else {
+    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) { 
       message(
-        "For a more efficient implementation of the Wilcoxon Rank Sum Test,",
+        "For a (much!) faster implementation of the Wilcoxon Rank Sum Test,",
         "\n(default method for FindMarkers) please install the presto package",
         "\n--------------------------------------------",
         "\ninstall.packages('devtools')",
@@ -2518,7 +2522,7 @@ WilcoxDETest <- function(
       )
       options(Seurat.presto.wilcox.msg = FALSE)
     }
-    if (limma.check[1]) { 
+    if (limma.check[1] && overflow.check) { 
       p_val <- my.sapply(
         X = 1:nrow(x = data.use),
         FUN = function(x) {
@@ -2526,7 +2530,7 @@ WilcoxDETest <- function(
         }
       )
     } else {
-      if (limma) { 
+      if (limma && overflow.check) { 
         stop(
           "To use the limma implementation of the Wilcoxon Rank Sum Test,
         please install the limma package:

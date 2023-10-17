@@ -21,7 +21,7 @@ VlnPlot(
   log = FALSE,
   ncol = NULL,
   slot = deprecated(),
-  layer = "data",
+  layer = NULL,
   split.plot = FALSE,
   stack = FALSE,
   combine = TRUE,

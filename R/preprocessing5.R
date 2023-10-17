@@ -29,6 +29,7 @@ FindVariableFeatures.default <- function(
   method = VST,
   nfeatures = 2000L,
   verbose = TRUE,
+  selection.method = selection.method,
   ...
 ) {
   if (is_quosure(x = method)) {
@@ -161,7 +162,8 @@ FindVariableFeatures.StdAssay <- function(
     object[colnames(x = hvf.info)] <- hvf.info
   }
   object@meta.data$var.features <- NULL
-  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nfeatures)
+  object@meta.data$var.features.rank <- NULL
+  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nfeatures, method = key)
   return(object)
 }
 
@@ -333,7 +335,7 @@ NormalizeData.default <- function(
       }
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
-        stop('CLR normalization only supports for dense and dgCMatrix')
+        stop('CLR normalization is only supported for dense and dgCMatrix')
       }
       CustomNormalize(
         data = object,
@@ -347,7 +349,7 @@ NormalizeData.default <- function(
     'RC' = {
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
-        stop('RC normalization only supports for dense and dgCMatrix')
+        stop('RC normalization is only supported for dense and dgCMatrix')
       }
       RelativeCounts(data = object,
                      scale.factor = scale.factor,
@@ -433,6 +435,9 @@ ScaleData.StdAssay <- function(
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
+  if (is.null(layer)) {
+    abort(paste0("No layer matching pattern '", olayer, "' found. Please run NormalizeData and retry"))
+  }
   if (isTRUE(x = use.umi)) {
     layer <- "counts"
     inform(
@@ -1249,6 +1254,7 @@ SCTransform.StdAssay <- function(
                             seed.use = seed.use,
                             verbose = verbose)
     min_var <- vst.out$arguments$min_variance
+    residual.type <- vst.out[['residual_type']] %||% 'pearson'
     assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
                                 clip.range = clip.range)
 
@@ -1311,7 +1317,7 @@ SCTransform.StdAssay <- function(
         } else {
           new_residual <- get_residuals(
             vst_out = vst_out,
-            umi = counts.vp[all.features,],
+            umi = counts.vp[all_features,],
             residual_type = "pearson",
             min_variance = min_var,
             res_clip_range = res_clip_range,
@@ -1589,6 +1595,8 @@ FetchResiduals <- function(
 #' UMIs from. Default is "RNA"
 #' @param layer Name of the layer under `umi.assay` to fetch UMIs from.
 #' Default is "counts"
+#' @param chunk_size Number of cells to load in memory for calculating
+#' residuals
 #' @param layer.cells Vector of cells to calculate the residual for.
 #' Default is NULL which uses all cells in the layer
 #' @param SCTModel Which SCTmodel to use from the object for calculating
@@ -1615,6 +1623,7 @@ FetchResidualSCTModel <- function(
   assay = "SCT",
   umi.assay = "RNA",
   layer = "counts",
+  chunk_size = 2000,
   layer.cells = NULL,
   SCTModel = NULL,
   reference.SCT.model = NULL,
@@ -1778,8 +1787,10 @@ FetchResidualSCTModel <- function(
         min_var <- vst_out$arguments$min_variance
       }
       if (nrow(umi)>0){
+        vst_out.tmp <- vst_out
+        vst_out.tmp$cell_attr <- vst_out.tmp$cell_attr[colnames(x = umi),]
         new_residual <- get_residuals(
-          vst_out = vst_out,
+          vst_out = vst_out.tmp,
           umi = umi,
           residual_type = "pearson",
           min_variance = min_var,
@@ -1857,7 +1868,7 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
     cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/chunk_size))
     for (i in seq_len(length.out = length(x = cells.grid))) {
       vp <- cells.grid[[i]]
-      counts.vp <- as.sparse(x = layer.data[, vp])
+      counts.vp <- as.sparse(x = layer.counts[, vp])
       vst.out <- vst_out
       vst.out$cell_attr <- vst.out$cell_attr[colnames(x = counts.vp),,drop=FALSE]
       residuals.list[[i]] <- get_residuals(
@@ -1874,12 +1885,16 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
     stop("Data type not supported")
   }
   return (residuals)
-
-
-
 }
 
 #' temporal function to get residuals from reference
+#' @param object A seurat object
+#' @param reference.SCT.model a reference SCT model that should be used
+#' for calculating the residuals
+#' @param features Names of features to compute
+#' @param nCount_UMI UMI counts. If not specified, defaults to
+#' column sums of object
+#' @param verbose Whether to print messages and progress bars
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
 #'
@@ -1965,7 +1980,8 @@ MVP <- function(
   verbose = TRUE,
   nselect = 2000L,
   mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf)
+  dispersion.cutoff = c(1, Inf), 
+  ...
 ) {
   hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)
   hvf.info$variable <- FALSE
