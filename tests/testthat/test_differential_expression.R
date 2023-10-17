@@ -7,7 +7,7 @@ set.seed(seed = 42)
 context("FindMarkers")
 
 clr.obj <- suppressWarnings(NormalizeData(pbmc_small, normalization.method = "CLR"))
-sct.obj <- suppressWarnings(suppressMessages(SCTransform(pbmc_small)))
+sct.obj <- suppressWarnings(suppressMessages(SCTransform(pbmc_small, vst.flavor = "v2")))
 
 markers.0 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1))
 markers.01 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1),pseudocount.use = 1))
@@ -32,7 +32,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(markers.0[1, "p_val_adj"], 2.201739e-10, tolerance = 1e-15)
   expect_equal(nrow(x = markers.0), 227)
   expect_equal(rownames(markers.0)[1], "HLA-DPB1")
-  
+
   expect_equal(colnames(x = markers.0.limma), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
   expect_equal(markers.0.limma[1, "p_val"], 9.572778e-13, tolerance = 1e-18)
   expect_equal(markers.0.limma[1, "avg_logFC"], -4.034691, tolerance = 1e-6)
@@ -49,7 +49,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(markers.01[1, "p_val_adj"], 3.916481e-09, tolerance = 1e-14)
   expect_equal(nrow(x = markers.01), 222)
   expect_equal(rownames(x = markers.01)[1], "TYMP")
-  
+
   expect_equal(markers.01.limma[1, "p_val"], 1.702818e-11, tolerance = 1e-16)
   expect_equal(markers.01.limma[1, "avg_logFC"], -2.539289, tolerance = 1e-6)
   expect_equal(markers.01.limma[1, "pct.1"], 0.111)
@@ -66,7 +66,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(results.clr[1, "p_val_adj"], 2.781762e-09, tolerance = 1e-14)
   expect_equal(nrow(x = results.clr), 167)
   expect_equal(rownames(x = results.clr)[1], "S100A8")
-  
+
   expect_equal(results.clr.limma[1, "p_val"], 1.209462e-11, tolerance = 1e-16)
   expect_equal(results.clr.limma[1, "avg_logFC"], -0.8290693, tolerance = 1e-6)
   expect_equal(results.clr.limma[1, "pct.1"], 0.111)
@@ -83,7 +83,7 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(results.sct[1, "p_val_adj"], 1.022333e-08, tolerance = 1e-13)
   expect_equal(nrow(x = results.sct), 197)
   expect_equal(rownames(x = results.sct)[1], "CST3")
-  
+
   expect_equal(results.sct.limma[1, "p_val"], 4.646968e-11, tolerance = 1e-16)
   expect_equal(results.sct.limma[1, "avg_logFC"], -1.8522457, tolerance = 1e-6)
   expect_equal(results.sct.limma[1, "pct.1"], 0.333)
@@ -320,20 +320,22 @@ test_that("LR test works", {
   expect_equal(rownames(x = results)[1], "LYZ")
 })
 
-mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
-pbmc_small[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
-pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbp")
-
-markers.bp <- suppressWarnings(FindMarkers(object = pbmc_small, assay = "RNAbp", ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1))
 
 test_that("BPCells FindMarkers gives same results", {
+  skip_on_cran()
+  library(BPCells)
+  library(Matrix)
+  mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
+  pbmc_small[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+  pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbp")
+  markers.bp <- suppressWarnings(FindMarkers(object = pbmc_small, assay = "RNAbp", ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1))
   expect_equal(colnames(x = markers.bp), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
   expect_equal(markers.bp[1, "p_val"], 9.572778e-13)
   expect_equal(markers.bp[1, "avg_logFC"], -4.034691, tolerance = 1e-6)
   expect_equal(markers.bp[1, "pct.1"], 0.083)
   expect_equal(markers.bp[1, "pct.2"], 0.909)
   expect_equal(markers.bp[1, "p_val_adj"], 2.201739e-10)
-  expect_equal(nrow(x = markers.bp), 204)
+  expect_equal(nrow(x = markers.bp), 227)
   expect_equal(rownames(markers.bp)[1], "HLA-DPB1")
 })
 
@@ -414,9 +416,17 @@ test_that("FindMarkers recognizes log normalization", {
   expect_equal(markers[1, "avg_log2FC"], -2.614686, tolerance = 1e-6)
 })
 
-results.bp <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, assay = "RNAbp", pseudocount.use=1)))
 
 test_that("BPCells FindAllMarkers gives same results", {
+  skip_on_cran()
+  library(BPCells)
+  library(Matrix)
+  mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
+  pbmc_small[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+  pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbp")
+
+  results.bp <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, assay = "RNAbp", pseudocount.use=1)))
+
   expect_equal(colnames(x = results.bp), c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
   expect_equal(results.bp[1, "p_val"], 9.572778e-13)
   expect_equal(results.bp[1, "avg_log2FC"], -5.820829, tolerance = 1e-6)

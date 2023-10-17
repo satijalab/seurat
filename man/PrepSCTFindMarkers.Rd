@@ -51,8 +51,8 @@ to \pkg{future}, see
 
 \examples{
 data("pbmc_small")
-pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
-pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20)
+pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
+pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
 pbmc_merged <- merge(x = pbmc_small1, y = pbmc_small2)
 pbmc_merged <- PrepSCTFindMarkers(object = pbmc_merged)
 markers <- FindMarkers(

@@ -1445,12 +1445,6 @@ SCTransform.StdAssay <- function(
 #' @concept preprocessing
 #'
 #' @seealso \code{\link[sctransform]{get_residuals}}
-#'
-#' @examples
-#' data("pbmc_small")
-#' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
-#' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
-#'
 FetchResiduals <- function(
   object,
   features,
@@ -1978,7 +1972,7 @@ MVP <- function(
   verbose = TRUE,
   nselect = 2000L,
   mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf), 
+  dispersion.cutoff = c(1, Inf),
   ...
 ) {
   hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)

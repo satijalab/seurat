@@ -27,7 +27,7 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Additional_repositories: https://satijalab.r-universe.dev
+Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-universe.dev
 Depends:
     R (>= 4.0.0),
     methods,
@@ -78,7 +78,6 @@ Imports:
     scales,
     scattermore (>= 1.2),
     sctransform (>= 0.4.0),
-    SeuratObject (>= 4.1.4),
     shiny,
     spatstat.explore,
     spatstat.geom,
