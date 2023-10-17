@@ -7920,7 +7920,7 @@ SingleCorPlot <- function(
   jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  if ((nrow(x = data) > 1e5) & !is.null(x = raster)){
+  if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
