@@ -800,7 +800,8 @@ ColorDimSplit <- function(
 #' @param cols.highlight A vector of colors to highlight the cells as; will
 #' repeat to the length groups in cells.highlight
 #' @param sizes.highlight Size of highlighted cells; will repeat to the length
-#' groups in cells.highlight.  If \code{sizes.highlight = TRUE} size of all points will be this value.
+#' groups in cells.highlight.  If \code{sizes.highlight = TRUE} size of all
+#' points will be this value.
 #' @param na.value Color value for NA points when using custom scale
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
