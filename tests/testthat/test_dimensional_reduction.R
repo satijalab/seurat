@@ -51,18 +51,20 @@ test_that("pca returns total variance (see #982)", {
 
 })
 
-mat_bpcells <- t(as(t(obj[['RNA']]$counts ), "IterableMatrix"))
-obj[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
-DefaultAssay(obj) <- "RNAbp"
-obj <- NormalizeData(object = obj, verbose = FALSE)
-obj <- ScaleData(object = obj, verbose=FALSE)
-pca_result_bp <- suppressWarnings(expr = RunPCA(
-  object = obj,
-  features = rownames(obj[['RNAbp']]$counts),
-  assay = "RNAbp"))
-
 test_that("pca is equivalent for BPCells", {
- expect_equivalent(abs(pca_result_bp[['pca']]@cell.embeddings),
+  skip_on_cran()
+  library(Matrix)
+  library(BPCells)
+  mat_bpcells <- t(x = as(object = t(x = obj[['RNA']]$counts ), Class = "IterableMatrix"))
+  obj[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+  DefaultAssay(obj) <- "RNAbp"
+  obj <- NormalizeData(object = obj, verbose = FALSE)
+  obj <- ScaleData(object = obj, verbose=FALSE)
+  pca_result_bp <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(obj[['RNAbp']]$counts),
+    assay = "RNAbp"))
+  expect_equivalent(abs(pca_result_bp[['pca']]@cell.embeddings),
                    abs(pca_result[['pca']]@cell.embeddings),
                    tolerance = 1e-5)
 })
