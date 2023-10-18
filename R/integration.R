@@ -3307,7 +3307,9 @@ TransferData <- function(
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
-  query.assay <- query.assay %||% DefaultAssay(query)
+  if (!is.null(query)) {
+    query.assay <- query.assay %||% DefaultAssay(query)
+  }
   label.transfer <- list()
   ValidateParams_TransferData(
     anchorset = anchorset,
