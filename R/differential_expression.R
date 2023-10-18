@@ -785,12 +785,14 @@ FindMarkers.SCTAssay <- function(
   )
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + 1)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      return(log(x = (rowSums(x = x) + 1)/NCOL(x), base = base))
     },
     'scale.data' = rowMeans,
     default.mean.fxn
@@ -1120,6 +1122,7 @@ FoldChange.default <- function(
 #' when \code{slot} is \dQuote{\code{data}}
 #'
 #' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowSums
 #' @rdname FoldChange
 #' @concept differential_expression
 #' @export
@@ -1140,11 +1143,13 @@ FoldChange.Assay <- function(
   data <- GetAssayData(object = object, slot = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + 1)/NCOL(x), base = base))
   }
   scaledata.mean.fxn <- rowMeans
   counts.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = x) + 1)/NCOL(x), base = base))
   }
   if (!is.null(x = norm.method)) {
     # For anything apart from log normalization set to rowMeans
@@ -1196,6 +1201,7 @@ FoldChange.Assay <- function(
 FoldChange.StdAssay <- FoldChange.Assay
 
 #' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowSums
 #' @rdname FoldChange
 #' @concept differential_expression
 #' @export
@@ -1215,14 +1221,16 @@ FoldChange.SCTAssay <- function(
   pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
   default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + 1)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'data' = default.mean.fxn,
     'scale.data' = rowMeans,
     'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      return(log(x = (rowSums(x = x) + 1)/NCOL(x), base = base))
     },
     default.mean.fxn
   )
