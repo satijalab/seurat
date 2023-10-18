@@ -13,10 +13,6 @@ AverageExpression(
   add.ident = NULL,
   layer = "data",
   slot = deprecated(),
-  method = "average",
-  normalization.method = "LogNormalize",
-  scale.factor = 10000,
-  margin = 1,
   verbose = TRUE,
   ...
 )
@@ -30,7 +26,7 @@ AverageExpression(
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is FALSE}
 
-\item{group.by}{Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default. 
+\item{group.by}{Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default
 To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')}
 
 \item{add.ident}{(Deprecated). Place an additional label on each cell prior to pseudobulking}
@@ -39,14 +35,6 @@ To use multiple categories, specify a vector, such as c('ident', 'replicate', 'c
 the order of 'assays' (if specified) or object's assays}
 
 \item{slot}{(Deprecated). Slots(s) to use}
-
-\item{method}{Method of collapsing expression values. Either 'average' or 'aggregate'}
-
-\item{normalization.method}{Method for normalization, see \code{\link{NormalizeData}}}
-
-\item{scale.factor}{Scale factor for normalization, see \code{\link{NormalizeData}}}
-
-\item{margin}{Margin to perform CLR normalization, see \code{\link{NormalizeData}}}
 
 \item{verbose}{Print messages and show progress bar}
 
@@ -65,11 +53,11 @@ normalized and therefore feature values are exponentiated prior to averaging
 so that averaging is done in non-log space. Otherwise, if layer is set to
 either 'counts' or 'scale.data', no exponentiation is performed prior to  averaging.
 If \code{return.seurat = TRUE} and layer is not 'scale.data', averaged values
-are placed in the 'counts' layer of the returned object and \code{\link{NormalizeData}}
+are placed in the 'counts' layer of the returned object and 'log1p'
 is run on the averaged counts and placed in the 'data' layer \code{\link{ScaleData}}
 is then run on the default assay before returning the object.
 If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' layer contains
-average counts and 'scale.data' is set to the averaged values.
+average counts and 'scale.data' is set to the averaged values of 'scale.data'.
 }
 \examples{
 data("pbmc_small")

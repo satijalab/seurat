@@ -27,7 +27,7 @@ AggregateExpression(
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is FALSE}
 
-\item{group.by}{Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default. 
+\item{group.by}{Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default
 To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')}
 
 \item{add.ident}{(Deprecated). Place an additional label on each cell prior to pseudobulking}
