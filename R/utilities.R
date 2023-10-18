@@ -1397,10 +1397,12 @@ PseudobulkExpression.Seurat <- function(
     layer <- slot
   }
 
-  if (method =="average") {
-    inform(message = "As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.", 
-           .frequency = "once", 
-           .frequency_id = "AverageExpression")
+  if (method == "average") {
+    inform(
+      message = "As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.",
+      .frequency = "once",
+      .frequency_id = "AverageExpression"
+    )
   }
 
   object.assays <- .FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
@@ -1421,7 +1423,7 @@ PseudobulkExpression.Seurat <- function(
   data <- FetchData(object = object, vars = rev(x = group.by))
   data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
   if (nrow(x = data) < ncol(x = object)) {
-    message("Removing cells with NA for 1 or more grouping variables")
+    inform("Removing cells with NA for 1 or more grouping variables")
     object <- subset(x = object, cells = rownames(x = data))
   }
   for (i in 1:ncol(x = data)) {
@@ -1434,8 +1436,12 @@ PseudobulkExpression.Seurat <- function(
     }
   )
   if (any(num.levels == 1)) {
-    message(paste0("The following grouping variables have 1 value and will be ignored: ",
-                   paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")))
+    message(
+      paste0(
+        "The following grouping variables have 1 value and will be ignored: ",
+        paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")
+      )
+    )
     group.by <- colnames(x = data)[which(num.levels > 1)]
     data <- data[, which(num.levels > 1), drop = F]
   }
@@ -1477,9 +1483,11 @@ PseudobulkExpression.Seurat <- function(
         assay = names(x = data.return)[1],
         ...
       )
-      LayerData(object = toRet,
-                layer = "scale.data",
-                assay = names(x = data.return)[1]) <- data.return[[1]]
+      LayerData(
+        object = toRet,
+        layer = "scale.data",
+        assay = names(x = data.return)[i]
+      ) <- data.return[[1]]
     } else {
       toRet <- CreateSeuratObject(
         counts = data.return[[1]],
@@ -1488,16 +1496,21 @@ PseudobulkExpression.Seurat <- function(
         ...
       )
       if (method == "aggregate") {
-        LayerData(object = toRet,
-                  layer = "data",
-                  assay = names(x = data.return)[1]) <- NormalizeData(as.matrix(x = data.return[[1]]),
-                                                                      normalization.method = normalization.method,
-                                                                      verbose = verbose)
+        LayerData(
+          object = toRet,
+          layer = "data",
+          assay = names(x = data.return)[1]
+        ) <- NormalizeData(
+          as.matrix(x = data.return[[1]]),
+          normalization.method = normalization.method,
+          verbose = verbose
+        )
       }
       else {
         LayerData(object = toRet,
                   layer = "data",
-                  assay = names(x = data.return)[1]) <- log1p(x = as.matrix(x = data.return[[1]]))
+                  assay = names(x = data.return)[1]
+        ) <- log1p(x = as.matrix(x = data.return[[1]]))
       }
     }
     #for multimodal data
@@ -1512,25 +1525,36 @@ PseudobulkExpression.Seurat <- function(
             layer = "counts"
           )
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = summed.counts)
-          LayerData(object = toRet,
-                    layer = "scale.data",
-                    assay = names(x = data.return)[i]) <- data.return[[i]]
+          LayerData(
+            object = toRet,
+            layer = "scale.data",
+            assay = names(x = data.return)[i]
+          ) <- data.return[[i]]
         } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(
+            counts = data.return[[i]],
+            check.matrix = FALSE
+          )
           if (method == "aggregate") {
-            LayerData(object = toRet,
-                      layer = "data",
-                      assay = names(x = data.return)[i]) <- NormalizeData(as.matrix(x = data.return[[i]]),
-                                                                          normalization.method = normalization.method,
-                                                                          scale.factor = scale.factor,
-                                                                          margin = margin,
-                                                                          block.size = block.size,
-                                                                          verbose = verbose)
+            LayerData(
+              object = toRet,
+              layer = "data",
+              assay = names(x = data.return)[i]
+            ) <- NormalizeData(
+              as.matrix(x = data.return[[i]]),
+              normalization.method = normalization.method,
+              scale.factor = scale.factor,
+              margin = margin,
+              block.size = block.size,
+              verbose = verbose
+            )
           }
           else {
-            LayerData(object = toRet,
-                      layer = "data",
-                      assay = names(x = data.return)[i]) <- log1p(x = as.matrix(x = data.return[[i]]))
+            LayerData(
+              object = toRet,
+              layer = "data",
+              assay = names(x = data.return)[i]
+            ) <- log1p(x = as.matrix(x = data.return[[i]]))
           }
         }
       }
@@ -1542,10 +1566,11 @@ PseudobulkExpression.Seurat <- function(
       }
     }
     if ('ident' %in% group.by) {
-      first.cells <- sapply(X = 1:ncol(x = category.matrix),
-                            FUN = function(x) {
-                              return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
-                            }
+      first.cells <- sapply(
+        X = 1:ncol(x = category.matrix),
+        FUN = function(x) {
+          return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
+        }
       )
       Idents(object = toRet,
              cells = colnames(x = toRet)
