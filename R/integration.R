@@ -2296,18 +2296,16 @@ MapQuery <- function(
     reuse.weights.matrix <- TRUE
   }
   if (anchor.reduction != "cca") {
-    query <- exec(
-      .fn = IntegrateEmbeddings,
-      .args  = c(list(
-        anchorset = anchorset,
-        reference = reference,
-        query = query,
-        new.reduction.name = new.reduction.name,
-        reuse.weights.matrix = reuse.weights.matrix,
-        verbose = verbose
+    ie.allarguments <- c(list(
+      anchorset = anchorset,
+      reference = reference,
+      query = query,
+      new.reduction.name = new.reduction.name,
+      reuse.weights.matrix = reuse.weights.matrix,
+      verbose = verbose
       ), integrateembeddings.args
-      )
     )
+    query <- exec("IntegrateEmbeddings",!!!ie.allarguments)
     Misc(
       object = query[[new.reduction.name]],
       slot = 'ref.dims'
@@ -2333,20 +2331,18 @@ MapQuery <- function(
       query.dims <- reference.dims
     }
     ref_nn.num <- Misc(object = reference[[reduction.model]], slot = "model")$n_neighbors
-    query <- exec(
-      .fn = ProjectUMAP,
-      .args  = c(list(
-        query = query,
-        query.reduction = new.reduction.name,
-        query.dims = query.dims,
-        reference = reference,
-        reference.dims = reference.dims,
-        reference.reduction = reference.reduction,
-        reduction.model = reduction.model,
-        k.param = ref_nn.num
-        ), projectumap.args
-      )
+    pu.allarguments <- c(list(
+      query = query,
+      query.reduction = new.reduction.name,
+      query.dims = query.dims,
+      reference = reference,
+      reference.dims = reference.dims,
+      reference.reduction = reference.reduction,
+      reduction.model = reduction.model,
+      k.param = ref_nn.num
+      ), projectumap.args
     )
+    query <- exec("ProjectUMAP",!!!pu.allarguments)
   }
   return(query)
 }
@@ -7826,22 +7822,19 @@ FastRPCAIntegration <- function(
                              return(x)
                            }
   )
-
-  anchor <- exec(
-    .fn = FindIntegrationAnchors,
-    .args = c(list(
-      object.list = object.list,
-      reference = reference,
-      anchor.features = anchor.features,
-      reduction = reduction,
-      normalization.method = normalization.method,
-      scale = scale,
-      k.anchor = k.anchor,
-      dims = dims,
-      verbose = verbose
+  fia.allarguments <- c(list(
+    object.list = object.list,
+    reference = reference,
+    anchor.features = anchor.features,
+    reduction = reduction,
+    normalization.method = normalization.method,
+    scale = scale,
+    k.anchor = k.anchor,
+    dims = dims,
+    verbose = verbose
     ), findintegrationanchors.args
-    )
   )
+  anchor <- exec("FindIntegrationAnchors",!!!fia.allarguments)
   object_merged <- merge(x = object.list[[1]],
                          y = object.list[2:length(object.list)]
 
