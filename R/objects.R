@@ -572,7 +572,7 @@ DietSeurat <- function(
         abort(message = "Cannot remove both 'counts' and 'data' from v3 Assays")
       }
       for (lyr in layers.rm) {
-        object <- tryCatch(expr = {
+        suppressWarnings(object <- tryCatch(expr = {
           object[[assay]][[lyr]] <- NULL
           object
         }, error = function(e) {
@@ -586,7 +586,7 @@ DietSeurat <- function(
           message("Converting layer ", lyr, " in assay ",
                   assay, " to empty dgCMatrix")
           object
-        })
+        }))
       }
     }
     if (!is.null(x = features)) {
@@ -603,7 +603,7 @@ DietSeurat <- function(
         object[[assay]] <- NULL
         next
       }
-      object[[assay]] <- subset(x = object[[assay]], features = features.assay)
+      suppressWarnings(object[[assay]] <- subset(x = object[[assay]], features = features.assay))
     }
   }
   # remove misc when desired
