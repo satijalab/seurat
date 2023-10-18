@@ -2286,19 +2286,11 @@ MapQuery <- function(
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
-  query <- exec(
-    .fn = TransferData,
-    .args  = c(list(
-      anchorset = anchorset,
-      reference = reference,
-      query = query,
-      refdata = refdata,
-      store.weights = TRUE,
-      only.weights =  is.null(x = refdata),
-      verbose = verbose
-    ), transferdata.args
-    )
-  )
+  td.allarguments <- c(list(anchorset = anchorset, 
+                          reference = reference, query = query, refdata = refdata, 
+                          store.weights = TRUE, only.weights = is.null(x = refdata), 
+                          verbose = verbose), transferdata.args)
+  query <- exec("TransferData",!!!td.allarguments)
   if (inherits(x = transferdata.args$weight.reduction , "character") &&
       transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
     reuse.weights.matrix <- TRUE
