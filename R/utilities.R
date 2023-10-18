@@ -1509,7 +1509,7 @@ PseudobulkExpression.Seurat <- function(
             assay = assays[i],
             category.matrix = category.matrix,
             features = features[[i]],
-            slot = "counts"
+            layer = "counts"
           )
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = summed.counts)
           LayerData(object = toRet,
