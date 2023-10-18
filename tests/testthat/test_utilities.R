@@ -80,23 +80,19 @@ test_that("AverageExpression with return.seurat", {
   expect_equal(unname(as.matrix(LayerData(avg.counts[["RNA"]], layer = "counts"))),
                unname(as.matrix(avg.counts.mat)))
   avg.data <- LayerData(avg.counts[["RNA"]], layer = "data")
+  #test that data returned is log1p of average counts
   expect_equivalent(
-    as.matrix(NormalizeData(avg.counts.mat)),
+    as.matrix(log1p(avg.counts.mat)),
     as.matrix(avg.data),
     tolerance = 1e-6
   )
+  #test that scale.data returned is scaled data
   avg.scale <- LayerData(avg.counts[["RNA"]], layer = "scale.data")
   expect_equal(
-    avg.scale['MS4A1', ],
-    c(a = -0.8141426, b = 1.1162108, c = -0.3020683),
+    avg.scale,
+    ScaleData(avg.counts)[['RNA']]$scale.data,
     tolerance = 1e-6
   )
-  expect_equal(
-    avg.scale['SPON2', ],
-    c(a = 0.3387626, b = 0.7866155, c = -1.1253781),
-    tolerance = 1e-6
-  )
-
   # data
   avg.data <- AverageExpression(object, layer = "data", return.seurat = TRUE, verbose = FALSE)
   expect_s4_class(object = avg.data, "Seurat")
@@ -116,7 +112,6 @@ test_that("AverageExpression with return.seurat", {
     c(a = 0.1213127, b = 0.9338096, c = -1.0551222),
     tolerance = 1e-6
   )
-
   # scale.data
   object <- ScaleData(object = object, verbose = FALSE)
   avg.scale <- AverageExpression(object, layer = "scale.data", return.seurat = TRUE, verbose = FALSE)
