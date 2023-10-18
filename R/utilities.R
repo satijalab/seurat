@@ -368,21 +368,23 @@ AggregateExpression <- function(
   verbose = TRUE,
   ...
 ) {
-  return(PseudobulkExpression(
-    object = object,
-    assays = assays,
-    features = features,
-    return.seurat = return.seurat,
-    group.by = group.by,
-    add.ident = add.ident,
-    layer = 'counts',
-    method = 'aggregate',
-    normalization.method = normalization.method,
-    scale.factor = scale.factor,
-    margin = margin,
-    verbose = verbose,
-    ...
-  ))
+  return(
+    PseudobulkExpression(
+      object = object,
+      assays = assays,
+      features = features,
+      return.seurat = return.seurat,
+      group.by = group.by,
+      add.ident = add.ident,
+      layer = 'counts',
+      method = 'aggregate',
+      normalization.method = normalization.method,
+      scale.factor = scale.factor,
+      margin = margin,
+      verbose = verbose,
+      ...
+    )
+  )
 }
 
 #' Averaged feature expression by identity class
@@ -436,19 +438,21 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
-  return(PseudobulkExpression(
-    object = object,
-    assays = assays,
-    features = features,
-    return.seurat = return.seurat,
-    group.by = group.by,
-    add.ident = add.ident,
-    layer = layer,
-    slot = slot,
-    method = 'average',
-    verbose = verbose,
-    ...
-  ))
+  return(
+    PseudobulkExpression(
+      object = object,
+      assays = assays,
+      features = features,
+      return.seurat = return.seurat,
+      group.by = group.by,
+      add.ident = add.ident,
+      layer = layer,
+      slot = slot,
+      method = 'average',
+      verbose = verbose,
+      ...
+    )
+  )
 }
 
 #' Match the case of character vectors
