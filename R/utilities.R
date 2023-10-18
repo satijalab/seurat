@@ -1396,13 +1396,13 @@ PseudobulkExpression.Seurat <- function(
     )
     layer <- slot
   }
-  
+
   if (method =="average") {
     inform(message = "As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.", 
            .frequency = "once", 
            .frequency_id = "AverageExpression")
   }
-  
+
   object.assays <- .FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
@@ -2809,16 +2809,23 @@ CreateCategoryMatrix <- function(
       STATS = colsums,
       FUN = "/")
   }
-  colnames(x = category.matrix) <- gsub(pattern = '_',
-                                        replacement = '-',
-                                        x = colnames(x = category.matrix)
-                                        )
-  colnames(x = category.matrix) <- sapply(
+  if (any(grepl(pattern = "_", x = colnames(x = category.matrix) ))) {
+    inform(
+      message = "Names of identity class contain underscores ('_'), replacing with dashes ('-')",
+      .frequency = "regularly",
+      .frequency_id = "CreateCategoryMatrix"
+    )
+    colnames(x = category.matrix) <- gsub(pattern = '_',
+                                          replacement = '-',
+                                          x = colnames(x = category.matrix)
+    )
+  }
+  colnames(x = category.matrix) <- unname(sapply(
     X = colnames(x = category.matrix),
     FUN = function(name) {
       name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
       return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
-    })
+    }))
   rownames(category.matrix) <- cells.name
   return(category.matrix)
 }
