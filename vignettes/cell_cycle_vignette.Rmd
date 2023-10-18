@@ -39,7 +39,7 @@ library(Seurat)
 
 # Read in the expression matrix
 # The first row is a header row, the first column is rownames
-exp.mat <- read.table(file = "../data/nestorawa_forcellcycle_expressionMatrix.txt", header = TRUE, as.is = TRUE, row.names = 1)
+exp.mat <- read.table(file = "/Users/sli/seurat-private/data/cell_cycle_vignette_files/nestorawa_forcellcycle_expressionMatrix.txt", header = TRUE, as.is = TRUE, row.names = 1)
 
 # A list of cell cycle markers, from Tirosh et al, 2015, is loaded with Seurat.
 # We can segregate this list into markers of G2/M phase and markers of S phase
@@ -47,7 +47,7 @@ s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
 
 # Create our Seurat object and complete the initalization steps
-marrow <- CreateSeuratObject(counts = exp.mat)
+marrow <- CreateSeuratObject(counts = Matrix::Matrix(as.matrix(exp.mat),sparse = T))
 marrow <- NormalizeData(marrow)
 marrow <- FindVariableFeatures(marrow, selection.method = 'vst')
 marrow <- ScaleData(marrow, features = rownames(marrow))

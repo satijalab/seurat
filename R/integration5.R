@@ -224,23 +224,23 @@ CCAIntegration <- function(
   } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
-    if (inherits(x = object[[layers[i]]], what = "IterableMatrix")) {
+    if (inherits(x = object[layers[i]], what = "IterableMatrix")) {
       warning("Converting BPCells matrix to dgCMatrix for integration ",
         "as on-disk CCA Integration is not currently supported", call. = FALSE, immediate. = TRUE)
-      counts <- as(object = object[[layers[i]]][features, ],
+      counts <- as(object = object[layers[i]][features, ],
                    Class = "dgCMatrix")
     }
     else {
-      counts <- object[[layers[i]]][features, ]
+      counts <- object[layers[i]][features, ]
     }
     object.list[[i]] <- CreateSeuratObject(counts = counts)
-    if (inherits(x = object[[scale.layer]], what = "IterableMatrix")) {
-      scale.data.layer <- as.matrix(object[[scale.layer]][features,
+    if (inherits(x = object[scale.layer], what = "IterableMatrix")) {
+      scale.data.layer <- as.matrix(object[scale.layer][features,
                                                           Cells(object.list[[i]])])
       object.list[[i]][["RNA"]]$scale.data <- scale.data.layer
     }
     else {
-      object.list[[i]][["RNA"]]$scale.data <- object[[scale.layer]][features,
+      object.list[[i]][["RNA"]]$scale.data <- object[scale.layer][features,
                                                                     Cells(object.list[[i]])]
     }
     object.list[[i]][['RNA']]$counts <- NULL
@@ -296,7 +296,6 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @param dims Dimensions of dimensional reduction to use for integration
 #' @param k.filter Number of anchors to filter
 #' @param scale.layer Name of scaled layer in \code{Assay}
-#' @param groups A one-column data frame with grouping information
 #' @param verbose Print progress
 #' @param ... Additional arguments passed to \code{FindIntegrationAnchors}
 #'
@@ -371,7 +370,7 @@ RPCAIntegration <- function(
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object = object, search = 'data')
   #check that there enough cells present
-  ncells <- sapply(X = layers, FUN = function(x) {ncell <-  dim(object[[x]])[2]
+  ncells <- sapply(X = layers, FUN = function(x) {ncell <-  dim(object[x])[2]
   return(ncell) })
   if (min(ncells) < max(dims))  {
     abort(message = "At least one layer has fewer cells than dimensions specified, please lower 'dims' accordingly.")
@@ -391,7 +390,7 @@ RPCAIntegration <- function(
   } else {
     object.list <- list()
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = object[[layers[i]]][features,])))
+      object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = object[layers[i]][features,])))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
       object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
@@ -494,7 +493,7 @@ JointPCAIntegration <- function(
     } else {
     object.list <- list()
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features.diet, ] )
+      object.list[[i]] <- CreateSeuratObject(counts = object[layers[i]][features.diet, ] )
       object.list[[i]][['RNA']]$counts <- NULL
       object.list[[i]][['joint.pca']] <- CreateDimReducObject(
         embeddings = Embeddings(object = orig)[Cells(object.list[[i]]),],

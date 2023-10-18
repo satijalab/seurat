@@ -159,11 +159,9 @@ FindVariableFeatures.StdAssay <- function(
       sep = '_'
     )
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
-    object[colnames(x = hvf.info)] <- hvf.info
+    object[[names(x = hvf.info)]] <- NULL
+    object[[names(x = hvf.info)]] <- hvf.info
   }
-  object@meta.data$var.features <- NULL
-  object@meta.data$var.features.rank <- NULL
-  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nfeatures, method = key)
   return(object)
 }
 
@@ -1447,12 +1445,6 @@ SCTransform.StdAssay <- function(
 #' @concept preprocessing
 #'
 #' @seealso \code{\link[sctransform]{get_residuals}}
-#'
-#' @examples
-#' data("pbmc_small")
-#' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
-#' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
-#'
 FetchResiduals <- function(
   object,
   features,
@@ -1980,15 +1972,21 @@ MVP <- function(
   verbose = TRUE,
   nselect = 2000L,
   mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf), 
+  dispersion.cutoff = c(1, Inf),
   ...
 ) {
   hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)
   hvf.info$variable <- FALSE
+  hvf.info$rank <- NA
+  hvf.info <- hvf.info[order(hvf.info$mvp.dispersion, decreasing = TRUE), , drop = FALSE]
   means.use <- (hvf.info[, 1] > mean.cutoff[1]) & (hvf.info[, 1] < mean.cutoff[2])
   dispersions.use <- (hvf.info[, 3] > dispersion.cutoff[1]) & (hvf.info[, 3] < dispersion.cutoff[2])
   hvf.info[which(x = means.use & dispersions.use), 'variable'] <- TRUE
-  hvf.info[hvf.info$variable,'rank'] <- rank(x = hvf.info[hvf.info$variable,'rank'])
-  hvf.info[!hvf.info$variable,'rank'] <- NA
+  rank.rows <- rownames(x = hvf.info)[which(x = means.use & dispersions.use)]
+  selected.indices <- which(rownames(x = hvf.info) %in% rank.rows)
+  hvf.info$rank[selected.indices] <- seq_along(selected.indices)
+  hvf.info <- hvf.info[order(as.numeric(row.names(hvf.info))), ]
+  # hvf.info[hvf.info$variable,'rank'] <- rank(x = hvf.info[hvf.info$variable,'rank'])
+  # hvf.info[!hvf.info$variable,'rank'] <- NA
   return(hvf.info)
 }

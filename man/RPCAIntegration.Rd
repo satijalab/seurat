@@ -92,8 +92,6 @@ integration.}
 \item{verbose}{Print progress}
 
 \item{...}{Arguments passed on to \code{FindIntegrationAnchors}}
-
-\item{groups}{A one-column data frame with grouping information}
 }
 \description{
 Seurat-RPCA Integration
