@@ -1333,7 +1333,7 @@ PercentageFeatureSet <- function(
     layer <- layers[i]
     features.layer <- features %||% grep(
       pattern = pattern,
-      x = rownames(x = object[[assay]][[layer]]),
+      x = rownames(x = object[[assay]][layer]),
       value = TRUE)
     layer.data <- LayerData(object = object,
                             assay = assay,
@@ -1476,7 +1476,7 @@ PseudobulkExpression.StdAssay <- function(
   features.assay <- Reduce(
     f = intersect,
     x =  c(list(features.to.avg),
-           lapply(X = layers.set, FUN = function(l) rownames(object[[l]]))
+           lapply(X = layers.set, FUN = function(l) rownames(object[l]))
                 )
          )
   if (length(x = features.assay) == 0) {
