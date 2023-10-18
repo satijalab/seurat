@@ -800,7 +800,8 @@ ColorDimSplit <- function(
 #' @param cols.highlight A vector of colors to highlight the cells as; will
 #' repeat to the length groups in cells.highlight
 #' @param sizes.highlight Size of highlighted cells; will repeat to the length
-#' groups in cells.highlight
+#' groups in cells.highlight.  If \code{sizes.highlight = TRUE} size of all
+#' points will be this value.
 #' @param na.value Color value for NA points when using custom scale
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
@@ -7775,6 +7776,8 @@ ScaleColumn <- function(vec, cutoffs) {
 # @param cols.highlight Colors to highlight cells as
 # @param col.base Base color to use for unselected cells
 # @param pt.size Size of unselected cells
+# @param raster Convert points to raster format, default is \code{NULL} which
+# automatically rasterizes if plotting more than 100,000 cells
 #
 # @return A list will cell highlight information
 # \describe{
@@ -7790,7 +7793,8 @@ SetHighlight <- function(
   sizes.highlight,
   cols.highlight,
   col.base = 'black',
-  pt.size = 1
+  pt.size = 1,
+  raster = NULL
 ) {
   if (is.character(x = cells.highlight)) {
     cells.highlight <- list(cells.highlight)
@@ -7834,6 +7838,12 @@ SetHighlight <- function(
       size[index.check] <- sizes.highlight[i]
     }
   }
+
+  # Check for raster
+  if (isTRUE(x = raster)) {
+    size <- size[1]
+  }
+
   plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
   plot.order[is.na(x = plot.order)] <- 'Unselected'
   highlight[is.na(x = highlight)] <- 'Unselected'
@@ -7911,7 +7921,7 @@ SingleCorPlot <- function(
   jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  if ((nrow(x = data) > 1e5) & !is.null(x = raster)){
+  if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
@@ -7959,7 +7969,8 @@ SingleCorPlot <- function(
       sizes.highlight = pt.size,
       cols.highlight = 'red',
       col.base = 'black',
-      pt.size = pt.size
+      pt.size = pt.size,
+      raster = raster
     )
     cols <- highlight.info$color
     col.by <- factor(
@@ -8134,6 +8145,11 @@ SingleDimPlot <- function(
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
+
+  if (!is.null(x = cells.highlight) && pt.size == AutoPointSize(data = data, raster = raster) && sizes.highlight != pt.size && raster = TRUE) {
+    warning("When `raster = TRUE` highlighted and non-highlighted cells must be the same size. Plot will use the value provided to 'sizes.highlight'.")
+  }
+
   if (!is.null(x = raster.dpi)) {
     if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2)
       stop("'raster.dpi' must be a two-length numeric vector")
@@ -8160,7 +8176,8 @@ SingleDimPlot <- function(
       sizes.highlight = sizes.highlight %||% pt.size,
       cols.highlight = cols.highlight,
       col.base = cols[1] %||% '#C3C3C3',
-      pt.size = pt.size
+      pt.size = pt.size,
+      raster = raster
     )
     order <- highlight.info$plot.order
     data$highlight <- highlight.info$highlight
