@@ -649,7 +649,7 @@ VlnPlot <- function(
   }
   assay.name <- DefaultAssay(object)
   if (is.null(layer.set) & is.null(layer) ) {
-    warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.', 
+    warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.',
             call. = FALSE, immediate. = TRUE)
     layer.set <- Layers(
       object = object,
@@ -6794,7 +6794,7 @@ ExIPlot <- function(
     if (length(x = obj) == 1) {
       if (inherits(x = object[[obj]], what = 'DimReduc')) {
         plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
-      } else if (inherits(x = object[[obj]], what = 'Assay') || 
+      } else if (inherits(x = object[[obj]], what = 'Assay') ||
                  inherits(x = object[[obj]], what = 'Assay5')) {
         next
       } else {
