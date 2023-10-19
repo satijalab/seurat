@@ -610,7 +610,7 @@ FindMarkers.default <- function(
   if (test.use %in% DEmethods_nocorrect()) {
     de.results <- de.results[order(-de.results$power, -de.results[, 1]), ]
   } else {
-    de.results <- de.results[order(de.results$p_val, -de.results[, 1]), ]
+    de.results <- de.results[order(de.results$p_val, -abs(de.results[,colnames(fc.results)[1]])), ]
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
