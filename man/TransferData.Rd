@@ -9,6 +9,7 @@ TransferData(
   refdata,
   reference = NULL,
   query = NULL,
+  query.assay = NULL,
   weight.reduction = "pcaproject",
   l2.norm = FALSE,
   dims = NULL,
@@ -42,6 +43,8 @@ TransferData(
 \item{reference}{Reference object from which to pull data to transfer}
 
 \item{query}{Query object into which the data will be transferred.}
+
+\item{query.assay}{Name of the Assay to use from query}
 
 \item{weight.reduction}{Dimensional reduction to use for the weighting
 anchors. Options are:
