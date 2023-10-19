@@ -476,7 +476,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 0.1 by default.
+#' calculating logFC. 1 by default.
 #' @param fc.results data.frame from FoldChange
 #' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
@@ -507,7 +507,7 @@ FindMarkers.default <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   fc.results = NULL,
   densify = FALSE,
   ...
@@ -645,7 +645,7 @@ FindMarkers.Assay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -734,7 +734,7 @@ FindMarkers.SCTAssay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -785,12 +785,14 @@ FindMarkers.SCTAssay <- function(
   )
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
     },
     'scale.data' = rowMeans,
     default.mean.fxn
@@ -855,7 +857,7 @@ FindMarkers.DimReduc <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = rowMeans,
   fc.name = NULL,
   densify = FALSE,
@@ -966,7 +968,7 @@ FindMarkers.Seurat <- function(
   reduction = NULL,
   features = NULL,
   logfc.threshold = 0.1,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   test.use = "wilcox",
   min.pct = 0.01,
   min.diff.pct = -Inf,
@@ -1120,6 +1122,7 @@ FoldChange.default <- function(
 #' when \code{slot} is \dQuote{\code{data}}
 #'
 #' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowSums
 #' @rdname FoldChange
 #' @concept differential_expression
 #' @export
@@ -1130,7 +1133,7 @@ FoldChange.Assay <- function(
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
@@ -1140,11 +1143,13 @@ FoldChange.Assay <- function(
   data <- GetAssayData(object = object, slot = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   scaledata.mean.fxn <- rowMeans
   counts.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
   }
   if (!is.null(x = norm.method)) {
     # For anything apart from log normalization set to rowMeans
@@ -1196,6 +1201,7 @@ FoldChange.Assay <- function(
 FoldChange.StdAssay <- FoldChange.Assay
 
 #' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowSums
 #' @rdname FoldChange
 #' @concept differential_expression
 #' @export
@@ -1215,14 +1221,16 @@ FoldChange.SCTAssay <- function(
   pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
   default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'data' = default.mean.fxn,
     'scale.data' = rowMeans,
     'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
     },
     default.mean.fxn
   )
@@ -1259,7 +1267,7 @@ FoldChange.DimReduc <- function(
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
@@ -1311,7 +1319,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
