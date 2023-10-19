@@ -14,7 +14,6 @@ CCAIntegration(
   features = NULL,
   normalization.method = c("LogNormalize", "SCT"),
   dims = 1:30,
-  groups = NULL,
   k.filter = NA,
   scale.layer = "scale.data",
   dims.to.integrate = NULL,
@@ -46,8 +45,6 @@ CCAIntegration(
 or SCT}
 
 \item{dims}{Dimensions of dimensional reduction to use for integration}
-
-\item{groups}{A one-column data frame with grouping information}
 
 \item{k.filter}{Number of anchors to filter}
 

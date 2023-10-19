@@ -249,11 +249,13 @@ HTODemux <- function(
   )
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  average.expression <- AverageExpression(
-    object = object,
-    assays = assay,
-    verbose = FALSE
-  )[[assay]]
+  average.expression <- suppressWarnings(
+    AverageExpression(
+      object = object,
+      assays = assay,
+      verbose = FALSE
+    )[[assay]]
+  )
   #checking for any cluster with all zero counts for any barcode
   if (sum(average.expression == 0) > 0) {
     stop("Cells with zero counts exist as a cluster.")
@@ -501,6 +503,7 @@ GetResidual <- function(
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
+#' @param image Name of image to pull the coordinates from
 #'
 #' @return A \code{Seurat} object
 #'
@@ -3254,7 +3257,7 @@ SCTransform.default <- function(
   vst.args[['vst.flavor']] <- vst.flavor
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
-  vst.args[['verbosity']] <- as.numeric(x = verbose) * 2
+  vst.args[['verbosity']] <- as.numeric(x = verbose) * 1
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
@@ -3394,7 +3397,7 @@ SCTransform.default <- function(
         vst.out$umi_corrected <- correct_counts(
           x = vst.out,
           umi = umi,
-          verbosity = as.numeric(x = verbose) * 2
+          verbosity = as.numeric(x = verbose) * 1
         )
       }
       vst.out
@@ -3816,7 +3819,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose,
     ...
   )
-  object[names(x = hvf.info)] <- hvf.info
+  object[[names(x = hvf.info)]] <- hvf.info
   hvf.info <- hvf.info[which(x = hvf.info[, 1, drop = TRUE] != 0), ]
   if (selection.method == "vst") {
     hvf.info <- hvf.info[order(hvf.info$vst.variance.standardized, decreasing = TRUE), , drop = FALSE]
@@ -3847,7 +3850,7 @@ FindVariableFeatures.Assay <- function(
     no = 'mvp'
   )
   vf.name <- paste0(vf.name, '.variable')
-  object[vf.name] <- rownames(x = object[]) %in% top.features
+  object[[vf.name]] <- rownames(x = object[[]]) %in% top.features
   return(object)
 }
 

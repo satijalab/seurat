@@ -251,12 +251,12 @@ DoHeatmap <- function(
   group.bar.height = 0.02,
   combine = TRUE
 ) {
-  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
+  cells <- cells %||% colnames(x = object[[assay]])
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
   }
-  assay <- assay %||% DefaultAssay(object = object)
-  DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
   features <- rev(x = unique(x = features))
   disp.max <- disp.max %||% ifelse(
@@ -621,7 +621,7 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = deprecated(),
-  layer = 'data',
+  layer = NULL,
   split.plot = FALSE,
   stack = FALSE,
   combine = TRUE,
@@ -637,6 +637,29 @@ VlnPlot <- function(
       with = 'VlnPlot(layer = )'
     )
     layer <- slot %||% layer
+  }
+  layer.set <- suppressWarnings(
+    Layers(
+      object = object,
+      search = layer %||% 'data'
+    )
+  )
+  if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
+    warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
+  }
+  assay.name <- DefaultAssay(object)
+  if (is.null(layer.set) & is.null(layer) ) {
+    warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.', 
+            call. = FALSE, immediate. = TRUE)
+    layer.set <- Layers(
+      object = object,
+      search = 'counts'
+    )
+  }
+  if (is.null(layer.set)) {
+    stop('layer "', layer,'" is not found in assay: "', assay.name, '"')
+  } else {
+    layer <- layer.set
   }
   if (
     !is.null(x = split.by) &
@@ -1943,6 +1966,7 @@ CellScatter <- function(
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' @param plot.cor Display correlation in plot title
+#' @param ncol Number of columns if plotting multiple plots
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
@@ -2095,7 +2119,7 @@ VariableFeaturePlot <- function(
   hvf.info <- HVFInfo(
     object = object,
     assay = assay,
-    selection.method = selection.method,
+    method = selection.method,
     status = TRUE
   )
   status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]
@@ -4365,8 +4389,7 @@ DotPlot <- function(
     features <- unlist(x = features)
     names(x = feature.groups) <- features
   }
-  cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
-
+  cells <- unlist(x = CellsByIdentities(object = object, cells = colnames(object[[assay]]), idents = idents))
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -6771,7 +6794,8 @@ ExIPlot <- function(
     if (length(x = obj) == 1) {
       if (inherits(x = object[[obj]], what = 'DimReduc')) {
         plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
-      } else if (inherits(x = object[[obj]], what = 'Assay')) {
+      } else if (inherits(x = object[[obj]], what = 'Assay') || 
+                 inherits(x = object[[obj]], what = 'Assay5')) {
         next
       } else {
         warning("Unknown object type ", class(x = object), immediate. = TRUE, call. = FALSE)

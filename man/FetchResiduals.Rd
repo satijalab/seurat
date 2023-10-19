@@ -52,12 +52,6 @@ features in its scale.data
 \description{
 This function calls sctransform::get_residuals.
 }
-\examples{
-data("pbmc_small")
-pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
-pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
-
-}
 \seealso{
 \code{\link[sctransform]{get_residuals}}
 }

@@ -57,9 +57,10 @@ seurat_default_options <- list(
   Seurat.memsafe = FALSE,
   Seurat.warn.umap.uwot = TRUE,
   Seurat.checkdots = "warn",
-  Seurat.limma.wilcox.msg = TRUE,
+  Seurat.presto.wilcox.msg = TRUE, #CHANGE
   Seurat.Rfast2.msg = TRUE,
-  Seurat.warn.vlnplot.split = TRUE
+  Seurat.warn.vlnplot.split = TRUE,
+  Seurat.object.assay.version = "v5"
 )
 
 
@@ -87,11 +88,6 @@ AttachDeps <- function(deps) {
 #'
 .onAttach <- function(libname, pkgname) {
   AttachDeps(deps = c('SeuratObject'))
-  packageStartupMessage("Loading Seurat v5 beta version \n",
-          "To maintain compatibility with previous workflows, new Seurat objects ",
-          "will use the previous object structure by default\n",
-          "To use new Seurat v5 assays please run: ",
-          "options(Seurat.object.assay.version = 'v5')")
   return(invisible(x = NULL))
 }
 
@@ -100,6 +96,7 @@ AttachDeps <- function(deps) {
     x = names(x = seurat_default_options),
     y = names(x = options())
   )
+  # toset <- names(x = seurat_default_options)
   if (length(x = toset)) {
     options(seurat_default_options[toset])
   }

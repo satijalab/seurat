@@ -40,7 +40,8 @@ NNPlot(
 \item{repel}{Repel labels}
 
 \item{sizes.highlight}{Size of highlighted cells; will repeat to the length
-groups in cells.highlight}
+groups in cells.highlight.  If \code{sizes.highlight = TRUE} size of all
+points will be this value.}
 
 \item{pt.size}{Adjust point size for plotting}
 

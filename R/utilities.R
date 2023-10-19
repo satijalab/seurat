@@ -323,95 +323,23 @@ AddModuleScore <- function(
 
 #' Aggregated feature expression by identity class
 #'
-#' Returns aggregated (summed) expression values for each identity class
+#' Returns summed counts ("pseudobulk") for each identity class.
 #'
-#' If slot is set to 'data', this function assumes that the data has been log
-#' normalized and therefore feature values are exponentiated prior to aggregating
-#' so that sum is done in non-log space. Otherwise, if slot is set to
-#' either 'counts' or 'scale.data', no exponentiation is performed prior to
-#' aggregating
-#' If \code{return.seurat = TRUE} and slot is not 'scale.data', aggregated values
-#' are placed in the 'counts' slot of the returned object and the log of aggregated values
-#' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
+#' If \code{return.seurat = TRUE}, aggregated values are placed in the 'counts'
+#' slot of the returned object. The data is then normalized by running \code{\link{NormalizeData}}
+#' on the aggregated counts. \code{\link{ScaleData}} is then run on the default assay
 #' before returning the object.
-#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
-#' the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
 #'
 #' @param object Seurat object
 #' @param assays Which assays to use. Default is all assays
 #' @param features Features to analyze. Default is all features in the assay
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
-#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
-#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
-#' the order of 'assays' (if specified) or object's assays
-#' @param verbose Print messages and show progress bar
-#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}#'
-#' @return Returns a matrix with genes as rows, identity classes as columns.
-#' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
-#' @export
-#' @concept utilities
-#'
-#' @examples
-#' \dontrun{
-#' data("pbmc_small")
-#' head(AggregateExpression(object = pbmc_small))
-#' }
-#' 
-AggregateExpression <- function(
-  object,
-  assays = NULL,
-  features = NULL,
-  return.seurat = FALSE,
-  group.by = 'ident',
-  add.ident = NULL,
-  slot = 'data',
-  verbose = TRUE,
-  ...
-) {
-  return(
-    AverageExpression(
-      object = object,
-      method = 'aggregate',
-      assays = assays,
-      features = features,
-      return.seurat = return.seurat,
-      group.by = group.by,
-      add.ident = add.ident,
-      slot = slot,
-      verbose = verbose,
-      ...
-    )
-  )
-}
-
-#' Averaged feature expression by identity class
-#'
-#' Returns averaged expression values for each identity class
-#'
-#' If slot is set to 'data', this function assumes that the data has been log
-#' normalized and therefore feature values are exponentiated prior to averaging
-#' so that averaging is done in non-log space. Otherwise, if slot is set to
-#' either 'counts' or 'scale.data', no exponentiation is performed prior to
-#' averaging
-#' If \code{return.seurat = TRUE} and slot is not 'scale.data', averaged values
-#' are placed in the 'counts' slot of the returned object and the log of averaged values
-#' are placed in the 'data' slot. \code{\link{ScaleData}} is then run on the default assay
-#' before returning the object.
-#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
-#' the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
-#'
-#' @param object Seurat object
-#' @param assays Which assays to use. Default is all assays
-#' @param features Features to analyze. Default is all features in the assay
-#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
-#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
-#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
-#' the order of 'assays' (if specified) or object's assays
-#' @param method Method of collapsing expression values. Either 'average' or 'aggregate'
+#' @param group.by Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')
+#' @param add.ident (Deprecated). Place an additional label on each cell prior to pseudobulking
+#' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
+#' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
+#' @param margin Margin to perform CLR normalization, see \code{\link{NormalizeData}}
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
@@ -421,8 +349,82 @@ AggregateExpression <- function(
 #' @concept utilities
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
-#' head(AverageExpression(object = pbmc_small))
+#' head(AggregateExpression(object = pbmc_small)$RNA)
+#' head(AggregateExpression(object = pbmc_small, group.by = c('ident', 'groups'))$RNA)
+#' }
+#'
+AggregateExpression <- function(
+  object,
+  assays = NULL,
+  features = NULL,
+  return.seurat = FALSE,
+  group.by = 'ident',
+  add.ident = NULL,
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
+  verbose = TRUE,
+  ...
+) {
+  return(
+    PseudobulkExpression(
+      object = object,
+      assays = assays,
+      features = features,
+      return.seurat = return.seurat,
+      group.by = group.by,
+      add.ident = add.ident,
+      layer = 'counts',
+      method = 'aggregate',
+      normalization.method = normalization.method,
+      scale.factor = scale.factor,
+      margin = margin,
+      verbose = verbose,
+      ...
+    )
+  )
+}
+
+#' Averaged feature expression by identity class
+#'
+#' Returns averaged expression values for each identity class.
+#'
+#' If layer is set to 'data', this function assumes that the data has been log
+#' normalized and therefore feature values are exponentiated prior to averaging
+#' so that averaging is done in non-log space. Otherwise, if layer is set to
+#' either 'counts' or 'scale.data', no exponentiation is performed prior to  averaging.
+#' If \code{return.seurat = TRUE} and layer is not 'scale.data', averaged values
+#' are placed in the 'counts' layer of the returned object and 'log1p'
+#' is run on the averaged counts and placed in the 'data' layer \code{\link{ScaleData}}
+#' is then run on the default assay before returning the object.
+#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' layer contains
+#' average counts and 'scale.data' is set to the averaged values of 'scale.data'.
+#'
+#' @param object Seurat object
+#' @param assays Which assays to use. Default is all assays
+#' @param features Features to analyze. Default is all features in the assay
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+#' @param group.by Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')
+#' @param add.ident (Deprecated). Place an additional label on each cell prior to pseudobulking
+#' @param layer Layer(s) to use; if multiple layers are given, assumed to follow
+#' the order of 'assays' (if specified) or object's assays
+#' @param slot (Deprecated). Slots(s) to use
+#' @param verbose Print messages and show progress bar
+#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
+#'
+#' @return Returns a matrix with genes as rows, identity classes as columns.
+#' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#' @export
+#' @concept utilities
+#' @importFrom SeuratObject .FilterObjects
+#'
+#' @examples
+#' data("pbmc_small")
+#' head(AverageExpression(object = pbmc_small)$RNA)
+#' head(AverageExpression(object = pbmc_small, group.by = c('ident', 'groups'))$RNA)
 #'
 AverageExpression <- function(
   object,
@@ -433,171 +435,24 @@ AverageExpression <- function(
   add.ident = NULL,
   layer = 'data',
   slot = deprecated(),
-  method = 'average',
   verbose = TRUE,
   ...
 ) {
-  CheckDots(..., fxns = 'CreateSeuratObject')
-  if (!is.null(x = add.ident)) {
-    .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
-    group.by <- c('ident', add.ident)
-  }
-  if (!(method %in% c('average', 'aggregate'))) {
-    stop("'method' must be either 'average' or 'aggregate'")
-  }
-  if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
-      when = '5.0.0',
-      what = 'AverageExpression(slot = )',
-      with = 'AverageExpression(layer = )'
-    )
-    layer <- slot
-  }
-  object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
-  assays <- assays %||% object.assays
-  if (!all(assays %in% object.assays)) {
-    assays <- assays[assays %in% object.assays]
-    if (length(x = assays) == 0) {
-      stop("None of the requested assays are present in the object")
-    } else {
-      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
-    }
-  }
-  if (length(x = layer) == 1) {
-    layer <- rep_len(x = layer, length.out = length(x = assays))
-  } else if (length(x = layer) != length(x = assays)) {
-    stop("Number of layers provided does not match number of assays")
-  }
-  data <- FetchData(object = object, vars = rev(x = group.by))
-  data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
-  if (nrow(x = data) < ncol(x = object)) {
-    message("Removing cells with NA for 1 or more grouping variables")
-    object <- subset(x = object, cells = rownames(x = data))
-  }
-  for (i in 1:ncol(x = data)) {
-    data[, i] <- as.factor(x = data[, i])
-  }
-  num.levels <- sapply(
-    X = 1:ncol(x = data),
-    FUN = function(i) {
-      length(x = levels(x = data[, i]))
-    }
-  )
-  if (any(num.levels == 1)) {
-    message(paste0("The following grouping variables have 1 value and will be ignored: ",
-                   paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")))
-    group.by <- colnames(x = data)[which(num.levels > 1)]
-    data <- data[, which(num.levels > 1), drop = F]
-  }
-  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
-  data.return <- list()
-  for (i in 1:length(x = assays)) {
-    if (inherits(x = features, what = "list")) {
-      features.i <- features[[i]]
-    } else {
-      features.i <- features
-    }
-    data.return[[assays[i]]] <- PseudobulkExpression(
-      object = object[[assays[i]]],
-      assay = assays[i],
-      category.matrix = category.matrix,
-      features = features.i,
-      layer = layer[i],
+  return(
+    PseudobulkExpression(
+      object = object,
+      assays = assays,
+      features = features,
+      return.seurat = return.seurat,
+      group.by = group.by,
+      add.ident = add.ident,
+      layer = layer,
+      slot = slot,
+      method = 'average',
       verbose = verbose,
       ...
     )
-  }
-  if (return.seurat) {
-    op <- options(Seurat.object.assay.version = "v5", Seurat.object.assay.calcn = FALSE)
-    on.exit(expr = options(op), add = TRUE)
-    if (layer[1] == 'scale.data') {
-      na.matrix <- as.matrix(x = data.return[[1]])
-      na.matrix[1:length(x = na.matrix)] <- NA
-      #sum up counts to make seurat object
-      summed.counts <- PseudobulkExpression(
-        object = object[[assays[1]]],
-        assay = assays[1],
-        category.matrix = category.matrix,
-        features = features[[1]],
-        slot = "counts"
-      )
-      toRet <- CreateSeuratObject(
-        counts = summed.counts,
-        project = if (method == "average") "Average" else "Aggregate",
-        assay = names(x = data.return)[1],
-        ...
-      )
-      LayerData(object = toRet,
-                layer = "scale.data", 
-                assay = names(x = data.return)[1]) <- data.return[[1]]
-    } else {
-      toRet <- CreateSeuratObject(
-        counts = data.return[[1]],
-        project = if (method == "average") "Average" else "Aggregate",
-        assay = names(x = data.return)[1],
-        ...
-      )
-      LayerData(object = toRet,
-                layer = "data",
-                assay = names(x = data.return)[1]) <- log1p(x = as.matrix(x = data.return[[1]]))
-    }
-    #for multimodal data
-    if (length(x = data.return) > 1) {
-      for (i in 2:length(x = data.return)) {
-        if (layer[i] == 'scale.data') {
-          summed.counts <- PseudobulkExpression(
-            object = object[[assays[i]]],
-            assay = assays[i],
-            category.matrix = category.matrix,
-            features = features[[i]],
-            slot = "counts"
-          )
-          toRet[[names(x = data.return)[i]]] <- CreateAssay5Object(counts = summed.counts)
-          LayerData(object = toRet,
-                    layer = "scale.data", 
-                    assay = names(x = data.return)[i]) <- data.return[[i]]
-        } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
-          LayerData(object = toRet,
-                    layer = "data",
-                    assay = names(x = data.return)[i]) <- log1p(x = as.matrix(x = data.return[[i]]))
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            layer = "data",
-            new.data = log1p(x = as.matrix(x = data.return[[i]]))
-          )
-        }
-        
-      }
-    }
-    if (DefaultAssay(object = object) %in% names(x = data.return)) {
-      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
-      if (layer[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
-        toRet <- ScaleData(object = toRet, verbose = verbose)
-      }
-    }
-    if ('ident' %in% group.by) {
-      first.cells <- sapply(X = 1:ncol(x = category.matrix),
-                            FUN = function(x) {
-                              return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
-                            }
-      )
-      Idents(object = toRet,
-             cells = colnames(x = toRet)
-             ) <- Idents(object = object)[first.cells]
-    }
-    return(toRet)
-  } else {
-    return(data.return)
-  }
+  )
 }
 
 #' Match the case of character vectors
@@ -1319,11 +1174,11 @@ PercentageFeatureSet <- function(
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
     features.layer <- features %||% grep(
-      pattern = pattern, 
-      x = rownames(x = object[[assay]][[layer]]), 
+      pattern = pattern,
+      x = rownames(x = object[[assay]][layer]),
       value = TRUE)
-    layer.data <- LayerData(object = object, 
-                            assay = assay, 
+    layer.data <- LayerData(object = object,
+                            assay = assay,
                             layer = layer)
     layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
     layer.perc <- layer.sums / object[[]][colnames(layer.data), paste0("nCount_", assay)] * 100
@@ -1357,6 +1212,7 @@ PercentageFeatureSet <- function(
 # @return Returns a matrix with genes as rows, identity classes as columns.
 # If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
+#' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #
 #
@@ -1450,9 +1306,6 @@ PseudobulkExpression.StdAssay <- function(
     )
     layer <- slot
   }
-  if (layer == 'data') {
-    message("Assay5 will use arithmetic mean for data slot.")
-  }
   layers.set <- Layers(object = object, search = layer)
   features.to.avg <- features %||% rownames(x = object)
   bad.features <- setdiff(x = features.to.avg, y = rownames(x = object))
@@ -1465,7 +1318,7 @@ PseudobulkExpression.StdAssay <- function(
   features.assay <- Reduce(
     f = intersect,
     x =  c(list(features.to.avg),
-           lapply(X = layers.set, FUN = function(l) rownames(object[[l]]))
+           lapply(X = layers.set, FUN = function(l) rownames(object[l]))
                 )
          )
   if (length(x = features.assay) == 0) {
@@ -1481,22 +1334,255 @@ PseudobulkExpression.StdAssay <- function(
       )
     )
   for (i in seq_along(layers.set)) {
-    data.i <- LayerData(
-      object = object,
-      layer = layers.set[i],
-      features = features.assay)
+    data.i <- LayerData(object = object,
+                        layer = layers.set[i],
+                        features = features.assay
+                        )
+    if (layers.set[i] == "data") {
+      data.use.i <- expm1(x = data.i)
+      if (any(data.use.i == Inf)) {
+        warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
+      }
+    } else {
+      data.use.i <- data.i
+    }
     category.matrix.i <- category.matrix[colnames(x = data.i),]
     if (inherits(x = data.i, what = 'DelayedArray')) {
       stop("PseudobulkExpression does not support DelayedArray objects")
     } else {
-      data.return.i <- as.sparse(x = data.i %*% category.matrix.i)
+      data.return.i <- as.sparse(x = data.use.i %*% category.matrix.i)
     }
     data.return <- data.return + data.return.i
   }
-  if (layer == 'data') {
-    data.return <- expm1(x = data.return)
-  }
   return(data.return)
+}
+
+
+#' @method PseudobulkExpression Seurat
+#' @importFrom SeuratObject .IsFutureSeurat
+#
+PseudobulkExpression.Seurat <- function(
+  object,
+  assays = NULL,
+  features = NULL,
+  return.seurat = FALSE,
+  group.by = 'ident',
+  add.ident = NULL,
+  layer = 'data',
+  slot = deprecated(),
+  method = 'average',
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
+  verbose = TRUE,
+  ...
+) {
+  CheckDots(..., fxns = 'CreateSeuratObject')
+  if (!is.null(x = add.ident)) {
+    .Deprecated(msg = "'add.ident' is a deprecated argument. Please see documentation to see how to pass a vector to the 'group.by' argument to specify multiple grouping variables")
+    group.by <- c('ident', add.ident)
+  }
+  if (!(method %in% c('average', 'aggregate'))) {
+    stop("'method' must be either 'average' or 'aggregate'")
+  }
+  if (is_present(arg = slot)) {
+    f <- if (.IsFutureSeurat(version = '5.1.0')) {
+      deprecate_stop
+    } else if (.IsFutureSeurat(version = '5.0.0')) {
+      deprecate_warn
+    } else {
+      deprecate_soft
+    }
+    f(
+      when = '5.0.0',
+      what = 'AverageExpression(slot = )',
+      with = 'AverageExpression(layer = )'
+    )
+    layer <- slot
+  }
+
+  if (method == "average") {
+    inform(
+      message = "As of Seurat v5, we recommend using AggregateExpression to perform pseudo-bulk analysis.",
+      .frequency = "once",
+      .frequency_id = "AverageExpression"
+    )
+  }
+
+  object.assays <- .FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
+  assays <- assays %||% object.assays
+  if (!all(assays %in% object.assays)) {
+    assays <- assays[assays %in% object.assays]
+    if (length(x = assays) == 0) {
+      stop("None of the requested assays are present in the object")
+    } else {
+      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
+    }
+  }
+  if (length(x = layer) == 1) {
+    layer <- rep_len(x = layer, length.out = length(x = assays))
+  } else if (length(x = layer) != length(x = assays)) {
+    stop("Number of layers provided does not match number of assays")
+  }
+  data <- FetchData(object = object, vars = rev(x = group.by))
+  data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
+  if (nrow(x = data) < ncol(x = object)) {
+    inform("Removing cells with NA for 1 or more grouping variables")
+    object <- subset(x = object, cells = rownames(x = data))
+  }
+  for (i in 1:ncol(x = data)) {
+    data[, i] <- as.factor(x = data[, i])
+  }
+  num.levels <- sapply(
+    X = 1:ncol(x = data),
+    FUN = function(i) {
+      length(x = levels(x = data[, i]))
+    }
+  )
+  if (any(num.levels == 1)) {
+    message(
+      paste0(
+        "The following grouping variables have 1 value and will be ignored: ",
+        paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")
+      )
+    )
+    group.by <- colnames(x = data)[which(num.levels > 1)]
+    data <- data[, which(num.levels > 1), drop = F]
+  }
+  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
+  data.return <- list()
+  for (i in 1:length(x = assays)) {
+    if (inherits(x = features, what = "list")) {
+      features.i <- features[[i]]
+    } else {
+      features.i <- features
+    }
+    data.return[[assays[i]]] <- PseudobulkExpression(
+      object = object[[assays[i]]],
+      assay = assays[i],
+      category.matrix = category.matrix,
+      features = features.i,
+      layer = layer[i],
+      verbose = verbose,
+      ...
+    )
+  }
+  if (return.seurat) {
+    op <- options(Seurat.object.assay.version = "v5", Seurat.object.assay.calcn = FALSE)
+    on.exit(expr = options(op), add = TRUE)
+    if (layer[1] == 'scale.data') {
+      na.matrix <- as.matrix(x = data.return[[1]])
+      na.matrix[1:length(x = na.matrix)] <- NA
+      #sum up counts to make seurat object
+      summed.counts <- PseudobulkExpression(
+        object = object[[assays[1]]],
+        assay = assays[1],
+        category.matrix = category.matrix,
+        features = features[[1]],
+        layer = "counts"
+      )
+      toRet <- CreateSeuratObject(
+        counts = summed.counts,
+        project = if (method == "average") "Average" else "Aggregate",
+        assay = names(x = data.return)[1],
+        ...
+      )
+      LayerData(
+        object = toRet,
+        layer = "scale.data",
+        assay = names(x = data.return)[i]
+      ) <- data.return[[1]]
+    } else {
+      toRet <- CreateSeuratObject(
+        counts = data.return[[1]],
+        project = if (method == "average") "Average" else "Aggregate",
+        assay = names(x = data.return)[1],
+        ...
+      )
+      if (method == "aggregate") {
+        LayerData(
+          object = toRet,
+          layer = "data",
+          assay = names(x = data.return)[1]
+        ) <- NormalizeData(
+          as.matrix(x = data.return[[1]]),
+          normalization.method = normalization.method,
+          verbose = verbose
+        )
+      }
+      else {
+        LayerData(object = toRet,
+                  layer = "data",
+                  assay = names(x = data.return)[1]
+        ) <- log1p(x = as.matrix(x = data.return[[1]]))
+      }
+    }
+    #for multimodal data
+    if (length(x = data.return) > 1) {
+      for (i in 2:length(x = data.return)) {
+        if (layer[i] == 'scale.data') {
+          summed.counts <- PseudobulkExpression(
+            object = object[[assays[i]]],
+            assay = assays[i],
+            category.matrix = category.matrix,
+            features = features[[i]],
+            layer = "counts"
+          )
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = summed.counts)
+          LayerData(
+            object = toRet,
+            layer = "scale.data",
+            assay = names(x = data.return)[i]
+          ) <- data.return[[i]]
+        } else {
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(
+            counts = data.return[[i]],
+            check.matrix = FALSE
+          )
+          if (method == "aggregate") {
+            LayerData(
+              object = toRet,
+              layer = "data",
+              assay = names(x = data.return)[i]
+            ) <- NormalizeData(
+              as.matrix(x = data.return[[i]]),
+              normalization.method = normalization.method,
+              scale.factor = scale.factor,
+              margin = margin,
+              verbose = verbose
+            )
+          }
+          else {
+            LayerData(
+              object = toRet,
+              layer = "data",
+              assay = names(x = data.return)[i]
+            ) <- log1p(x = as.matrix(x = data.return[[i]]))
+          }
+        }
+      }
+    }
+    if (DefaultAssay(object = object) %in% names(x = data.return)) {
+      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
+      if (layer[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
+        toRet <- ScaleData(object = toRet, verbose = verbose)
+      }
+    }
+    if ('ident' %in% group.by) {
+      first.cells <- sapply(
+        X = 1:ncol(x = category.matrix),
+        FUN = function(x) {
+          return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
+        }
+      )
+      Idents(object = toRet,
+             cells = colnames(x = toRet)
+      ) <- Idents(object = object)[first.cells]
+    }
+    return(toRet)
+  } else {
+    return(data.return)
+  }
 }
 
 #' Regroup idents based on meta.data info
@@ -2617,6 +2703,7 @@ MergeSparseMatrices <- function(...) {
                              dimnames=list(rowname.new, colname.new))
   return (merged.mat)
 }
+
 # cross product from delayed array
 #
 crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
@@ -2628,7 +2715,7 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
     stop('row of x and y should be the same')
   }
   sparse <- DelayedArray::is_sparse(x = y)
-  suppressMessages(setAutoBlockSize(size = block.size))
+  suppressMessages(expr = DelayedArray::setAutoBlockSize(size = block.size))
   cells.grid <- DelayedArray::colAutoGrid(x = y)
   product.list <- list()
   for (i in seq_len(length.out = length(x = cells.grid))) {
@@ -2687,11 +2774,11 @@ SweepNonzero <- function(
 
 
 #' Create one hot matrix for a given label
-#' 
+#'
 #' @param labels A vector of labels
 #' @param method Method to aggregate cells with the same label. Either 'aggregate' or 'average'
 #' @param cells.name A vector of cell names
-#' 
+#'
 #' @importFrom Matrix colSums sparse.model.matrix
 #' @importFrom stats as.formula
 #' @export
@@ -2709,7 +2796,7 @@ CreateCategoryMatrix <- function(
       data <- cbind(labels = labels)
     }
   } else {
-    data <- labels 
+    data <- labels
   }
   cells.name <- cells.name %||% rownames(data)
   if (!is.null(cells.name) & length(cells.name) != nrow(data)) {
@@ -2742,7 +2829,7 @@ CreateCategoryMatrix <- function(
   colsums <- colSums(x = category.matrix)
   category.matrix <- category.matrix[, colsums > 0]
   colsums <- colsums[colsums > 0]
-  
+
   if (method =='average') {
     category.matrix <- SweepNonzero(
       x = category.matrix,
@@ -2750,16 +2837,23 @@ CreateCategoryMatrix <- function(
       STATS = colsums,
       FUN = "/")
   }
-  colnames(x = category.matrix) <- gsub(pattern = '_',
-                                        replacement = '-',
-                                        x = colnames(x = category.matrix)
-                                        )
-  colnames(x = category.matrix) <- sapply(
+  if (any(grepl(pattern = "_", x = colnames(x = category.matrix) ))) {
+    inform(
+      message = "Names of identity class contain underscores ('_'), replacing with dashes ('-')",
+      .frequency = "regularly",
+      .frequency_id = "CreateCategoryMatrix"
+    )
+    colnames(x = category.matrix) <- gsub(pattern = '_',
+                                          replacement = '-',
+                                          x = colnames(x = category.matrix)
+    )
+  }
+  colnames(x = category.matrix) <- unname(sapply(
     X = colnames(x = category.matrix),
     FUN = function(name) {
       name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
       return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
-    })
+    }))
   rownames(category.matrix) <- cells.name
   return(category.matrix)
 }
@@ -2776,7 +2870,7 @@ CreateCategoryMatrix <- function(
 #' @param assay Name for spatial neighborhoods assay
 #' @param neighbors.k Number of neighbors to consider for each cell
 #' @param niches.k Number of clusters to return based on the niche assay
-#' 
+#'
 #' @importFrom stats kmeans
 #' @return Seurat object containing a new assay
 #' @concept clustering
@@ -2797,7 +2891,7 @@ BuildNicheAssay <- function(
   coords <- as.matrix(coords[ , c("x", "y")])
   neighbors <- FindNeighbors(coords, k.param = neighbors.k)
   neighbors$nn <- neighbors$nn[Cells(object), Cells(object)]
-  
+
   # build cell x cell type matrix
   ct.mtx <- matrix(
     data = 0,
@@ -2811,13 +2905,13 @@ BuildNicheAssay <- function(
     ct <- as.character(cts[cells[[i]], ])
     ct.mtx[cells[[i]], ct] <- 1
   }
-  
+
   # create niche assay
   sum.mtx <- as.matrix(neighbors$nn %*% ct.mtx)
   niche.assay <- CreateAssayObject(counts = t(sum.mtx))
   object[[assay]] <- niche.assay
   DefaultAssay(object) <- assay
-  
+
   # cluster niches assay
   object <- ScaleData(object)
   results <- kmeans(
@@ -2826,6 +2920,6 @@ BuildNicheAssay <- function(
     nstart = 30
   )
   object$niches <- results[["cluster"]]
-  
-  return(object)  
+
+  return(object)
 }

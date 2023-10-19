@@ -26,6 +26,7 @@ IntegrateEmbeddings(anchorset, ...)
   anchorset,
   reference,
   query,
+  query.assay = NULL,
   new.reduction.name = "integrated_dr",
   reductions = "pcaproject",
   dims.to.integrate = NULL,
@@ -95,6 +96,8 @@ integration.}
 \item{reference}{Reference object used in anchorset construction}
 
 \item{query}{Query object used in anchorset construction}
+
+\item{query.assay}{Name of the Assay to use from query}
 
 \item{reuse.weights.matrix}{Can be used in conjunction with the store.weights
 parameter in TransferData to reuse a precomputed weights matrix.}
