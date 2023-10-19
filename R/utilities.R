@@ -1549,7 +1549,6 @@ PseudobulkExpression.Seurat <- function(
               normalization.method = normalization.method,
               scale.factor = scale.factor,
               margin = margin,
-              block.size = block.size,
               verbose = verbose
             )
           }
