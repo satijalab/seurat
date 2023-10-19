@@ -158,12 +158,7 @@ int_rpca <- suppressMessages(suppressWarnings(IntegrateLayers(
   k.weight=10,
   verbose = FALSE
 )))
-int_harmony <- suppressMessages(suppressWarnings(IntegrateLayers(
-  object = pbmc_small, method = HarmonyIntegration,
-  orig.reduction = "pca", new.reduction = "harmony",
-  k.weight=25,
-  verbose = FALSE
-)))
+
 # int_mnn <- suppressMessages(suppressWarnings(IntegrateLayers(
 #   object = pbmc_small, method = FastMNNIntegration,
 #   new.reduction = "integrated.mnn",
@@ -175,11 +170,24 @@ int_harmony <- suppressMessages(suppressWarnings(IntegrateLayers(
 test_that("IntegrateLayers returns embeddings with correct dimensions ", {
   expect_equal(dim(int_cca[["integrated.cca"]]), c(80, 50))
   expect_equal(dim(int_rpca[["integrated.rpca"]]), c(80, 50))
-  expect_equal(dim(int_harmony[["harmony"]]), c(80, 50))
 
   int_rpca
   expect_equal(int_cca[["integrated.cca"]]@assay.used, "RNAv5")
   #expect_equal(int_cca[['integrated.cca']]@cell.embeddings, c(3, 4, 5))
+})
+
+test_that("IntegrateLayers works with harmony", {
+  skip_on_cran()
+  skip_if_not_installed("harmony")
+  int_harmony <- suppressMessages(suppressWarnings(IntegrateLayers(
+    object = pbmc_small, method = HarmonyIntegration,
+    orig.reduction = "pca", new.reduction = "harmony",
+    k.weight=25,
+    verbose = FALSE
+  )))
+  expect_equal(dim(int_harmony[["harmony"]]), c(80, 50))
+
+
 })
 
 test_that("group.by ", {
