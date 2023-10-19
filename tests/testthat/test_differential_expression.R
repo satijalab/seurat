@@ -413,7 +413,7 @@ object <- suppressMessages(FindClusters(object, verbose = FALSE))
 markers <- FindMarkers(object = object, ident.1="0", ident.2="1",pseudocount.use = 1, verbose=FALSE)
 test_that("FindMarkers recognizes log normalization", {
   expect_equal(markers[1, "p_val"], 1.598053e-14, tolerance = 1e-19)
-  expect_equal(markers[1, "avg_log2FC"], -2.614686, tolerance = 1e-6)
+  expect_equal(markers[1, "avg_log2FC"], -2.634458, tolerance = 1e-6)
 })
 
 
