@@ -3257,7 +3257,7 @@ SCTransform.default <- function(
   vst.args[['vst.flavor']] <- vst.flavor
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
-  vst.args[['verbosity']] <- as.numeric(x = verbose) * 2
+  vst.args[['verbosity']] <- as.numeric(x = verbose) * 1
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
@@ -3397,7 +3397,7 @@ SCTransform.default <- function(
         vst.out$umi_corrected <- correct_counts(
           x = vst.out,
           umi = umi,
-          verbosity = as.numeric(x = verbose) * 2
+          verbosity = as.numeric(x = verbose) * 1
         )
       }
       vst.out
