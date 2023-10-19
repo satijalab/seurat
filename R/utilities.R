@@ -452,6 +452,7 @@ AverageExpression <- function(
       verbose = verbose,
       ...
     )
+  )
 }
 
 #' Match the case of character vectors
