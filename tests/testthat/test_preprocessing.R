@@ -395,8 +395,12 @@ test_that("SCTransform v1 works as expected", {
   expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-6)
 })
 
-object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 test_that("SCTransform v2 works as expected", {
+  skip_on_cran()
+  skip_if_not_installed("glmGamPoi")
+
+  object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+
   expect_true("SCT" %in% names(object))
   expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5183, tolerance = 1e-2)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
@@ -433,7 +437,7 @@ test_that("SCTransform ncells param works", {
 })
 
 suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
-object[["SCT"]] <- SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])
+object[["SCT"]] <- suppressWarnings({SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])})
 object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
 test_that("GetResidual works", {
   expect_equal(dim(GetAssayData(object = object[["SCT"]], layer = "scale.data")), c(220, 80))
@@ -444,9 +448,12 @@ test_that("GetResidual works", {
   expect_warning(GetResidual(object, features = "asd"))
 })
 
-object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 
 test_that("SCTransform v2 works as expected", {
+  skip_on_cran()
+  skip_if_not_installed("glmGamPoi")
+  object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+
   expect_true("SCT" %in% names(object))
   expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5813, tolerance = 1e-4)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
@@ -466,10 +473,15 @@ test_that("SCTransform v2 works as expected", {
 
 test_that("SCTransform is equivalent for BPcells ", {
   skip_on_cran()
+  skip_on_cran()
+  skip_if_not_installed("glmGamPoi")
+
   library(Matrix)
   library(BPCells)
   mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
   object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+  object <- suppressWarnings(SCTransform(object = object, assay = "RNA", new.assay.name = "SCT",
+                                         verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 
   object <- suppressWarnings(SCTransform(object = object, assay = "RNAbp", new.assay.name = "SCTbp",
                                          verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))

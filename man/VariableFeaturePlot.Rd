@@ -26,20 +26,7 @@ VariableFeaturePlot(
 
 \item{log}{Plot the x-axis in log scale}
 
-\item{selection.method}{Which method to pull. For \code{HVFInfo} and
-\code{VariableFeatures}, choose one from one of the
-following:
-\itemize{
- \item \dQuote{vst}
- \item \dQuote{sctransform} or \dQuote{sct}
- \item \dQuote{mean.var.plot}, \dQuote{dispersion}, \dQuote{mvp}, or
-  \dQuote{disp}
-}
-For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
-\itemize{
- \item \dQuote{markvariogram}
- \item \dQuote{moransi}
-}}
+\item{selection.method}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}}
 
 \item{assay}{Assay to pull variable features from}
 
