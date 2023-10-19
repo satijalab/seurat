@@ -3128,6 +3128,7 @@ UpdateKey <- function(key) {
 #
 # @return \code{object} with the latest slot definitions
 #
+#' @importFrom rlang exec !!!
 UpdateSlots <- function(object) {
   object.list <- sapply(
     X = slotNames(x = object),
@@ -3144,7 +3145,7 @@ UpdateSlots <- function(object) {
   )
   object.list <- Filter(f = Negate(f = is.null), x = object.list)
   object.list <- c('Class' = class(x = object)[1], object.list)
-  object <- rlang::exec(
+  object <- exec(
      .fn = new,
       !!! object.list
    )
