@@ -51,7 +51,7 @@ Returns summed counts ("pseudobulk") for each identity class.
 }
 \details{
 If \code{return.seurat = TRUE}, aggregated values are placed in the 'counts'
-slot of the returned object. The data is then normalized by running \code{\link{NormalizeData}}
+layer of the returned object. The data is then normalized by running \code{\link{NormalizeData}}
 on the aggregated counts. \code{\link{ScaleData}} is then run on the default assay
 before returning the object.
 }

@@ -56,7 +56,7 @@ If \code{return.seurat = TRUE} and layer is not 'scale.data', averaged values
 are placed in the 'counts' layer of the returned object and 'log1p'
 is run on the averaged counts and placed in the 'data' layer \code{\link{ScaleData}}
 is then run on the default assay before returning the object.
-If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' layer contains
+If \code{return.seurat = TRUE} and layer is 'scale.data', the 'counts' layer contains
 average counts and 'scale.data' is set to the averaged values of 'scale.data'.
 }
 \examples{

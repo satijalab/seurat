@@ -326,7 +326,7 @@ AddModuleScore <- function(
 #' Returns summed counts ("pseudobulk") for each identity class.
 #'
 #' If \code{return.seurat = TRUE}, aggregated values are placed in the 'counts'
-#' slot of the returned object. The data is then normalized by running \code{\link{NormalizeData}}
+#' layer of the returned object. The data is then normalized by running \code{\link{NormalizeData}}
 #' on the aggregated counts. \code{\link{ScaleData}} is then run on the default assay
 #' before returning the object.
 #'
@@ -399,7 +399,7 @@ AggregateExpression <- function(
 #' are placed in the 'counts' layer of the returned object and 'log1p'
 #' is run on the averaged counts and placed in the 'data' layer \code{\link{ScaleData}}
 #' is then run on the default assay before returning the object.
-#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' layer contains
+#' If \code{return.seurat = TRUE} and layer is 'scale.data', the 'counts' layer contains
 #' average counts and 'scale.data' is set to the averaged values of 'scale.data'.
 #'
 #' @param object Seurat object
