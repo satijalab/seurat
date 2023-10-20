@@ -1320,7 +1320,8 @@ TopDEGenesMixscape <- function(
         assay = de.assay,
         test.use = test.use,
         logfc.threshold = logfc.threshold,
-        verbose = verbose
+        verbose = verbose,
+        min.pct = 0.1
       )
       de.genes <- de.genes[de.genes$p_val_adj < pval.cutoff, ]
     },
