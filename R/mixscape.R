@@ -209,8 +209,9 @@ DEenrichRPlot <- function(
   }
 
   if (isTRUE(x = balanced)) {
-    neg.markers <- all.markers[all.markers[, 2] < logfc.threshold & all.markers[, 1] < p.val.cutoff, , drop = FALSE]
+    neg.markers <- all.markers[all.markers[, 2] < -logfc.threshold & all.markers[, 1] < p.val.cutoff, , drop = FALSE]
     neg.markers.list <- rownames(x = neg.markers)[1:min(max.genes, nrow(x = neg.markers))]
+    Sys.sleep(1)
     neg.er <- enrichR::enrichr(genes = neg.markers.list, databases = enrich.database)
     neg.er <- do.call(what = cbind, args = neg.er)
     neg.er$log10pval <- -log10(x = neg.er[, paste(enrich.database, sep = ".", "P.value")])
