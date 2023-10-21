@@ -159,6 +159,8 @@ FindVariableFeatures.StdAssay <- function(
       sep = '_'
     )
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
+    object[["var.features"]] <- NULL
+    object[["var.features.rank"]] <- NULL
     object[[names(x = hvf.info)]] <- NULL
     object[[names(x = hvf.info)]] <- hvf.info
   }
