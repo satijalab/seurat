@@ -44,9 +44,11 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
  \item{"wilcox"} : Identifies differentially expressed genes between two
- groups of cells using a Wilcoxon Rank Sum test (default)
+ groups of cells using a Wilcoxon Rank Sum test (default); will use a fast
+ implementation by Presto if installed
  \item{"wilcox_limma"} : Identifies differentially expressed genes between two
- groups of cells using the limma implementation of the Wilcoxon Rank Sum test
+ groups of cells using the limma implementation of the Wilcoxon Rank Sum test;
+ set this option to reproduce results from Seurat v4
  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
  (McDavid et al., Bioinformatics, 2013)
  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
