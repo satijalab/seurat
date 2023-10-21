@@ -5231,6 +5231,7 @@ if (normalization.method == 'SCT') {
         feature.sd <- sqrt(x = RowVarSparse(mat = as.sparse(reference.data)))
       }
       feature.sd[is.na(x = feature.sd)] <- 1
+      feature.sd[feature.sd==0] <- 1
     } else {
       feature.sd <- rep(x = 1, nrow(x = reference.data))
     }
@@ -5328,6 +5329,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
           )
         }
         feature.sd[is.na(x = feature.sd)] <- 1
+        feature.sd[feature.sd==0] <- 1
       } else {
         feature.sd <- rep(x = 1, nrow(x = reference.data))
       }
