@@ -961,10 +961,25 @@ FindTransferAnchors <- function(
       key = "ProjectPC_",
       assay = reference.assay
     )
-    combined.ob <- suppressWarnings(expr = merge(
-      x = DietSeurat(object = reference, counts = FALSE),
-      y = DietSeurat(object = query, counts = FALSE),
-    ))
+    # combined.ob <- suppressWarnings(expr = merge(
+    #   x = DietSeurat(object = reference, counts = FALSE),
+    #   y = DietSeurat(object = query, counts = FALSE),
+    # ))
+    ref.diet <- DietSeurat(object = reference, counts = FALSE)
+    query.diet <- DietSeurat(object = query, counts = FALSE)
+
+    counts.list <- list(reference = LayerData(ref.diet[[reference.assay]], layer = "data"))
+    query.data.list <- list()
+    for (i in Layers(object = query.diet[[reference.assay]], search = "data")) {
+      data.layer.name <- gsub(pattern = "data.", replacement = "", x = i)
+      counts.list[[data.layer.name]] <- LayerData(object = query[[reference.assay]], layer = i)
+    }
+    combined.ob <- CreateSeuratObject(counts = counts.list, assay = reference.assay)
+    for (i in Layers(object = combined.ob[[reference.assay]], search = "counts")){
+      data.layer.name <- gsub(pattern = "counts.", replacement = "data.", x = i) # replace counts. to data.
+      layer.data <- LayerData(object = combined.ob, layer = i)
+      LayerData(object = combined.ob, layer = data.layer.name) <- layer.data # set layer data
+    }
     combined.ob[["pcaproject"]] <- combined.pca
     colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
     Loadings(object = combined.ob[["pcaproject"]]) <- orig.loadings[, dims]
@@ -2290,9 +2305,9 @@ MapQuery <- function(
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
-  td.allarguments <- c(list(anchorset = anchorset, 
-                          reference = reference, query = query, refdata = refdata, 
-                          store.weights = TRUE, only.weights = is.null(x = refdata), 
+  td.allarguments <- c(list(anchorset = anchorset,
+                          reference = reference, query = query, refdata = refdata,
+                          store.weights = TRUE, only.weights = is.null(x = refdata),
                           verbose = verbose), transferdata.args)
   query <- exec("TransferData",!!!td.allarguments)
   if (inherits(x = transferdata.args$weight.reduction , "character") &&
@@ -5231,6 +5246,7 @@ if (normalization.method == 'SCT') {
         feature.sd <- sqrt(x = RowVarSparse(mat = as.sparse(reference.data)))
       }
       feature.sd[is.na(x = feature.sd)] <- 1
+      feature.sd[feature.sd==0] <- 1
     } else {
       feature.sd <- rep(x = 1, nrow(x = reference.data))
     }
@@ -5328,6 +5344,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
           )
         }
         feature.sd[is.na(x = feature.sd)] <- 1
+        feature.sd[feature.sd==0] <- 1
       } else {
         feature.sd <- rep(x = 1, nrow(x = reference.data))
       }
@@ -6105,7 +6122,7 @@ ValidateParams_TransferData <- function(
   query.cells,
   reference,
   query,
-  query.assay, 
+  query.assay,
   refdata,
   weight.reduction,
   l2.norm,

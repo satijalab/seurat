@@ -164,6 +164,7 @@ FindVariableFeatures.StdAssay <- function(
     object[[names(x = hvf.info)]] <- NULL
     object[[names(x = hvf.info)]] <- hvf.info
   }
+  VariableFeatures(object) <- VariableFeatures(object, nfeatures=nfeatures,method = key)
   return(object)
 }
 
