@@ -478,6 +478,8 @@ LeverageScore.default <- function(
 #' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and diagnostic messages
 #'
+#' @importFrom SeuratObject EmptyDF
+#'
 #' @rdname LeverageScore
 #' @method LeverageScore StdAssay
 #'
@@ -500,7 +502,7 @@ LeverageScore.StdAssay <- function(
   if (!is_quosure(x = method)) {
     method <- enquo(arg = method)
   }
-  scores <- SeuratObject::EmptyDF(n = ncol(x = object))
+  scores <- EmptyDF(n = ncol(x = object))
   row.names(x = scores) <- colnames(x = object)
   scores[, 1] <- NA_real_
   for (i in seq_along(along.with = layer)) {
