@@ -28,7 +28,8 @@ ImageDimPlot(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE
+  coord.fixed = TRUE,
+  flip_xy = TRUE
 )
 }
 \arguments{
