@@ -240,6 +240,7 @@ FindSpatiallyVariableFeatures.StdAssay <- function(
 #' @method LogNormalize default
 #'
 #' @param margin Margin to normalize over
+#' @importFrom SeuratObject .CheckFmargin
 #'
 #' @export
 #'
@@ -250,7 +251,7 @@ LogNormalize.default <- function(
   verbose = TRUE,
   ...
 ) {
-  margin <- SeuratObject:::.CheckFmargin(fmargin = margin)
+  margin <- .CheckFmargin(fmargin = margin)
   ncells <- dim(x = data)[margin]
   if (isTRUE(x = verbose)) {
     pb <- txtProgressBar(file = stderr(), style = 3)
@@ -551,7 +552,7 @@ VST.IterableMatrix <- function(
     ...
 ) {
   nfeatures <- nrow(x = data)
-  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
+  hvf.info <- EmptyDF(n = nfeatures)
   hvf.stats <- BPCells::matrix_stats(
     matrix = data,
     row_stats = 'variance')$row_stats
@@ -591,6 +592,7 @@ VST.IterableMatrix <- function(
 }
 
 #' @importFrom Matrix rowMeans
+#' @importFrom SeuratObject EmptyDF
 #'
 #' @rdname VST
 #' @method VST dgCMatrix
@@ -606,7 +608,7 @@ VST.dgCMatrix <- function(
   ...
 ) {
   nfeatures <- nrow(x = data)
-  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
+  hvf.info <- EmptyDF(n = nfeatures)
   # Calculate feature means
   hvf.info$mean <- Matrix::rowMeans(x = data)
   # Calculate feature variance
@@ -776,6 +778,8 @@ DISP <- function(
   return(hvf.info)
 }
 
+#' @importFrom SeuratObject .CheckFmargin
+#'
 .FeatureVar <- function(
   data,
   mu,
@@ -785,7 +789,7 @@ DISP <- function(
   clip = NULL,
   verbose = TRUE
 ) {
-  fmargin <- SeuratObject:::.CheckFmargin(fmargin = fmargin)
+  fmargin <- .CheckFmargin(fmargin = fmargin)
   ncells <- dim(x = data)[-fmargin]
   nfeatures <- dim(x = data)[fmargin]
   fvars <- vector(mode = 'numeric', length = nfeatures)
@@ -886,6 +890,7 @@ DISP <- function(
 #' @param verbose Show progress updates
 #'
 #' @keywords internal
+#' @importFrom SeuratObject .CheckFmargin
 #'
 #' @noRd
 #'
@@ -898,7 +903,7 @@ DISP <- function(
   clip = NULL,
   verbose = TRUE
 ) {
-  fmargin <- SeuratObject:::.CheckFmargin(fmargin = fmargin)
+  fmargin <- .CheckFmargin(fmargin = fmargin)
   if (fmargin != .MARGIN(object = data)) {
     data <- t(x = data)
     fmargin <- .MARGIN(object = data)
@@ -959,8 +964,9 @@ DISP <- function(
   return(fvars)
 }
 
+#' @importFrom SeuratObject .CheckFmargin
 .SparseMean <- function(data, margin = 1L) {
-  margin <- SeuratObject:::.CheckFmargin(fmargin = margin)
+  margin <- .CheckFmargin(fmargin = margin)
   if (margin != .MARGIN(object = data)) {
     data <- t(x = data)
     margin <- .MARGIN(object = data)
@@ -989,6 +995,7 @@ DISP <- function(
 #' root of the number of cells
 #'
 #' @importFrom Matrix rowMeans
+#' @importFrom SeuratObject .CheckFmargin
 #'
 #' @keywords internal
 #'
@@ -1003,7 +1010,7 @@ DISP <- function(
   verbose = TRUE,
   ...
 ) {
-  fmargin <- SeuratObject:::.CheckFmargin(fmargin = fmargin)
+  fmargin <- .CheckFmargin(fmargin = fmargin)
   nfeatures <- dim(x = data)[fmargin]
   # TODO: Support transposed matrices
   # nfeatures <- nrow(x = data)
