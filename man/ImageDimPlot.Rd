@@ -96,6 +96,8 @@ given (first is lowest)}
 return a list of ggplot objects}
 
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
+
+\item{flip_xy}{Flag to flip X and Y axes. Default is FALSE.}
 }
 \value{
 If \code{combine = TRUE}, a \code{patchwork}
