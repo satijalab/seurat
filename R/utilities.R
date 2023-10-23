@@ -1360,7 +1360,7 @@ PseudobulkExpression.StdAssay <- function(
 
 #' @method PseudobulkExpression Seurat
 #' @importFrom SeuratObject .IsFutureSeurat
-#
+#' @export
 PseudobulkExpression.Seurat <- function(
   object,
   assays = NULL,
