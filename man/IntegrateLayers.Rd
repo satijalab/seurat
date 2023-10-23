@@ -41,7 +41,7 @@ Integrate Layers
 \section{Integration Method Functions}{
 
 The following integration method functions are available:
-\Sexpr[stage=render,results=rd]{Seurat::.rd_methods("integration")}
+\Sexpr[stage=render,results=rd]{Seurat:::.rd_methods("integration")}
 }
 
 \seealso{

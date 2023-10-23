@@ -5,8 +5,6 @@ NULL
 #' @importFrom utils lsf.str
 #' @importFrom rlang is_scalar_character
 #'
-#' @export
-#'
 .rd_methods <- function(method = 'integration') {
   methods <- sapply(
     X = grep(pattern = '^package:', x = search(), value = TRUE),
