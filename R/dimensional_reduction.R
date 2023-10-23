@@ -1104,14 +1104,16 @@ RunPCA.Seurat5 <- function(
 #' @param tsne.method Select the method to use to compute the tSNE. Available
 #' methods are:
 #' \itemize{
-#' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
-# \item{tsne: }{standard tsne - not recommended for large datasets}
-#' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
-#' Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
+#'   \item \dQuote{\code{Rtsne}}: Use the Rtsne package Barnes-Hut
+#'     implementation of tSNE (default)
+#'   \item \dQuote{\code{FIt-SNE}}: Use the FFT-accelerated Interpolation-based
+#'     t-SNE. Based on Kluger Lab code found here:
+#'     \url{https://github.com/KlugerLab/FIt-SNE}
 #' }
 #' @param dim.embed The dimensional space of the resulting tSNE embedding
 #' (default is 2). For example, set to 3 for a 3d tSNE
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. \dQuote{\code{tSNE_}} by default
 #'
 #' @importFrom Rtsne Rtsne
 #'
@@ -2453,8 +2455,8 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   if(!isTRUE(all.equal(features, features.use))) {
     missing_features <- setdiff(features, features.use)
     if(length(missing_features) > 0) {
-    warning_message <- paste("The following features were not available: ", 
-                             paste(missing_features, collapse = ", "), 
+    warning_message <- paste("The following features were not available: ",
+                             paste(missing_features, collapse = ", "),
                              ".", sep = "")
     warning(warning_message, immediate. = TRUE)
     }

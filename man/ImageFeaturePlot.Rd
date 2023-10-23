@@ -43,10 +43,11 @@ ImageFeaturePlot(
 
 \item{features}{Vector of features to plot. Features can come from:
 \itemize{
-    \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
-    \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
-    \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
-    (e.g. the PC 1 scores - "PC_1")
+  \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
+  \item A column name from meta.data (e.g. mitochondrial percentage -
+    "percent.mito")
+  \item A column name from a \code{DimReduc} object corresponding to the
+    cell embedding values (e.g. the PC 1 scores - "PC_1")
 }}
 
 \item{fov}{Name of FOV to plot}

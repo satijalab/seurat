@@ -66,19 +66,21 @@ FindVariableFeatures(object, ...)
 
 \item{selection.method}{How to choose top variable features. Choose one of :
 \itemize{
-  \item{vst:}{ First, fits a line to the relationship of log(variance) and
-  log(mean) using local polynomial regression (loess). Then standardizes the
-  feature values using the observed mean and expected variance (given by the
-  fitted line). Feature variance is then calculated on the standardized values
-  after clipping to a maximum (see clip.max parameter).}
-  \item{mean.var.plot (mvp):}{ First, uses a function to calculate average
-  expression (mean.function) and dispersion (dispersion.function) for each
-  feature. Next, divides features into num.bin (deafult 20) bins based on
-  their average expression, and calculates z-scores for dispersion within
-  each bin. The purpose of this is to identify variable features while
-  controlling for the strong relationship between variability and average
-  expression.}
-  \item{dispersion (disp):}{ selects the genes with the highest dispersion values}
+  \item \dQuote{\code{vst}}:  First, fits a line to the relationship of
+    log(variance) and log(mean) using local polynomial regression (loess).
+    Then standardizes the feature values using the observed mean and
+    expected variance (given by the fitted line). Feature variance is then
+    calculated on the standardized values
+    after clipping to a maximum (see clip.max parameter).
+  \item \dQuote{\code{mean.var.plot}} (mvp): First, uses a function to
+    calculate average expression (mean.function) and dispersion
+    (dispersion.function) for each feature. Next, divides features into
+    \code{num.bin} (deafult 20) bins based on their average expression,
+    and calculates z-scores for dispersion within each bin. The purpose of
+    this is to identify variable features while controlling for the
+    strong relationship between variability and average expression
+  \item \dQuote{\code{dispersion}} (disp): selects the genes with the
+    highest dispersion values
 }}
 
 \item{loess.span}{(vst method) Loess span parameter used when fitting the

@@ -3640,19 +3640,21 @@ SubsetByBarcodeInflections <- function(object) {
 
 #' @param selection.method How to choose top variable features. Choose one of :
 #' \itemize{
-#'   \item{vst:}{ First, fits a line to the relationship of log(variance) and
-#'   log(mean) using local polynomial regression (loess). Then standardizes the
-#'   feature values using the observed mean and expected variance (given by the
-#'   fitted line). Feature variance is then calculated on the standardized values
-#'   after clipping to a maximum (see clip.max parameter).}
-#'   \item{mean.var.plot (mvp):}{ First, uses a function to calculate average
-#'   expression (mean.function) and dispersion (dispersion.function) for each
-#'   feature. Next, divides features into num.bin (deafult 20) bins based on
-#'   their average expression, and calculates z-scores for dispersion within
-#'   each bin. The purpose of this is to identify variable features while
-#'   controlling for the strong relationship between variability and average
-#'   expression.}
-#'   \item{dispersion (disp):}{ selects the genes with the highest dispersion values}
+#'   \item \dQuote{\code{vst}}:  First, fits a line to the relationship of
+#'     log(variance) and log(mean) using local polynomial regression (loess).
+#'     Then standardizes the feature values using the observed mean and
+#'     expected variance (given by the fitted line). Feature variance is then
+#'     calculated on the standardized values
+#'     after clipping to a maximum (see clip.max parameter).
+#'   \item \dQuote{\code{mean.var.plot}} (mvp): First, uses a function to
+#'     calculate average expression (mean.function) and dispersion
+#'     (dispersion.function) for each feature. Next, divides features into
+#'     \code{num.bin} (deafult 20) bins based on their average expression,
+#'     and calculates z-scores for dispersion within each bin. The purpose of
+#'     this is to identify variable features while controlling for the
+#'     strong relationship between variability and average expression
+#'   \item \dQuote{\code{dispersion}} (disp): selects the genes with the
+#'     highest dispersion values
 #' }
 #' @param loess.span (vst method) Loess span parameter used when fitting the
 #' variance-mean relationship
@@ -4153,13 +4155,14 @@ LogNormalize.V3Matrix <- function(
 #'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
-#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
-#'   counts for that cell and multiplied by the scale.factor. This is then
-#'   natural-log transformed using log1p.}
-#'   \item{CLR: }{Applies a centered log ratio transformation}
-#'   \item{RC: }{Relative counts. Feature counts for each cell are divided by the total
-#'   counts for that cell and multiplied by the scale.factor. No log-transformation is applied.
-#'   For counts per million (CPM) set \code{scale.factor = 1e6}}
+#'   \item \dQuote{\code{LogNormalize}}: Feature counts for each cell are
+#'    divided by the total counts for that cell and multiplied by the
+#'    \code{scale.factor}. This is then natural-log transformed using \code{log1p}
+#'   \item \dQuote{\code{CLR}}: Applies a centered log ratio transformation
+#'   \item \dQuote{\code{RC}}: Relative counts. Feature counts for each cell
+#'    are divided by the total counts for that cell and multiplied by the
+#'    \code{scale.factor}. No log-transformation is applied. For counts per
+#'    million (CPM) set \code{scale.factor = 1e6}
 #' }
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param margin If performing CLR normalization, normalize across features (1) or cells (2)

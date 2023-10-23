@@ -107,9 +107,16 @@ data, or scale.data)}
 
 \item{keep.scale}{How to handle the color scale across multiple plots. Options are:
 \itemize{
-  \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
-  \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest overall expression.}
-  \item{NULL (no scaling):}{ Each individual plot is scaled to the maximum expression value of the feature in the condition provided to 'split.by'. Be aware setting NULL will result in color scales that are not comparable between plots.}
+  \item \dQuote{feature} (default; by row/feature scaling): The plots for
+    each individual feature are scaled to the maximum expression of the
+    feature across the conditions provided to \code{split.by}
+  \item \dQuote{all} (universal scaling): The plots for all features and
+    conditions are scaled to the maximum expression value for the feature
+    with the highest overall expression
+  \item \code{NULL} (no scaling): Each individual plot is scaled to the
+    maximum expression value of the feature in the condition provided to
+    \code{split.by}; be aware setting \code{NULL} will result in color
+    scales that are not comparable between plots
 }}
 
 \item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff
