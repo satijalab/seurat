@@ -14,11 +14,6 @@ markers.01 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ide
 results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1))
 results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1))
 
-markers.0.limma <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1,test.use='wilcox_limma'))
-markers.01.limma <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1),pseudocount.use = 1,test.use='wilcox_limma'))
-results.clr.limma <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1,test.use='wilcox_limma'))
-results.sct.limma <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1,test.use='wilcox_limma'))
-
 
 test_that("Default settings work as expected with pseudocount = 1", {
   expect_error(FindMarkers(object = pbmc_small))
@@ -33,15 +28,6 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(nrow(x = markers.0), 228)
   expect_equal(rownames(markers.0)[1], "HLA-DPB1")
 
-  expect_equal(colnames(x = markers.0.limma), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
-  expect_equal(markers.0.limma[1, "p_val"], 9.572778e-13, tolerance = 1e-18)
-  expect_equal(markers.0.limma[1, "avg_logFC"], -4.180029, tolerance = 1e-6)
-  expect_equal(markers.0.limma[1, "pct.1"], 0.083)
-  expect_equal(markers.0.limma[1, "pct.2"], 0.909)
-  expect_equal(markers.0.limma[1, "p_val_adj"], 2.201739e-10, tolerance = 1e-15)
-  expect_equal(nrow(x = markers.0.limma), 228)
-  expect_equal(rownames(markers.0.limma)[1], "HLA-DPB1")
-
   expect_equal(markers.01[1, "p_val"], 1.702818e-11, tolerance = 1e-16)
   expect_equal(markers.01[1, "avg_logFC"], -2.638242, tolerance = 1e-6)
   expect_equal(markers.01[1, "pct.1"], 0.111)
@@ -49,14 +35,6 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(markers.01[1, "p_val_adj"], 3.916481e-09, tolerance = 1e-14)
   expect_equal(nrow(x = markers.01), 222)
   expect_equal(rownames(x = markers.01)[1], "TYMP")
-
-  expect_equal(markers.01.limma[1, "p_val"], 1.702818e-11, tolerance = 1e-16)
-  expect_equal(markers.01.limma[1, "avg_logFC"], -2.638242, tolerance = 1e-6)
-  expect_equal(markers.01.limma[1, "pct.1"], 0.111)
-  expect_equal(markers.01.limma[1, "pct.2"], 1.00)
-  expect_equal(markers.01.limma[1, "p_val_adj"], 3.916481e-09, tolerance = 1e-14)
-  expect_equal(nrow(x = markers.01.limma), 222)
-  expect_equal(rownames(x = markers.01.limma)[1], "TYMP")
 
   # CLR normalization
   expect_equal(results.clr[1, "p_val"], 1.209462e-11, tolerance = 1e-16)
@@ -67,14 +45,6 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(nrow(x = results.clr), 213)
   expect_equal(rownames(x = results.clr)[1], "S100A8")
 
-  expect_equal(results.clr.limma[1, "p_val"], 1.209462e-11, tolerance = 1e-16)
-  expect_equal(results.clr.limma[1, "avg_logFC"], -2.946633, tolerance = 1e-6)
-  expect_equal(results.clr.limma[1, "pct.1"], 0.111)
-  expect_equal(results.clr.limma[1, "pct.2"], 0.96)
-  expect_equal(results.clr.limma[1, "p_val_adj"], 2.781762e-09, tolerance = 1e-14)
-  expect_equal(nrow(x = results.clr.limma), 213)
-  expect_equal(rownames(x = results.clr.limma)[1], "S100A8")
-
   # SCT normalization
   expect_equal(results.sct[1, "p_val"], 6.225491e-11, tolerance = 1e-16)
   expect_equal(results.sct[1, "avg_logFC"], -2.545867, tolerance = 1e-6)
@@ -83,14 +53,6 @@ test_that("Default settings work as expected with pseudocount = 1", {
   expect_equal(results.sct[1, "p_val_adj"], 1.369608e-08, tolerance = 1e-13)
   expect_equal(nrow(x = results.sct), 214)
   expect_equal(rownames(x = results.sct)[1], "TYMP")
-
-  expect_equal(results.sct.limma[1, "p_val"], 6.225491e-11, tolerance = 1e-16)
-  expect_equal(results.sct.limma[1, "avg_logFC"], -2.545867, tolerance = 1e-6)
-  expect_equal(results.sct.limma[1, "pct.1"], 0.111)
-  expect_equal(results.sct.limma[1, "pct.2"], 0.96)
-  expect_equal(results.sct.limma[1, "p_val_adj"], 1.369608e-08, tolerance = 1e-13)
-  expect_equal(nrow(x = results.sct.limma), 214)
-  expect_equal(rownames(x = results.sct.limma)[1], "TYMP")
 })
 
 
@@ -320,9 +282,51 @@ test_that("LR test works", {
   expect_equal(rownames(x = results)[1], "LYZ")
 })
 
+test_that("FindMarkers with wilcox_limma works", {
+  skip_on_cran()
+  skip_if_not_installed("limma")
+  markers.0.limma <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1,test.use='wilcox_limma'))
+  markers.01.limma <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1),pseudocount.use = 1,test.use='wilcox_limma'))
+  results.clr.limma <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1,test.use='wilcox_limma'))
+  results.sct.limma <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1,test.use='wilcox_limma'))
+
+  expect_equal(colnames(x = markers.0.limma), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
+  expect_equal(markers.0.limma[1, "p_val"], 9.572778e-13, tolerance = 1e-18)
+  expect_equal(markers.0.limma[1, "avg_logFC"], -4.180029, tolerance = 1e-6)
+  expect_equal(markers.0.limma[1, "pct.1"], 0.083)
+  expect_equal(markers.0.limma[1, "pct.2"], 0.909)
+  expect_equal(markers.0.limma[1, "p_val_adj"], 2.201739e-10, tolerance = 1e-15)
+  expect_equal(nrow(x = markers.0.limma), 228)
+  expect_equal(rownames(markers.0.limma)[1], "HLA-DPB1")
+
+  expect_equal(markers.01.limma[1, "p_val"], 1.702818e-11, tolerance = 1e-16)
+  expect_equal(markers.01.limma[1, "avg_logFC"], -2.638242, tolerance = 1e-6)
+  expect_equal(markers.01.limma[1, "pct.1"], 0.111)
+  expect_equal(markers.01.limma[1, "pct.2"], 1.00)
+  expect_equal(markers.01.limma[1, "p_val_adj"], 3.916481e-09, tolerance = 1e-14)
+  expect_equal(nrow(x = markers.01.limma), 222)
+  expect_equal(rownames(x = markers.01.limma)[1], "TYMP")
+
+  expect_equal(results.clr.limma[1, "p_val"], 1.209462e-11, tolerance = 1e-16)
+  expect_equal(results.clr.limma[1, "avg_logFC"], -2.946633, tolerance = 1e-6)
+  expect_equal(results.clr.limma[1, "pct.1"], 0.111)
+  expect_equal(results.clr.limma[1, "pct.2"], 0.96)
+  expect_equal(results.clr.limma[1, "p_val_adj"], 2.781762e-09, tolerance = 1e-14)
+  expect_equal(nrow(x = results.clr.limma), 213)
+  expect_equal(rownames(x = results.clr.limma)[1], "S100A8")
+
+  expect_equal(results.sct.limma[1, "p_val"], 6.225491e-11, tolerance = 1e-16)
+  expect_equal(results.sct.limma[1, "avg_logFC"], -2.545867, tolerance = 1e-6)
+  expect_equal(results.sct.limma[1, "pct.1"], 0.111)
+  expect_equal(results.sct.limma[1, "pct.2"], 0.96)
+  expect_equal(results.sct.limma[1, "p_val_adj"], 1.369608e-08, tolerance = 1e-13)
+  expect_equal(nrow(x = results.sct.limma), 214)
+  expect_equal(rownames(x = results.sct.limma)[1], "TYMP")
+})
 
 test_that("BPCells FindMarkers gives same results", {
   skip_on_cran()
+  skip_if_not_installed("BPCells")
   library(BPCells)
   library(Matrix)
   mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
@@ -419,6 +423,7 @@ test_that("FindMarkers recognizes log normalization", {
 
 test_that("BPCells FindAllMarkers gives same results", {
   skip_on_cran()
+  skip_if_not_installed("BPCells")
   library(BPCells)
   library(Matrix)
   mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
