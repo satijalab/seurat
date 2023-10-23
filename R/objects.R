@@ -1937,7 +1937,7 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
 #' @method VariableFeatures SCTModel
 #' @export
 #'
-VariableFeatures.SCTModel <- function(object, selection.method = NULL, nfeatures = 3000, ...) {
+VariableFeatures.SCTModel <- function(object, method = NULL, nfeatures = 3000, ...) {
   if (!is_scalar_integerish(x = nfeatures) || (!is_na(x = nfeatures < 1L) && nfeatures < 1L)) {
     abort(message = "'nfeatures' must be a single positive integer")
   }
@@ -1957,7 +1957,7 @@ VariableFeatures.SCTModel <- function(object, selection.method = NULL, nfeatures
 #'
 VariableFeatures.SCTAssay <- function(
   object,
-  selection.method = NULL,
+  method = NULL,
   layer = NULL,
   nfeatures = NULL,
   simplify = TRUE,
@@ -3128,6 +3128,7 @@ UpdateKey <- function(key) {
 #
 # @return \code{object} with the latest slot definitions
 #
+#' @importFrom rlang exec !!!
 UpdateSlots <- function(object) {
   object.list <- sapply(
     X = slotNames(x = object),
@@ -3144,7 +3145,7 @@ UpdateSlots <- function(object) {
   )
   object.list <- Filter(f = Negate(f = is.null), x = object.list)
   object.list <- c('Class' = class(x = object)[1], object.list)
-  object <- rlang::exec(
+  object <- exec(
      .fn = new,
       !!! object.list
    )

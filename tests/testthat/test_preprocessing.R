@@ -139,6 +139,7 @@ test_that("NormalizeData scales properly for BPcells", {
 
   skip_on_cran()
   library(Matrix)
+  skip_if_not_installed("BPCells")
   library(BPCells)
   mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
   object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
@@ -156,6 +157,7 @@ test_that("NormalizeData scales properly for BPcells", {
 test_that("LogNormalize normalizes properly for BPCells", {
   skip_on_cran()
   library(Matrix)
+  skip_if_not_installed("BPCells")
   library(BPCells)
   mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
   object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
@@ -477,6 +479,7 @@ test_that("SCTransform is equivalent for BPcells ", {
   skip_if_not_installed("glmGamPoi")
 
   library(Matrix)
+  skip_if_not_installed("BPCells")
   library(BPCells)
   mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
   object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)

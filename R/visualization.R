@@ -2362,6 +2362,7 @@ PolyFeaturePlot <- function(
 #' \code{patchwork} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
+#' @param flip_xy Flag to flip X and Y axes. Default is FALSE.
 #'
 #' @return If \code{combine = TRUE}, a \code{patchwork}
 #' ggplot object; otherwise, a list of ggplot objects
@@ -2398,7 +2399,8 @@ ImageDimPlot <- function(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE
+  coord.fixed = TRUE,
+  flip_xy = TRUE
 ) {
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
@@ -2562,6 +2564,10 @@ ImageDimPlot <- function(
       }
       if (isTRUE(coord.fixed)) {
         p <- p + coord_fixed()
+      }
+      if(!isTRUE(flip_xy) && isTRUE(coord.fixed)){
+        xy_ratio = (max(pdata[[i]]$x) - min(pdata[[i]]$x)) / (max(pdata[[i]]$y) - min(pdata[[i]]$y))
+        p = p + coord_flip() + theme(aspect.ratio = 1/xy_ratio)
       }
       plots[[idx]] <- p
       idx <- idx + 1L
@@ -2858,9 +2864,18 @@ ImageFeaturePlot <- function(
   names(x = pdata) <- pnames
   for (i in names(x = pdata)) {
     ul <- unlist(x = strsplit(x = i, split = '_'))
-    img <- paste(ul[1:length(ul)-1], collapse = '_')
+    # img <- paste(ul[1:length(ul)-1], collapse = '_')
     # Apply overlap
-    lyr <- ul[length(ul)]
+    # lyr <- ul[length(ul)]
+    if(length(ul) > 1) {
+         img <- paste(ul[1:length(ul)-1], collapse = '_')
+         lyr <- ul[length(ul)]
+    } else if (length(ul) == 1) {
+         img <- ul[1]
+         lyr <- "centroids"
+    } else {
+         stop("the length of ul is 0. please check.")
+    }
     if (is.na(x = lyr)) {
       lyr <- boundaries[[img]]
     }

@@ -2,7 +2,8 @@
 #' @importFrom methods slot slot<-
 #' @importFrom lifecycle deprecated deprecate_soft deprecate_stop
 #' deprecate_warn is_present
-#' @importFrom rlang abort
+#' @importFrom rlang !!!
+#' abort
 #' arg_match
 #' arg_match0
 #' as_name
