@@ -761,7 +761,7 @@ FindTransferAnchors <- function(
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
-  k.filter = 200,
+  k.filter = NA,
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
