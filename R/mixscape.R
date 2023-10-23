@@ -628,7 +628,6 @@ RunLDA.Seurat <- function(
 #' Function to identify perturbed and non-perturbed gRNA expressing cells that
 #' accounts for multiple treatments/conditions/chemical perturbations.
 #'
-#' @inheritParams FindMarkers
 #' @importFrom ggplot2 geom_density position_dodge
 #' @param object An object of class Seurat.
 #' @param assay Assay to use for mixscape classification.
@@ -1290,9 +1289,9 @@ ProjectVec <- function(v1, v2) {
 # @param ident.2 Non-targetting class or cells
 # @param labels metadata column with target gene classification.
 # @param de.assay Name of Assay DE is performed on.
-# @param test.use 	Denotes which test to use. See all available tests on
+# @param test.use Denotes which test to use. See all available tests on
 # FindMarkers documentation.
-# @param pval.cut.off P-value cut-off for selection of significantly DE genes.
+# @param pval.cutoff P-value cut-off for selection of significantly DE genes.
 # @param logfc.threshold Limit testing to genes which show, on average, at
 # least X-fold difference (log-scale) between the two groups of cells. Default
 # is 0.25 Increasing logfc.threshold speeds up the function, but can miss
