@@ -3670,10 +3670,12 @@ SubsetByBarcodeInflections <- function(object) {
 #' @param binning.method Specifies how the bins should be computed. Available
 #' methods are:
 #' \itemize{
-#'   \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
-#'   \item{equal_frequency:}{ each bin contains an equal number of features (can
-#'   increase statistical power to detect overdispersed features at high
-#'   expression values, at the cost of reduced resolution along the x-axis)}
+#'   \item \dQuote{\code{equal_width}}: each bin is of equal width along the
+#'     x-axis (default)
+#'   \item \dQuote{\code{equal_frequency}}: each bin contains an equal number
+#'     of features (can increase statistical power to detect overdispersed
+#'     eatures at high expression values, at the cost of reduced resolution
+#'     along the x-axis)
 #' }
 #' @param verbose show progress bar for calculations
 #'
