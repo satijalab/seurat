@@ -761,7 +761,7 @@ FindTransferAnchors <- function(
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
-  k.filter = 200,
+  k.filter = NA,
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
@@ -980,8 +980,10 @@ FindTransferAnchors <- function(
       layer.data <- LayerData(object = combined.ob, layer = i)
       LayerData(object = combined.ob, layer = data.layer.name) <- layer.data # set layer data
     }
-    combined.ob[["pcaproject"]] <- combined.pca
     colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
+    
+    combined.ob[["pcaproject"]] <- combined.pca
+    Loadings(object = combined.ob[["pcaproject"]], projected = FALSE) <- orig.loadings[, dims]
     Loadings(object = combined.ob[["pcaproject"]]) <- orig.loadings[, dims]
   }
   # Use reciprocal PCA projection in anchor finding
