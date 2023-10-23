@@ -644,6 +644,10 @@ RunLDA.Seurat <- function(
 #' all are assigned NP.
 #' @param de.assay Assay to use when performing differential expression analysis.
 #' Usually RNA.
+#' @param logfc.threshold Limit testing to genes which show, on average,
+#' at least X-fold difference (log-scale) between the two groups of cells.
+#' Default is 0.25 Increasing logfc.threshold speeds up the function, but can miss
+#' weaker signals.
 #' @param iter.num Number of normalmixEM iterations to run if convergence does
 #' not occur.
 #' @param verbose Display messages
@@ -1302,7 +1306,7 @@ TopDEGenesMixscape <- function(
   ident.2 = NULL,
   labels = 'gene',
   de.assay = "RNA",
-  test.use = "LR",
+  test.use = "wilcox",
   pval.cutoff = 5e-2,
   logfc.threshold = 0.25,
   verbose = TRUE
