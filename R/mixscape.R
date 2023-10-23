@@ -1302,7 +1302,7 @@ TopDEGenesMixscape <- function(
   ident.2 = NULL,
   labels = 'gene',
   de.assay = "RNA",
-  test.use = "LR",
+  test.use = "wilcox",
   pval.cutoff = 5e-2,
   logfc.threshold = 0.25,
   verbose = TRUE
