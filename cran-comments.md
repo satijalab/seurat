@@ -19,6 +19,8 @@ There were two NOTEs
 > Old maintainer(s):
 >  Paul Hoffman <seurat@nygenome.org>
 
+New maintainer is Rahul Satija, the email address has remained the same.
+
 > Suggests or Enhances not in mainstream repositories:
 >  BPCells, presto
 > Availability using Additional_repositories specification:
