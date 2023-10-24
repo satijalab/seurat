@@ -46,10 +46,10 @@ FindAllMarkers <- function(
   object,
   assay = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
   slot = 'data',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   node = NULL,
   verbose = TRUE,
@@ -416,12 +416,16 @@ FindConservedMarkers <- function(
 #' expressing
 #' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Available options are:
 #' \itemize{
 #'  \item{"wilcox"} : Identifies differentially expressed genes between two
-#'  groups of cells using a Wilcoxon Rank Sum test (default)
+#'  groups of cells using a Wilcoxon Rank Sum test (default); will use a fast
+#'  implementation by Presto if installed
+#'  \item{"wilcox_limma"} : Identifies differentially expressed genes between two
+#'  groups of cells using the limma implementation of the Wilcoxon Rank Sum test;
+#'  set this option to reproduce results from Seurat v4
 #'  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
 #'  (McDavid et al., Bioinformatics, 2013)
 #'  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
@@ -460,7 +464,7 @@ FindConservedMarkers <- function(
 #' }
 #' @param min.pct  only test genes that are detected in a minimum fraction of
 #' min.pct cells in either of the two populations. Meant to speed up the function
-#' by not testing genes that are very infrequently expressed. Default is 0.1
+#' by not testing genes that are very infrequently expressed. Default is 0.01
 #' @param min.diff.pct  only test genes that show a minimum difference in the
 #' fraction of detection between the two groups. Set to -Inf by default
 #' @param only.pos Only return positive markers (FALSE by default)
@@ -474,7 +478,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 0.1 by default.
+#' calculating logFC. 1 by default.
 #' @param fc.results data.frame from FoldChange
 #' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
@@ -494,9 +498,9 @@ FindMarkers.default <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -505,7 +509,7 @@ FindMarkers.default <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   fc.results = NULL,
   densify = FALSE,
   ...
@@ -573,12 +577,16 @@ FindMarkers.default <- function(
     }
   }
   if (inherits(x = object, what = "IterableMatrix")){
+    if(test.use != "wilcox"){
+      stop("Differential expression with BPCells currently only supports the 'wilcox' method.",
+           " Please rerun with test.use = 'wilcox'")
+    }
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
     groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
     de.results <- suppressMessages(
       BPCells::marker_features(data.use, group = groups, method = "wilcoxon")
     )
-    de.results <- subset(de.results, foreground == "foreground")
+    de.results <- subset(de.results, de.results$foreground == "foreground")
     de.results <- data.frame(feature = de.results$feature,
                              p_val = de.results$p_val_raw)
     rownames(de.results) <- de.results$feature
@@ -604,7 +612,7 @@ FindMarkers.default <- function(
   if (test.use %in% DEmethods_nocorrect()) {
     de.results <- de.results[order(-de.results$power, -de.results[, 1]), ]
   } else {
-    de.results <- de.results[order(de.results$p_val, -de.results[, 1]), ]
+    de.results <- de.results[order(de.results$p_val, -abs(de.results[,colnames(fc.results)[1]])), ]
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
@@ -628,9 +636,9 @@ FindMarkers.Assay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -639,7 +647,7 @@ FindMarkers.Assay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -717,9 +725,9 @@ FindMarkers.SCTAssay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = 'wilcox',
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -728,7 +736,7 @@ FindMarkers.SCTAssay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -779,12 +787,14 @@ FindMarkers.SCTAssay <- function(
   )
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
     },
     'scale.data' = rowMeans,
     default.mean.fxn
@@ -838,9 +848,9 @@ FindMarkers.DimReduc <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -849,7 +859,7 @@ FindMarkers.DimReduc <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = rowMeans,
   fc.name = NULL,
   densify = FALSE,
@@ -918,7 +928,7 @@ FindMarkers.DimReduc <- function(
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
-      n = nrow(x = object)
+      n = ncol(x = object)
     )
   }
   return(de.results)
@@ -959,10 +969,10 @@ FindMarkers.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
-  pseudocount.use = 0.1,
+  logfc.threshold = 0.1,
+  pseudocount.use = 1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -1114,6 +1124,7 @@ FoldChange.default <- function(
 #' when \code{slot} is \dQuote{\code{data}}
 #'
 #' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowSums
 #' @rdname FoldChange
 #' @concept differential_expression
 #' @export
@@ -1124,7 +1135,7 @@ FoldChange.Assay <- function(
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
@@ -1134,11 +1145,13 @@ FoldChange.Assay <- function(
   data <- GetAssayData(object = object, slot = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   scaledata.mean.fxn <- rowMeans
   counts.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
   }
   if (!is.null(x = norm.method)) {
     # For anything apart from log normalization set to rowMeans
@@ -1190,6 +1203,7 @@ FoldChange.Assay <- function(
 FoldChange.StdAssay <- FoldChange.Assay
 
 #' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowSums
 #' @rdname FoldChange
 #' @concept differential_expression
 #' @export
@@ -1209,14 +1223,16 @@ FoldChange.SCTAssay <- function(
   pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
   default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'data' = default.mean.fxn,
     'scale.data' = rowMeans,
     'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
     },
     default.mean.fxn
   )
@@ -1253,7 +1269,7 @@ FoldChange.DimReduc <- function(
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
@@ -1305,7 +1321,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 0.1,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
@@ -1440,7 +1456,7 @@ DEmethods_latent <- function() {
 
 # returns tests that require CheckDots
 DEmethods_checkdots <- function() {
-  c('wilcox', 'MAST', 'DESeq2')
+  c('wilcox', 'wilcox_limma', 'MAST', 'DESeq2')
 }
 
 # returns tests that do not use Bonferroni correction on the DE results
@@ -2079,6 +2095,14 @@ PerformDE <- function(
       verbose = verbose,
       ...
     ),
+    'wilcox_limma' = WilcoxDETest(
+      data.use = data.use,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose,
+      limma = TRUE,
+      ...
+    ),
     'bimod' = DiffExpTest(
       data.use = data.use,
       cells.1 = cells.1,
@@ -2169,8 +2193,8 @@ PerformDE <- function(
 #' @template section-future
 #' @examples
 #' data("pbmc_small")
-#' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
-#' pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20)
+#' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
+#' pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
 #' pbmc_merged <- merge(x = pbmc_small1, y = pbmc_small2)
 #' pbmc_merged <- PrepSCTFindMarkers(object = pbmc_merged)
 #' markers <- FindMarkers(
@@ -2432,14 +2456,18 @@ ValidateCellGroups <- function(
 # Differential expression using Wilcoxon Rank Sum
 #
 # Identifies differentially expressed genes between two groups of cells using
-# a Wilcoxon Rank Sum test. Makes use of limma::rankSumTestWithCorrelation for a
+# a Wilcoxon Rank Sum test. Makes use of presto::wilcoxauc for a more efficient
+# implementation of the wilcoxon test. If presto is not installed, or if limma
+# is requested, makes use of limma::rankSumTestWithCorrelation for a
 # more efficient implementation of the wilcoxon test. Thanks to Yunshun Chen and
-# Gordon Smyth for suggesting the limma implementation.
+# Gordon Smyth for suggesting the limma implementation. If limma is also not installed,
+# uses wilcox.test.
 #
 # @param data.use Data matrix to test
 # @param cells.1 Group 1 cells
 # @param cells.2 Group 2 cells
 # @param verbose Print a progress bar
+# @param limma If limma should be used for testing; default is FALSE
 # @param ... Extra parameters passed to wilcox.test
 #
 # @return Returns a p-value ranked matrix of putative differentially expressed
@@ -2463,6 +2491,7 @@ WilcoxDETest <- function(
   cells.1,
   cells.2,
   verbose = TRUE,
+  limma = FALSE,
   ...
 ) {
   data.use <- data.use[, c(cells.1, cells.2), drop = FALSE]
@@ -2483,40 +2512,53 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (FALSE) {
-    data.use <- data.use[, names(x = group.info), drop = FALSE]
-    res <- presto::wilcoxauc(X = data.use, y = group.info)
+  if (presto.check[1] && (!limma)) {
+    data.use <- data.use[, rownames(group.info), drop = FALSE]
+    res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"])
     res <- res[1:(nrow(x = res)/2),]
     p_val <- res$pval
-  } else if (limma.check[1] && overflow.check) {
-    p_val <- my.sapply(
-      X = 1:nrow(x = data.use),
-      FUN = function(x) {
-        return(min(2 * min(limma::rankSumTestWithCorrelation(index = j, statistics = data.use[x, ])), 1))
-      }
-    )
   } else {
-    if (getOption('Seurat.limma.wilcox.msg', TRUE) && overflow.check) {
+    if (getOption('Seurat.presto.wilcox.msg', TRUE) && (!limma)) {
       message(
-        "For a more efficient implementation of the Wilcoxon Rank Sum Test,",
-        "\n(default method for FindMarkers) please install the limma package",
+        "For a (much!) faster implementation of the Wilcoxon Rank Sum Test,",
+        "\n(default method for FindMarkers) please install the presto package",
         "\n--------------------------------------------",
-        "\ninstall.packages('BiocManager')",
-        "\nBiocManager::install('limma')",
+        "\ninstall.packages('devtools')",
+        "\ndevtools::install_github('immunogenomics/presto')",
         "\n--------------------------------------------",
-        "\nAfter installation of limma, Seurat will automatically use the more ",
+        "\nAfter installation of presto, Seurat will automatically use the more ",
         "\nefficient implementation (no further action necessary).",
         "\nThis message will be shown once per session"
       )
-      options(Seurat.limma.wilcox.msg = FALSE)
+      options(Seurat.presto.wilcox.msg = FALSE)
     }
-    data.use <- data.use[, rownames(x = group.info), drop = FALSE]
-    p_val <- my.sapply(
-      X = 1:nrow(x = data.use),
-      FUN = function(x) {
-        return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+    if (limma.check[1] && overflow.check) {
+      p_val <- my.sapply(
+        X = 1:nrow(x = data.use),
+        FUN = function(x) {
+          return(min(2 * min(limma::rankSumTestWithCorrelation(index = j, statistics = data.use[x, ])), 1))
+        }
+      )
+    } else {
+      if (limma && overflow.check) {
+        stop(
+          "To use the limma implementation of the Wilcoxon Rank Sum Test,
+        please install the limma package:
+        --------------------------------------------
+        install.packages('BiocManager')
+        BiocManager::install('limma')
+        --------------------------------------------"
+        )
+      } else {
+        data.use <- data.use[, rownames(x = group.info), drop = FALSE]
+        p_val <- my.sapply(
+          X = 1:nrow(x = data.use),
+          FUN = function(x) {
+            return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+          }
+        )
       }
-    )
+    }
   }
   return(data.frame(p_val, row.names = rownames(x = data.use)))
 }

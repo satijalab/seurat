@@ -572,21 +572,21 @@ DietSeurat <- function(
         abort(message = "Cannot remove both 'counts' and 'data' from v3 Assays")
       }
       for (lyr in layers.rm) {
-        object <- tryCatch(expr = {
+        suppressWarnings(object <- tryCatch(expr = {
           object[[assay]][[lyr]] <- NULL
           object
         }, error = function(e) {
           if (lyr == "data"){
             object[[assay]][[lyr]] <- sparseMatrix(i = 1, j = 1, x = 1,
-                         dims = dim(object[[assay]][[lyr]]), 
+                         dims = dim(object[[assay]][[lyr]]),
                          dimnames = dimnames(object[[assay]][[lyr]]))
           } else{
             slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
           }
-          message("Converting layer ", lyr, " in assay ", 
+          message("Converting layer ", lyr, " in assay ",
                   assay, " to empty dgCMatrix")
           object
-        })
+        }))
       }
     }
     if (!is.null(x = features)) {
@@ -603,7 +603,7 @@ DietSeurat <- function(
         object[[assay]] <- NULL
         next
       }
-      object[[assay]] <- subset(x = object[[assay]], features = features.assay)
+      suppressWarnings(object[[assay]] <- subset(x = object[[assay]], features = features.assay))
     }
   }
   # remove misc when desired
@@ -1286,6 +1286,7 @@ as.Seurat.SingleCellExperiment <- function(
 #' @concept objects
 #' @export
 #' @method as.SingleCellExperiment Seurat
+#' @importFrom SeuratObject .FilterObjects
 #'
 as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   CheckDots(...)
@@ -1348,7 +1349,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       )
     }
   }
-  for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
+  for (dr in .FilterObjects(object = x, classes.keep = "DimReduc")) {
     assay.used <- DefaultAssay(object = x[[dr]])
     swap.exp <- assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name
     if (swap.exp) {
@@ -1672,6 +1673,7 @@ GetTissueCoordinates.VisiumV1 <- function(
 #' Get variable feature information from \code{\link{SCTAssay}} objects
 #'
 #' @inheritParams SeuratObject::HVFInfo
+#' @param method method to determine variable features
 #'
 #' @export
 #' @method HVFInfo SCTAssay
@@ -1935,7 +1937,7 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
 #' @method VariableFeatures SCTModel
 #' @export
 #'
-VariableFeatures.SCTModel <- function(object, selection.method = NULL, nfeatures = 3000, ...) {
+VariableFeatures.SCTModel <- function(object, method = NULL, nfeatures = 3000, ...) {
   if (!is_scalar_integerish(x = nfeatures) || (!is_na(x = nfeatures < 1L) && nfeatures < 1L)) {
     abort(message = "'nfeatures' must be a single positive integer")
   }
@@ -1955,7 +1957,7 @@ VariableFeatures.SCTModel <- function(object, selection.method = NULL, nfeatures
 #'
 VariableFeatures.SCTAssay <- function(
   object,
-  selection.method = NULL,
+  method = NULL,
   layer = NULL,
   nfeatures = NULL,
   simplify = TRUE,
@@ -3126,6 +3128,7 @@ UpdateKey <- function(key) {
 #
 # @return \code{object} with the latest slot definitions
 #
+#' @importFrom rlang exec !!!
 UpdateSlots <- function(object) {
   object.list <- sapply(
     X = slotNames(x = object),
@@ -3142,9 +3145,9 @@ UpdateSlots <- function(object) {
   )
   object.list <- Filter(f = Negate(f = is.null), x = object.list)
   object.list <- c('Class' = class(x = object)[1], object.list)
-  object <- rlang::invoke(
+  object <- exec(
      .fn = new,
-     .args  = object.list
+      !!! object.list
    )
   for (x in setdiff(x = slotNames(x = object), y = names(x = object.list))) {
     xobj <- slot(object = object, name = x)

@@ -68,15 +68,18 @@ RunTSNE(object, ...)
 \item{tsne.method}{Select the method to use to compute the tSNE. Available
 methods are:
 \itemize{
-\item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
-\item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
-Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
+  \item \dQuote{\code{Rtsne}}: Use the Rtsne package Barnes-Hut
+    implementation of tSNE (default)
+  \item \dQuote{\code{FIt-SNE}}: Use the FFT-accelerated Interpolation-based
+    t-SNE. Based on Kluger Lab code found here:
+    \url{https://github.com/KlugerLab/FIt-SNE}
 }}
 
 \item{dim.embed}{The dimensional space of the resulting tSNE embedding
 (default is 2). For example, set to 3 for a 3d tSNE}
 
-\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default}
+\item{reduction.key}{dimensional reduction key, specifies the string before
+the number for the dimension names. \dQuote{\code{tSNE_}} by default}
 
 \item{cells}{Which cells to analyze (default, all cells)}
 

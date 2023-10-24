@@ -8,7 +8,6 @@ IntegrateLayers(
   object,
   method,
   orig.reduction = "pca",
-  group.by = NULL,
   assay = NULL,
   features = NULL,
   layers = NULL,
@@ -22,9 +21,6 @@ IntegrateLayers(
 \item{method}{Integration method function}
 
 \item{orig.reduction}{Name of dimensional reduction for correction}
-
-\item{group.by}{Name of meta data to group cells by; defaults to splits
-assay layers}
 
 \item{assay}{Name of assay for integration}
 
@@ -45,7 +41,7 @@ Integrate Layers
 \section{Integration Method Functions}{
 
 The following integration method functions are available:
-\Sexpr[stage=render,results=rd]{Seurat::.rd_methods("integration")}
+\Sexpr[stage=render,results=rd]{Seurat:::.rd_methods("integration")}
 }
 
 \seealso{

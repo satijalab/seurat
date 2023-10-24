@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 4.9.9.9065
-Date: 2023-09-27
+Version: 5.0.0
+Date: 2023-10-23
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 Authors@R: c(
@@ -8,16 +8,19 @@ Authors@R: c(
   person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
   person(given = "Charlotte", family = "Darby", email = "cdarby@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0003-2195-5300")),
   person(given = "Jeff", family = "Farrell", email = "jfarrell@g.harvard.edu", role = "ctb"),
+  person(given = "Isabella", family = "Grabski", email = "igrabski@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-0616-5469")),
   person(given = "Christoph", family = "Hafemeister", email = "chafemeister@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6365-8254")),
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
   person(given = "Austin", family = "Hartman", email = "ahartman@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-7278-1852")),
-  person(given = "Paul", family = "Hoffman", email = "seurat@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7693-8957")),
+  person(given = "Paul", family = "Hoffman", email = "hoff0792@umn.edu", role = "ctb", comment = c(ORCID = "0000-0002-7693-8957")),
   person(given = "Jaison", family = "Jain", email = "jjain@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-9478-5018")),
+  person(given = "Longda", family = "Jiang", email = "ljiang@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0003-4964-6497")),
   person(given = "Madeline", family = "Kowalski", email = "mkowalski@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-5655-7620")),
+  person(given = "Skylar", family = "Li", email = "sli@nygenome.org", role = "ctb"),
   person(given = "Gesmira", family = "Molla", email = 'gmolla@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0002-8628-5056')),
   person(given = "Efthymia", family = "Papalexi", email = "epapalexi@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5898-694X")),
   person(given = "Patrick", family = "Roelli", email = "proelli@nygenome.org", role = "ctb"),
-  person(given = "Rahul", family = "Satija", email = "rsatija@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-9448-8833")),
+  person(given = "Rahul", family = "Satija", email = "seurat@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-9448-8833")),
   person(given = "Karthik", family = "Shekhar", email = "kshekhar@berkeley.edu", role = "ctb"),
   person(given = "Avi", family = "Srivastava", email = "asrivastava@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-9798-2079")),
   person(given = "Tim", family = "Stuart", email = "tstuart@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-3044-0897")),
@@ -27,13 +30,11 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Remotes: 
-    bnprks/BPCells,
-    mojaveazure/seurat-object@seurat5
+Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-universe.dev
 Depends:
     R (>= 4.0.0),
     methods,
-    SeuratObject (>= 4.9.9.9091)
+    SeuratObject (>= 5.0.0)
 Imports:
     cluster,
     cowplot,
@@ -66,6 +67,7 @@ Imports:
     plotly (>= 4.9.0),
     png,
     progressr,
+    purrr,
     RANN,
     RColorBrewer,
     Rcpp (>= 1.0.7),
@@ -77,8 +79,8 @@ Imports:
     RSpectra,
     Rtsne,
     scales,
-    scattermore (>= 0.7),
-    sctransform (>= 0.4.0),
+    scattermore (>= 1.2),
+    sctransform (>= 0.4.1),
     shiny,
     spatstat.explore,
     spatstat.geom,
@@ -86,8 +88,7 @@ Imports:
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.10),
-    BPCells (>= 0.0.0.9000)
+    uwot (>= 0.1.10)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: MIT + file LICENSE
 LazyData: true
@@ -116,6 +117,7 @@ RoxygenNote: 7.2.3
 Encoding: UTF-8
 Suggests:
     ape,
+    BPCells,
     rsvd,
     testthat,
     hdf5r,

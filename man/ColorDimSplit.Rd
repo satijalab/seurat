@@ -63,7 +63,8 @@ will also resize to the size(s) passed to \code{sizes.highlight}}
     \item{\code{cols.highlight}}{A vector of colors to highlight the cells as; will
 repeat to the length groups in cells.highlight}
     \item{\code{sizes.highlight}}{Size of highlighted cells; will repeat to the length
-groups in cells.highlight}
+groups in cells.highlight.  If \code{sizes.highlight = TRUE} size of all
+points will be this value.}
     \item{\code{na.value}}{Color value for NA points when using custom scale}
     \item{\code{ncol}}{Number of columns for display when combining plots}
     \item{\code{combine}}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}

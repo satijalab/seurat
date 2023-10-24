@@ -101,7 +101,8 @@ will also resize to the size(s) passed to \code{sizes.highlight}}
 repeat to the length groups in cells.highlight}
 
 \item{sizes.highlight}{Size of highlighted cells; will repeat to the length
-groups in cells.highlight}
+groups in cells.highlight.  If \code{sizes.highlight = TRUE} size of all
+points will be this value.}
 
 \item{na.value}{Color value for NA points when using custom scale}
 

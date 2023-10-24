@@ -27,7 +27,7 @@ SketchData(
 
 \item{sketched.assay}{Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.}
 
-\item{method}{Sketching method to use. Can be 'LeverageScore' or 'Uniform'. 
+\item{method}{Sketching method to use. Can be 'LeverageScore' or 'Uniform'.
 Default is 'LeverageScore'.}
 
 \item{var.name}{A metadata column name to store the leverage scores. Default is 'leverage.score'.}
@@ -46,6 +46,6 @@ Default is 'LeverageScore'.}
 A Seurat object with the sketched data added as a new assay.
 }
 \description{
-This function uses sketching methods to downsample high-dimensional single-cell RNA expression data, 
+This function uses sketching methods to downsample high-dimensional single-cell RNA expression data,
 which can help with scalability for large datasets.
 }

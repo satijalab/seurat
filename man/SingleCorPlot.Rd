@@ -31,6 +31,9 @@ SingleCorPlot(
 
 \item{smooth}{Make a smoothed scatter plot}
 
+\item{rows.highlight}{A vector of rows to highlight (like cells.highlight in
+\code{\link{SingleDimPlot}})}
+
 \item{legend.title}{Optional legend title}
 
 \item{raster}{Convert points to raster format, default is \code{NULL}
@@ -43,9 +46,6 @@ Default is c(512, 512)}
 \item{plot.cor}{...}
 
 \item{jitter}{Jitter for easier visualization of crowded points}
-
-\item{rows.highight}{A vector of rows to highlight (like cells.highlight in
-\code{\link{SingleDimPlot}})}
 }
 \value{
 A ggplot2 object

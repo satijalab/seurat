@@ -249,11 +249,13 @@ HTODemux <- function(
   )
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  average.expression <- AverageExpression(
-    object = object,
-    assays = assay,
-    verbose = FALSE
-  )[[assay]]
+  average.expression <- suppressWarnings(
+    AverageExpression(
+      object = object,
+      assays = assay,
+      verbose = FALSE
+    )[[assay]]
+  )
   #checking for any cluster with all zero counts for any barcode
   if (sum(average.expression == 0) > 0) {
     stop("Cells with zero counts exist as a cluster.")
@@ -501,12 +503,14 @@ GetResidual <- function(
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
+#' @param image Name of image to pull the coordinates from
 #'
 #' @return A \code{Seurat} object
 #'
 #' @importFrom png readPNG
 #' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
+#' @importFrom purrr imap
 #'
 #' @export
 #' @concept preprocessing
@@ -535,9 +539,10 @@ Load10X_Spatial <- function(
   }
   data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
-    for(i in seq_along(data)) {
-      rownames(data[[i]]) <- toupper(rownames(data[[i]]))
-    }
+    data <- imap(data, ~{
+      rownames(.x) <- toupper(x = rownames(.x))
+      .x
+    })
   }
   if (is.list(data) & "Antibody Capture" %in% names(data)) {
     matrix_gex <- data$`Gene Expression`
@@ -1167,7 +1172,7 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
     Class = 'VisiumV1',
     image = image,
     scale.factors = scalefactors(
-      spot = scale.factors$tissue_hires_scalef,
+      spot = scale.factors$spot_diameter_fullres,
       fiducial = scale.factors$fiducial_diameter_fullres,
       hires = scale.factors$tissue_hires_scalef,
       scale.factors$tissue_lowres_scalef
@@ -1983,7 +1988,7 @@ ReadNanostring <- function(
           tx <- subset(tx, select = -c(fov, cell_ID))
         }
 
-        tx <- as.data.frame(t(x = as.matrix(x = tx[, -1, drop = FALSE])))
+        tx <- as.data.frame(t(x = as.matrix(x = tx)))
         if (!is.na(x = genes.filter)) {
           ptx(
             message = paste("Filtering genes with pattern", genes.filter),
@@ -3252,7 +3257,7 @@ SCTransform.default <- function(
   vst.args[['vst.flavor']] <- vst.flavor
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
-  vst.args[['verbosity']] <- as.numeric(x = verbose) * 2
+  vst.args[['verbosity']] <- as.numeric(x = verbose) * 1
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
@@ -3392,7 +3397,7 @@ SCTransform.default <- function(
         vst.out$umi_corrected <- correct_counts(
           x = vst.out,
           umi = umi,
-          verbosity = as.numeric(x = verbose) * 2
+          verbosity = as.numeric(x = verbose) * 1
         )
       }
       vst.out
@@ -3635,19 +3640,21 @@ SubsetByBarcodeInflections <- function(object) {
 
 #' @param selection.method How to choose top variable features. Choose one of :
 #' \itemize{
-#'   \item{vst:}{ First, fits a line to the relationship of log(variance) and
-#'   log(mean) using local polynomial regression (loess). Then standardizes the
-#'   feature values using the observed mean and expected variance (given by the
-#'   fitted line). Feature variance is then calculated on the standardized values
-#'   after clipping to a maximum (see clip.max parameter).}
-#'   \item{mean.var.plot (mvp):}{ First, uses a function to calculate average
-#'   expression (mean.function) and dispersion (dispersion.function) for each
-#'   feature. Next, divides features into num.bin (deafult 20) bins based on
-#'   their average expression, and calculates z-scores for dispersion within
-#'   each bin. The purpose of this is to identify variable features while
-#'   controlling for the strong relationship between variability and average
-#'   expression.}
-#'   \item{dispersion (disp):}{ selects the genes with the highest dispersion values}
+#'   \item \dQuote{\code{vst}}:  First, fits a line to the relationship of
+#'     log(variance) and log(mean) using local polynomial regression (loess).
+#'     Then standardizes the feature values using the observed mean and
+#'     expected variance (given by the fitted line). Feature variance is then
+#'     calculated on the standardized values
+#'     after clipping to a maximum (see clip.max parameter).
+#'   \item \dQuote{\code{mean.var.plot}} (mvp): First, uses a function to
+#'     calculate average expression (mean.function) and dispersion
+#'     (dispersion.function) for each feature. Next, divides features into
+#'     \code{num.bin} (deafult 20) bins based on their average expression,
+#'     and calculates z-scores for dispersion within each bin. The purpose of
+#'     this is to identify variable features while controlling for the
+#'     strong relationship between variability and average expression
+#'   \item \dQuote{\code{dispersion}} (disp): selects the genes with the
+#'     highest dispersion values
 #' }
 #' @param loess.span (vst method) Loess span parameter used when fitting the
 #' variance-mean relationship
@@ -3663,10 +3670,12 @@ SubsetByBarcodeInflections <- function(object) {
 #' @param binning.method Specifies how the bins should be computed. Available
 #' methods are:
 #' \itemize{
-#'   \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
-#'   \item{equal_frequency:}{ each bin contains an equal number of features (can
-#'   increase statistical power to detect overdispersed features at high
-#'   expression values, at the cost of reduced resolution along the x-axis)}
+#'   \item \dQuote{\code{equal_width}}: each bin is of equal width along the
+#'     x-axis (default)
+#'   \item \dQuote{\code{equal_frequency}}: each bin contains an equal number
+#'     of features (can increase statistical power to detect overdispersed
+#'     eatures at high expression values, at the cost of reduced resolution
+#'     along the x-axis)
 #' }
 #' @param verbose show progress bar for calculations
 #'
@@ -3814,7 +3823,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose,
     ...
   )
-  object[names(x = hvf.info)] <- hvf.info
+  object[[names(x = hvf.info)]] <- hvf.info
   hvf.info <- hvf.info[which(x = hvf.info[, 1, drop = TRUE] != 0), ]
   if (selection.method == "vst") {
     hvf.info <- hvf.info[order(hvf.info$vst.variance.standardized, decreasing = TRUE), , drop = FALSE]
@@ -3845,7 +3854,7 @@ FindVariableFeatures.Assay <- function(
     no = 'mvp'
   )
   vf.name <- paste0(vf.name, '.variable')
-  object[vf.name] <- rownames(x = object[]) %in% top.features
+  object[[vf.name]] <- rownames(x = object[[]]) %in% top.features
   return(object)
 }
 
@@ -4048,7 +4057,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   svf.info[[var.name]] <- FALSE
   svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
   svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
-  object[names(x = svf.info)] <- svf.info
+  object[[names(x = svf.info)]] <- svf.info
   return(object)
 }
 
@@ -4148,13 +4157,14 @@ LogNormalize.V3Matrix <- function(
 #'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
-#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
-#'   counts for that cell and multiplied by the scale.factor. This is then
-#'   natural-log transformed using log1p.}
-#'   \item{CLR: }{Applies a centered log ratio transformation}
-#'   \item{RC: }{Relative counts. Feature counts for each cell are divided by the total
-#'   counts for that cell and multiplied by the scale.factor. No log-transformation is applied.
-#'   For counts per million (CPM) set \code{scale.factor = 1e6}}
+#'   \item \dQuote{\code{LogNormalize}}: Feature counts for each cell are
+#'    divided by the total counts for that cell and multiplied by the
+#'    \code{scale.factor}. This is then natural-log transformed using \code{log1p}
+#'   \item \dQuote{\code{CLR}}: Applies a centered log ratio transformation
+#'   \item \dQuote{\code{RC}}: Relative counts. Feature counts for each cell
+#'    are divided by the total counts for that cell and multiplied by the
+#'    \code{scale.factor}. No log-transformation is applied. For counts per
+#'    million (CPM) set \code{scale.factor = 1e6}
 #' }
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param margin If performing CLR normalization, normalize across features (1) or cells (2)

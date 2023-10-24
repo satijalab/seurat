@@ -251,12 +251,12 @@ DoHeatmap <- function(
   group.bar.height = 0.02,
   combine = TRUE
 ) {
-  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
+  cells <- cells %||% colnames(x = object[[assay]])
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
   }
-  assay <- assay %||% DefaultAssay(object = object)
-  DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
   features <- rev(x = unique(x = features))
   disp.max <- disp.max %||% ifelse(
@@ -621,7 +621,7 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = deprecated(),
-  layer = 'data',
+  layer = NULL,
   split.plot = FALSE,
   stack = FALSE,
   combine = TRUE,
@@ -637,6 +637,29 @@ VlnPlot <- function(
       with = 'VlnPlot(layer = )'
     )
     layer <- slot %||% layer
+  }
+  layer.set <- suppressWarnings(
+    Layers(
+      object = object,
+      search = layer %||% 'data'
+    )
+  )
+  if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
+    warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
+  }
+  assay.name <- DefaultAssay(object)
+  if (is.null(layer.set) & is.null(layer) ) {
+    warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.',
+            call. = FALSE, immediate. = TRUE)
+    layer.set <- Layers(
+      object = object,
+      search = 'counts'
+    )
+  }
+  if (is.null(layer.set)) {
+    stop('layer "', layer,'" is not found in assay: "', assay.name, '"')
+  } else {
+    layer <- layer.set
   }
   if (
     !is.null(x = split.by) &
@@ -800,7 +823,8 @@ ColorDimSplit <- function(
 #' @param cols.highlight A vector of colors to highlight the cells as; will
 #' repeat to the length groups in cells.highlight
 #' @param sizes.highlight Size of highlighted cells; will repeat to the length
-#' groups in cells.highlight
+#' groups in cells.highlight.  If \code{sizes.highlight = TRUE} size of all
+#' points will be this value.
 #' @param na.value Color value for NA points when using custom scale
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
@@ -971,10 +995,11 @@ DimPlot <- function(
 #' cells expressing given feature are getting buried.
 #' @param features Vector of features to plot. Features can come from:
 #' \itemize{
-#'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
-#'     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
-#'     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
-#'     (e.g. the PC 1 scores - "PC_1")
+#'   \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
+#'   \item A column name from meta.data (e.g. mitochondrial percentage -
+#'     "percent.mito")
+#'   \item A column name from a \code{DimReduc} object corresponding to the
+#'     cell embedding values (e.g. the PC 1 scores - "PC_1")
 #' }
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
@@ -991,9 +1016,16 @@ DimPlot <- function(
 #'  to split by cell identity'
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
 #' \itemize{
-#'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
-#'   \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest overall expression.}
-#'   \item{NULL (no scaling):}{ Each individual plot is scaled to the maximum expression value of the feature in the condition provided to 'split.by'. Be aware setting NULL will result in color scales that are not comparable between plots.}
+#'   \item \dQuote{feature} (default; by row/feature scaling): The plots for
+#'     each individual feature are scaled to the maximum expression of the
+#'     feature across the conditions provided to \code{split.by}
+#'   \item \dQuote{all} (universal scaling): The plots for all features and
+#'     conditions are scaled to the maximum expression value for the feature
+#'     with the highest overall expression
+#'   \item \code{all} (no scaling): Each individual plot is scaled to the
+#'     maximum expression value of the feature in the condition provided to
+#'     \code{split.by}. Be aware setting \code{NULL} will result in color
+#'     scales that are not comparable between plots
 #' }
 #' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
@@ -1942,6 +1974,7 @@ CellScatter <- function(
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' @param plot.cor Display correlation in plot title
+#' @param ncol Number of columns if plotting multiple plots
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
@@ -2094,7 +2127,7 @@ VariableFeaturePlot <- function(
   hvf.info <- HVFInfo(
     object = object,
     assay = assay,
-    selection.method = selection.method,
+    method = selection.method,
     status = TRUE
   )
   status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]
@@ -2337,6 +2370,7 @@ PolyFeaturePlot <- function(
 #' \code{patchwork} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
+#' @param flip_xy Flag to flip X and Y axes. Default is FALSE.
 #'
 #' @return If \code{combine = TRUE}, a \code{patchwork}
 #' ggplot object; otherwise, a list of ggplot objects
@@ -2373,7 +2407,8 @@ ImageDimPlot <- function(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE
+  coord.fixed = TRUE,
+  flip_xy = TRUE
 ) {
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
@@ -2537,6 +2572,10 @@ ImageDimPlot <- function(
       }
       if (isTRUE(coord.fixed)) {
         p <- p + coord_fixed()
+      }
+      if(!isTRUE(flip_xy) && isTRUE(coord.fixed)){
+        xy_ratio = (max(pdata[[i]]$x) - min(pdata[[i]]$x)) / (max(pdata[[i]]$y) - min(pdata[[i]]$y))
+        p = p + coord_flip() + theme(aspect.ratio = 1/xy_ratio)
       }
       plots[[idx]] <- p
       idx <- idx + 1L
@@ -2833,9 +2872,18 @@ ImageFeaturePlot <- function(
   names(x = pdata) <- pnames
   for (i in names(x = pdata)) {
     ul <- unlist(x = strsplit(x = i, split = '_'))
-    img <- paste(ul[1:length(ul)-1], collapse = '_')
+    # img <- paste(ul[1:length(ul)-1], collapse = '_')
     # Apply overlap
-    lyr <- ul[length(ul)]
+    # lyr <- ul[length(ul)]
+    if(length(ul) > 1) {
+         img <- paste(ul[1:length(ul)-1], collapse = '_')
+         lyr <- ul[length(ul)]
+    } else if (length(ul) == 1) {
+         img <- ul[1]
+         lyr <- "centroids"
+    } else {
+         stop("the length of ul is 0. please check.")
+    }
     if (is.na(x = lyr)) {
       lyr <- boundaries[[img]]
     }
@@ -3795,9 +3843,16 @@ ISpatialFeaturePlot <- function(
 #' data, or scale.data)
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
 #' \itemize{
-#'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
-#'   \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest overall expression.}
-#'   \item{NULL (no scaling):}{ Each individual plot is scaled to the maximum expression value of the feature in the condition provided to 'split.by'. Be aware setting NULL will result in color scales that are not comparable between plots.}
+#'   \item \dQuote{feature} (default; by row/feature scaling): The plots for
+#'     each individual feature are scaled to the maximum expression of the
+#'     feature across the conditions provided to \code{split.by}
+#'   \item \dQuote{all} (universal scaling): The plots for all features and
+#'     conditions are scaled to the maximum expression value for the feature
+#'     with the highest overall expression
+#'   \item \code{NULL} (no scaling): Each individual plot is scaled to the
+#'     maximum expression value of the feature in the condition provided to
+#'     \code{split.by}; be aware setting \code{NULL} will result in color
+#'     scales that are not comparable between plots
 #' }
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff
 #' values for each feature, may specify quantile in the form of 'q##' where '##'
@@ -4065,7 +4120,7 @@ SpatialPlot <- function(
       }
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], "factor")) {
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], what = "factor") ) {
         max.feature.value <- max(data[, features[j]])
       }
 
@@ -4364,8 +4419,7 @@ DotPlot <- function(
     features <- unlist(x = features)
     names(x = feature.groups) <- features
   }
-  cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
-
+  cells <- unlist(x = CellsByIdentities(object = object, cells = colnames(object[[assay]]), idents = idents))
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -4945,7 +4999,7 @@ AutoPointSize <- function(data, raster = NULL) {
 #' hexadecimal codes
 #' @param threshold Intensity threshold for light/dark cutoff; intensities
 #' greater than \code{theshold} yield \code{dark}, others yield \code{light}
-#' @param w3c Use \href{http://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
+#' @param w3c Use \href{https://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
 #' background text color; ignores \code{threshold}
 #' @param dark Color for dark text
 #' @param light Color for light text
@@ -6770,7 +6824,8 @@ ExIPlot <- function(
     if (length(x = obj) == 1) {
       if (inherits(x = object[[obj]], what = 'DimReduc')) {
         plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
-      } else if (inherits(x = object[[obj]], what = 'Assay')) {
+      } else if (inherits(x = object[[obj]], what = 'Assay') ||
+                 inherits(x = object[[obj]], what = 'Assay5')) {
         next
       } else {
         warning("Unknown object type ", class(x = object), immediate. = TRUE, call. = FALSE)
@@ -7775,6 +7830,8 @@ ScaleColumn <- function(vec, cutoffs) {
 # @param cols.highlight Colors to highlight cells as
 # @param col.base Base color to use for unselected cells
 # @param pt.size Size of unselected cells
+# @param raster Convert points to raster format, default is \code{NULL} which
+# automatically rasterizes if plotting more than 100,000 cells
 #
 # @return A list will cell highlight information
 # \describe{
@@ -7790,7 +7847,8 @@ SetHighlight <- function(
   sizes.highlight,
   cols.highlight,
   col.base = 'black',
-  pt.size = 1
+  pt.size = 1,
+  raster = NULL
 ) {
   if (is.character(x = cells.highlight)) {
     cells.highlight <- list(cells.highlight)
@@ -7834,6 +7892,12 @@ SetHighlight <- function(
       size[index.check] <- sizes.highlight[i]
     }
   }
+
+  # Check for raster
+  if (isTRUE(x = raster)) {
+    size <- size[1]
+  }
+
   plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
   plot.order[is.na(x = plot.order)] <- 'Unselected'
   highlight[is.na(x = highlight)] <- 'Unselected'
@@ -7871,7 +7935,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 #' @param cols An optional vector of colors to use
 #' @param pt.size Point size for the plot
 #' @param smooth Make a smoothed scatter plot
-#' @param rows.highight A vector of rows to highlight (like cells.highlight in
+#' @param rows.highlight A vector of rows to highlight (like cells.highlight in
 #' \code{\link{SingleDimPlot}})
 #' @param legend.title Optional legend title
 #' @param raster Convert points to raster format, default is \code{NULL}
@@ -7911,7 +7975,7 @@ SingleCorPlot <- function(
   jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+  if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
@@ -7959,7 +8023,8 @@ SingleCorPlot <- function(
       sizes.highlight = pt.size,
       cols.highlight = 'red',
       col.base = 'black',
-      pt.size = pt.size
+      pt.size = pt.size,
+      raster = raster
     )
     cols <- highlight.info$color
     col.by <- factor(
@@ -8128,12 +8193,17 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+  if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
+
+  if (!is.null(x = cells.highlight) && pt.size == AutoPointSize(data = data, raster = raster) && sizes.highlight != pt.size && isTRUE(x = raster)) {
+    warning("When `raster = TRUE` highlighted and non-highlighted cells must be the same size. Plot will use the value provided to 'sizes.highlight'.")
+  }
+
   if (!is.null(x = raster.dpi)) {
     if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2)
       stop("'raster.dpi' must be a two-length numeric vector")
@@ -8160,7 +8230,8 @@ SingleDimPlot <- function(
       sizes.highlight = sizes.highlight %||% pt.size,
       cols.highlight = cols.highlight,
       col.base = cols[1] %||% '#C3C3C3',
-      pt.size = pt.size
+      pt.size = pt.size,
+      raster = raster
     )
     order <- highlight.info$plot.order
     data$highlight <- highlight.info$highlight
@@ -8326,7 +8397,7 @@ SingleExIPlot <- function(
   if (PackageCheck('ggrastr', error = FALSE)) {
     # Set rasterization to true if ggrastr is installed and
     # number of points exceeds 100,000
-    if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    if ((nrow(x = data) > 1e5) & is.null(x = raster)){
       message("Rasterizing points since number of points exceeds 100,000.",
               "\nTo disable this behavior set `raster=FALSE`")
       # change raster to TRUE

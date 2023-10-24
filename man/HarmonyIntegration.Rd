@@ -7,7 +7,6 @@
 HarmonyIntegration(
   object,
   orig,
-  groups,
   features = NULL,
   scale.layer = "scale.data",
   new.reduction = "harmony",
@@ -33,12 +32,11 @@ HarmonyIntegration(
 
 \item{orig}{A \link[SeuratObject:DimReduc]{dimensional reduction} to correct}
 
-\item{groups}{A one-column data frame with grouping information; column
-should be called \code{group}}
-
 \item{features}{Ignored}
 
 \item{scale.layer}{Ignored}
+
+\item{new.reduction}{Name of new integrated dimensional reduction}
 
 \item{layers}{Ignored}
 

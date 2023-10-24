@@ -761,7 +761,7 @@ FindTransferAnchors <- function(
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
-  k.filter = 200,
+  k.filter = NA,
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
@@ -913,6 +913,7 @@ FindTransferAnchors <- function(
         query = reference,
         scale = scale,
         dims = dims,
+        feature.mean = feature.mean,
         verbose = verbose,
         normalization.method = normalization.method
       )
@@ -960,12 +961,29 @@ FindTransferAnchors <- function(
       key = "ProjectPC_",
       assay = reference.assay
     )
-    combined.ob <- suppressWarnings(expr = merge(
-      x = DietSeurat(object = reference, counts = FALSE),
-      y = DietSeurat(object = query, counts = FALSE),
-    ))
-    combined.ob[["pcaproject"]] <- combined.pca
+    # combined.ob <- suppressWarnings(expr = merge(
+    #   x = DietSeurat(object = reference, counts = FALSE),
+    #   y = DietSeurat(object = query, counts = FALSE),
+    # ))
+    ref.diet <- DietSeurat(object = reference, counts = FALSE)
+    query.diet <- DietSeurat(object = query, counts = FALSE)
+
+    counts.list <- list(reference = LayerData(ref.diet[[reference.assay]], layer = "data"))
+    query.data.list <- list()
+    for (i in Layers(object = query.diet[[reference.assay]], search = "data")) {
+      data.layer.name <- gsub(pattern = "data.", replacement = "", x = i)
+      counts.list[[data.layer.name]] <- LayerData(object = query[[reference.assay]], layer = i)
+    }
+    combined.ob <- CreateSeuratObject(counts = counts.list, assay = reference.assay)
+    for (i in Layers(object = combined.ob[[reference.assay]], search = "counts")){
+      data.layer.name <- gsub(pattern = "counts.", replacement = "data.", x = i) # replace counts. to data.
+      layer.data <- LayerData(object = combined.ob, layer = i)
+      LayerData(object = combined.ob, layer = data.layer.name) <- layer.data # set layer data
+    }
     colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
+    
+    combined.ob[["pcaproject"]] <- combined.pca
+    Loadings(object = combined.ob[["pcaproject"]], projected = FALSE) <- orig.loadings[, dims]
     Loadings(object = combined.ob[["pcaproject"]]) <- orig.loadings[, dims]
   }
   # Use reciprocal PCA projection in anchor finding
@@ -1742,6 +1760,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
 }
 #' @param reference Reference object used in anchorset construction
 #' @param query Query object used in anchorset construction
+#' @param query.assay Name of the Assay to use from query
 #' @param reuse.weights.matrix Can be used in conjunction with the store.weights
 #' parameter in TransferData to reuse a precomputed weights matrix.
 #'
@@ -1754,6 +1773,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   anchorset,
   reference,
   query,
+  query.assay = NULL,
   new.reduction.name = "integrated_dr",
   reductions = 'pcaproject',
   dims.to.integrate = NULL,
@@ -1769,11 +1789,13 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   combined.object <- slot(object = anchorset, name = 'object.list')[[1]]
   anchors <- slot(object = anchorset, name = 'anchors')
   weights.matrix <- NULL
+  query.assay <- query.assay %||% DefaultAssay(query)
   ValidateParams_IntegrateEmbeddings_TransferAnchors(
     anchorset = anchorset,
     combined.object = combined.object,
     reference = reference,
     query = query,
+    query.assay = query.assay,
     reductions = reductions,
     dims.to.integrate = dims.to.integrate,
     k.weight = k.weight,
@@ -1826,7 +1848,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   )
   integrated.embeddings <- as.matrix(x = integrated.embeddings)
   query[[new.reduction.name]]  <- CreateDimReducObject(
-    embeddings = t(x = integrated.embeddings[, Cells(x = query)]),
+    embeddings = t(x = integrated.embeddings[, Cells(x = query[[query.assay]])]),
     assay = DefaultAssay(object = query[[reductions[1]]]),
     key = paste0(new.reduction.name.safe, "_")
   )
@@ -1868,7 +1890,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' @param reduction.key Key for new dimensional reduction; defaults to creating
 #' one from \code{reduction.name}
 #' @param layers Names of layers for correction.
-#' @param sketched.layers Names of sketched layers, defaults to all 
+#' @param sketched.layers Names of sketched layers, defaults to all
 #' layers of \dQuote{\code{object[[assay]]}}
 #' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and message
@@ -2165,7 +2187,7 @@ LocalStruct <- function(
 #'   reference UMAP using \code{\link{ProjectUMAP}}}
 #' }
 #'
-#' @importFrom rlang invoke
+#' @importFrom rlang exec
 #'
 #' @export
 #' @concept integration
@@ -2285,36 +2307,26 @@ MapQuery <- function(
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
-  query <- invoke(
-    .fn = TransferData,
-    .args  = c(list(
-      anchorset = anchorset,
-      reference = reference,
-      query = query,
-      refdata = refdata,
-      store.weights = TRUE,
-      only.weights =  is.null(x = refdata),
-      verbose = verbose
-    ), transferdata.args
-    )
-  )
+  td.allarguments <- c(list(anchorset = anchorset,
+                          reference = reference, query = query, refdata = refdata,
+                          store.weights = TRUE, only.weights = is.null(x = refdata),
+                          verbose = verbose), transferdata.args)
+  query <- exec("TransferData",!!!td.allarguments)
   if (inherits(x = transferdata.args$weight.reduction , "character") &&
       transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
     reuse.weights.matrix <- TRUE
   }
   if (anchor.reduction != "cca") {
-    query <- invoke(
-      .fn = IntegrateEmbeddings,
-      .args  = c(list(
-        anchorset = anchorset,
-        reference = reference,
-        query = query,
-        new.reduction.name = new.reduction.name,
-        reuse.weights.matrix = reuse.weights.matrix,
-        verbose = verbose
+    ie.allarguments <- c(list(
+      anchorset = anchorset,
+      reference = reference,
+      query = query,
+      new.reduction.name = new.reduction.name,
+      reuse.weights.matrix = reuse.weights.matrix,
+      verbose = verbose
       ), integrateembeddings.args
-      )
     )
+    query <- exec("IntegrateEmbeddings",!!!ie.allarguments)
     Misc(
       object = query[[new.reduction.name]],
       slot = 'ref.dims'
@@ -2340,20 +2352,18 @@ MapQuery <- function(
       query.dims <- reference.dims
     }
     ref_nn.num <- Misc(object = reference[[reduction.model]], slot = "model")$n_neighbors
-    query <- invoke(
-      .fn = ProjectUMAP,
-      .args  = c(list(
-        query = query,
-        query.reduction = new.reduction.name,
-        query.dims = query.dims,
-        reference = reference,
-        reference.dims = reference.dims,
-        reference.reduction = reference.reduction,
-        reduction.model = reduction.model,
-        k.param = ref_nn.num
-        ), projectumap.args
-      )
+    pu.allarguments <- c(list(
+      query = query,
+      query.reduction = new.reduction.name,
+      query.dims = query.dims,
+      reference = reference,
+      reference.dims = reference.dims,
+      reference.reduction = reference.reduction,
+      reduction.model = reduction.model,
+      k.param = ref_nn.num
+      ), projectumap.args
     )
+    query <- exec("ProjectUMAP",!!!pu.allarguments)
   }
   return(query)
 }
@@ -3028,7 +3038,7 @@ SelectIntegrationFeatures <- function(
 }
 
 #' Select integration features
-#' 
+#'
 #' @param object Seurat object
 #' @param nfeatures Number of features to return for integration
 #' @param assay Name of assay to use for integration feature selection
@@ -3044,7 +3054,7 @@ SelectIntegrationFeatures <- function(
 #' @param layers Name of layers to use for integration feature selection
 #' @param verbose Print messages
 #' @param ... Arguments passed on to \code{method}
-#' 
+#'
 #' @export
 #'
 SelectIntegrationFeatures5 <- function(
@@ -3070,13 +3080,13 @@ SelectIntegrationFeatures5 <- function(
 }
 
 #' Select SCT integration features
-#' 
+#'
 #' @param object Seurat object
 #' @param nfeatures Number of features to return for integration
 #' @param assay Name of assay to use for integration feature selection
 #' @param verbose Print messages
 #' @param ... Arguments passed on to \code{method}
-#' 
+#'
 #' @export
 #'
 SelectSCTIntegrationFeatures <- function(
@@ -3198,6 +3208,7 @@ SelectSCTIntegrationFeatures <- function(
 #' }
 #' @param reference Reference object from which to pull data to transfer
 #' @param query Query object into which the data will be transferred.
+#' @param query.assay Name of the Assay to use from query
 #' @param weight.reduction Dimensional reduction to use for the weighting
 #' anchors. Options are:
 #' \itemize{
@@ -3283,6 +3294,7 @@ TransferData <- function(
   refdata,
   reference = NULL,
   query = NULL,
+  query.assay = NULL,
   weight.reduction = 'pcaproject',
   l2.norm = FALSE,
   dims = NULL,
@@ -3300,6 +3312,9 @@ TransferData <- function(
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
+  if (!is.null(query)) {
+    query.assay <- query.assay %||% DefaultAssay(query)
+  }
   label.transfer <- list()
   ValidateParams_TransferData(
     anchorset = anchorset,
@@ -3310,6 +3325,7 @@ TransferData <- function(
     refdata = refdata,
     reference = reference,
     query = query,
+    query.assay = query.assay,
     weight.reduction = weight.reduction,
     l2.norm = l2.norm,
     dims = dims,
@@ -3330,6 +3346,7 @@ TransferData <- function(
 
     features <- slot(object = anchorset, name = "anchor.features")
     query.ob <- query
+    DefaultAssay(query.ob) <- query.assay
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
     query.ob <- RunPCA(object = query.ob, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query.ob[['pca']])
@@ -4223,6 +4240,9 @@ FindIntegrationMatrix <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
+  if (inherits(x = object[[assay[1]]], what = 'Assay5')) {
+    object <- JoinLayers(object)
+  }
   anchors <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -5196,10 +5216,21 @@ if (normalization.method == 'SCT') {
     nCount_UMI = nCount_UMI)
 } else {
   query <- query[features,]
-  reference.data <-  GetAssayData(
-    object = reference,
-    assay = reference.assay,
-    slot = "data")[features, ]
+  if(inherits(x = reference[[reference.assay]], what = "Assay5")){
+    reference.data.list <- c()
+    for (i in Layers(object = reference[[reference.assay]], search = "data")) {
+      reference.data.list[[i]] <- LayerData(
+        object = reference[[reference.assay]],
+        layer = i
+        )[features, ]
+    }
+    reference.data <- do.call(cbind, reference.data.list)
+  } else {
+    reference.data <- GetAssayData(
+      object = reference,
+      assay = reference.assay,
+      slot = "data")[features, ]
+  }
   if (is.null(x = feature.mean)) {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
@@ -5217,6 +5248,7 @@ if (normalization.method == 'SCT') {
         feature.sd <- sqrt(x = RowVarSparse(mat = as.sparse(reference.data)))
       }
       feature.sd[is.na(x = feature.sd)] <- 1
+      feature.sd[feature.sd==0] <- 1
     } else {
       feature.sd <- rep(x = 1, nrow(x = reference.data))
     }
@@ -5285,13 +5317,19 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       ))
   } else {
     query <- query[features,]
-    reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features, ]
+    reference.data.list <- c()
+    for (i in Layers(object = reference[[reference.assay]],
+                     search = "data")) {
+      reference.data.list[[i]] <- LayerData(object = reference[[reference.assay]],
+                                            layer = i)[features, ]
+    }
+    reference.data <- do.call(cbind, reference.data.list)
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
         feature.mean <- RowMeanSparse(mat = reference.data)
       } else if (inherits(x = reference.data, what = "IterableMatrix")) {
         bp.stats <- BPCells::matrix_stats(
-          matrix = reference.data, 
+          matrix = reference.data,
           row_stats = "variance")
         feature.mean <- bp.stats$row_stats["mean",]
       } else {
@@ -5308,6 +5346,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
           )
         }
         feature.sd[is.na(x = feature.sd)] <- 1
+        feature.sd[feature.sd==0] <- 1
       } else {
         feature.sd <- rep(x = 1, nrow(x = reference.data))
       }
@@ -5833,11 +5872,12 @@ ValidateParams_FindTransferAnchors <- function(
   if (reduction == "lsiproject") {
     ModifyParam(param = "k.filter", value = NA)
   }
-  if (inherits(x = reference[[reference.assay]], what = 'Assay5') ||
-      inherits(x = query[[query.assay]], what = 'Assay5')) {
-    # current filter anchors not support for v5 assay
-    ModifyParam(param = "k.filter", value = NA)
-  }
+  # commented out to enable filter anchors for v5 assay
+  # if (inherits(x = reference[[reference.assay]], what = 'Assay5') ||
+  #     inherits(x = query[[query.assay]], what = 'Assay5')) {
+  #   # current filter anchors not support for v5 assay
+  #   ModifyParam(param = "k.filter", value = NA)
+  # }
   if (!is.na(x = k.filter) && k.filter > ncol(x = query)) {
     warning("k.filter is larger than the number of cells present in the query.\n",
             "Continuing without anchor filtering.",
@@ -6084,6 +6124,7 @@ ValidateParams_TransferData <- function(
   query.cells,
   reference,
   query,
+  query.assay,
   refdata,
   weight.reduction,
   l2.norm,
@@ -6224,7 +6265,7 @@ ValidateParams_TransferData <- function(
   if (!is.null(x = query)) {
     if (!isTRUE(x = all.equal(
       target = gsub(pattern = "_query", replacement = "", x = query.cells),
-      current = colnames(x = query),
+      current = colnames(x = query[[query.assay]]),
       check.attributes = FALSE)
       )) {
       stop("Query object provided contains a different set of cells from the ",
@@ -6336,6 +6377,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   combined.object ,
   reference,
   query,
+  query.assay,
   reductions,
   dims.to.integrate,
   k.weight,
@@ -6356,7 +6398,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   query.cells <- slot(object = anchorset, name = "query.cells")
   query.cells <- gsub(pattern = "_query", replacement = "", x = query.cells)
-  if (!isTRUE(x = all.equal(target = query.cells, current = colnames(x = query), check.attributes = FALSE))) {
+  if (!isTRUE(x = all.equal(target = query.cells, current = colnames(x = query[[query.assay]]), check.attributes = FALSE))) {
     stop("The set of cells used as a query in the AnchorSet does not match ",
          "the set of cells provided in the query object.")
   }
@@ -6373,7 +6415,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   reference[[reductions]] <- CreateDimReducObject(embeddings = reference.embeddings, assay = DefaultAssay(object = reference))
   ModifyParam(param = "reference", value = reference)
   query <- RenameCells(object = query, new.names = paste0(Cells(x = query), "_query"))
-  query.embeddings <- Embeddings(object = combined.object[[reductions]])[Cells(x = query), ]
+  query.embeddings <- Embeddings(object = combined.object[[reductions]])[Cells(x = query[[query.assay]]), ]
   query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
   ModifyParam(param = "query", value = query)
   ModifyParam(param = "reductions", value = c(reductions, reductions))
@@ -7762,7 +7804,7 @@ FindBridgeIntegrationAnchors <- function(
 #' \code{\link{FindIntegrationAnchors}}
 #' @param verbose Print messages and progress
 #'
-#' @importFrom rlang invoke
+#' @importFrom rlang exec
 #' @return Returns a Seurat object with integrated dimensional reduction
 #' @export
 #'
@@ -7812,22 +7854,19 @@ FastRPCAIntegration <- function(
                              return(x)
                            }
   )
-
-  anchor <- invoke(
-    .fn = FindIntegrationAnchors,
-    .args = c(list(
-      object.list = object.list,
-      reference = reference,
-      anchor.features = anchor.features,
-      reduction = reduction,
-      normalization.method = normalization.method,
-      scale = scale,
-      k.anchor = k.anchor,
-      dims = dims,
-      verbose = verbose
+  fia.allarguments <- c(list(
+    object.list = object.list,
+    reference = reference,
+    anchor.features = anchor.features,
+    reduction = reduction,
+    normalization.method = normalization.method,
+    scale = scale,
+    k.anchor = k.anchor,
+    dims = dims,
+    verbose = verbose
     ), findintegrationanchors.args
-    )
   )
+  anchor <- exec("FindIntegrationAnchors",!!!fia.allarguments)
   object_merged <- merge(x = object.list[[1]],
                          y = object.list[2:length(object.list)]
 

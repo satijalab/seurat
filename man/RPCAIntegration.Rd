@@ -16,7 +16,6 @@ RPCAIntegration(
   dims = 1:30,
   k.filter = NA,
   scale.layer = "scale.data",
-  groups = NULL,
   dims.to.integrate = NULL,
   k.weight = 100,
   weight.reduction = NULL,
@@ -50,8 +49,6 @@ or SCT}
 \item{k.filter}{Number of anchors to filter}
 
 \item{scale.layer}{Name of scaled layer in \code{Assay}}
-
-\item{groups}{A one-column data frame with grouping information}
 
 \item{dims.to.integrate}{Number of dimensions to return integrated values for}
 

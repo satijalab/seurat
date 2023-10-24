@@ -11,7 +11,9 @@ AggregateExpression(
   return.seurat = FALSE,
   group.by = "ident",
   add.ident = NULL,
-  slot = "data",
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
   verbose = TRUE,
   ...
 )
@@ -25,42 +27,39 @@ AggregateExpression(
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is FALSE}
 
-\item{group.by}{Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default}
+\item{group.by}{Category (or vector of categories) for grouping (e.g, ident, replicate, celltype); 'ident' by default
+To use multiple categories, specify a vector, such as c('ident', 'replicate', 'celltype')}
 
-\item{add.ident}{(Deprecated) Place an additional label on each cell prior to pseudobulking
-(very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)}
+\item{add.ident}{(Deprecated). Place an additional label on each cell prior to pseudobulking}
 
-\item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
-the order of 'assays' (if specified) or object's assays}
+\item{normalization.method}{Method for normalization, see \code{\link{NormalizeData}}}
+
+\item{scale.factor}{Scale factor for normalization, see \code{\link{NormalizeData}}}
+
+\item{margin}{Margin to perform CLR normalization, see \code{\link{NormalizeData}}}
 
 \item{verbose}{Print messages and show progress bar}
 
-\item{...}{Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}#'}
+\item{...}{Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}}
 }
 \value{
 Returns a matrix with genes as rows, identity classes as columns.
 If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 }
 \description{
-Returns aggregated (summed) expression values for each identity class
+Returns summed counts ("pseudobulk") for each identity class.
 }
 \details{
-If slot is set to 'data', this function assumes that the data has been log
-normalized and therefore feature values are exponentiated prior to aggregating
-so that sum is done in non-log space. Otherwise, if slot is set to
-either 'counts' or 'scale.data', no exponentiation is performed prior to
-aggregating
-If \code{return.seurat = TRUE} and slot is not 'scale.data', aggregated values
-are placed in the 'counts' slot of the returned object and the log of aggregated values
-are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
+If \code{return.seurat = TRUE}, aggregated values are placed in the 'counts'
+layer of the returned object. The data is then normalized by running \code{\link{NormalizeData}}
+on the aggregated counts. \code{\link{ScaleData}} is then run on the default assay
 before returning the object.
-If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
-the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
 }
 \examples{
 \dontrun{
 data("pbmc_small")
-head(AggregateExpression(object = pbmc_small))
+head(AggregateExpression(object = pbmc_small)$RNA)
+head(AggregateExpression(object = pbmc_small, group.by = c('ident', 'groups'))$RNA)
 }
 
 }

@@ -9,16 +9,16 @@ query <- CreateSeuratObject(
   counts = as.sparse(
     GetAssayData(
       object = pbmc_small[['RNA']],
-      slot = "counts") + rpois(n = ncol(pbmc_small),
+      layer = "counts") + rpois(n = ncol(pbmc_small),
       lambda = 1
     )
   )
 )
 query2 <- CreateSeuratObject(
   counts = as.sparse(
-    GetAssayData(
+    LayerData(
       object = pbmc_small[['RNA']],
-      slot = "counts")[, 1:40] + rpois(n = ncol(pbmc_small),
+      layer = "counts")[, 1:40] + rpois(n = ncol(pbmc_small),
       lambda = 1
     )
   )
@@ -82,10 +82,10 @@ test_that("IntegrateData with two objects default work", {
   expect_equal(Tool(int2), "Integration")
   expect_equal(dim(int2[["integrated"]]), c(133, 160))
   expect_equal(length(VariableFeatures(int2)), 133)
-  expect_equal(GetAssayData(int2[["integrated"]], slot = "counts"), new("dgCMatrix"))
-  expect_equal(GetAssayData(int2[['integrated']], slot = "scale.data"), matrix())
-  expect_equal(sum(GetAssayData(int2[["integrated"]])[1, ]), 44.97355, tolerance = 1e-3)
-  expect_equal(sum(GetAssayData(int2[["integrated"]])[, 1]), 78.8965706046, tolerance = 1e-6)
+  expect_equal(GetAssayData(int2[["integrated"]], layer = "counts"), new("dgCMatrix"))
+  expect_equal(GetAssayData(int2[['integrated']], layer = "scale.data"), matrix())
+  expect_equal(sum(GetAssayData(int2[["integrated"]], layer = "data")[1, ]), 44.97355, tolerance = 1e-3)
+  expect_equal(sum(GetAssayData(int2[["integrated"]], layer = "data")[, 1]), 78.8965706046, tolerance = 1e-6)
   expect_equal(Tool(object = int2, slot = "Integration")@sample.tree, matrix(c(-1, -2), nrow  = 1))
 })
 
@@ -96,10 +96,10 @@ test_that("IntegrateData with three objects default work", {
   expect_equal(Tool(int3), "Integration")
   expect_equal(dim(int3[["integrated"]]), c(169, 200))
   expect_equal(length(VariableFeatures(int3)), 169)
-  expect_equal(GetAssayData(int3[["integrated"]], slot = "counts"), new("dgCMatrix"))
-  expect_equal(GetAssayData(int3[['integrated']], slot = "scale.data"), matrix())
-  expect_equal(sum(GetAssayData(int3[["integrated"]])[1, ]), 372.829, tolerance = 1e-6)
-  expect_equal(sum(GetAssayData(int3[["integrated"]])[, 1]), 482.5009, tolerance = 1e-6)
+  expect_equal(GetAssayData(int3[["integrated"]], layer = "counts"), new("dgCMatrix"))
+  expect_equal(GetAssayData(int3[['integrated']], layer = "scale.data"), matrix())
+  expect_equal(sum(GetAssayData(int3[["integrated"]], layer = "data")[1, ]), 372.829, tolerance = 1e-6)
+  expect_equal(sum(GetAssayData(int3[["integrated"]], layer = "data")[, 1]), 482.5009, tolerance = 1e-6)
   expect_equal(Tool(object = int3, slot = "Integration")@sample.tree, matrix(c(-2, -3, 1, -1), nrow  = 2, byrow = TRUE))
 })
 
@@ -127,19 +127,19 @@ pbmc_small <- suppressMessages(suppressWarnings(RunPCA(pbmc_small)))
 
 
 test_that("IntegrateLayers does not work on a v3 assay ", {
-  expect_error(IntegrateLayers(object = pbmc_small, method = CCAIntegration, 
-                               orig.reduction = "pca", 
+  expect_error(IntegrateLayers(object = pbmc_small, method = CCAIntegration,
+                               orig.reduction = "pca",
                                assay = "RNA",
                                new.reduction = "integrated.cca"))
 })
 
 test_that("IntegrateLayers errors out if incorrect input ", {
-  expect_error(IntegrateLayers(object = pbmc_small, method = CCAIntegration, 
-                               orig.reduction = "pca", 
+  expect_error(IntegrateLayers(object = pbmc_small, method = CCAIntegration,
+                               orig.reduction = "pca",
                                assay = "DNA",
                                new.reduction = "integrated.cca"))
-  expect_error(IntegrateLayers(object = pbmc_small, method = CCAIntegration, 
-                               orig.reduction = "lda", 
+  expect_error(IntegrateLayers(object = pbmc_small, method = CCAIntegration,
+                               orig.reduction = "lda",
                                new.reduction = "integrated.cca"))
 })
 
@@ -158,12 +158,7 @@ int_rpca <- suppressMessages(suppressWarnings(IntegrateLayers(
   k.weight=10,
   verbose = FALSE
 )))
-int_harmony <- suppressMessages(suppressWarnings(IntegrateLayers(
-  object = pbmc_small, method = HarmonyIntegration,
-  orig.reduction = "pca", new.reduction = "harmony",
-  k.weight=25,
-  verbose = FALSE
-)))
+
 # int_mnn <- suppressMessages(suppressWarnings(IntegrateLayers(
 #   object = pbmc_small, method = FastMNNIntegration,
 #   new.reduction = "integrated.mnn",
@@ -175,11 +170,24 @@ int_harmony <- suppressMessages(suppressWarnings(IntegrateLayers(
 test_that("IntegrateLayers returns embeddings with correct dimensions ", {
   expect_equal(dim(int_cca[["integrated.cca"]]), c(80, 50))
   expect_equal(dim(int_rpca[["integrated.rpca"]]), c(80, 50))
-  expect_equal(dim(int_harmony[["harmony"]]), c(80, 50))
-  
+
   int_rpca
   expect_equal(int_cca[["integrated.cca"]]@assay.used, "RNAv5")
   #expect_equal(int_cca[['integrated.cca']]@cell.embeddings, c(3, 4, 5))
+})
+
+test_that("IntegrateLayers works with harmony", {
+  skip_on_cran()
+  skip_if_not_installed("harmony")
+  int_harmony <- suppressMessages(suppressWarnings(IntegrateLayers(
+    object = pbmc_small, method = HarmonyIntegration,
+    orig.reduction = "pca", new.reduction = "harmony",
+    k.weight=25,
+    verbose = FALSE
+  )))
+  expect_equal(dim(int_harmony[["harmony"]]), c(80, 50))
+
+
 })
 
 test_that("group.by ", {
@@ -189,13 +197,13 @@ test_that("group.by ", {
 
 
 #Harmony integration
-# int_2 <- IntegrateLayers(object = pbmc_small, method = CCAIntegration, 
+# int_2 <- IntegrateLayers(object = pbmc_small, method = CCAIntegration,
 #                          group.by = "letter.idents",
-#                 orig.reduction = "pca", 
+#                 orig.reduction = "pca",
 #                 assay = "RNAv5",
 #                 k.weight = 20,
 #                 new.reduction = "integrated.cca")
-# 
+#
 # head(int_2[['integrated.cca']]@cell.embeddings[1:5,1:5])
 # head(int_cca[['integrated.cca']]@cell.embeddings[1:5,1:5])
 
