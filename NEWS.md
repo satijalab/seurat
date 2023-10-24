@@ -1,53 +1,53 @@
 # Seurat 5.0.0 (2023-10-24)
 
 ## Added
-- Added `BridgeCellsRepresentation` to construct a dictionary representation for each unimodal dataset.
-- Added `BuildNicheAssay` to construct a new assay where each feature is a cell label. The values represent the sum of a particular cell label neighboring a given cell.
-- Added `CalcDispersion` to calculate the dispersion of features.
-- Added `CCAIntegration` to perform Seurat-CCA Integration.
-- Added `CountSketch` to generate a CountSketch random matrix.
-- Added `CreateCategoryMatrix` to create a one-hot matrix for a given label.
-- Added `DISP` to find variable features based on dispersion.
-- Added `FastRPCAIntegration` as a convenience wrapper function around the following three functions that are often run together when performing integration.
-- Added `FetchResiduals_reference` as a temporary function to get residuals from the reference.
-- Added `FetchResiduals` to call sctransform::get_residuals.
-- Added `FetchResidualSCTModel` to calculate Pearson residuals of features not in the scale.data.
-- Added `FindBridgeAnchor` to find bridge anchors between two unimodal datasets.
-- Added `FindBridgeIntegrationAnchors` to find a set of anchors for integration between unimodal query and the other unimodal reference using a pre-computed BridgeReferenceSet.
-- Added `FindBridgeTransferAnchors` to find a set of anchors for label transfer between unimodal query and the other unimodal reference using a pre-computed BridgeReferenceSet.
-- Added `GaussianSketch` to perform Gaussian sketching.
-- Added `HarmonyIntegration` to perform Harmony integration.
-- Added `IntegrateLayers` to integrate layers in an assay object.
-- Added `JointPCAIntegration` to perform Seurat-Joint PCA Integration.
-- Added `LeverageScore` to compute the leverage scores for a given object.
-- Added `LoadCurioSeeker` to load Curio Seeker data.
-- Added `MVP` to find variable features based on mean.var.plot.
-- Added `NNtoGraph` to convert the Neighbor class to an asymmetrical Graph class.
-- Added `PrepareBridgeReference` to preprocess the multi-omic bridge and unimodal reference datasets into an extended reference.
-- Added `ProjectCellEmbeddings` to project query data onto the reference dimensional reduction.
-- Added `ProjectData` to project high-dimensional single-cell RNA expression data from a full dataset onto the lower-dimensional embedding of the sketch of the dataset.
-- Added `ProjectDimReduc` to project query data to reference dimensional reduction.
-- Added `ProjectIntegration` to integrate embeddings from the integrated sketched.assay.
-- Added `PseudobulkExpression` to normalize the count data present in a given assay.
-- Added `Read10X_probe_metadata` to read the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
-- Added `RPCAIntegration` to perform Seurat-RPCA Integration.
-- Added `RunGraphLaplacian` to run a graph Laplacian dimensionality reduction.
-- Added `SelectIntegrationFeatures5` to select integration features for v5 assays.
-- Added `SelectSCTIntegrationFeatures` to select SCT integration features.
-- Added `SketchData` to use sketching methods to downsample high-dimensional single-cell RNA expression data for help with scalability for large datasets.
-- Added `TransferSketchLabels` to transfer cell type labels from a sketched dataset to a full dataset based on the similarities in the lower-dimensional space.
-- Added `UnSketchEmbeddings` to transfer embeddings from sketched cells to the full data.
-- Added `VST` to apply a variance stabilizing transformation for selection of variable features.
-- Added `writing-integration` to provide functionality that allows users to implement any integration method in Seurat.
+- Add `BridgeCellsRepresentation` to construct a dictionary representation for each unimodal dataset.
+- Add `BuildNicheAssay` to construct a new assay where each feature is a cell label. The values represent the sum of a particular cell label neighboring a given cell.
+- Add `CalcDispersion` to calculate the dispersion of features.
+- Add `CCAIntegration` to perform Seurat-CCA Integration.
+- Add `CountSketch` to generate a CountSketch random matrix.
+- Add `CreateCategoryMatrix` to create a one-hot matrix for a given label.
+- Add `DISP` to find variable features based on dispersion.
+- Add `FastRPCAIntegration` as a convenience wrapper function around the following three functions that are often run together when performing integration.
+- Add `FetchResiduals_reference` as a temporary function to get residuals from the reference.
+- Add `FetchResiduals` to call sctransform::get_residuals.
+- Add `FetchResidualSCTModel` to calculate Pearson residuals of features not in the scale.data.
+- Add `FindBridgeAnchor` to find bridge anchors between two unimodal datasets.
+- Add `FindBridgeIntegrationAnchors` to find a set of anchors for integration between unimodal query and the other unimodal reference using a pre-computed BridgeReferenceSet.
+- Add `FindBridgeTransferAnchors` to find a set of anchors for label transfer between unimodal query and the other unimodal reference using a pre-computed BridgeReferenceSet.
+- Add `GaussianSketch` to perform Gaussian sketching.
+- Add `HarmonyIntegration` to perform Harmony integration.
+- Add `IntegrateLayers` to integrate layers in an assay object.
+- Add `JointPCAIntegration` to perform Seurat-Joint PCA Integration.
+- Add `LeverageScore` to compute the leverage scores for a given object.
+- Add `LoadCurioSeeker` to load Curio Seeker data.
+- Add `MVP` to find variable features based on mean.var.plot.
+- Add `NNtoGraph` to convert the Neighbor class to an asymmetrical Graph class.
+- Add `PrepareBridgeReference` to preprocess the multi-omic bridge and unimodal reference datasets into an extended reference.
+- Add `ProjectCellEmbeddings` to project query data onto the reference dimensional reduction.
+- Add `ProjectData` to project high-dimensional single-cell RNA expression data from a full dataset onto the lower-dimensional embedding of the sketch of the dataset.
+- Add `ProjectDimReduc` to project query data to reference dimensional reduction.
+- Add `ProjectIntegration` to integrate embeddings from the integrated sketched.assay.
+- Add `PseudobulkExpression` to normalize the count data present in a given assay.
+- Add `Read10X_probe_metadata` to read the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
+- Add `RPCAIntegration` to perform Seurat-RPCA Integration.
+- Add `RunGraphLaplacian` to run a graph Laplacian dimensionality reduction.
+- Add `SelectIntegrationFeatures5` to select integration features for v5 assays.
+- Add `SelectSCTIntegrationFeatures` to select SCT integration features.
+- Add `SketchData` to use sketching methods to downsample high-dimensional single-cell RNA expression data for help with scalability for large datasets.
+- Add `TransferSketchLabels` to transfer cell type labels from a sketched dataset to a full dataset based on the similarities in the lower-dimensional space.
+- Add `UnSketchEmbeddings` to transfer embeddings from sketched cells to the full data.
+- Add `VST` to apply a variance stabilizing transformation for selection of variable features.
+- Add `writing-integration` to provide functionality that allows users to implement any integration method in Seurat.
 
 ## Changes
-- Changed `FindTransferAnchors` so that anchor filtering is not performed by default
-- Changed `merge` so that layers will be added to a single Seurat object instead of combining raw count matrices
+- Change `FindTransferAnchors` so that anchor filtering is not performed by default
+- Change `merge` so that layers will be added to a single Seurat object instead of combining raw count matrices
 
 # Seurat 4.4.0 (2023-09-27)
 
 ## Added
-- Added parallelization support with speed improvements for `PrepSCTFindMarkers` 
+- Add parallelization support with speed improvements for `PrepSCTFindMarkers` 
 - Fix bug in `LoadNanostring`([#7566](https://github.com/satijalab/seurat/pull/7566))
 
 ## Changes
@@ -59,6 +59,9 @@
 - Fix `FoldChange` and `FindMarkers` to support all normalization approaches ([#7115](https://github.com/satijalab/seurat/pull/7115),[#7110](https://github.com/satijalab/seurat/issues/7110),[#7095](https://github.com/satijalab/seurat/issues/7095),[#6976](https://github.com/satijalab/seurat/issues/6976),[#6654](https://github.com/satijalab/seurat/issues/6654),[#6701](https://github.com/satijalab/seurat/issues/6701),[#6773](https://github.com/satijalab/seurat/issues/6773), [#7107](https://github.com/satijalab/seurat/issues/7107))
 - Fix for handling newer ParseBio formats in `ReadParseBio` ([#7565](https://github.com/satijalab/seurat/pull/7565))
 - Fix for handling rasterization by default ([#7842](https://github.com/satijalab/seurat/pull/7842))
+- Fix bug in `ReadMtx()` to add back missing parameters 
+- Fix `SCTransform()` for V5 assays to retain gene attributes ([#7557](https://github.com/satijalab/seurat/issues/7557))
+- Fix `LeverageScore()` for objects with few features ([#7650](https://github.com/satijalab/seurat/issues/7650)
   
 # Seurat 4.3.0 (2022-11-18)
 
