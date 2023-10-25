@@ -1,4 +1,4 @@
-# Seurat 5.0.0 (2023-10-24)
+# Seurat 5.0.0 (2023-10-25)
 
 ## Added
 - Add `BridgeCellsRepresentation` to construct a dictionary representation for each unimodal dataset.
@@ -38,11 +38,11 @@
 - Add `TransferSketchLabels` to transfer cell type labels from a sketched dataset to a full dataset based on the similarities in the lower-dimensional space.
 - Add `UnSketchEmbeddings` to transfer embeddings from sketched cells to the full data.
 - Add `VST` to apply a variance stabilizing transformation for selection of variable features.
-- Add `writing-integration` to provide functionality that allows users to implement any integration method in Seurat.
 
 ## Changes
 - Change `FindTransferAnchors` so that anchor filtering is not performed by default
 - Change `merge` so that layers will be added to a single Seurat object instead of combining raw count matrices
+- Deprecate `slot` parameter in favor of `layers` in accessor and set methods
 
 # Seurat 4.4.0 (2023-09-27)
 
