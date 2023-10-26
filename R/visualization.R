@@ -7895,7 +7895,7 @@ SetHighlight <- function(
 
   # Check for raster
   if (isTRUE(x = raster)) {
-    size <- size[1]
+    size <- sizes.highlight[1]
   }
 
   plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
