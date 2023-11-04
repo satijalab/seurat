@@ -28,6 +28,8 @@ the anchor.}
 
 \item{\code{offsets}}{The offsets used to enable cell look up in downstream functions}
 
+\item{\code{weight.reduction}}{The weight dimensional reduction used to calculate weight matrix}
+
 \item{\code{anchor.features}}{The features used when performing anchor finding.}
 
 \item{\code{neighbors}}{List containing Neighbor objects for reuse later (e.g. mapping)}

@@ -47,9 +47,10 @@ all are assigned NP.}
 \item{de.assay}{Assay to use when performing differential expression analysis.
 Usually RNA.}
 
-\item{logfc.threshold}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
+\item{logfc.threshold}{Limit testing to genes which show, on average,
+at least X-fold difference (log-scale) between the two groups of cells.
+Default is 0.25 Increasing logfc.threshold speeds up the function, but can miss
+weaker signals.}
 
 \item{iter.num}{Number of normalmixEM iterations to run if convergence does
 not occur.}

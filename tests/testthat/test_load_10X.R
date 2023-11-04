@@ -38,7 +38,7 @@ if (requireNamespace("hdf5r", quietly = TRUE)) {
     expect_equal(nrow(x = txsp), 100)
     expect_equal(Cells(x = txsp)[1], "AAACAAGTATCTCCCA-1")
     expect_equal(Assays(object = txsp), "Spatial")
-    expect_equal(GetAssayData(object = txsp[["Spatial"]], slot = "counts")[5, 9], 1)
+    expect_equal(GetAssayData(object = txsp[["Spatial"]], layer = "counts")[5, 9], 1)
   })
   test_that("Read10X_Spatial handles missing files properly", {
     expect_error(Load10X_Spatial(data.dir = "."))

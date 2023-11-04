@@ -87,6 +87,7 @@
       summary: |
         Examples of how to perform normalization, feature selection, integration, and differential expression with an updated version of sctransform.
       image: assets/sctransform_v2.png
+
 - category: Other
   vignettes:
     - title: Visualization

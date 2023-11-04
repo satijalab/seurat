@@ -4,25 +4,12 @@
 \alias{HVFInfo.SCTAssay}
 \title{Get Variable Feature Information}
 \usage{
-\method{HVFInfo}{SCTAssay}(object, selection.method, status = FALSE, ...)
+\method{HVFInfo}{SCTAssay}(object, method, status = FALSE, ...)
 }
 \arguments{
 \item{object}{An object}
 
-\item{selection.method}{Which method to pull. For \code{HVFInfo} and
-\code{VariableFeatures}, choose one from one of the
-following:
-\itemize{
- \item \dQuote{vst}
- \item \dQuote{sctransform} or \dQuote{sct}
- \item \dQuote{mean.var.plot}, \dQuote{dispersion}, \dQuote{mvp}, or
-  \dQuote{disp}
-}
-For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
-\itemize{
- \item \dQuote{markvariogram}
- \item \dQuote{moransi}
-}}
+\item{method}{method to determine variable features}
 
 \item{status}{Add variable status to the resulting data frame}
 
@@ -32,9 +19,11 @@ For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
 Get variable feature information from \code{\link{SCTAssay}} objects
 }
 \examples{
+\dontrun{
 # Get the HVF info directly from an SCTAssay object
 pbmc_small <- SCTransform(pbmc_small)
-HVFInfo(pbmc_small[["SCT"]], selection.method = 'sct')[1:5, ]
+HVFInfo(pbmc_small[["SCT"]], method = 'sct')[1:5, ]
+}
 
 }
 \seealso{

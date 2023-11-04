@@ -1,0 +1,67 @@
+- category: Spatial analysis
+  vignettes:
+    - title: Analysis of spatial datasets (Imaging-based)
+      name: seurat5_spatial_vignette_2
+      summary: |
+        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERSCOPE, Xenium, CosMx SMI, and CODEX.
+      image: spatial_vignette_2.jpg
+
+    - title: Analysis of spatial datasets (Sequencing-based)
+      name: spatial_vignette
+      summary: |
+        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
+      image: spatial_vignette_ttr.jpg
+
+- category: Streamlined and multimodal integration
+  vignettes:
+    - title: scRNA-seq Integration
+      name: seurat5_integration
+      summary: |
+        Integrate scRNA-seq datasets using a variety of computational methods.
+      image: integration_seurat5.jpg
+
+    - title: Cross-modality Bridge Integration
+      name: seurat5_integration_bridge
+      summary: |
+        Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset.
+      image: bridge_integration.png
+
+- category: Flexible analysis of massively scalable datasets
+  vignettes:
+    - title: Unsupervised clustering of 1.3M neurons
+      name: seurat5_sketch_analysis
+      summary: |
+        Analyze a 1.3 million cell mouse brain dataset using on-disk capabilities powered by BPCells.
+      image: sketch_1p3.png
+
+    - title: Integrating/comparing healthy and diabetic samples
+      name: ParseBio_sketch_integration
+      summary: |
+        Perform sketch integration on a large dataset from Parse Biosciences.
+      image: sketch.png
+
+    - title: Supervised mapping of 1.5M immune cells
+      name: COVID_SCTMapping
+      summary: |
+        Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
+      image: COVID_SCTMapping.png
+
+- category: References and additional documentation
+  vignettes:
+    - title: Seurat v5 Command Cheat Sheet
+      name: seurat5_essential_commands
+      summary: |
+        Explore the new assay structure introduced in Seurat v5.
+      image: assay.png
+
+    - title: BPCells Interaction
+      name: seurat5_bpcells_interaction_vignette
+      summary: |
+        Load and save large on-disk matrices using BPCells.
+      image: bpcells.png
+
+    - title: Seurat v5 Installation
+      name: install
+      summary: |
+        Install Seurat v5 and the required dependencies.
+      image: SeuratV5.png

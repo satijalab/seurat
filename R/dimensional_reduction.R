@@ -572,6 +572,8 @@ RunCCA.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   assay1 <- assay1 %||% DefaultAssay(object = object1)
   assay2 <- assay2 %||% DefaultAssay(object = object2)
   if (assay1 != assay2) {
@@ -649,7 +651,8 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, slot = "scale.data")
+  ## combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
       object = combined.object,
@@ -800,9 +803,8 @@ RunICA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunICA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     nics = nics,
@@ -861,10 +863,22 @@ RunPCA.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
+ if (inherits(x = object, what = 'matrix')) {
+   RowVar.function <- RowVar
+ } else if (inherits(x = object, what = 'dgCMatrix')) {
+   RowVar.function <- RowVarSparse
+ } else if (inherits(x = object, what = 'IterableMatrix')) {
+   RowVar.function <- function(x) {
+     return(BPCells::matrix_stats(
+       matrix = x,
+       row_stats = 'variance'
+     )$row_stats['variance',])
+     }
+ }
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
     pca.results <- irlba(A = object, nv = npcs, ...)
-    total.variance <- sum(RowVar(x = t(x = object)))
+    total.variance <- sum(RowVar.function(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -874,7 +888,7 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    total.variance <- sum(RowVar(x = object))
+    total.variance <- sum(RowVar.function(x = object))
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- irlba(A = t(x = object), nv = npcs, ...)
@@ -966,6 +980,45 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @method RunPCA StdAssay
+#' @export
+#'
+RunPCA.StdAssay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  layer = 'scale.data',
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  return(RunPCA(
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  ))
+}
+
 #' @param reduction.name dimensional reduction name,  pca by default
 #'
 #' @rdname RunPCA
@@ -989,9 +1042,8 @@ RunPCA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunPCA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     npcs = npcs,
@@ -1009,19 +1061,59 @@ RunPCA.Seurat <- function(
   return(object)
 }
 
+#' @method RunPCA Seurat5
+#' @export
+#'
+RunPCA.Seurat5 <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  reduction.data <- RunPCA(
+    object = object[[assay]],
+    assay = assay,
+    features = features,
+    npcs = npcs,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  # object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
 #' @param assay Name of assay that that t-SNE is being run on
 #' @param seed.use Random seed for the t-SNE. If NULL, does not set the seed
 #' @param tsne.method Select the method to use to compute the tSNE. Available
 #' methods are:
 #' \itemize{
-#' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
-# \item{tsne: }{standard tsne - not recommended for large datasets}
-#' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
-#' Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
+#'   \item \dQuote{\code{Rtsne}}: Use the Rtsne package Barnes-Hut
+#'     implementation of tSNE (default)
+#'   \item \dQuote{\code{FIt-SNE}}: Use the FFT-accelerated Interpolation-based
+#'     t-SNE. Based on Kluger Lab code found here:
+#'     \url{https://github.com/KlugerLab/FIt-SNE}
 #' }
 #' @param dim.embed The dimensional space of the resulting tSNE embedding
 #' (default is 2). For example, set to 3 for a 3d tSNE
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. \dQuote{\code{tSNE_}} by default
 #'
 #' @importFrom Rtsne Rtsne
 #'
@@ -1389,9 +1481,12 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
+      if (!"num_precomputed_nns" %in% names(x = model)) {
+        model$num_precomputed_nns <- 0
+      }
       if (is.list(x = object)) {
         if (ncol(object$idx) != model$n_neighbors) {
-          warning("Number of neighbors between query and reference ", 
+          warning("Number of neighbors between query and reference ",
           "is not equal to the number of neighbors within reference")
           model$n_neighbors <- ncol(object$idx)
         }
@@ -1695,13 +1790,19 @@ RunUMAP.Seurat <- function(
   dens.var.shift = 0.1,
   verbose = TRUE,
   reduction.name = 'umap',
-  reduction.key = 'UMAP_',
+  reduction.key = NULL,
   ...
 ) {
   CheckDots(...)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
+  if (sum(!is.null(x = dims), !is.null(x = nn.name),
+          !is.null(x = graph), !is.null(x = features)) != 1) {
+    stop("Only one parameter among 'dims', 'nn.name', 'graph', or 'features' ",
+         "should be used at a time to run UMAP")
+  }
+
   if (!is.null(x = features)) {
     data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
@@ -1779,7 +1880,7 @@ RunUMAP.Seurat <- function(
     dens.lambda = dens.lambda,
     dens.frac = dens.frac,
     dens.var.shift = dens.var.shift,
-    reduction.key = reduction.key,
+    reduction.key = reduction.key %||% Key(object = reduction.name, quiet = TRUE),
     verbose = verbose
   )
   object <- LogSeuratCommand(object = object)
@@ -1925,6 +2026,11 @@ CheckFeatures <- function(
   }
   if (inherits(x = data.use, what = 'dgCMatrix')) {
     features.var <- SparseRowVar(mat = data.use[features, ], display_progress = F)
+  }
+  else if (inherits(x = data.use,  what = "IterableMatrix")) {
+    bp.stats <- BPCells::matrix_stats(matrix = data.use,
+                                      row_stats = "variance")
+    features.var <- bp.stats$row_stats["variance",][features]
   }
   else {
     features.var <- RowVar(x = data.use[features, ])
@@ -2314,6 +2420,51 @@ PrepDR <- function(
   return(data.use)
 }
 
+PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
+  layer <- layer[1L]
+  olayer <- layer
+  layer <- Layers(object = object, search = layer)
+  if (is.null(layer)) {
+    abort(paste0("No layer matching pattern '", olayer, "' not found. Please run ScaleData and retry"))
+  }
+  data.use <- LayerData(object = object, layer = layer)
+  features <- features %||% VariableFeatures(object = object)
+  if (!length(x = features)) {
+    stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
+  }
+  features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+  features.keep <- features[features.var > 0]
+  if (!length(x = features.keep)) {
+    stop("None of the requested features have any variance", call. = FALSE)
+  } else if (length(x = features.keep) < length(x = features)) {
+    exclude <- setdiff(x = features, y = features.keep)
+    if (isTRUE(x = verbose)) {
+      warning(
+        "The following ",
+        length(x = exclude),
+        " features requested have zero variance; running reduction without them: ",
+        paste(exclude, collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+  features <- features.keep
+  features <- features[!is.na(x = features)]
+  features.use <- features[features %in% rownames(data.use)]
+  if(!isTRUE(all.equal(features, features.use))) {
+    missing_features <- setdiff(features, features.use)
+    if(length(missing_features) > 0) {
+    warning_message <- paste("The following features were not available: ",
+                             paste(missing_features, collapse = ", "),
+                             ".", sep = "")
+    warning(warning_message, immediate. = TRUE)
+    }
+  }
+  data.use <- data.use[features.use, ]
+  return(data.use)
+}
+
 #' @param assay Name of Assay SPCA is being run on
 #' @param npcs Total Number of SPCs to compute and store (50 by default)
 #' @param verbose Print the top genes associated with high/low loadings for
@@ -2401,6 +2552,46 @@ RunSPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
+#' using the variable features for the Assay.
+#' @param layer Layer to run SPCA on
+#'
+#' @rdname RunSPCA
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSPCA Assay5
+#'
+RunSPCA.Assay5 <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  layer = 'scale.data',
+  ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  reduction.data <- RunSPCA(
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
 #' @param reduction.name dimensional reduction name, spca by default
 #' @rdname RunSPCA
 #' @concept dimensional_reduction
@@ -2420,14 +2611,13 @@ RunSPCA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   if (is.null(x = graph)) {
     stop("Graph is not provided")
   } else if (is.character(x = graph)) {
     graph <- object[[graph]]
   }
   reduction.data <- RunSPCA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     npcs = npcs,

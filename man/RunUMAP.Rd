@@ -103,7 +103,7 @@ RunUMAP(object, ...)
   dens.var.shift = 0.1,
   verbose = TRUE,
   reduction.name = "umap",
-  reduction.key = "UMAP_",
+  reduction.key = NULL,
   ...
 )
 }

@@ -116,6 +116,7 @@ FindClusters <- function(object, ...) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' # Find markers for cluster 2
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
@@ -133,7 +134,8 @@ FindClusters <- function(object, ...) {
 #'   markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
 #'   head(x = markers)
 #' }
-#'
+#' }
+#' 
 #' @rdname FindMarkers
 #' @export FindMarkers
 #'
@@ -230,9 +232,11 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' FoldChange(pbmc_small, ident.1 = 1)
-#'
+#' }
+#' 
 #' @param object A Seurat object
 #' @param ... Arguments passed to other methods
 #' @rdname FoldChange
@@ -302,6 +306,57 @@ IntegrateEmbeddings <- function(anchorset, ...) {
   UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
 }
 
+#' Leverage Score Calculation
+#'
+#' This function computes the leverage scores for a given object
+#' It uses the concept of sketching and random projections. The function provides an approximation 
+#' to the leverage scores using a scalable method suitable for large matrices.
+#'
+#' @param object A matrix-like object
+#' @param ... Arguments passed to other methods
+#' 
+#' @references Clarkson, K. L. & Woodruff, D. P.
+#' Low-rank approximation and regression in input sparsity time.
+#' JACM 63, 1–45 (2017). \url{https://dl.acm.org/doi/10.1145/3019134};
+#'
+#' @export
+#'
+#'
+LeverageScore <- function(object, ...) {
+  UseMethod(generic = 'LeverageScore', object = object)
+}
+
+#' Normalize Raw Data
+#'
+#' @param data Matrix with the raw count data
+#' @param scale.factor Scale the data; default is \code{1e4}
+#' @param margin Margin to normalize over
+#' @param verbose Print progress
+#'
+#' @return A matrix with the normalized and log-transformed data
+#'
+#' @template param-dotsm
+#'
+#' @export
+#' @concept preprocessing
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- LogNormalize(data = mat)
+#' mat_norm
+#'
+LogNormalize <- function(
+  data,
+  scale.factor = 1e4,
+  margin = 2L,
+  verbose = TRUE,
+  ...
+) {
+  UseMethod(generic = 'LogNormalize', object = data)
+}
+
+
 #' Metric for evaluating mapping success
 #'
 #' This metric was designed to help identify query cells that aren't well
@@ -340,6 +395,34 @@ NormalizeData <- function(object, ...) {
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
+#' Project query data to the reference dimensional reduction
+#'
+#'
+#' @param query An object for query cells
+#' @param reference An object for reference cells
+#' @param query.assay Assay name for query object
+#' @param reference.assay Assay name for reference object
+#' @param reduction Name of dimensional reduction from reference object
+#' @param dims Dimensions used for reference dimensional reduction
+#' @param scale Determine if scale query data based on reference data variance
+#' @param verbose Print progress
+#' @param feature.mean Mean of features in reference
+#' @param feature.sd Standard variance of features in reference
+#'
+#' @return A matrix with projected cell embeddings
+#'
+#' @rdname ProjectCellEmbeddings
+#' @export ProjectCellEmbeddings
+#'
+#' @keywords internal
+#'
+ProjectCellEmbeddings <- function(
+  query,
+  ...
+) {
+  UseMethod(generic = 'ProjectCellEmbeddings', object = query)
+}
+
 #' Project query into UMAP coordinates of a reference
 #'
 #' This function will take a query dataset and project it into the coordinates
@@ -360,6 +443,22 @@ ProjectUMAP <- function(query, ...) {
   UseMethod(generic = "ProjectUMAP", object = query)
 }
 
+#' Pseudobulk Expression
+#'
+#' Normalize the count data present in a given assay.
+#'
+#' @param object An assay
+#' @param ... Arguments passed to other methods
+#'
+#' @return Returns object after normalization
+#'
+#' @rdname PseudobulkExpression
+#' @export PseudobulkExpression
+#'
+PseudobulkExpression <- function(object, ...) {
+  UseMethod(generic = "PseudobulkExpression", object = object)
+}
+
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
@@ -374,6 +473,7 @@ ProjectUMAP <- function(query, ...) {
 #' @seealso \code{\link{merge.Seurat}}
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
@@ -384,13 +484,37 @@ ProjectUMAP <- function(query, ...) {
 #' pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 #' # Print results
 #' print(x = pbmc_cca[["cca"]])
-#'
+#' }
+#' 
 #' @rdname RunCCA
 #' @export RunCCA
 #'
 RunCCA <- function(object1, object2, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
 }
+
+
+#' Run Graph Laplacian Eigendecomposition
+#'
+#' Run a graph laplacian dimensionality reduction. It is used as a low
+#' dimensional representation for a cell-cell graph. The input graph
+#' should be symmetric
+#'
+#' @param object A Seurat object
+#' @param ... Arguments passed to
+#' \code{\link[RSpectra:eigs_sym]{RSpectra::eigs_sym}}
+#'
+#' @return Returns Seurat object with the Graph laplacian eigenvector
+#' calculation stored in the reductions slot
+#'
+#' @rdname RunGraphLaplacian
+#' @export RunGraphLaplacian
+#'
+
+RunGraphLaplacian <- function(object, ...) {
+  UseMethod(generic = 'RunGraphLaplacian', object = object)
+}
+
 
 #' Run Independent Component Analysis on gene expression
 #'
@@ -604,6 +728,17 @@ ScoreJackStraw <- function(object, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
+#' Perform sctransform-based normalization
+#' @param object An object
+#' @param ... Arguments passed to other methods (not used)
+#'
+#' @rdname SCTransform
+#' @export SCTransform
+#'
+SCTransform <- function(object, ...) {
+  UseMethod(generic = 'SCTransform', object = object)
+}
+
 #' Get SCT results from an Assay
 #'
 #' Pull the \code{\link{SCTResults}} information from an \code{\link{SCTAssay}}
@@ -627,4 +762,47 @@ SCTResults <- function(object, ...) {
 #'
 "SCTResults<-" <- function(object, ..., value) {
   UseMethod(generic = 'SCTResults<-', object = object)
+}
+
+#' Variance Stabilizing Transformation
+#'
+#' Apply variance stabilizing transformation for selection of variable features
+#'
+#' @inheritParams stats::loess
+#' @param data A matrix-like object
+#' @param margin Unused
+#' @param nselect Number of of features to select
+#' @param clip Upper bound for values post-standardization; defaults to the
+#' square root of the number of cells
+#' @param verbose ...
+#'
+#' @template param-dotsm
+#'
+#' @return A data frame with the following columns:
+#' \itemize{
+#'  \item \dQuote{\code{mean}}: ...
+#'  \item \dQuote{\code{variance}}: ...
+#'  \item \dQuote{\code{variance.expected}}: ...
+#'  \item \dQuote{\code{variance.standardized}}: ...
+#'  \item \dQuote{\code{variable}}: \code{TRUE} if the feature selected as
+#'   variable, otherwise \code{FALSE}
+#'  \item \dQuote{\code{rank}}: If the feature is selected as variable, then how
+#'   it compares to other variable features with lower ranks as more variable;
+#'   otherwise, \code{NA}
+#' }
+#'
+#' @rdname VST
+#' @export VST
+#'
+#' @keywords internal
+#'
+VST <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  ...
+) {
+  UseMethod(generic = 'VST', object = data)
 }

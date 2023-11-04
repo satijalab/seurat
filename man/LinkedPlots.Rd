@@ -30,7 +30,7 @@ LinkedFeaturePlot(
 )
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{A Seurat object}
 
 \item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
 
@@ -38,19 +38,19 @@ LinkedFeaturePlot(
 
 \item{image}{Name of the image to use in the plot}
 
-\item{group.by}{Name of one or more metadata columns to group (color) cells by
-(for example, orig.ident); pass 'ident' to group by identity class}
+\item{group.by}{Name of meta.data column to group the data by}
 
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
 min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 alpha value for each plot.}
 
-\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-ggplot object. If \code{FALSE}, return a list of ggplot objects}
+\item{combine}{Combine plots into a single gg object; note that if TRUE;
+themeing will not work when plotting multiple features/groupings}
 
 \item{feature}{Feature to visualize}
 
-\item{slot}{Which slot to pull expression data from?}
+\item{slot}{If plotting a feature, which data slot to pull from (counts,
+data, or scale.data)}
 }
 \value{
 Returns final plots. If \code{combine}, plots are stiched together

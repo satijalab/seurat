@@ -11,6 +11,7 @@ SingleDimPlot(
   cols = NULL,
   pt.size = NULL,
   shape.by = NULL,
+  alpha = 1,
   alpha.by = NULL,
   order = NULL,
   label = FALSE,
@@ -41,6 +42,8 @@ default, ggplot2 assigns colors}
 \item{shape.by}{If NULL, all points are circles (default). You can specify
 any cell attribute (that can be pulled with \code{\link{FetchData}})
 allowing for both different colors and different shapes on cells.}
+
+\item{alpha}{Alpha value for plotting (default is 1)}
 
 \item{alpha.by}{Mapping variable for the point alpha value}
 

@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   fig.width = 10,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -34,7 +35,8 @@ In this vignette, we present a slightly modified workflow for the integration of
 
 By identifying shared sources of variation between datasets, CCA is well-suited for identifying anchors when cell types are conserved, but there are very substantial differences in gene expression across experiments. CCA-based integration therefore enables integrative analysis when experimental conditions or disease states introduce very strong expression shifts, or when integrating datasets across modalities and species. However, CCA-based integration may also lead to overcorrection, especially when a large proportion of cells are non-overlapping across datasets.
 
-RPCA-based integration runs significantly faster, and also represents a more conservative approach where cells in different biological states are less likely to 'align' after integration. We therefore,recommend RPCA during integrative analysis where:
+RPCA-based integration runs significantly faster, and also represents a more conservative approach where cells in different biological states are less likely to 'align' after integration. We therefore recommend RPCA during integrative analysis where:
+
 * A substantial fraction of cells in one dataset have no matching type in the other
 * Datasets originate from the same platform (i.e. multiple lanes of 10x genomics)
 * There are a large number of datasets or cells to integrate (see [here](integration_large_datasets.html) for more tips on integrating large datasets) 
@@ -46,6 +48,7 @@ options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
 ```{r installdata}
+library(Seurat)
 library(SeuratData)
 # install dataset
 InstallData('ifnb')
@@ -53,7 +56,7 @@ InstallData('ifnb')
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
-LoadData('ifnb')
+ifnb <- LoadData('ifnb')
 
 # split the dataset into a list of two seurat objects (stim and CTRL)
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
@@ -130,7 +133,7 @@ p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
 p1 + p2
 ```
 
-```{r save.img, include = FALSE}
+```{r save.img, include = TRUE}
 library(ggplot2)
 plot <- DimPlot(immune.combined, group.by = "stim") +
   xlab("UMAP 1") + ylab("UMAP 2") + 
@@ -146,7 +149,7 @@ Now that the datasets have been integrated, you can follow the previous steps in
 As an additional example, we repeat the analyses performed above, but normalize the datasets using [SCTransform](sctransform_vignette.html). We may choose to set the `method` parameter to `glmGamPoi` (install [here](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html)) in order to enable faster estimation of regression parameters in `SCTransform()`.  
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
-LoadData('ifnb')
+ifnb <- LoadData('ifnb')
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
 ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform, method = "glmGamPoi")
 features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)

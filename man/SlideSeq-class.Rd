@@ -22,7 +22,10 @@ The SlideSeq class represents spatial information from the Slide-seq platform
 priority for visualization when the assay is set as the active/default assay
 in a \code{Seurat} object}
 
-\item{\code{key}}{Key for the image}
+\item{\code{key}}{A one-length character vector with the object's key; keys must
+be one or more alphanumeric characters followed by an underscore
+\dQuote{\code{_}} (regex pattern
+\dQuote{\code{^[a-zA-Z][a-zA-Z0-9]*_$}})}
 }
 }
 

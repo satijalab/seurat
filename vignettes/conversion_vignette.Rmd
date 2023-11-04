@@ -27,7 +27,8 @@ knitr::opts_chunk$set(
   fig.width = 10,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 

@@ -3,6 +3,28 @@ citHeader("To cite Seurat in publications, please use:")
 bibentry(bibtype = "article",
   author = c(
   as.person("Yuhan Hao"),
+  as.person("Tim Stuart"),
+  as.person("Madeline H Kowalski"),
+  as.person("Saket Choudhary"),
+  as.person("Paul Hoffman"),
+  as.person("Austin Hartman"),
+  as.person("Avi Srivastava"),
+  as.person("Gesmira Molla"),
+  as.person("Shaista Madad"),
+  as.person("Carlos Fernandez-Granda"),
+  as.person("Rahul Satija")
+  ),
+  title = "Dictionary learning for integrative, multimodal and scalable single-cell analysis",
+  journal = "Nature Biotechnology",
+  year = "2023",
+  doi = "10.1038/s41587-023-01767-y",
+  url = "https://doi.org/10.1038/s41587-023-01767-y",
+  textVersion = "Hao et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology (2023) [Seurat V5]"
+)
+
+bibentry(bibtype = "article",
+  author = c(
+  as.person("Yuhan Hao"),
   as.person("Stephanie Hao"),
   as.person("Erica Andersen-Nissen"),
   as.person("William M. Mauck III"),

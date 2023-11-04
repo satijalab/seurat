@@ -19,9 +19,9 @@ FindMarkers(object, ...)
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -42,9 +42,9 @@ FindMarkers(object, ...)
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -68,9 +68,9 @@ FindMarkers(object, ...)
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -93,9 +93,9 @@ FindMarkers(object, ...)
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -121,9 +121,10 @@ FindMarkers(object, ...)
   slot = "data",
   reduction = NULL,
   features = NULL,
-  logfc.threshold = 0.25,
+  logfc.threshold = 0.1,
+  pseudocount.use = 1,
   test.use = "wilcox",
-  min.pct = 0.1,
+  min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
   only.pos = FALSE,
@@ -158,13 +159,17 @@ expressing}
 \item{features}{Genes to test. Default is to use all genes}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells. Default is 0.25
+X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
  \item{"wilcox"} : Identifies differentially expressed genes between two
- groups of cells using a Wilcoxon Rank Sum test (default)
+ groups of cells using a Wilcoxon Rank Sum test (default); will use a fast
+ implementation by Presto if installed
+ \item{"wilcox_limma"} : Identifies differentially expressed genes between two
+ groups of cells using the limma implementation of the Wilcoxon Rank Sum test;
+ set this option to reproduce results from Seurat v4
  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
  (McDavid et al., Bioinformatics, 2013)
  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
@@ -204,7 +209,7 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
 min.pct cells in either of the two populations. Meant to speed up the function
-by not testing genes that are very infrequently expressed. Default is 0.1}
+by not testing genes that are very infrequently expressed. Default is 0.01}
 
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
@@ -286,6 +291,7 @@ should be interpreted cautiously, as the genes used for clustering are the
 same genes tested for differential expression.
 }
 \examples{
+\dontrun{
 data("pbmc_small")
 # Find markers for cluster 2
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
@@ -302,6 +308,7 @@ if (requireNamespace("ape", quietly = TRUE)) {
   pbmc_small <- BuildClusterTree(object = pbmc_small)
   markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
   head(x = markers)
+}
 }
 
 }

@@ -23,7 +23,8 @@ knitr::knit_hooks$set(time_it = local({
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -53,7 +54,7 @@ library(ggplot2)
 library(patchwork)
 ```
 
-```{r, include = FALSE, cache=FALSE}
+```{r, include = TRUE, cache=FALSE}
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
@@ -64,7 +65,7 @@ options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048), and visualize the pre-computed UMAP. This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
 
 ```{r pbmc.ref}
-reference <- LoadH5Seurat("../data/pbmc_multimodal.h5seurat")
+reference <- readRDS("../data/pbmc_multimodal_2023.rds")
 ```
 
 ```{r ref.dimplot}
@@ -165,7 +166,7 @@ Each prediction is assigned a score between 0 and 1.
 FeaturePlot(pbmc3k, features = c("pDC", "CD16 Mono", "Treg"),  reduction = "ref.umap", cols = c("lightgrey", "darkred"), ncol = 3) & theme(plot.title = element_text(size = 10))
 ```
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- FeaturePlot(pbmc3k, features = "CD16 Mono",  reduction = "ref.umap", cols = c("lightgrey", "darkred"))  + ggtitle("CD16 Mono") + theme(plot.title = element_text(hjust = 0.5, size = 30)) + labs(color = "Prediction Score") +  xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18), legend.title = element_text(size = 25)) 
@@ -198,7 +199,7 @@ In our [manuscript](https://doi.org/10.1016/j.cell.2021.04.048), we map a query 
 
 We emphasize that if users are attempting to map datasets where the underlying samples are not PBMC, or contain cell types that are not present in the reference, computing a 'de novo' visualization is an important step in interpreting their dataset.
 
-```{r hiddendiet, include=FALSE}
+```{r hiddendiet, include=TRUE}
 reference <- DietSeurat(reference, counts = FALSE, dimreducs = "spca")
 pbmc3k <- DietSeurat(pbmc3k, counts = FALSE, dimreducs = "ref.spca")
 ```
@@ -377,7 +378,7 @@ p5 <- FeaturePlot(hcabm40k, features = c("CD45RA", "CD16", "CD161"), reduction =
 p3 / p4 / p5
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/reference_mapping_times.csv")
 ```
 
