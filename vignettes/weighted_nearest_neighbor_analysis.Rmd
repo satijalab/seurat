@@ -23,7 +23,8 @@ knitr::knit_hooks$set(time_it = local({
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 The simultaneous measurement of multiple modalities, known as multimodal analysis, represents an exciting frontier for single-cell genomics and necessitates new computational methods that can define cellular states based on multiple data types. The varying information content of each modality, even across cells in the same dataset, represents a pressing challenge for the analysis and integration of multimodal datasets. In ([Hao\*, Hao\* et al, Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048)), we introduce 'weighted-nearest neighbor' (WNN) analysis, an unsupervised framework to learn the relative utility of each data type in each cell, enabling an integrative analysis of multiple modalities.  
@@ -215,7 +216,7 @@ pbmc[["ATAC"]] <- chrom_assay
 We perform basic QC based on the number of detected molecules for each modality as well as mitochondrial percentage.
 
 ```{r QCObject, fig.width=10}
-VlnPlot(pbmc, features = c("nCount_ATAC", "nCount_RNA","percent.mt"), ncol = 3,
+VlnPlot(pbmc, features = c("nCount_ATAC", "nCount_RNA", "percent.mt"), ncol = 3,
   log = TRUE, pt.size = 0) + NoLegend()
 
 pbmc <- subset(

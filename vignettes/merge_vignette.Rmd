@@ -26,11 +26,12 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
-```{r, include = FALSE}
+```{r, include = TRUE}
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
@@ -96,7 +97,7 @@ GetAssayData(pbmc.combined)[1:10, 1:15]
 GetAssayData(pbmc.normalized)[1:10, 1:15]
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/merge_vignette_times.csv")
 ```
 

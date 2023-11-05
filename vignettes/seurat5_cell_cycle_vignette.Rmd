@@ -1,0 +1,150 @@
+---
+title: "Cell-Cycle Scoring and Regression"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  warning = FALSE,
+  error = TRUE,
+  message = FALSE,
+  fig.width = 8,
+  time_it = TRUE
+)
+```
+
+We demonstrate how to mitigate the effects of cell cycle heterogeneity in scRNA-seq data by calculating cell cycle phase scores based on canonical markers, and regressing these out of the data during pre-processing. We demonstrate this on a dataset of murine hematopoietic progenitors ([Nestorowa *et al*., Blood 2016](http://www.bloodjournal.org/content/early/2016/06/30/blood-2016-05-716480?sso-checked=true)).You can download the files needed to run this vignette [here](https://www.dropbox.com/s/3dby3bjsaf5arrw/cell_cycle_vignette_files.zip?dl=1).
+
+```{r initialize_object, results='hide'}
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+
+# Read in the expression matrix
+# The first row is a header row, the first column is rownames
+exp.mat <- read.table(file = "../data/nestorawa_forcellcycle_expressionMatrix.txt", header = TRUE, as.is = TRUE, row.names = 1)
+
+# A list of cell cycle markers, from Tirosh et al, 2015, is loaded with Seurat.
+# We can segregate this list into markers of G2/M phase and markers of S phase
+s.genes <- cc.genes$s.genes
+g2m.genes <- cc.genes$g2m.genes
+
+# Create our Seurat object and complete the initalization steps
+marrow <- CreateSeuratObject(counts = as.matrix(exp.mat))
+marrow <- NormalizeData(marrow)
+marrow <- FindVariableFeatures(marrow, selection.method = 'vst')
+marrow <- ScaleData(marrow, features = rownames(marrow))
+```
+
+If we run a PCA on our object, using the variable genes we found in `FindVariableFeatures()` above, we see that while most of the variance can be explained by lineage, PC8 and PC10 are split on cell-cycle genes including *TOP2A* and *MKI67*. We will attempt to regress this signal from the data, so that cell-cycle heterogeneity does not contribute to PCA or downstream analysis.
+
+```{r justification, message=TRUE}
+marrow <- RunPCA(marrow, features = VariableFeatures(marrow, layer = 'counts'), ndims.print = 6:10, 
+                 nfeatures.print = 10)
+DimHeatmap(marrow, dims = c(8, 10))
+```
+
+# Assign Cell-Cycle Scores
+
+First, we assign each cell a score, based on its expression of G2/M and S phase markers. These marker sets should be anticorrelated in their expression levels, and cells expressing neither are likely not cycling and in G1 phase.
+
+We assign scores in the `CellCycleScoring()` function, which stores S and G2/M scores in object meta data, along with the predicted classification of each cell in either G2M, S or G1 phase. `CellCycleScoring()` can also set the identity of the Seurat object to the cell-cycle phase by passing `set.ident = TRUE` (the original identities are stored as `old.ident`). Please note that Seurat does not use the discrete classifications (G2M/G1/S) in downstream cell cycle regression. Instead, it uses the quantitative scores for G2M and S phase. However, we provide our predicted classifications in case they are of interest.
+
+```{r cc_score}
+marrow <- CellCycleScoring(marrow, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+
+#view cell cycle scores and phase assignments
+head(marrow[[]])
+
+#Visualize the distribution of cell cycle markers across 
+RidgePlot(marrow, features = c("PCNA","TOP2A","MCM6","MKI67"), ncol = 2)
+
+#Running a PCA on cell cycle genes  reveals, unsurprisingly, that cells separate entirely by phase
+marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
+DimPlot(marrow)
+```
+
+```{r save.img, include=TRUE}
+library(ggplot2)
+plot <- DimPlot(marrow) + 
+    theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
+    guides(colour = guide_legend(override.aes = list(size = 10)))
+ggsave(filename = "../output/images/cell_cycle_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
+```
+
+We score single cells based on the scoring strategy described in [Tirosh *et al*. 2016](http://science.sciencemag.org/content/352/6282/189). See `?AddModuleScore()` in Seurat for more information, this function can be used to calculate supervised module scores for any gene list.
+
+# Regress out cell cycle scores during data scaling
+
+We now attempt to subtract ('regress out') this source of heterogeneity from the data. For users of Seurat v1.4, this was implemented in `RegressOut`. However, as the results of this procedure are stored in the scaled data slot (therefore overwriting the output of `ScaleData()`), we now merge this functionality into the `ScaleData()` function itself.
+
+For each gene, Seurat models the relationship between gene expression and the S and G2M cell cycle scores. The scaled residuals of this model represent a 'corrected' expression matrix, that can be used downstream for dimensional reduction.
+
+```{r regress, results='hide'}
+marrow <- ScaleData(marrow, vars.to.regress = c('S.Score', 'G2M.Score'), features = rownames(marrow))
+```
+
+```{r pca2, message=TRUE}
+# Now, a PCA on the variable genes no longer returns components associated with cell cycle
+marrow <- RunPCA(marrow, features = VariableFeatures(marrow, layer = 'counts'), nfeatures.print = 10)
+```
+
+```{r pca3}
+#When running a PCA on only cell cycle genes, cells no longer separate by cell-cycle phase
+marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
+DimPlot(marrow)
+```
+
+As the best cell cycle markers are extremely well conserved across tissues and species, we have found this procedure to work robustly and reliably on diverse datasets.
+
+# Alternate Workflow
+
+The procedure above removes all signal associated with cell cycle. In some cases, we've found that this can negatively impact downstream analysis, particularly in differentiating processes (like murine hematopoiesis), where stem cells are quiescent and differentiated cells are proliferating (or vice versa). In this case, regressing out all cell cycle effects can blur the distinction between stem and progenitor cells as well.
+
+As an alternative, we suggest regressing out the **difference** between the G2M and S phase scores. This means that signals separating non-cycling cells and cycling cells will be maintained, but differences in cell cycle phase among proliferating cells (which are often uninteresting), will be regressed out of the data
+
+```{r regress_diff, results='hide'}
+marrow$CC.Difference <- marrow$S.Score - marrow$G2M.Score
+marrow <- ScaleData(marrow, vars.to.regress = 'CC.Difference', features = rownames(marrow))
+```
+
+```{r pca4, message=TRUE}
+#cell cycle effects strongly mitigated in PCA
+marrow <- RunPCA(marrow, features = VariableFeatures(marrow, layer = 'counts'), nfeatures.print = 10)
+```
+
+```{r pca5}
+#when running a PCA on cell cycle genes, actively proliferating cells remain distinct from G1 cells
+#however, within actively proliferating cells, G2M and S phase cells group together
+marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
+DimPlot(marrow)
+```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_cell_cycle_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

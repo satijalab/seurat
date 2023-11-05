@@ -2,14 +2,14 @@
 % Please edit documentation in R/generics.R, R/preprocessing.R
 \name{NormalizeData}
 \alias{NormalizeData}
-\alias{NormalizeData.default}
+\alias{NormalizeData.V3Matrix}
 \alias{NormalizeData.Assay}
 \alias{NormalizeData.Seurat}
 \title{Normalize Data}
 \usage{
 NormalizeData(object, ...)
 
-\method{NormalizeData}{default}(
+\method{NormalizeData}{V3Matrix}(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 10000,
@@ -45,13 +45,14 @@ NormalizeData(object, ...)
 
 \item{normalization.method}{Method for normalization.
  \itemize{
-  \item{LogNormalize: }{Feature counts for each cell are divided by the total
-  counts for that cell and multiplied by the scale.factor. This is then
-  natural-log transformed using log1p.}
-  \item{CLR: }{Applies a centered log ratio transformation}
-  \item{RC: }{Relative counts. Feature counts for each cell are divided by the total
-  counts for that cell and multiplied by the scale.factor. No log-transformation is applied.
-  For counts per million (CPM) set \code{scale.factor = 1e6}}
+  \item \dQuote{\code{LogNormalize}}: Feature counts for each cell are
+   divided by the total counts for that cell and multiplied by the
+   \code{scale.factor}. This is then natural-log transformed using \code{log1p}
+  \item \dQuote{\code{CLR}}: Applies a centered log ratio transformation
+  \item \dQuote{\code{RC}}: Relative counts. Feature counts for each cell
+   are divided by the total counts for that cell and multiplied by the
+   \code{scale.factor}. No log-transformation is applied. For counts per
+   million (CPM) set \code{scale.factor = 1e6}
 }}
 
 \item{scale.factor}{Sets the scale factor for cell-level normalization}

@@ -4,7 +4,7 @@ set.seed(42)
 
 # Tests for visualization utilities
 # ------------------------------------------------------------------------------
-pbmc_small[["tsne_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
+pbmc_small[["tsne_new"]] <- CollapseEmbeddingOutliers(pbmc_small,
      reduction = "tsne", reduction.key = 'tsne_', outlier.sd = 0.5)
 
 test_that("CollapseEmbeddingOutliers works", {

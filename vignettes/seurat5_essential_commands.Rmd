@@ -1,0 +1,238 @@
+---
+title: "Seurat v5 Command Cheat Sheet"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = 'styler',
+  warning = FALSE,
+  error = TRUE,
+  message = FALSE,
+  fig.width = 8,
+  time_it = TRUE
+)
+```
+
+Here, we describe important commands and functions to store, access, and process data using Seurat v5. To demonstrate commamnds, we use a dataset of 3,000 PBMC (stored in-memory), and a dataset of 1.3M E18 mouse neurons (stored on-disk), which we constructed as described in the [BPCells vignette](seurat5_bpcells_interaction_vignette.html).
+
+```{r loaddata}
+library(Seurat)
+library(SeuratData)
+library(BPCells)
+library(dplyr)
+options(Seurat.object.assay.version = "v5")
+```
+
+## Load datasets
+
+```{r matrix}
+pbmc3k <- LoadData("pbmc3k")
+mousebrain1m <- readRDS("/brahms/hartmana/vignette_data/1p3_million_mouse_brain.rds")
+
+#  RNA assay is of the Assay5 class
+class(pbmc3k[["RNA"]])
+class(mousebrain1m[["RNA"]])
+```
+
+## Access and store expression data
+
+The `$` and double-bracket `[[]]` symbols can be used as efficient accessor functions for Seurat5 assays.
+
+```{r }
+
+# access the counts matrix from the RNA assay
+counts_matrix <- pbmc3k[["RNA"]]$counts
+
+# Add a layer
+# Equivalent to running pbmc3k <-NormalizeData(pbmc3k)
+pbmc3k[["RNA"]]$data <- NormalizeData(pbmc3k[["RNA"]]$counts)
+
+# Delete a layer
+pbmc3k[["RNA"]]$data <- NULL
+
+# pbmc3k counts matrix is stored in-memory
+class(pbmc3k[["RNA"]]$counts)
+
+# 1.3M cell dataset counts matrix is stored on-disk
+class(mousebrain1m[["RNA"]]$counts)
+```
+
+Despite the drastic difference in dataset size, the 1.3M cell dataset occupies a small memory footprint thanks to on-disk storage.
+
+```{r}
+paste("PBMC 3k contains", length(colnames(pbmc3k)), "cells")
+paste("Mouse brain 1.3M contains", length(colnames(mousebrain1m)), "cells")
+
+# Despite the mouse brain dataset containing 1.3 million cells, the assay is under 350Mbs in size due to on-disk storage
+paste("PBMC 3k assay size:", format(object.size(pbmc3k[["RNA"]]), units = "Mb"))
+paste("Mouse brain 1.3M assay size:", format(object.size(mousebrain1m[["RNA"]]), units = "Mb"))
+```
+
+## Access cell names and metadata
+
+Get cell names. Since Seurat v5 object doesn't require all assays have the same cells, `Cells()` is designed to get cell names of the default assay and `colnames()` is deigned to get cell names of the entire object
+
+```{r}
+pbmc3k[["RNAsub"]] <- subset(pbmc3k[["RNA"]], cells = colnames(pbmc3k)[1:100])
+DefaultAssay(pbmc3k) <- 'RNAsub'
+length(Cells(pbmc3k))
+length(colnames(pbmc3k))
+```
+
+Access object metadata
+
+```{r meta}
+
+# get all object metadata
+pbmc_metadata <- pbmc3k[[]]
+
+# get list of metadata columns
+colnames(pbmc_metadata)
+
+# get annotations stored in metadata
+annotations <- pbmc3k$seurat_annotations
+
+```
+
+## Create Seurat or Assay objects
+
+By setting a global option (`Seurat.object.assay.version`), you can default to creating either Seurat v3 assays, or Seurat v5 assays. The use of v3 assays is set by default upon package loading, which ensures backwards compatibiltiy with existing workflows.
+
+```{r create}
+# create v3 assays
+options(Seurat.object.assay.version = "v3")
+pbmc.counts <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+pbmc <- CreateSeuratObject(counts = pbmc.counts)
+class(pbmc[["RNA"]])
+
+# create v5 assays
+options(Seurat.object.assay.version = "v5")
+pbmc.counts <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+pbmc <- CreateSeuratObject(counts = pbmc.counts)
+class(pbmc[["RNA"]])
+```
+
+`CreateAssayObject()` and `CreateAssay5Object()` can be used to create v3 and v5 assay regardless of the setting in `Seurat.object.assay.version`
+
+```{r}
+#create a v3 assay
+assay.v3 <- CreateAssayObject(counts = pbmc.counts)
+
+#create a v5 assay
+assay.v5 <- CreateAssay5Object(counts = pbmc.counts)
+
+class(assay.v3)
+class(assay.v5)
+```
+
+Assay5 objects are more flexible, and can be used to store only a data layer, with no counts data. This can be used to create Seurat objects that require less space
+
+```{r}
+# create an assay using only normalized data
+assay.v5 <- CreateAssay5Object(data = log1p(pbmc.counts))
+
+# create a Seurat object based on this assay
+pbmc3k_slim <- CreateSeuratObject(assay.v5)
+pbmc3k_slim
+```
+
+We can also convert (cast) between `Assay` and `Assay5` objects with `as()`. 
+
+```{r}
+# convert a v5 assay to a v3 assay
+pbmc3k[["RNA3"]] <- as(object = pbmc3k[["RNA"]], Class = "Assay")
+
+# convert a v3 assay to a v5 assay
+pbmc3k[["RNA5"]] <- as(object = pbmc3k[["RNA3"]], Class = "Assay5")
+```
+
+## Working with layers
+
+Seurat v5 assays store data in layers. These layers can store raw, un-normalized counts (`layer='counts'`), normalized data (`layer='data'`), or z-scored/variance-stabilized data (`layer='scale.data'`). 
+
+```{r}
+# by default, creates an RNA assay with a counts layer
+obj <- CreateSeuratObject(counts = pbmc.counts)
+obj
+
+# creates a normalized data layer
+obj <- NormalizeData(obj,verbose = FALSE)
+obj
+
+#extract only the layer names from an assay
+Layers(obj[["RNA"]])
+```
+
+Prior to performing integration analysis in Seurat v5, we can split the layers into groups. The `IntegrateLayers` function, described in [our vignette](seurat5_integration.html), will then align shared cell types across these layers. After performing integration, you can rejoin the layers.
+
+```{r joinsplit}
+# create random batches
+pbmc3k$batch <- sample(c("batchA","batchB","batchC"),ncol(pbmc3k),replace = TRUE)
+
+# split layers
+pbmc3k[["RNA"]] <- split(pbmc3k[["RNA"]], f=pbmc3k$batch)
+Layers(pbmc3k[["RNA"]])
+
+# rejoin layers
+pbmc3k[["RNA"]] <- JoinLayers(pbmc3k[["RNA"]])
+Layers(pbmc3k[["RNA"]])
+```
+
+If you have multiple counts matrices, you can also create a Seurat object that is initialized with multiple layers.
+
+```{r multilayer}
+batchA_counts <- pbmc.counts[,1:200]
+batchB_counts <- pbmc.counts[,201:400]
+batchC_counts <- pbmc.counts[,401:600]
+count_list <- list(batchA_counts,batchB_counts,batchC_counts)
+names(count_list) <- c('batchA','batchB','batchC')
+
+# create a Seurat object initialized with multiple layers
+obj <- CreateSeuratObject(counts = count_list)
+Layers(obj[["RNA"]])
+```
+
+## Accessing additional data
+
+```{r}
+pbmc3k <- FindVariableFeatures(pbmc3k, verbose = FALSE)
+pbmc3k <- ScaleData(pbmc3k,verbose = FALSE)
+pbmc3k <- RunPCA(pbmc3k,verbose = FALSE)
+
+# return variable features
+
+# returns information from both assay, cell embeddings and meta.data as a data.frame
+fetch_df <- FetchData(object = pbmc3k, layer = "counts", vars = c("rna_MS4A1", "PC_1", "nCount_RNA"))
+head(fetch_df)
+
+# get cell embeddings
+head(Embeddings(object = pbmc3k[['pca']])[, 1:5])
+
+# get feature loadings
+head(Loadings(object  = pbmc3k[['pca']])[, 1:5])
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

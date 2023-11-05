@@ -13,6 +13,7 @@ MapQuery(
   reference.reduction = NULL,
   reference.dims = NULL,
   query.dims = NULL,
+  store.weights = FALSE,
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
@@ -48,6 +49,8 @@ neighbor finding}
 
 \item{query.dims}{Dimensions (columns) to use from query}
 
+\item{store.weights}{Determine if the weight and anchor matrices are stored.}
+
 \item{reduction.model}{\code{DimReduc} object that contains the umap model}
 
 \item{transferdata.args}{A named list of additional arguments to
@@ -62,8 +65,7 @@ neighbor finding}
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns a modified query Seurat object containing:
-
+Returns a modified query Seurat object containing:#'
 \itemize{
   \item{New Assays corresponding to the features transferred and/or their
   corresponding prediction scores from \code{\link{TransferData}}}

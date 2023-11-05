@@ -16,7 +16,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   results = 'hold',
-  eval = FALSE
+  eval = FALSE,
+  error = TRUE
 )
 ```
 

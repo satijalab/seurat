@@ -9,6 +9,7 @@ TransferData(
   refdata,
   reference = NULL,
   query = NULL,
+  query.assay = NULL,
   weight.reduction = "pcaproject",
   l2.norm = FALSE,
   dims = NULL,
@@ -19,6 +20,7 @@ TransferData(
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
+  only.weights = FALSE,
   store.weights = TRUE
 )
 }
@@ -41,6 +43,8 @@ TransferData(
 \item{reference}{Reference object from which to pull data to transfer}
 
 \item{query}{Query object into which the data will be transferred.}
+
+\item{query.assay}{Name of the Assay to use from query}
 
 \item{weight.reduction}{Dimensional reduction to use for the weighting
 anchors. Options are:
@@ -77,6 +81,8 @@ or "counts"}
 
 \item{prediction.assay}{Return an \code{Assay} object with the prediction
 scores for each class stored in the \code{data} slot.}
+
+\item{only.weights}{Only return weights matrix}
 
 \item{store.weights}{Optionally store the weights matrix used for predictions
 in the returned query object.}

@@ -16,7 +16,8 @@ RidgePlot(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   stack = FALSE,
   combine = TRUE,
   fill.by = "feature"
@@ -48,6 +49,8 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 \item{ncol}{Number of columns if multiple plots are displayed}
 
 \item{slot}{Slot to pull expression data from (e.g. "counts" or "data")}
+
+\item{layer}{Layer to pull expression data from (e.g. "counts" or "data")}
 
 \item{stack}{Horizontally stack plots for each feature}
 

@@ -1,36 +1,46 @@
 ![](articles/assets/seurat_banner.jpg)
 
-# Official release of Seurat 4.0
+## **Beta release of Seurat v5**
 
-We are excited to release Seurat v4.0! This update brings the following new features and functionality:
+We are excited to release an initial beta version of Seurat v5! This update brings the following new features and functionality:
 
-* **Integrative multimodal analysis.** The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents a new and exciting frontier for single-cell genomics. In Seurat v4, we introduce weighted nearest neighbor (WNN) analysis, an unsupervised strategy to learn the information content of each modality in each cell, and to define cellular state based on a weighted combination of both modalities.
-    In our new paper, we generate a CITE-seq dataset featuring paired measurements of the transcriptome and 228 surface proteins, and leverage WNN to define a multimodal reference of human PBMC. You can use WNN to analyze multimodal data from a variety of technologies, including CITE-seq, ASAP-seq, 10X Genomics ATAC + RNA, and SHARE-seq.
+* **Analysis of sequencing and imaging-based spatial datasets:** Spatially resolved datasets are redefining our understanding of cellular interactions and the organization of human tissues. Both sequencing-based(i.e. Visium, SLIDE-seq, etc.), and imaging-based (MERFISH/Vizgen, Xenium, CosMX, etc.) technologies have unique advantages, and require tailored analytical methods and software infrastructure. In Seurat v5, we introduce flexible and diverse support for a wide variety of spatially resolved data types, and support for analytical techniqiues for scRNA-seq integration, deconvolution, and niche identification.
 
-    - Paper: [Integrated analysis of multimodal single-cell data](https://doi.org/10.1016/j.cell.2021.04.048)
-    - Vignette: [Multimodal clustering of a human bone marrow CITE-seq dataset](articles/weighted_nearest_neighbor_analysis.html)
-    - Portal: [Click here](https://atlas.fredhutch.org/nygc/multimodal-pbmc/)
-    - Dataset: [Download here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)
+    - Vignette: [Analysis of spatial datasets (Sequencing-based)](articles/seurat5_spatial_vignette.html)
+    - Vignette: [Analysis of spatial datasets (Imaging-based)](articles/seurat5_spatial_vignette_2.html)\
+\
+* **Integrative multimodal analysis:** The cellular transcriptome is just one aspect of cellular identity, and recent technologies enable routine profiling of chromatin accessibility, histone modifications, and protein levels from single cells. In Seurat v5, we introduce 'bridge integration', a statistical method to integrate experiments measuring different modalities (i.e. separate scRNA-seq and scATAC-seq datasets), using a separate multiomic dataset as a molecular 'bridge'. For example, we demonstrate how to map scATAC-seq datasets onto scRNA-seq datasets, to assist users in interpreting and annotating data from new modalities.\
+\
+We recognize that while the goal of matching shared cell types across datasets may be important for many problems, users may also be concerned about which method to use, or that integration could result in a loss of biological resolution. In Seurat v5, we also introduce flexible and streamlined workflows for the integration of multiple scRNA-seq datasets. This makes it easier to explore the results of different integration methods, and to compare these results to a workflow that excludes integration steps.
 
-* **Rapid mapping of query datasets to references.** We introduce Azimuth, a workflow to leverage high-quality reference datasets to rapidly map new scRNA-seq datasets (queries). For example, you can map any scRNA-seq dataset of human PBMC onto our reference, automating the process of visualization, clustering annotation, and differential expression. Azimuth can be run within Seurat, or using a standalone web application that requires no installation or programming experience.
+    - Paper: [Dictionary learning for integrative, multimodal, and scalable single-cell analysis](https://doi.org/10.1101/2022.02.24.481684)
+    - Vignette: [Streamlined integration of scRNA-seq data](articles/seurat5_integration.html)
+    - Vignette: [Cross-modality bridge integration](articles/seurat5_integration_bridge.html)
+    - Website: [Azimuth-ATAC, reference-mapping for scATAC-seq datasets](https://azimuth.hubmapconsortium.org/references/)\
+\
+* **Flexible, interactive, and highly scalable analsyis:** The size and scale of single-cell sequencing datasets is rapidly increasing, outpacing even Moore's law. In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore exciting datasets spanning millions of cells, even if they cannot be fully loaded into memory. We introduce support for 'sketch'-based analysis, where representative subsamples of a large dataset are stored in-memory to enable rapid and iterative analysis - while the full dataset remains accessible via on-disk storage.\
+\
+We enable high-performance via the BPCells package, developed by Ben Parks in the Greenleaf Lab. The BPCells package enables high-performance analysis via innovative bit-packing compression techniques, optimized C++ code, and use of streamlined and lazy operations.
 
-    - Vignette: [Mapping scRNA-seq queries onto reference datasets](articles/multimodal_reference_mapping.html)
-    - Web app: [Automated mapping, visualization, and annotation of scRNA-seq datasets from human PBMC](https://azimuth.hubmapconsortium.org/)
+    - Vignette: [Sketch-based clustering of 1.3M brain cells (10x Genomics)](articles/seurat5_sketch_analysis.html)
+    - Vignette: [Sketch-based integration of 1M healthy and diabetic PBMC (Parse Biosciences)](articles/ParseBio_sketch_integration.html)
+    - Vignette: [Mapping 1.5M cells from multiple studies to an Azimuth reference](articles/COVID_SCTMapping.html)
+    - Vignette: [Interacting with BPCell matrices in Seurat v5](articles/seurat5_bpcells_interaction_vignette.html)
+    - BPCells R Package: [Scaling Single Cell Analysis to Millions of Cells](https://bnprks.github.io/BPCells/)\
+\
+* **Backwards compatibility:** While Seurat v5 introduces new functionality, we have ensured that the software is backwards-compatible with previous versions, so that users will continue to be able to re-run existing workflows. As v5 is still in beta, the CRAN installation (`install.packages("Seurat")`) will continue to install Seurat v4, but users can opt-in to test Seurat v5 by following the instructions in our [install page](install.html).\
 
-Additional speed and usability updates: We have made minor changes in v4, primarily to improve the performance of Seurat v4 on large datasets. These changes substantially improve the speed and memory requirements, but do not adversely impact downstream results. We provide a detailed description of key changes [here](articles/v4_changes.html). Users who wish to fully reproduce existing results can continue to do so by continuing to install Seurat v3.  
-
-We believe that users who are familiar with Seurat v3 should experience a smooth transition to Seurat v4. While we have introduced extensive new functionality, existing workflows, functions, and syntax are largely unchanged in this update. In addition, Seurat objects that have been previously generated in Seurat v3 can be seamlessly loaded into Seurat v4 for further analysis.
-
-# About Seurat
+## **About Seurat**
 
 Seurat is an R package designed for QC, analysis, and exploration of single-cell RNA-seq data. Seurat aims to enable users to identify and interpret sources of heterogeneity from single-cell transcriptomic measurements, and to integrate diverse types of single-cell data.
 
 If you use Seurat in your research, please considering citing:
 
-* [Hao\*, Hao\*, et al., Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048) [Seurat V4]
-* [Stuart\*, Butler\*, et al., Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) [Seurat V3]
-* [Butler\* et al., Nat Biotechnol 2018](https://doi.org/10.1038/nbt.4096) [Seurat V2]
-* [Satija\*, Farrell\*, et al., Nat Biotechnol 2015](https://doi.org/10.1038/nbt.3192) [Seurat V1]
+* [Hao, et al., bioRxiv 2022](https://doi.org/10.1101/2022.02.24.481684) [Seurat v5]
+* [Hao\*, Hao\*, et al., Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048) [Seurat v4]
+* [Stuart\*, Butler\*, et al., Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) [Seurat v3]
+* [Butler, et al., Nat Biotechnol 2018](https://doi.org/10.1038/nbt.4096) [Seurat v2]
+* [Satija\*, Farrell\*, et al., Nat Biotechnol 2015](https://doi.org/10.1038/nbt.3192) [Seurat v1]
 
 
 All methods emphasize clear, attractive, and interpretable visualizations, and were designed to be [easily used](articles/get_started.html) by both dry-lab and wet-lab researchers.
