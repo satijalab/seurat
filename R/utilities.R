@@ -1450,6 +1450,21 @@ PseudobulkExpression.Seurat <- function(
     data <- data[, which(num.levels > 1), drop = F]
   }
   category.matrix <- CreateCategoryMatrix(labels = data, method = method)
+  #check if column names are numeric
+  col.names <- colnames(category.matrix)
+  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+    col.names <- ifelse(
+      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+      paste0("g", col.names),
+      col.names
+    )
+    colnames(category.matrix) <- col.names
+    inform(
+      message = "Pseudobulk group.by variables are numeric, appending `g` to column names/cells of pseudobulked output.",
+      .frequency = "regularly",
+      .frequency_id = "PseudobulkExpression"
+    )
+  }
   data.return <- list()
   for (i in 1:length(x = assays)) {
     if (inherits(x = features, what = "list")) {
