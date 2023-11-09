@@ -1583,17 +1583,24 @@ PseudobulkExpression.Seurat <- function(
         toRet <- ScaleData(object = toRet, verbose = verbose)
       }
     }
-    if ('ident' %in% group.by) {
-      first.cells <- sapply(
-        X = 1:ncol(x = category.matrix),
-        FUN = function(x) {
-          return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
-        }
-      )
-      Idents(object = toRet,
-             cells = colnames(x = toRet)
-      ) <- Idents(object = object)[first.cells]
+    #add meta-data based on group.by variables
+    cells <- Cells(toRet)
+    for (i in 1:length(group.by)) {
+      if (group.by[i] != "ident") {
+        v <- sapply(
+          strsplit(cells, "_"),
+          function(x) {return(x[i])}
+        )
+        names(v) <- cells
+        toRet <- AddMetaData(toRet,
+                             metadata = v,
+                             col.name = group.by[i]
+        )
+      }
     }
+    #set idents to pseudobulk variables
+    Idents(toRet) <- cells
+    toRet$orig.ident <- cells
     return(toRet)
   } else {
     return(data.return)
