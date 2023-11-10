@@ -1260,7 +1260,8 @@ SCTransform.StdAssay <- function(
                             conserve.memory = conserve.memory,
                             return.only.var.genes = return.only.var.genes,
                             seed.use = seed.use,
-                            verbose = verbose)
+                            verbose = verbose,
+                            ...)
     min_var <- vst.out$arguments$min_variance
     residual.type <- vst.out[['residual_type']] %||% 'pearson'
     assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
