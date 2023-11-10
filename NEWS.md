@@ -1,5 +1,9 @@
 # Unreleased
 
+## Changes
+
+- Fixed `SCTransform.StdAssay` to pass extra arguments to `sctransform::vst()`. Fixes [#875](https://github.com/satijalab/seurat/issues/7998)
+
 
 # Seurat 5.0.0 (2023-10-25)
 
