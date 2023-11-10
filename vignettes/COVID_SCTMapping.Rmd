@@ -147,15 +147,11 @@ bulk <- AggregateExpression(object,
   assays  = 'RNA',
   group.by = c("predicted.celltype.l2", "donor_id", "disease")
 )
-
-bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
-bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
-bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
 ```
 
 ```{r} 
 bulk <- subset(bulk, subset = disease %in% c('normal', 'COVID-19') )
-bulk <- subset(bulk, subset = celltype !=  c('Doublet') )
+bulk <- subset(bulk, subset = predicted.celltype.l2 !=  'Doublet')
 bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
 ```
 
@@ -163,13 +159,13 @@ Once a pseudobulk object is created, we can perform cell type-specific different
 
 ```{r, fig.width=10, fig.height=12}
 p1 <- VlnPlot(
-  object = bulk, features = 'IFI6', group.by = 'celltype',
+  object = bulk, features = 'IFI6', group.by = 'predicted.celltype.l2',
   split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
 p2 <- VlnPlot(
-  object = bulk, features = c('ISG15'), group.by = 'celltype',
+  object = bulk, features = c('ISG15'), group.by = 'predicted.celltype.l2',
   split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
 p3 <- VlnPlot(
-  object = bulk, features = c('IFIT5'), group.by = 'celltype',
+  object = bulk, features = c('IFIT5'), group.by = 'predicted.celltype.l2',
   split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
 p1 + p2 + p3 + plot_layout(ncol = 1)
 ```
