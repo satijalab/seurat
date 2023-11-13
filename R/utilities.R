@@ -1425,6 +1425,8 @@ PseudobulkExpression.Seurat <- function(
     stop("Number of layers provided does not match number of assays")
   }
   data <- FetchData(object = object, vars = rev(x = group.by))
+  #only keep meta-data columns that are in object
+  group.by <- intersect(group.by, colnames(data))
   data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
   if (nrow(x = data) < ncol(x = object)) {
     inform("Removing cells with NA for 1 or more grouping variables")
@@ -1460,7 +1462,9 @@ PseudobulkExpression.Seurat <- function(
     )
     colnames(category.matrix) <- col.names
     inform(
-      message = "Pseudobulk group.by variables are numeric, appending `g` to column names/cells of pseudobulked output.",
+      message = paste0("group.by variable `", group.by[1],
+      "` starts with a number, appending `g` to `", group.by[1],
+      "` variable to ensure\nvalid variable names"),
       .frequency = "regularly",
       .frequency_id = "PseudobulkExpression"
     )
@@ -1600,7 +1604,24 @@ PseudobulkExpression.Seurat <- function(
     }
     #set idents to pseudobulk variables
     Idents(toRet) <- cells
-    toRet$orig.ident <- cells
+
+    #make orig.ident variable
+    #orig.ident = ident if group.by includes `ident`
+    #if not, orig.ident is equal to pseudobulk cell names
+    if(any(group.by == "ident")) {
+      i = which(group.by == "ident")
+      v <- sapply(
+        strsplit(cells, "_"),
+        function(x) {return(x[i])}
+      )
+      names(v) <- cells
+      toRet <- AddMetaData(toRet,
+                           metadata = v,
+                           col.name = "orig.ident"
+      )
+    } else {
+      toRet$orig.ident <- cells
+    }
     return(toRet)
   } else {
     return(data.return)
