@@ -1170,7 +1170,7 @@ PercentageFeatureSet <- function(
     warn(message = "Both pattern and features provided. Pattern is being ignored.")
   }
   percent.featureset <- list()
-  layers <- Layers(object = object, pattern = "counts")
+  layers <- Layers(object = object, search = "counts")
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
     features.layer <- features %||% grep(
