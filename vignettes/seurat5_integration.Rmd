@@ -22,7 +22,7 @@ knitr::knit_hooks$set(time_it = local({
 }))
 knitr::opts_chunk$set(
   tidy = 'styler',
-  fig.width = 10,
+  fig.width = 8,
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
@@ -38,11 +38,10 @@ library(Azimuth)
 library(ggplot2)
 library(patchwork)
 options(future.globals.maxSize = 1e9)
-options(Seurat.object.assay.version = "v5")
 ```
 
 ## Introduction
-Integration of single-cell sequencing datasets, for example across experimental batches, donors, or conditions, is often an important step in scRNA-seq workflows. Integrative analysis can help to match shared cell types and states across datasets, which can boost statistical power, and most importantly, facilitate accurate comparative analysis across datasets. In previous versions of Seurat we introduced methods for integrative analysis, including our ‘anchor-based’ integration workflow. Many labs have also published powerful and pioneering methods, including Harmony and scVI, for integrative analysis. 
+Integration of single-cell sequencing datasets, for example across experimental batches, donors, or conditions, is often an important step in scRNA-seq workflows. Integrative analysis can help to match shared cell types and states across datasets, which can boost statistical power, and most importantly, facilitate accurate comparative analysis across datasets. In previous versions of Seurat we introduced methods for integrative analysis, including our ‘anchor-based’ integration workflow. Many labs have also published powerful and pioneering methods, including [Harmony](https://github.com/immunogenomics/harmony) and [scVI](https://yoseflab.github.io/software/scvi-tools/), for integrative analysis. 
 We recognize that while the goal of matching shared cell types across datasets may be important for many problems, users may also be concerned about which method to use, or that integration could result in a loss of biological resolution. In Seurat v5, we introduce more flexible and streamlined infrastructure to run different integration algorithms with a single line of code. This makes it easier to explore the results of different integration methods, and to compare these results to a workflow that excludes integration steps.
 For this vignette, we use a [dataset of human PBMC profiled with seven different technologies](https://www.nature.com/articles/s41587-020-0465-8), profiled as part of a systematic comparative analysis (`pbmcsca`). The data is available as part of our [SeuratData](https://github.com/satijalab/seurat-data) package. 
 
@@ -91,39 +90,42 @@ Seurat v5 enables streamlined integrative analysis using the `IntegrateLayers` f
 * FastMNN (`method= FastMNNIntegration`)
 * scVI (`method=scVIIntegration`)
 
-Note that you can find more detail on each method, and any installation prerequisites, in Seurat's documentation (for example, `?scVIIntegration`). For example, scVI integration requires `reticulate` which can be installed from CRAN (`install.packages("reticulate")`) as well as `scvi-tools` and its dependencies installed in a conda environment. Please see scVI installation instructions [here](https://docs.scvi-tools.org/en/stable/installation.html).
+Note that our anchor-based RPCA integration represents a faster and more conservative (less correction) method for integration. For interested users, we discuss this method in more detail in our [previous RPCA vignette](https://satijalab.org/seurat/articles/integration_rpca)
+
+You can find more detail on each method, and any installation prerequisites, in Seurat's documentation (for example, `?scVIIntegration`). For example, scVI integration requires `reticulate` which can be installed from CRAN (`install.packages("reticulate")`) as well as `scvi-tools` and its dependencies installed in a conda environment. Please see scVI installation instructions [here](https://docs.scvi-tools.org/en/stable/installation.html).
+
 
 Each of the following lines perform a new integration using a single line of code:
 
-```{r integratelayerscca}
+```{r integratelayerscca, results='hide'}
 obj <- IntegrateLayers(
   object = obj, method = CCAIntegration,
   orig.reduction = "pca", new.reduction = 'integrated.cca',
   verbose = FALSE)
 ```
 
-```{r integratelayersrpca}
+```{r integratelayersrpca, results='hide'}
 obj <- IntegrateLayers(
   object = obj, method = RPCAIntegration,
   orig.reduction = "pca", new.reduction = 'integrated.rpca',
   verbose = FALSE)
 ```
 
-```{r integratelayersharmony}
+```{r integratelayersharmony, results='hide'}
 obj <- IntegrateLayers(
   object = obj, method = HarmonyIntegration,
   orig.reduction = "pca", new.reduction = 'harmony',
   verbose = FALSE)
 ```
 
-```{r integratelayersfastmnn}
+```{r integratelayersfastmnn, results='hide'}
 obj <- IntegrateLayers(
   object = obj, method = FastMNNIntegration,
   new.reduction = 'integrated.mnn',
   verbose = FALSE)
 ```
 
-```{r integratelayersscvi, eval=FALSE}
+```{r integratelayersscvi, eval=FALSE, results='hide'}
 obj <- IntegrateLayers(
   object = obj, method = scVIIntegration,
   new.reduction = 'integrated.scvi',
@@ -136,7 +138,7 @@ scvi.reduc <- scvi.reduc[Cells(obj),]
 obj[["integrated.scvi"]] <- CreateDimReducObject(embeddings = scvi.reduc)
 ```
 
-For any of the methods, we can now visualize and cluster the datasets. We show this for CCA integration and scVI, but you can do this for any method
+For any of the methods, we can now visualize and cluster the datasets. We show this for CCA integration and scVI, but you can do this for any method:
 
 ```{r integratedprojections, fig.height=16, fig.width=16}
 obj <- FindNeighbors(obj, reduction = 'integrated.cca', dims = 1:30)
@@ -145,7 +147,7 @@ obj <- RunUMAP(obj, reduction = "integrated.cca", dims = 1:30, reduction.name = 
 p1 <- DimPlot(
   obj, reduction = "umap.cca",
   group.by = c("Method", "predicted.celltype.l2", "cca_clusters"),
-  combine = FALSE)
+  combine = FALSE, label.size = 2) 
 
 obj <- FindNeighbors(obj, reduction = 'integrated.scvi', dims = 1:30)
 obj <- FindClusters(obj,resolution = 2, cluster.name = 'scvi_clusters')
@@ -153,9 +155,9 @@ obj <- RunUMAP(obj, reduction = "integrated.scvi", dims = 1:30, reduction.name =
 p2 <- DimPlot(
   obj, reduction = "umap.scvi",
   group.by = c("Method", "predicted.celltype.l2", "scvi_clusters"),
-  combine = FALSE)
+  combine = FALSE, label.size = 2)
 
-wrap_plots(c(p1, p2), ncol = 2)
+wrap_plots(c(p1, p2), ncol = 2, byrow = F)
 ```
 
 We hope that by simplifying the process of performing integrative analysis, users can more carefully evaluate the biological information retained in the integrated dataset. For example, users can compare the expression of biological markers based on different clustering solutions, or visualize one method's clustering solution on different UMAP visualizations.
@@ -186,6 +188,27 @@ Once integrative analysis is complete, you can rejoin the layers - which collaps
 ```{r joinlayers}
 obj <- JoinLayers(obj)
 obj
+```
+
+Lastly, users can also perform integration using sctransform-normalized data (see our [SCTransform vignette](https://satijalab.org/seurat/articles/sctransform_vignette) for more information), by first running SCTransform normalization, and then setting the `normalization.method` argument in `IntegrateLayers`.
+
+```{r, include=FALSE}
+obj <- LoadData("pbmcsca")
+obj <- subset(obj, nFeature_RNA > 1000)
+obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+```
+
+```{r sct}
+options(future.globals.maxSize = 3e+09)
+obj <- SCTransform(obj)
+obj <- RunPCA(obj, npcs = 30, verbose = F)
+obj <- IntegrateLayers(object = obj, 
+                           method = RPCAIntegration,
+                           normalization.method="SCT",
+                           verbose = F)
+obj <- FindNeighbors(obj, dims = 1:30,reduction = 'integrated.dr')
+obj <- FindClusters(obj, resolution = 2)
+obj <- RunUMAP(obj, dims = 1:30,reduction = 'integrated.dr')
 ```
 
 <details>

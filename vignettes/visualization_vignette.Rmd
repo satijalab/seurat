@@ -32,7 +32,7 @@ knitr::opts_chunk$set(
   time_it = TRUE,
   error = TRUE
 )
-options(SeuratData.repo.use = 'satijalab04.nygenome.org')
+options(SeuratData.repo.use = 'seurat.nygenome.org')
 ```
 
 We'll demonstrate visualization techniques in Seurat using our previously computed Seurat object from the 2,700 PBMC tutorial. You can download this dataset from [SeuratData](https://github.com/satijalab/seurat-data)
@@ -153,7 +153,7 @@ ggsave(filename = "../output/images/visualization_vignette.jpg", height = 7, wid
 Seurat utilizes R's plotly graphing library to create interactive plots. This interactive plotting feature works with any ggplot2-based scatter plots (requires a `geom_point` layer). To use, simply make a ggplot2-based scatter plot (such as `DimPlot()` or `FeaturePlot()`) and pass the resulting plot to `HoverLocator()`
 
 ```{r hover}
-# Include additional data to display alongside cell names by passing in a data frame of information
+# Include additional data to display alongside cell names by passing in a data frame of information.
 # Works well when using FetchData
 plot <- FeaturePlot(pbmc3k.final, features = 'MS4A1')
 HoverLocator(plot = plot, information = FetchData(pbmc3k.final, vars = c('ident', 'PC_1', 'nFeature_RNA')))
@@ -161,7 +161,7 @@ HoverLocator(plot = plot, information = FetchData(pbmc3k.final, vars = c('ident'
 
 Another interactive feature provided by Seurat is being able to manually select cells for further investigation. We have found this particularly useful for small clusters that do not always separate using unbiased clustering, but which look tantalizingly distinct. You can now select these cells by creating a ggplot2-based scatter plot (such as with `DimPlot()` or `FeaturePlot()`, and passing the returned plot to `CellSelector()`. `CellSelector()` will return a vector with the names of the points selected, so that you can then set them to a new identity class and perform differential expression.
 
-For example, lets pretend that DCs had merged with monocytes in the clustering, but we wanted to see what was unique about them based on their position in the tSNE plot.
+For example, let's pretend that DCs had merged with monocytes in the clustering, but we wanted to see what was unique about them based on their position in the tSNE plot.
 
 ```{r identify, eval=FALSE}
 pbmc3k.final <- RenameIdents(pbmc3k.final, "DC" = "CD14+ Mono")
@@ -224,6 +224,7 @@ Plotting multiple plots was previously achieved with the `CombinePlot()` functio
 
 ```{r combining_plots, fig.height = 5}
 plot1 <- DimPlot(pbmc3k.final)
+# Create scatter plot with the Pearson correlation value as the title
 plot2 <- FeatureScatter(pbmc3k.final, feature1 = 'LYZ', feature2 = 'CCL5')
 # Combine two plots
 plot1 + plot2

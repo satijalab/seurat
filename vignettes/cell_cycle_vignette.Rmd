@@ -39,7 +39,7 @@ library(Seurat)
 
 # Read in the expression matrix
 # The first row is a header row, the first column is rownames
-exp.mat <- read.table(file = "/Users/sli/seurat-private/data/cell_cycle_vignette_files/nestorawa_forcellcycle_expressionMatrix.txt", header = TRUE, as.is = TRUE, row.names = 1)
+exp.mat <- read.table(file = "/brahms/shared/vignette-data/cell_cycle_vignette_files/nestorawa_forcellcycle_expressionMatrix.txt", header = TRUE, as.is = TRUE, row.names = 1)
 
 # A list of cell cycle markers, from Tirosh et al, 2015, is loaded with Seurat.
 # We can segregate this list into markers of G2/M phase and markers of S phase

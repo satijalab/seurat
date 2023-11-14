@@ -56,7 +56,7 @@ We first load the reference (available [here](https://zenodo.org/record/7779017#
 
 ```{r load.data}
 reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
-object <- readRDS("/brahms/hartmana/vignette_data/merged_covid_object.rds")
+object <- readRDS("/brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds")
 object <- NormalizeData(object, verbose = FALSE)
 ```
 

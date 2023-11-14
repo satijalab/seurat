@@ -33,3 +33,9 @@ The SeuratDisk package introduces the h5Seurat file format for the storage and a
 
 Azimuth is a web application that uses an annotated reference dataset to automate the processing, analysis, and interpretation of a new single-cell RNA-seq experiment. Azimuth leverages a 'reference-based mapping' pipeline that inputs a counts matrix of gene expression in single cells, and performs normalization, visualization, cell annotation, and differential expression (biomarker discovery). All results can be explored within the app, and easily downloaded for additional downstream analysis. To use the Azimuth web app, visit the Azimuth website [here](https://azimuth.hubmapconsortium.org/).
 
+# BPCells
+
+BPCells is an R package that allows for computationally efficient single-cell analysis. It utilizes bit-packing compression to store counts matrices on disk and C++ code to cache operations. BPCells is an R package that allows for computationally efficient single-cell analysis. It utilizes bit-packing compression to store counts matrices on disk and C++ code to cache operations.
+
+# presto
+Presto performs a fast Wilcoxon rank sum test and auROC analysis. Seurat uses the presto package to perform fast differential expression.

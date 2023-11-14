@@ -14,70 +14,72 @@ navbar:
   title: "Seurat"
   left:
     - text: "Install"
-      href: articles/install.html
-    - text: "Seurat v5"
-      href: articles/get_started_v5.html
+      href: articles/install_v5.html
     - text: "Get started"
-      href: articles/get_started.html
+      href: articles/get_started_v5_new.html
     - text: "Vignettes"
       menu:
         - text: Introductory Vignettes
         - text: "PBMC 3K guided tutorial"
           href: articles/pbmc3k_tutorial.html
+        - text: "Data visualization vignette"
+          href: articles/visualization_vignette.html
+        - text: "SCTransform, v2 regularization"
+          href: articles/sctransform_vignette.html
         - text: "Using Seurat with multi-modal data"
           href: articles/multimodal_vignette.html
+        - text: "Seurat v5 Command Cheat Sheet"
+          href: articles/essential_commands.html
         - text: -------
         - text: Data Integration
         - text: "Introduction to scRNA-seq integration"
           href: articles/integration_introduction.html
+        - text: "Integrative analysis in Seurat v5"
+          href: articles/seurat5_integration.html
         - text: "Mapping and annotating query datasets"
           href: articles/integration_mapping.html
-        - text: "Fast integration using reciprocal PCA (RPCA)"
-          href: articles/integration_rpca.html
-        - text: "Tips for integrating large datasets"
-          href: articles/integration_large_datasets.html
-        - text: "Integrating scRNA-seq and scATAC-seq data"
-          href: articles/atacseq_integration_vignette.html
-        - text: "Multimodal reference mapping"
-          href: articles/multimodal_reference_mapping.html
         - text: -------
-        - text: New Statistical Methods
+        - text: Multi-assay data
+        - text: "Dictionary Learning for cross-modality integration"
+          href: articles/seurat5_integration_bridge.html
         - text: "Weighted Nearest Neighbor Analysis"
           href: articles/weighted_nearest_neighbor_analysis.html
+        - text: "Integrating scRNA-seq and scATAC-seq data"
+          href: articles/seurat5_atacseq_integration_vignette.html
+        - text: "Multimodal reference mapping"
+          href: articles/multimodal_reference_mapping.html
         - text: "Mixscape Vignette"
           href: articles/mixscape_vignette.html
-        - text: "Using sctransform in Seurat"
-          href: articles/sctransform_vignette.html
-        - text: "SCTransform, v2 regularization"
-          href: articles/sctransform_v2_vignette.html
+        - text: -------
+        - text: Massively scalable analysis
+        - text: "Sketch-based analysis in Seurat v5"
+          href: articles/seurat5_sketch_analysis.html
+        - text: "Sketch integration using a 1 million cell dataset from Parse Biosciences"
+          href: articles/ParseBio_sketch_integration.html
+        - text: "Map COVID PBMC datasets to a healthy reference"
+          href: articles/COVID_SCTMapping.html
+        - text: "BPCells Interaction"
+          href: articles/seurat5_bpcells_interaction_vignette.html
+        - text: -------
+        - text: Spatial analysis
+        - text: "Analysis of spatial datasets (Imaging-based)"
+          href: articles/seurat5_spatial_vignette_2.html
+        - text: "Analysis of spatial datasets (Sequencing-based)"
+          href: articles/spatial_vignette.html
         - text: -------
         - text: Other
-        - text: "Data visualization vignette"
-          href: articles/visualization_vignette.html
         - text: "Cell-cycle scoring and regression"
           href: articles/cell_cycle_vignette.html
         - text: "Differential expression testing"
           href: articles/de_vignette.html
         - text: "Demultiplexing with hashtag oligos (HTOs)"
           href: articles/hashing_vignette.html
-        - text: "Interoperability between single-cell object formats"
-          href: articles/conversion_vignette.html
-        - text: "Parallelization in Seurat with future"
-          href: articles/future_vignette.html
-        - text: "Dimensional reduction vignette"
-          href: articles/dim_reduction_vignette.html
-        - text: "Seurat essential commands list"
-          href: articles/essential_commands.html
-        - text: "Seurat interaction tips"
-          href: articles/interaction_vignette.html
-        - text: "Merging Seurat objects"
-          href: articles/merge_vignette.html
     - text: Extensions
       href: articles/extensions.html
     - text: FAQ
       href: "https://github.com/satijalab/seurat/discussions"
     - text: "News"
-      href: news/index.html
+      href: articles/announcements.html
     - text: "Reference"
       href: reference/index.html
     - text: "Archive"
@@ -157,6 +159,16 @@ reference:
 - contents:
   - has_concept("convenience")
 
+- title: "Multimodal"
+  desc: "Functions for multimodal analysis"
+- contents:
+  - has_concept("multimodal")
+
+- title: "Re-exports"
+  desc: "Functions for flexible analysis of massively scalable datasets"
+- contents:
+  - has_concept("sketching")
+  
 - title: "Re-exports"
   desc: "Functions re-exported from other packages"
 - contents:

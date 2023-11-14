@@ -7,7 +7,7 @@ output:
   pdf_document: default
 date: 'Compiled: `r Sys.Date()`'
 ---
-***
+
 ```{r setup, include=FALSE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
@@ -44,76 +44,44 @@ For the purposes of this example, we've chosen human pancreatic islet cell datas
 ```{r libraries, message=FALSE, warning=FALSE}
 library(Seurat)
 library(SeuratData)
+library(ggplot2)
 ```
 
 ```{r install.data, eval=FALSE}
 InstallData('panc8')
 ```
 
-To construct a reference, we will identify 'anchors' between the individual datasets. First, we split the combined object into a list, with each dataset as an element (this is only necessary because the data was bundled together for easy distribution).
+As a demonstration, we will use a subset of technologies to construct a reference. We will then map the remaining datasets onto this reference. We start by selecting cells from four technologies, and performing an analysis without integration.
 
 ```{r preprocessing1}
 panc8 <- LoadData('panc8')
-pancreas.list <- SplitObject(panc8, split.by = "tech")
-pancreas.list <- pancreas.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
+table(panc8$tech)
+
+# we will use data from 2 technologies for the reference
+pancreas.ref <- subset(panc8, tech %in% c("celseq2", "smartseq2"))
+pancreas.ref[["RNA"]] <- split(pancreas.ref[["RNA"]], f = pancreas.ref$tech)
+
+# pre-process dataset (without integration)
+pancreas.ref <- NormalizeData(pancreas.ref)
+pancreas.ref <- FindVariableFeatures(pancreas.ref)
+pancreas.ref <- ScaleData(pancreas.ref)
+pancreas.ref <- RunPCA(pancreas.ref)
+pancreas.ref <- FindNeighbors(pancreas.ref, dims=1:30)
+pancreas.ref <- FindClusters(pancreas.ref)
+pancreas.ref <- RunUMAP(pancreas.ref, dims = 1:30)
+DimPlot(pancreas.ref,group.by = c("celltytpe","tech"))
 ```
 
-Prior to finding anchors, we perform standard preprocessing (log-normalization), and identify variable features individually for each. Note that Seurat implements an improved method for variable feature selection based on a variance stabilizing transformation (`"vst"`)
-
-```{r preprocessing3}
-for (i in 1:length(pancreas.list)) {
-  pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
-  pancreas.list[[i]] <- FindVariableFeatures(pancreas.list[[i]], selection.method = "vst",
-                                             nfeatures = 2000, verbose = FALSE)
-}
-```
-
-# Integration of 3 pancreatic islet cell datasets 
-
-Next, we identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input. Here, we integrate three of the objects into a reference (we will use the fourth later in this vignette as a query dataset to demonstrate mapping).
-
-* We use all default parameters here for identifying anchors, including the 'dimensionality' of the dataset (30; feel free to try varying this parameter over a broad range, for example between 10 and 50).  
-
-```{r integration.anchors, warning = FALSE, message = FALSE}
-reference.list <- pancreas.list[c("celseq", "celseq2", "smartseq2")]
-pancreas.anchors <- FindIntegrationAnchors(object.list = reference.list, dims = 1:30)
-```
-
-We then pass these anchors to the `IntegrateData()` function, which returns a Seurat object. 
-
-* The returned object will contain a new `Assay`, which holds an integrated (or 'batch-corrected') expression matrix for all cells, enabling them to be jointly analyzed.
-
-```{r data.integration, warning = FALSE, message = FALSE}
-pancreas.integrated <- IntegrateData(anchorset = pancreas.anchors, dims = 1:30)
-```
-
-After running `IntegrateData()`, the `Seurat` object will contain a new `Assay` with the integrated expression matrix. Note that the original (uncorrected values) are still stored in the object in the "RNA" assay, so you can switch back and forth.
-
-We can then use this new integrated matrix for downstream analysis and visualization. Here we scale the integrated data, run PCA, and visualize the results with UMAP. The integrated datasets cluster by cell type, instead of by technology.
-
-```{r analysis, message = FALSE, warning=FALSE, fig.width=10}
-library(ggplot2)
-library(cowplot)
-library(patchwork)
-#switch to integrated assay. The variable features of this assay are automatically 
-#set during IntegrateData
-DefaultAssay(pancreas.integrated) <- 'integrated'
-# Run the standard workflow for visualization and clustering
-pancreas.integrated <- ScaleData(pancreas.integrated, verbose = FALSE)
-pancreas.integrated <- RunPCA(pancreas.integrated, npcs = 30, verbose = FALSE)
-pancreas.integrated <- RunUMAP(pancreas.integrated, reduction = "pca", dims = 1:30, 
-                               verbose = FALSE)
-p1 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "tech") 
-p2 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype",
-              label = TRUE, repel = TRUE) + NoLegend()
-p1 + p2
-```
-
-```{r save.img, include = TRUE}
-plot <- DimPlot(pancreas.integrated, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
-  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
-  guides(colour = guide_legend(override.aes = list(size = 10)))
-ggsave(filename = "pancreas_integrated_umap.jpg", height = 7, width = 12, plot = plot, quality = 50)
+Next, we integrate the datasets into a shared reference. Please see our [introduction to integration vignette](https://satijalab.org/seurat/articles/integration_introduction)
+```{r preprocessing3, fig.height = 4}
+pancreas.ref <- IntegrateLayers(
+  object = pancreas.ref, method = CCAIntegration,
+  orig.reduction = "pca", new.reduction = 'integrated.cca',
+  verbose = FALSE)
+pancreas.ref <- FindNeighbors(pancreas.ref,reduction='integrated.cca',dims=1:30)
+pancreas.ref <- FindClusters(pancreas.ref)
+pancreas.ref <- RunUMAP(pancreas.ref,reduction='integrated.cca',dims=1:30)
+DimPlot(pancreas.ref,group.by = c("tech","celltype"))
 ```
 
 # Cell type classification using an integrated reference
@@ -126,9 +94,12 @@ Seurat also supports the projection of reference data (or meta data) onto a quer
 After finding anchors, we use the `TransferData()` function to classify the query cells based on reference data (a vector of reference cell type labels). `TransferData()` returns a matrix with predicted IDs and prediction scores, which we can add to the query metadata.
 
 ```{r label.transfer, warning = FALSE, message = FALSE}
-pancreas.query <- pancreas.list[["fluidigmc1"]]
-pancreas.anchors <- FindTransferAnchors(reference = pancreas.integrated, query = pancreas.query, dims = 1:30, reference.reduction = "pca")
-predictions <- TransferData(anchorset = pancreas.anchors, refdata = pancreas.integrated$celltype, dims = 1:30)
+
+# select two technologies for the query datasets
+pancreas.query <- subset(panc8, tech %in% c("fluidigmc1","celseq"))
+pancreas.query <- NormalizeData(pancreas.query)
+pancreas.anchors <- FindTransferAnchors(reference = pancreas.ref, query = pancreas.query, dims = 1:30, reference.reduction="pca")
+predictions <- TransferData(anchorset = pancreas.anchors, refdata = pancreas.ref$celltype, dims = 1:30)
 pancreas.query <- AddMetaData(pancreas.query, metadata = predictions)
 ```
 
@@ -148,16 +119,16 @@ VlnPlot(pancreas.query, c("REG1A", "PPY", "SST", "GHRL", "VWF", "SOX10"), group.
 
 # Unimodal UMAP Projection
 
-In Seurat v4, we also enable projection of a query onto the reference UMAP structure. This can be achieved by computing the reference UMAP model and then calling  `MapQuery()` instead of `TransferData()`. 
+We also enable projection of a query onto the reference UMAP structure. This can be achieved by computing the reference UMAP model and then calling  `MapQuery()` instead of `TransferData()`. 
 
 ```{r label.transfer.v4, warning = FALSE, message = FALSE}
-pancreas.integrated <- RunUMAP(pancreas.integrated, dims = 1:30, reduction = "pca", return.model = TRUE)
+pancreas.ref <- RunUMAP(pancreas.ref, dims = 1:30, reduction = "integrated.cca", return.model = TRUE)
 pancreas.query <- MapQuery(
   anchorset = pancreas.anchors, 
-  reference = pancreas.integrated,
+  reference = pancreas.ref,
   query = pancreas.query,
   refdata = list(celltype = 'celltype'),
-  reference.reduction = 'pca',
+  reference.reduction = "pca", 
   reduction.model = 'umap'
 )
 ```
@@ -170,20 +141,20 @@ pancreas.query <- MapQuery(
 ```{r, eval=FALSE}
 pancreas.query <- TransferData(
   anchorset = pancreas.anchors, 
-  reference = pancreas.integrated,
+  reference = pancreas.ref,
   query = pancreas.query,
   refdata = list(celltype = "celltype")
 )
 pancreas.query <- IntegrateEmbeddings(
   anchorset = pancreas.anchors,
-  reference = pancreas.integrated,
+  reference = pancreas.ref,
   query = pancreas.query, 
   new.reduction.name = "ref.pca"
 )
 pancreas.query <- ProjectUMAP(
   query = pancreas.query, 
   query.reduction = "ref.pca", 
-  reference = pancreas.integrated, 
+  reference = pancreas.ref, 
   reference.reduction = "pca", 
   reduction.model = "umap"
 )
@@ -193,7 +164,7 @@ pancreas.query <- ProjectUMAP(
 We can now visualize the query cells alongside our reference.
 
 ```{r panc.refdimplots, fig.width=10}
-p1 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype", label = TRUE,
+p1 <- DimPlot(pancreas.ref, reduction = "umap", group.by = "celltype", label = TRUE,
              label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Reference annotations")
 p2 <- DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.celltype", label = TRUE, 
              label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Query transferred labels")

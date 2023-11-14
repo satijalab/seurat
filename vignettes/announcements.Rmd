@@ -1,0 +1,50 @@
+---
+title: "News"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+---
+
+## **Changes in Seurat v5**
+
+We are excited to release Seurat v5 on CRAN, where it is now the default version for new installs. Seurat v5 is designed to be backwards compatible with Seurat v4 so existing code will continue to run, but we have made some changes to the software that will affect user results. We note that users who aim to reproduce their previous workflows in Seurat v4 can still install this version using the instructions on our [install page](link).
+
+In particular, we have made changes to:
+
+* **Seurat Object and Assay class:** 
+\
+Seurat v5 now includes support for additional assay and data types, including on-disk matrices. To facilitate this, we have introduced an updated Seurat v5 assay. Users can check out this [vignette for more information]. Briefly, Seurat v5 assays store data in layers (previously referred to as 'slots'). 
+
+    For example, these layers can store: raw counts `(layer='counts')`, normalized data `(layer='data')`, or z-scored/variance-stabilized data `(layer='scale.data')`. 
+
+    Data can be accessed using the `$` accessor (i.e. `obj[["RNA"]]$counts`), or the ``LayerData` function (i.e. `LayerData(obj, assay="RNA", layer='counts')`.
+\
+
+    We've designed these updates to minimize changes for users. Existing Seurat functions and workflows from v4 continue to work in v5. For example, the command `GetAssayData(obj, assay="RNA", slot='counts')`, will run successfully in both Seurat v4 and Seurat v5.
+
+
+* **Integration workflow:** 
+\
+Seurat v5 introduces a [streamlined integration](integration_introduction.html) and [data transfer](intregration_mapping.html) workflows that performs integration in low-dimensional space, and improves speed and memory efficiency.  The results of integration are not identical between the two workflows, but users can still run the [v4 integration workflow](integration_introduction.html) in Seurat v5 if they wish.
+\
+
+    In previous versions of Seurat, the integration workflow required a list of multiple Seurat objects as input. In Seurat v5, all the data can be kept as a single object, but prior to integration, users can simply split the layers. See our [introduction to integration](integration_introduction.html) vignette for more information.
+
+
+* **Differential expression:** 
+\
+Seurat v5 now uses the [presto package](https://github.com/immunogenomics/presto) (from the Korunsky and Raychaudhari labs), when available, to perform differential expression analysis. Using presto can dramatically speed up DE testing, and we encourage users to install it.
+\
+In addition, in Seurat v5 we implement a pseudocount (when calculating log-FC) at the group level instead of the cell level. As a result, users will observe higher logFC estimates in v5 - but should note that these estimates may be more unstable - particularly for genes that are very lowly expressed in one of the two groups. We gratefully acknowledge feedback from the McCarthy and Pachter labs on this topic.
+
+* **SCTransform v2:** 
+\
+In [Choudhary and Satija, Genome Biology, 2022](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02584-9), we implement an updated version 2 of sctransform. This is now the default version when running `SCTransform` in Seurat v5. Users who wish to run the previous workflow can set the `vst.flavor = "v1"` argument in the `SCTransform` function.
+\
+\
+* **Pseudobulk analysis:** 
+\
+Once a single-cell dataset has been analyzed to annotate cell subpopulations, pseudobulk analyses (i.e. aggregating together cells within a given subpopulation and sample) can reduce noise, improve quantification of lowly expressed genes, and reduce the size of the data matrix. In Seurat v5, we encourage the use of the `AggregateExpression` function to perform pseudobulk analysis.
+\
+Check out our [differential expression vignette](de_vignette.html) as well as our [pancreatic/healthy PBMC comparison](ParseBio_sketch_integration.html), for examples of how to use `AggregateExpression` to perform robust differential expression of scRNA-seq data from multiple different conditions.
