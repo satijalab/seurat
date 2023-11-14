@@ -1450,6 +1450,21 @@ PseudobulkExpression.Seurat <- function(
     data <- data[, which(num.levels > 1), drop = F]
   }
   category.matrix <- CreateCategoryMatrix(labels = data, method = method)
+  #check if column names are numeric
+  col.names <- colnames(category.matrix)
+  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+    col.names <- ifelse(
+      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+      paste0("g", col.names),
+      col.names
+    )
+    colnames(category.matrix) <- col.names
+    inform(
+      message = "Pseudobulk group.by variables are numeric, appending `g` to column names/cells of pseudobulked output.",
+      .frequency = "regularly",
+      .frequency_id = "PseudobulkExpression"
+    )
+  }
   data.return <- list()
   for (i in 1:length(x = assays)) {
     if (inherits(x = features, what = "list")) {
@@ -1568,17 +1583,24 @@ PseudobulkExpression.Seurat <- function(
         toRet <- ScaleData(object = toRet, verbose = verbose)
       }
     }
-    if ('ident' %in% group.by) {
-      first.cells <- sapply(
-        X = 1:ncol(x = category.matrix),
-        FUN = function(x) {
-          return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
-        }
-      )
-      Idents(object = toRet,
-             cells = colnames(x = toRet)
-      ) <- Idents(object = object)[first.cells]
+    #add meta-data based on group.by variables
+    cells <- Cells(toRet)
+    for (i in 1:length(group.by)) {
+      if (group.by[i] != "ident") {
+        v <- sapply(
+          strsplit(cells, "_"),
+          function(x) {return(x[i])}
+        )
+        names(v) <- cells
+        toRet <- AddMetaData(toRet,
+                             metadata = v,
+                             col.name = group.by[i]
+        )
+      }
     }
+    #set idents to pseudobulk variables
+    Idents(toRet) <- cells
+    toRet$orig.ident <- cells
     return(toRet)
   } else {
     return(data.return)
