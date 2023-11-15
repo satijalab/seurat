@@ -164,7 +164,7 @@ FindAllMarkers <- function(
           subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
         )
       } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
-        gde <- gde[order(gde$p_val, -gde[, 2]), ]
+        gde <- gde[order(gde$p_val, -abs(gde$pct.1-gde$pct.2)), ]
         gde <- subset(x = gde, subset = p_val < return.thresh)
       }
       if (nrow(x = gde) > 0) {
@@ -612,7 +612,7 @@ FindMarkers.default <- function(
   if (test.use %in% DEmethods_nocorrect()) {
     de.results <- de.results[order(-de.results$power, -de.results[, 1]), ]
   } else {
-    de.results <- de.results[order(de.results$p_val, -abs(de.results[,colnames(fc.results)[1]])), ]
+    de.results <- de.results[order(de.results$p_val, -abs(de.results$pct.1-de.results$pct.2)), ]
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
