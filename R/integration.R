@@ -2621,19 +2621,19 @@ MappingScore.AnchorSet <- function(
   combined.object <- slot(object = anchors, name = "object.list")[[1]]
   combined.object <- RenameCells(
     object = combined.object,
-    new.names = unname(obj = sapply(
+    new.names = unname(obj = make.unique(sapply(
       X = Cells(x = combined.object),
       FUN = RemoveLastField
-    ))
+    )))
   )
-  query.cells <- sapply(
+  query.cells <- make.unique(sapply(
     X = slot(object = anchors, name = "query.cells"),
     FUN = RemoveLastField
-  )
-  ref.cells <- sapply(
+  ))
+  ref.cells <- make.unique(sapply(
     X = slot(object = anchors, name = "reference.cells"),
     FUN = RemoveLastField
-  )
+  ))
   query.embeddings <- Embeddings(object = subset(
     x = combined.object[["pcaproject.l2"]],
     cells = query.cells
