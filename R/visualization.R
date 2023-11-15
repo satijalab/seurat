@@ -2047,7 +2047,9 @@ FeatureScatter <- function(
     }
   }
   if (!is.null(x = split.by)) {
-    data[, split.by] <- FetchData(object = object, vars = split.by)[split.by]
+    split <- FetchData(object = object, vars = split.by, clean=TRUE)[split.by]
+    data <- data[rownames(split),]
+    data[, split.by] <- split
   }
   plots <- lapply(
     X = group.by,
