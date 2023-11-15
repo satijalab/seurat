@@ -1462,9 +1462,8 @@ PseudobulkExpression.Seurat <- function(
     )
     colnames(category.matrix) <- col.names
     inform(
-      message = paste0("group.by variable `", group.by[1],
-      "` starts with a number, appending `g` to `", group.by[1],
-      "` variable to ensure\nvalid variable names"),
+      message = paste0("First group.by variable `", group.by[1],
+      "` starts with a number, appending `g` to ensure valid variable names"),
       .frequency = "regularly",
       .frequency_id = "PseudobulkExpression"
     )
