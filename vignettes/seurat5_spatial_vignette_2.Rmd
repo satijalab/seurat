@@ -45,7 +45,6 @@ First, we load the packages necessary for this vignette.
 
 ```{r init, message=FALSE, warning=FALSE}
 library(Seurat)
-options(Seurat.object.assay.version = "v5")
 library(future)
 plan("multisession", workers = 10)
 library(ggplot2)
@@ -325,7 +324,7 @@ query <- SpatialRNA(coords, query.counts, colSums(query.counts))
 
 ```{r rctd.reference, eval=FALSE}
 # allen.corted.ref can be downloaded here: https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1
-allen.cortex.ref <- readRDS("/home/hartmana/github/seurat-private/data/allen_cortex.rds")
+allen.cortex.ref <- readRDS("/brahms/shared/vignette-data/allen_cortex.rds")
 allen.cortex.ref <- UpdateSeuratObject(allen.cortex.ref)
 
 Idents(allen.cortex.ref) <- "subclass"
@@ -542,6 +541,6 @@ sessionInfo()
 ```
 </details>
 
-```{r save.times, include=TRUE}
+```{r save.times, include=FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_spatial_vignette_2.csv")
 ```

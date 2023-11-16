@@ -24,6 +24,7 @@ knitr::knit_hooks$set(time_it = local({
 knitr::opts_chunk$set(
   tidy = 'styler',
   warning = FALSE,
+  eval = FALSE,
   error = TRUE,
   message = FALSE,
   fig.width = 8,
@@ -114,7 +115,7 @@ annotations <- pbmc3k$seurat_annotations
 
 ## Create Seurat or Assay objects
 
-By setting a global option (`Seurat.object.assay.version`), you can default to creating either Seurat v3 assays, or Seurat v5 assays. The use of v3 assays is set by default upon package loading, which ensures backwards compatibiltiy with existing workflows.
+By setting a global option (`Seurat.object.assay.version`), you can default to creating either Seurat v3 assays, or Seurat v5 assays. The use of v5 assays is set by default upon package loading, which ensures backwards compatibiltiy with existing workflows.
 
 ```{r create}
 # create v3 assays

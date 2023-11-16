@@ -38,16 +38,15 @@ We leverage the high performance capabilities of BPCells to work with Seurat obj
 
 We will show the methods for interacting with both a single dataset in one file or multiple datasets across multiple files using BPCells. BPCells allows us to easily analyze these large datasets in memory, and we encourage users to check out some of our other vignettes [here]() and [here]() to see further applications. 
 
-
-```{r install, message = FALSE, warning = FALSE}
+```{r, eval=FALSE}
 devtools::install_github("bnprks/BPCells")
+```
+```{r install, message = FALSE, warning = FALSE}
 library(BPCells)
 library(Seurat)
 library(SeuratObject)
 library(SeuratDisk)
 library(Azimuth)
-
-options(Seurat.object.assay.version = "v5")
 ```
 
 We use BPCells functionality to both load in our data and write the counts layers to bitpacked compressed binary files on disk to improve computation speeds. BPCells has multiple functions for reading in files. 
@@ -65,8 +64,7 @@ brain.data <- open_matrix_10x_hdf5(
 # Write the matrix to a directory
 write_matrix_dir(
   mat = brain.data,
-  dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts',
-  overwrite = TRUE)
+  dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts')
 # Now that we have the matrix on disk, we can load it
 brain.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
 brain.mat <- Azimuth:::ConvertEnsembleToSymbol(mat = brain.mat, species = "mouse")
@@ -106,15 +104,14 @@ VlnPlot(brain, features = c("Sox10", "Slc17a7", "Aif1"), ncol = 3, layer = "data
 
 ### Saving Seurat objects with on-disk layers
 
-If you save your object and load it in in the future, Seurat will access the on-disk matrices by their path, which is stored in the assay level data. To make it easy to ensure these are saved in the same place, we provide new functionality to the saveRDS function. In this function, you specify your filename and the destination directory. The pointer to the path in the Seurat object will change to the destination directory. 
+If you save your object and load it in in the future, Seurat will access the on-disk matrices by their path, which is stored in the assay level data. To make it easy to ensure these are saved in the same place, we provide new functionality to the SaveSeuratRds function. In this function, you specify your filename. The pointer to the path in the Seurat object will change to the current directory. 
 
 This also makes it easy to share your Seurat objects with BPCells matrices by sharing a folder that contains both the object and the BPCells directory.
 
 ```{r}
-saveRDS(
+SaveSeuratRds(
   object = brain,
-  file = "obj.Rds",
-  destdir = "/brahms/hartmana/vignette_data/bpcells/brain_object")
+  file = "obj.Rds")
 ```
 
 
@@ -170,16 +167,14 @@ metadata <- Reduce(rbind, metadata.list)
 When we create the Seurat object with the list of matrices from each publication, we can then see that multiple counts layers exist that represent each dataset. This object contains over a million cells, yet only takes up minimal space in memory! 
 
 ```{r}
-options(Seurat.object.assay.version = "v5")
 merged.object <- CreateSeuratObject(counts = data.list, meta.data = metadata)
 merged.object
 ```
 
 ```{r save_merged, eval=FALSE}
-saveRDS(
+SaveSeuratRds(
   object = merged.object,
-  file = "obj.Rds",
-  destdir = "/brahms/hartmana/vignette_data/bpcells/merged_object")
+  file = "obj.Rds")
 ```
 
 ## Parse Biosciences
@@ -203,10 +198,9 @@ parse.object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
 ```
 
 ```{r save_parse, eval=FALSE}
-saveRDS(
+SaveSeuratRds(
   object = parse.object,
-  file = "obj.Rds",
-  destdir = "/brahms/hartmana/vignette_data/bpcells/parse_object")
+  file = "obj.Rds")
 ```
 
 

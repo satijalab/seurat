@@ -42,13 +42,12 @@ In this vignette we demonstrate:
 * Mapping the scATAC-seq dataset via bridge integration
 * Exploring and assessing the resulting annotations 
 
-### Azimuth ATAC for Bridge Integration 
+## Azimuth ATAC for Bridge Integration 
 Users can now automatically run bridge integration for PBMC and Bone Marrow scATAC-seq queries with the newly released Azimuth ATAC workflow on the [Azimuth website](https://azimuth.hubmapconsortium.org/) or in R. For more details on running locally in R, see the section on ATAC data in this [vignette](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html). 
 
 
 ```{r, message=FALSE, warning=FALSE}
 library(Seurat)
-options(Seurat.object.assay.version = "v5")
 library(Signac)
 library(EnsDb.Hsapiens.v86)
 library(dplyr)
@@ -57,7 +56,7 @@ library(ggplot2)
 
 ## Load the bridge, query, and reference datasets
 
-We start by loading a 10x multiome dataset, consisting of ~12,000 PBMC from a healthy donor. The dataset measures RNA-seq and ATAC-seq in the same cell, and is available for download from 10x Genomics [here](https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-2-0-0). We follow the loading instructions from the [Signac package vignettes](https://satijalab.org/signac/articles/pbmc_multiomic.html). Note that when using Signac, please make sure you are using the [latest version of Bioconductor]([http://www.bioconductor.org/news/bioc_3_14_release/]), as [users have reported errors](https://github.com/timoast/signac/issues/687) when using older BioC versions. 
+We start by loading a 10x multiome dataset, consisting of ~12,000 PBMC from a healthy donor. The dataset measures RNA-seq and ATAC-seq in the same cell, and is available for download from 10x Genomics [here](https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-2-0-0). We follow the loading instructions from the [Signac package vignettes](https://stuartlab.org/signac/articles/pbmc_multiomic.html). Note that when using Signac, please make sure you are using the [latest version of Bioconductor](https://www.bioconductor.org/install/), as [users have reported errors](https://github.com/timoast/signac/issues/687) when using older BioC versions. 
 
 <details>
   <summary>**Load and setup the 10x multiome object**</summary>
@@ -111,7 +110,7 @@ obj.multi <- subset(
 
 The scATAC-seq query dataset represents ~10,000 PBMC from a healthy donor, and is available for download [here](https://www.10xgenomics.com/resources/datasets/10-k-human-pbm-cs-atac-v-1-1-chromium-x-1-1-standard-2-0-0). We load in the peak/cell matrix, store the path to the fragments file, and add gene annotations to the object, following the steps as with the ATAC data in the multiome experiment.
 
-We note that it is important to quantify the same set of genomic features in the query dataset as are quantified in the multi-omic bridge. We therefore requantify the set of scATAC-seq peaks using the `FeatureMatrix` command. This is also described in the [Signac vignettes](https://satijalab.org/signac/articles/integrate_atac.html) and shown below.
+We note that it is important to quantify the same set of genomic features in the query dataset as are quantified in the multi-omic bridge. We therefore requantify the set of scATAC-seq peaks using the `FeatureMatrix` command. This is also described in the [Signac vignettes](https://stuartlab.org/signac/articles/integrate_atac.html) and shown below.
 
 <details>
   <summary>**Load and setup the 10x scATAC-seq query**</summary>
@@ -193,9 +192,8 @@ obj.atac <- RunTFIDF(obj.atac)
 
 Now that we have the reference, query, and bridge datasets set up, we can begin integration. The bridge dataset enables translation between the scRNA-seq reference and the scATAC-seq query, effectively augmenting the reference so that it can map a new data type. We call this an extended reference, and first set it up.  Note that you can save the results of this function and map multiple scATAC-seq datasets without having to rerun.
 
-
+First, we drop the first dimension of the ATAC reduction.
 ```{r, message=FALSE, warning=FALSE}
-# Drop first dimension for ATAC reduction
 dims.atac <- 2:50
 dims.rna <- 1:50
 DefaultAssay(obj.multi) <-  "RNA"

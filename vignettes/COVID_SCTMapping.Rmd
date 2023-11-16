@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r, warning=F, message=F}
-library(Seurat)
+devtools::load_all()
 library(BPCells)
 library(dplyr)
 library(patchwork)
@@ -137,7 +137,9 @@ p2 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = Plasmablas
 
 p1 + p2 + plot_layout(ncol = 2)
 ```
-
+```{r, include=FALSE}
+#saveRDS(object, '/home/lis/seurat-private/output/covid_object.rds')
+```
 ## Differential expression analysis
 In addition to composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy individuals and COVID-19 donors. We aggregate all cells within the same cell type and donor using the `AggregateExpression` function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
 

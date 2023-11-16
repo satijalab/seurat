@@ -24,106 +24,128 @@ knitr::opts_chunk$set(
 ```{r load-data, echo=FALSE}
 library(Seurat)
 library(ggplot2)
-pbmc <- readRDS(file = '~/Downloads/pbmc3k/pbmc3k_final.rds')
-cbmc.rna <- as.sparse(x = read.csv("~/Downloads/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz", sep = ",", header = TRUE, row.names = 1))
+library(SeuratData)
 
-# To make life a bit easier going forward, we're going to discard all but the top 100 most highly expressed mouse genes, and remove the "HUMAN_" from the CITE-seq prefix
-cbmc.rna <- CollapseSpeciesExpressionMatrix(object = cbmc.rna)
+# install datasets 
+InstallData('pbmc3k')
+InstallData('cbmc')
+InstallData('ifnb')
 
-# Load in the ADT UMI matrix
-cbmc.adt <- as.sparse(x = read.csv("~/Downloads/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz", sep = "," ,header = TRUE, row.names = 1))
+#load in pbmc example
+pbmc <- LoadData('pbmc3k')
 
-# When adding multimodal data to Seurat, it's okay to have duplicate feature names. Each set of modal data (eg. RNA, ADT, etc.) is stored in its own Assay object.
-# One of these Assay objects is called the "default assay", meaning it's used for all analyses and visualization.
-# To pull data from an assay that isn't the default, you can specify a key that's linked to an assay for feature pulling.
-# To see all keys for all objects, use the Key function.
-# Lastly, we observed poor enrichments for CCR5, CCR7, and CD10 - and therefore remove them from the matrix (optional)
-cbmc.adt <- cbmc.adt[setdiff(x = rownames(x = cbmc.adt), y = c('CCR5', 'CCR7', 'CD10')), ]
+# load in multimodal example
+# type ?cbmc for more info
+cbmc <- LoadData('cbmc')
+
+#load in case/control example
+# type ?ifnb for more info
+ifnb <- LoadData('ifnb')
+
 ```
 
-# Seurat Standard Worflow
-
-The standard Seurat workflow takes raw single-cell expression data and aims to find clusters within the data. For full details, please read our tutorial. This process consists of data normalization and variable feature selection, data scaling, a PCA on variable features, construction of a shared-nearest-neighbors graph, and clustering using a modularity optimizer. Finally, we use a t-SNE to visualize our clusters in a two-dimensional space.
-
-```{r seurat-standard-workflow}
-pbmc.counts <- Read10X(data.dir = "~/Downloads/pbmc3k/filtered_gene_bc_matrices/hg19/")
-pbmc <- CreateSeuratObject(counts = pbmc.counts)
+# Standard `Seurat` workflow
+```{r seurat-standard-workflow-2}
 pbmc <- NormalizeData(object = pbmc)
 pbmc <- FindVariableFeatures(object = pbmc)
 pbmc <- ScaleData(object = pbmc)
 pbmc <- RunPCA(object = pbmc)
-pbmc <- FindNeighbors(object = pbmc)
+pbmc <- FindNeighbors(object = pbmc, dims = 1:30)
 pbmc <- FindClusters(object = pbmc)
-pbmc <- RunTSNE(object = pbmc)
-DimPlot(object = pbmc, reduction = 'tsne')
+pbmc <- RunUMAP(object = pbmc, dims = 1:30)
+DimPlot(object = pbmc, reduction = 'umap')
+
 ```
 
-# `Seurat` Object Interaction
+## SCtransform version
+```{r seurat-standard-workflow}
+pbmc <- SCTransform(object = pbmc)
+pbmc <- RunPCA(object = pbmc)
+pbmc <- FindNeighbors(object = pbmc, dims = 1:30)
+pbmc <- FindClusters(object = pbmc)
+pbmc <- RunUMAP(object = pbmc, dims = 1:30)
+DimPlot(object = pbmc, reduction = 'umap')
+```
 
-Since Seurat v3.0, we’ve made improvements to the Seurat object, and added new methods for user interaction. We also introduce simple functions for common tasks, like subsetting and merging, that mirror standard R functions.
+```{r chaincmds,eval=FALSE}
+# note that you can chain multiple commands together with %>%
+pbmc <- SCTransform(pbmc) %>% RunPCA() %>% FindNeighbors(dims=1:30) %>% 
+  FindClusters() %>% RunUMAP(dims=1:30)
+```
 
-<!--With Seurat v3.0, the `Seurat` object has changed considerably. Interacting with the object has also changed, with new accessor and setter functions taking over the role of manually adding data by chaining `@` and `$` symbols. In addition, many former Seurat-specific functions have been deprecated in favor of using standard R generics, yielding a more native R experience when using Seurat.-->
+# `Seurat` Object Data Access
 
+## Cell, feature, and layer names
 ```{r features-and-cells}
 # Get cell and feature names, and total numbers
-colnames(x = pbmc)
-Cells(object = pbmc)
-rownames(x = pbmc)
-ncol(x = pbmc)
-nrow(x = pbmc)
+# We show multiple ways to get the same output
+# cell names
+colnames(pbmc)
+Cells(pbmc)
+
+# feature names
+Features(pbmc)
+rownames(pbmc)
+
+# number of cells/features
+num_cells <- ncol(pbmc)
+num_features <- nrow(pbmc)
+
+# List of object  layers
+Layers(pbmc)
+
+# working with multimodal objects
+# list assays
+Assays(cbmc)
+
+# Assay-specific features (genes/ADT)
+Features(cbmc[["RNA"]])
+Features(cbmc[["ADT"]])
+
+# Variable feature names
+VariableFeatures(pbmc)
+
 ```
 
+```{r setvarfeatures, eval=FALSE}
+# Set variable features
+VariableFeatures(cbmc) <- var.gene.names
+
+# set for a specific assay
+VariableFeatures(cbmc[["ADT"]]) <- var.gene.names
+```
+
+## Identity class labels
 ```{r idents}
+# Setting and retrieving cell identities
+
+# Set identity classes to an existing column in meta data
+Idents(object = pbmc) <- 'seurat_annotations'
+
+# View cell identities, get summary table 
+Idents(pbmc)
+table(Idents(pbmc))
+
+# Set identity to CD4 T cells for all cells
+Idents(pbmc) <- 'CD4 T cells'
+
+# Set for a selected group of cells
+pbmc.cells <- Cells(pbmc)
+Idents(object = pbmc, cells = pbmc.cells[1:10]) <- 'CD4 T cells'
+
 # Get cell identity classes
 Idents(object = pbmc)
 levels(x = pbmc)
 
-# Stash cell identity classes
+# Stash cell identity classes in metadata
 pbmc[['old.ident']] <- Idents(object = pbmc)
 pbmc <- StashIdent(object = pbmc, save.name = 'old.ident')
-
-# Set identity classes
-Idents(object = pbmc) <- 'CD4 T cells'
-Idents(object = pbmc, cells = 1:10) <- 'CD4 T cells'
-
-# Set identity classes to an existing column in meta data
-Idents(object = pbmc, cells = 1:10) <- 'orig.ident'
-Idents(object = pbmc) <- 'orig.ident'
 
 # Rename identity classes
 pbmc <- RenameIdents(object = pbmc, 'CD4 T cells' = 'T Helper cells')
 ```
 
-```{r subsetting}
-# Subset Seurat object based on identity class, also see ?SubsetData
-subset(x = pbmc, idents = 'B cells')
-subset(x = pbmc, idents = c('CD4 T cells', 'CD8 T cells'), invert = TRUE)
-
-# Subset on the expression level of a gene/feature
-subset(x = pbmc, subset = MS4A1 > 3)
-
-# Subset on a combination of criteria
-subset(x = pbmc, subset = MS4A1 > 3 & PC1 > 5)
-subset(x = pbmc, subset = MS4A1 > 3, idents = 'B cells')
-
-# Subset on a value in the object meta data
-subset(x = pbmc, subset = orig.ident == "Replicate1")
-
-# Downsample the number of cells per identity class
-subset(x = pbmc, downsample = 100)
-```
-
-```{r merging, eval=FALSE}
-# Merge two Seurat objects
-merge(x = pbmc1, y = pbmc2)
-# Merge more than two Seurat objects
-merge(x = pbmc1, y = list(pbmc2, pbmc3))
-```
-
-# Data Access
-
-Accessing data in Seurat is simple, using clearly defined accessors and setters to quickly find the data needed.
-
+## Cell metadata
 ```{r metadata}
 # View metadata data frame, stored in object@meta.data
 pbmc[[]]
@@ -137,38 +159,171 @@ random_group_labels <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc), replace 
 pbmc$groups <- random_group_labels
 ```
 
+## Expression data (stored as layers in Seurat v5)
+
 ```{r expression-matrices, eval=FALSE}
-# Retrieve or set data in an expression matrix ('counts', 'data', and 'scale.data')
-GetAssayData(object = pbmc, slot = 'counts')
-pbmc <- SetAssayData(object = pbmc, slot = 'scale.data', new.data = new.data)
+# Retrieve data in an expression matrix 
+# RNA counts matrix 
+pbmc[["RNA"]]$counts
+
+# Alternate accessor function with the same result
+LayerData(pbmc,assay = 'RNA',layer = 'counts')
+
+# GetAssayData from Seurat v4 is still supported
+GetAssayData(object = pbmc, assay = 'RNA', slot = 'counts')
+
+# ADT counts matrix (multimodal object)
+cbmc[["ADT"]]$counts
+
 ```
 
+```{r setdata, eval = FALSE}
+# Set expression data  
+# assume new.data is a new expression matrix
+pbmc[["RNA"]]$counts <- new.data
+
+# Alternate setter function with the same result
+LayerData(pbmc,assay = 'RNA',layer = 'counts') <- new.data
+
+# SetAssayData from Seurat v4 is still supported
+pbmc <- SetAssayData(object = pbmc, slot = 'counts',new.data = new.data)
+
+```
+
+## Dimensional reductions
 ```{r embeddings-loadings}
 # Get cell embeddings and feature loadings
-Embeddings(object = pbmc, reduction = 'pca')
-Loadings(object = pbmc, reduction = 'pca')
-Loadings(object = pbmc, reduction = 'pca', projected = TRUE)
+# stored on pbmc[["pca"]]@cell.embeddings
+Embeddings(pbmc, reduction = 'pca')
+
+# stored in pbmc[["pca]]@feature.loadings
+Loadings(pbmc, reduction = 'pca')
 ```
 
+```{r customreduc, eval=FALSE}
+# Create custom dimensional reduction
+# loadings matrix is optional
+new_reduction <- CreateDimReducObject(embeddings = new.embeddings,loadings = new.loadings, key = "custom_pca")
+pbmc[["custom_pca"]] <- new_reduction
+```
+
+## FetchData 
 ```{r fetchdata}
-# FetchData can pull anything from expression matrices, cell embeddings, or metadata
-FetchData(object = pbmc, vars = c('PC_1', 'percent.mito', 'MS4A1'))
+# FetchData can access anything from expression matrices, cell embeddings, or metadata
+# Use the previously listed commands to access entire matrices
+# Use FetchData to access individual/small groups of variables
+FetchData(object = pbmc, vars = c('PC_1', 'nFeature_RNA', 'MS4A1'),layer = 'counts')
 ```
 
-# Visualization in Seurat
+# Subsetting and merging
+
+## Subset Seurat objects
+```{r subsetting}
+# Subset Seurat object based on identity class, also see ?SubsetData
+subset(x = pbmc, idents = 'B')
+subset(x = pbmc, idents = c('Naive CD4 T', 'CD8 T'), invert = TRUE)
+
+# Subset on the expression level of a gene/feature
+subset(x = pbmc, subset = MS4A1 > 2.5)
+
+# Subset on a combination of criteria
+subset(x = pbmc, subset = MS4A1 > 2.5 & PC_1 > 5)
+subset(x = pbmc, subset = MS4A1 > 2.5, idents = 'B')
+
+# Subset on a value in the object meta data
+subset(x = pbmc, subset = groups == "g1")
+
+# Downsample the number of cells per identity class
+subset(x = pbmc, downsample = 100)
+
+```
+
+## Split layers
+```{r splitlayers, results = 'hide'}
+# In Seurat v5, users can now split in object directly into different layers
+# keeps expression data in one object, but splits multiple samples into layers
+# can proceed directly to integration workflow after splitting layers
+ifnb[["RNA"]] <- split(ifnb[["RNA"]],f = ifnb$stim)
+Layers(ifnb)
+
+# If desired, for example after intergation, the layers can be joined together again
+ifnb <- JoinLayers(ifnb)
+```
+
+## Split objects
+```{r splitting, results = 'hide'}
+# In line with prior workflows, you can also into split your object into a list of multiple objects
+# based on a metadata column 
+# creates a list of two objects 
+ifnb_list <- SplitObject(ifnb,split.by = 'stim')
+ifnb_list$CTRL
+ifnb_list$STIM
+```
+
+## Merge objects (without integration)
+In Seurat v5, merging creates a single object, but keeps the expression information split into different layers for integration. If not proceeding with integration, rejoin the layers after merging.
+
+```{r merging-2, eval=FALSE, results = 'hide'}
+# Merge two Seurat objects
+merged_obj <- merge(x = ifnb_list$CTRL, y = ifnb_list$STIM)
+merged_obj[["RNA"]] <- JoinLayers(merged_obj)
+
+# Example to merge more than two Seurat objects
+merge(x = pbmc1, y = list(pbmc2, pbmc3))
+```
+
+## Merge objects (with integration)
+See [introduction to integration](integration_introduction.html) for more information.
+
+```{r merging-3, eval=FALSE, results = 'hide'}
+merged_obj <- merge(x = ifnb_list$CTRL, y = ifnb_list$STIM)
+merged_obj <- NormalizeData(merged_obj)
+merged_obj <- FindVariableFeatures(merged_obj)
+merged_obj <- ScaleData(merged_obj)
+merged_obj <- RunPCA(merged_obj)
+merged_obj <- IntegrateLayers(
+  object = obj, method = RPCAIntegration,
+  orig.reduction = "pca", new.reduction = 'integrated.rpca',
+  verbose = FALSE)
+
+# now that integration is complete, rejoin layers
+merged_obj[["RNA"]] <- JoinLayers(merged_obj)
+
+```
+
+# Pseudobulk analysis
+
+## Group cells together, based on multiple categories
+See [DE vignette](de_vignette.html) for information  on how to add the `donor_id` column to meta data.
+
+```{r, eval=FALSE}
+# pseudobulk cells only by cell type
+bulk <- AggregateExpression(ifnb,group.by ='seurat_annotations', return.seurat = TRUE)
+Cells(bulk)
+
+# pseudobulk cells by stimulation condition AND cell type
+bulk <- AggregateExpression(ifnb,group.by = c('stim','seurat_annotations'), return.seurat = TRUE)
+Cells(bulk)
+
+# pseudobulk cells by stimulation condition AND cell type AND donor
+bulk <- AggregateExpression(ifnb,group.by = c('stim','seurat_annotations',"donor_id"), return.seurat = TRUE)
+Cells(bulk)
+```
+
+# Visualization in `Seurat` 
 
 Seurat has a vast, ggplot2-based plotting library. All plotting functions will return a ggplot2 plot by default, allowing easy customization with ggplot2.
 
 ```{r visualization}
 
-# Dimensional reduction plot for PCA or tSNE
-DimPlot(object = pbmc, reduction = 'tsne')
+# Dimensional reduction plot 
 DimPlot(object = pbmc, reduction = 'pca')
 
 # Dimensional reduction plot, with cells colored by a quantitative feature
+# Defaults to UMAP if available
 FeaturePlot(object = pbmc, features = "MS4A1")
 
-# Scatter plot across single cells, replaces GenePlot
+# Scatter plot across single cells
 FeatureScatter(object = pbmc, feature1 = "MS4A1", feature2 = "PC_1")
 FeatureScatter(object = pbmc, feature1 = "MS4A1", feature2 = "CD3D")
 
@@ -180,18 +335,33 @@ VariableFeaturePlot(object = pbmc)
 #Violin and Ridge plots
 VlnPlot(object = pbmc, features = c("LYZ", "CCL5", "IL32"))
 RidgePlot(object = pbmc, feature = c("LYZ", "CCL5", "IL32"))
+```
 
-# Heatmaps
-DoHeatmap(object = pbmc,features = heatmap_markers)
+```{r heatmaps}
+# Heatmaps (visualize scale.data slot)
 DimHeatmap(object = pbmc,reduction = 'pca', cells = 200)
 
+# standard workflow
+pbmc <- ScaleData(pbmc,features = heatmap_markers)
+DoHeatmap(object = pbmc,features = heatmap_markers)
+
+# sctransform workflow
+pbmc <- GetResidual(pbmc,features = heatmap_markers)
+DoHeatmap(object = pbmc,features = heatmap_markers)
+
+# heatmap with maximum of 100 cells per group
+DoHeatmap(pbmc,heatmap_markers,cells = subset(pbmc,downsample = 100))
+
+```
+
+```{r newthings}
 # New things to try! 
 # Note that plotting functions now return ggplot2 objects, so you can add themes, titles, and options onto them
 VlnPlot(object = pbmc, features = "MS4A1", split.by = "groups")
 DotPlot(object = pbmc, features = c("LYZ", "CCL5", "IL32"), split.by = "groups")
 FeaturePlot(object = pbmc, features = c("MS4A1", "CD79A"), blend = TRUE)
 DimPlot(object = pbmc) + DarkTheme()
-DimPlot(object = pbmc) + labs(title = '2,700 PBMCs clustered using Seurat and viewed\non a two-dimensional tSNE')
+DimPlot(object = pbmc) + labs(title = '2,700 PBMCs clustered using Seurat and viewed\non a two-dimensional UMAP')
 ```
 
 Seurat provides many prebuilt themes that can be added to ggplot2 plots for quick customization
@@ -245,36 +415,12 @@ FetchData(object = cbmc, vars = c('rna_CD3E', 'adt_CD3'))
 FeatureScatter(object = cbmc, feature1 = "rna_CD3E", feature2 = "adt_CD3")
 ```
 
-# Seurat v2.X vs v3.X
+# Additional resources
 
-| Seurat v2.X | Seurat v3.X |
-| ----------- | ----------- |
-| `object@data` | `GetAssayData(object = object)` |
-| `object@raw.data` | `GetAssayData(object = object, slot = "counts")` |
-| `object@scale.data` | `GetAssayData(object = object, slot = "scale.data")` |
-| `object@cell.names` | `colnames(x = object)` |
-| `rownames(x = object@data)` | `rownames(x = object)` |
-| `object@var.genes` | `VariableFeatures(object = object)` |
-| `object@hvg.info` | `HVFInfo(object = object)` |
-| `object@assays$assay.name` | `object[["assay.name"]]` |
-| `object@dr$pca` | `object[["pca"]]` |
-| `GetCellEmbeddings(object = object, reduction.type = "pca")` | `Embeddings(object = object, reduction = "pca")` |
-| `GetGeneLoadings(object = object, reduction.type = "pca")` | `Loadings(object = object, reduction = "pca")` |
-| `AddMetaData(object = object, metadata = vector, col.name = "name")` | `object$name <- vector` |
-| `object@meta.data$name` | `object$name` |
-| `object@idents` | `Idents(object = object)` |
-| `SetIdent(object = object, ident.use = "new.idents")` | `Idents(object = object) <- "new.idents"` |
-| `SetIdent(object = object, cells.use = 1:10, ident.use = "new.idents")` | `Idents(object = object, cells = 1:10) <- "new.idents"` |
-| `StashIdent(object = object, save.name = "saved.idents")` | `object$saved.idents <- Idents(object = object)` |
-| `levels(x = object@idents)` | `levels(x = object)` |
-| `RenameIdent(object = object, old.ident.name = "old.ident", new.ident.name = "new.ident")` | `RenameIdents(object = object, "old.ident" = "new.ident")` |
-| `WhichCells(object = object, ident = "ident.keep")` | `WhichCells(object = object, idents = "ident.keep")` |
-| `WhichCells(object = object, ident.remove = "ident.remove")` | `WhichCells(object = object, idents = "ident.remove", invert = TRUE)` |
-| `WhichCells(object = object, max.cells.per.ident = 500)` | `WhichCells(object = object, downsample = 500)` |
-| `WhichCells(object = object, subset.name = "name", low.threshold = low, high.threshold = high)` | `WhichCells(object = object, expression = name > low & name < high)` |
-| `FilterCells(object = object, subset.names = "name", low.threshold = low, high.threshold = high)` | `subset(x = object, subset = name > low & name < high)` |
-| `SubsetData(object = object, subset.name = "name", low.threshold = low, high.threshold = high)` | `subset(x = object, subset = name > low & name < high)` |
-| `MergeSeurat(object1 = object1, object2 = object2)` | `merge(x = object1, y = object2)` |
+Users who are particularly interested in some of the technical changes to data storage in Seurat v5 can explore the following resources:
+
+* [SeuratObject manual](https://mojaveazure.github.io/seurat-object/)
+* [Seurat v5 and Assay5 introductory vignette ](seurat5_essential_commands.html)
 
 <details>
   <summary>**Session Info**</summary>

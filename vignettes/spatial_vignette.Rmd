@@ -100,7 +100,7 @@ wrap_plots(plot1, plot2)
 
 These plots demonstrate that the variance in molecular counts across spots is not just technical in nature, but also is dependent on the tissue anatomy. For example, regions of the tissue that are depleted for neurons (such as the cortical white matter), reproducibly exhibit lower molecular counts. As a result, standard approaches (such as the `LogNormalize()` function), which force each data point to have the same underlying 'size' after normalization, can be problematic. 
 
-As an alternative, we recommend using sctransform (Hafemeister and Satija, Genome Biology 2019), which which builds regularized negative binomial models of gene expression in order to account for technical artifacts while preserving biological variance. For more details on sctransform, please see the paper [here](https://doi.org/10.1186/s13059-019-1874-1) and the Seurat vignette [here](sctransform_vignette.html). sctransform normalizes the data, detects high-variance features, and stores the data in the `SCT` assay.
+As an alternative, we recommend using sctransform (Hafemeister and Satija, Genome Biology 2019), which which builds regularized negative binomial models of gene expression in order to account for technical artifacts while preserving biological variance. For more details on sctransform, please see the paper [here](https://genomebiology-biomedcentral-com/articles/10.1186/s13059-021-02584-9) and the Seurat vignette [here](sctransform_vignette.html). sctransform normalizes the data, detects high-variance features, and stores the data in the `SCT` assay.
 
 ```{r preprocess}
 brain <- SCTransform(brain, assay = "Spatial", verbose = FALSE)
@@ -265,12 +265,12 @@ p1 + p2
 ## Integration with single-cell data
 
 At ~50um, spots from the visium assay will encompass the expression profiles of multiple cells. For the growing list of systems where scRNA-seq data is available, users may be interested to 'deconvolute' each of the spatial voxels to predict the underlying composition of cell types. In preparing this vignette, we tested a wide variety of decovonlution and integration methods, using a [reference scRNA-seq dataset](https://www.nature.com/articles/nn.4216) of ~14,000 adult mouse cortical cell taxonomy from the Allen Institute, generated with the SMART-Seq2 protocol. 
-We consistently found superior performance using integration methods (as opposed to deconvolution methods), likely because of substantially different noise models that characterize spatial and single-cell datasets, and integration methods are specifiically designed to be robust to these differences. We therefore apply the 'anchor'-based integration workflow introduced in [Seurat v3](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8), that enables the probabilistic transfer of annotations from a reference to a query set. We therefore follow the label transfer workflow introduced [here](reference_mapping.html), taking advantage of sctransform normalization, but anticipate new methods to be developed to accomplish this task.
+We consistently found superior performance using integration methods (as opposed to deconvolution methods), likely because of substantially different noise models that characterize spatial and single-cell datasets, and integration methods are specifiically designed to be robust to these differences. We therefore apply the 'anchor'-based integration workflow introduced in [Seurat v3](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8), that enables the probabilistic transfer of annotations from a reference to a query set. We therefore follow the label transfer workflow introduced [here](integration_mapping.html), taking advantage of sctransform normalization, but anticipate new methods to be developed to accomplish this task.
 
 We first load the data (download available [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1)), pre-process the scRNA-seq reference, and then perform label transfer. The procedure outputs, for each spot, a probabilistic classification for each of the scRNA-seq derived classes. We add these predictions as a new assay in the Seurat object.
 
 ```{r sc.data}
-allen_reference <- readRDS("../data/allen_cortex.rds")
+allen_reference <- readRDS("/brahms/shared/vignette-data/allen_cortex.rds")
 ```
 
 ```{r sc.data2}
@@ -410,7 +410,7 @@ SpatialDimPlot(slide.seq, cells.highlight = CellsByIdentities(object = slide.seq
 To facilitate cell-type annotation of the Slide-seq dataset, we are leveraging an existing mouse single-cell RNA-seq hippocampus dataset, produced in [Saunders\*, Macosko\*, et al. 2018](https://doi.org/10.1016/j.cell.2018.07.028). The data is available for download as a processed Seurat object [here](https://www.dropbox.com/s/cs6pii5my4p3ke3/mouse_hippocampus_reference.rds?dl=0), with the raw count matrices available on the [DropViz website](http://dropviz.org/). 
 
 ```{r ref.saunders}
-ref <- readRDS("../data/mouse_hippocampus_reference.rds")
+ref <- readRDS("/brahms/shared/vignette-data/mouse_hippocampus_reference.rds")
 ref <- UpdateSeuratObject(ref)
 ```
 
@@ -507,7 +507,7 @@ p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
 p1 | p2
 ```
 
-```{r save.times, include = TRUE}
+```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/spatial_vignette_times.csv")
 ```
 

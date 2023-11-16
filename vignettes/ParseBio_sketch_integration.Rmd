@@ -52,7 +52,6 @@ library(ggrepel)
 library(patchwork)
 # set this option when analyzing large datasets
 options(future.globals.maxSize = 3e9)
-options(Seurat.object.assay.version = "v5")
 ```
 ## Create a Seurat object containing data from 24 patients
 We downloaded the original dataset and donor metadata from [Parse Biosciences](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip). While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](seurat5_bpcells_interaction_vignette.html).
@@ -117,7 +116,6 @@ plot.s1 + plot.s2 + plot_layout(ncol = 1)
 Now that we have integrated the subset of atoms of each dataset, placing them each in an integrated low-dimensional space, we can now place each cell from each dataset in this space as well. We load the full datasets back in individually, and use the `ProjectIntegration` function to integrate all cells. After this function is run, the `integrated.rpca.full` space now embeds all cells in the dataset.Even though all cells in the dataset have been integrated together, the non-sketched cells are not loaded into memory. Users can still switch between the `sketch` (sketched cells, in-memory) and `RNA` (full dataset, on disk) for analysis. After integration, we can also project cell type labels from the sketched cells onto the full dataset using `ProjectData`.
 
 ```{r}
-
 # resplit the sketched cell assay into layers
 # this is required to project the integration onto all cells
 object[['sketch']] <- split(object[['sketch']], f = object$sample)
@@ -144,7 +142,7 @@ object <- ProjectData(object = object,
 object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , reduction.name = 'umap.full', reduction.key = 'UMAP_full_')
 ```
 
-```{r, fig.width=10, fig.height=10}
+```{r, fig.width=10, fig.height=10, eval = FALSE}
 p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.1)
 p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.full', alpha = 0.1)
 p1 + p2 + plot_layout(ncol = 1)
@@ -159,11 +157,10 @@ After we aggregate cells, we can perform celltype-specific differential expressi
 ```{r}
 bulk <- AggregateExpression(object, return.seurat = T, slot = 'counts',
             assays  = 'RNA', group.by = c("celltype.full","sample", 'disease'))
-
+```
+```{r}
 # each sample is an individual-specific celltype-specific pseudobulk profile
 tail(Cells(bulk))
-
-
 
 cd14.bulk <- subset(bulk,celltype.full == "CD14 Mono")
 Idents(cd14.bulk) <- 'disease'
@@ -173,19 +170,9 @@ ggplot(de_markers, aes(avg_log2FC, -log10(p_val))) + geom_point(size=0.5, alpha=
 
 ```
 
-We do not necessarily expect to see a strong transcriptomic signature of diabetes in the blood, but our analyses reveals multiple genes that are up-regulated in diabetic patients, and are consistent across multiple individuals. Some of these genes, including the complement subcomponent C1R, have been [previously associated with diabetes](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6927818/). Others, including the transcription factor SPDEF and the receptor RAPSN, are also diabetic biomarkers in multiple cell types, including CD14 monocytes.
-
-```{r,height = 12, width=6}
-# each dot represents a pseudobulk average from an individual
-VlnPlot(bulk, features = c("C1R"),group.by = 'celltype.full', split.by = 'disease', cols = c('#377eb8','#e41a1c'))
-
-
-```
-
-
 <details>
   <summary>**Session Info**</summary>
-```{r}
+```{r, eval = TRUE}
 sessionInfo()
 ```
 </details>

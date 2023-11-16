@@ -26,12 +26,12 @@ knitr::opts_chunk$set(
   time_it = TRUE,
   error = TRUE
 )
-options(SeuratData.repo.use = 'satijalab04.nygenome.org')
+options(SeuratData.repo.use = 'seurat.nygenome.org')
 ```
 
 # Overview
 
-This tutorial demonstrates how to use mixscape for the analyses of single-cell pooled CRSIPR screens. We introduce new Seurat functions for: 
+This tutorial demonstrates how to use mixscape for the analyses of single-cell pooled CRISPR screens. We introduce new Seurat functions for: 
 
 1. Calculating the perturbation-specific signature of every cell.
 2. Identifying and removing cells that have 'escaped' CRISPR perturbation.
@@ -304,9 +304,11 @@ VlnPlot(
 
 ```{r save.img, include=TRUE}
 p <- VlnPlot(object = eccite, features = "adt_PDL1", idents = c("NT","JAK2","STAT1","IFNGR1","IFNGR2", "IRF1"), group.by = "gene", pt.size = 0.2, sort = T, split.by = "mixscape_class.global", cols = c("coral3","grey79","grey39")) +ggtitle("PD-L1 protein") +theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
-ggsave(filename = "../output/images/mixscape_vignette.jpg", height = 7, width = 12, plot = p, quality = 50)
 ```
 
+```{r, include=FALSE}
+ggsave(filename = "../output/images/mixscape_vignette.jpg", height = 7, width = 12, plot = p, quality = 50)
+```
 # Visualizing perturbation responses with Linear Discriminant Analysis (LDA)
 
 We use LDA as a dimensionality reduction method to visualize perturbation-specific clusters. LDA is trying to maximize the separability of known labels (mixscape classes) using both gene expression and the labels as input.
@@ -361,7 +363,7 @@ p2 <- p+
 p2
 ```
 
-```{r save.times, include = TRUE}
+```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/mixscape_vignette_times.csv")
 ```
 
