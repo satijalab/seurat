@@ -142,7 +142,7 @@ object <- ProjectData(object = object,
 object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , reduction.name = 'umap.full', reduction.key = 'UMAP_full_')
 ```
 
-```{r, fig.width=10, fig.height=10}
+```{r, fig.width=10, fig.height=10, eval = FALSE}
 p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.1)
 p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.full', alpha = 0.1)
 p1 + p2 + plot_layout(ncol = 1)
@@ -154,15 +154,13 @@ By integrating all samples together, we can now compare healthy and diabetic cel
 
 After we aggregate cells, we can perform celltype-specific differential expression between healthy and diabetic samples using DESeq2. We demonstrate this for CD14 monocytes.
 
-```{r}
+```{rE}
 bulk <- AggregateExpression(object, return.seurat = T, slot = 'counts',
             assays  = 'RNA', group.by = c("celltype.full","sample", 'disease'))
 ```
 ```{r}
 # each sample is an individual-specific celltype-specific pseudobulk profile
 tail(Cells(bulk))
-
-
 
 cd14.bulk <- subset(bulk,celltype.full == "CD14 Mono")
 Idents(cd14.bulk) <- 'disease'
@@ -172,19 +170,9 @@ ggplot(de_markers, aes(avg_log2FC, -log10(p_val))) + geom_point(size=0.5, alpha=
 
 ```
 
-We do not necessarily expect to see a strong transcriptomic signature of diabetes in the blood, but our analyses reveals multiple genes that are up-regulated in diabetic patients, and are consistent across multiple individuals. Some of these genes, including the complement subcomponent C1R, have been [previously associated with diabetes](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6927818/). Others, including the transcription factor SPDEF and the receptor RAPSN, are also diabetic biomarkers in multiple cell types, including CD14 monocytes.
-
-```{r,height = 12, width=6}
-# each dot represents a pseudobulk average from an individual
-VlnPlot(bulk, features = c("C1R"),group.by = 'celltype.full', split.by = 'disease', cols = c('#377eb8','#e41a1c'))
-
-
-```
-
-
 <details>
   <summary>**Session Info**</summary>
-```{r}
+```{r, eval = TRUE}
 sessionInfo()
 ```
 </details>
