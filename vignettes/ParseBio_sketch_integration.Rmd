@@ -154,7 +154,7 @@ By integrating all samples together, we can now compare healthy and diabetic cel
 
 After we aggregate cells, we can perform celltype-specific differential expression between healthy and diabetic samples using DESeq2. We demonstrate this for CD14 monocytes.
 
-```{rE}
+```{r}
 bulk <- AggregateExpression(object, return.seurat = T, slot = 'counts',
             assays  = 'RNA', group.by = c("celltype.full","sample", 'disease'))
 ```
