@@ -109,13 +109,7 @@ pseudo_ifnb <- AggregateExpression(ifnb, assays = "RNA", return.seurat = T, grou
 
 # each 'cell' is a donor-condition-celltype pseudobulk profile
 tail(Cells(pseudo_ifnb))
-
-# the metadata for the pseudobulk object is missing, so we need to add it back
-pseudo_ifnb$seurat_annotations <- sapply(strsplit(Cells(pseudo_ifnb), split = "_"), "[", 3)
-pseudo_ifnb$donor_id <- sapply(strsplit(Cells(pseudo_ifnb), split = "_"), "[", 2)
-pseudo_ifnb$stim <- sapply(strsplit(Cells(pseudo_ifnb), split = "_"), "[", 1)
 pseudo_ifnb$celltype.stim <- paste(pseudo_ifnb$seurat_annotations, pseudo_ifnb$stim, sep = "_")
-
 ```
 
 Next, we perform DE testing on the pseudobulk level for CD14 monocytes, and compare it against the previous single-cell-level DE results. 
