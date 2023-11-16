@@ -1170,7 +1170,7 @@ PercentageFeatureSet <- function(
     warn(message = "Both pattern and features provided. Pattern is being ignored.")
   }
   percent.featureset <- list()
-  layers <- Layers(object = object, pattern = "counts")
+  layers <- Layers(object = object, search = "counts")
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
     features.layer <- features %||% grep(
@@ -1462,9 +1462,8 @@ PseudobulkExpression.Seurat <- function(
     )
     colnames(category.matrix) <- col.names
     inform(
-      message = paste0("group.by variable `", group.by[1],
-      "` starts with a number, appending `g` to `", group.by[1],
-      "` variable to ensure\nvalid variable names"),
+      message = paste0("First group.by variable `", group.by[1],
+      "` starts with a number, appending `g` to ensure valid variable names"),
       .frequency = "regularly",
       .frequency_id = "PseudobulkExpression"
     )
