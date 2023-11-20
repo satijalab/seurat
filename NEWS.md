@@ -1,3 +1,16 @@
+# Seurat 5.0.1 (2023-11-16)
+
+## Changes
+
+- Fixed `SCTransform.StdAssay` to pass extra arguments to `sctransform::vst()`. Fixes [#875](https://github.com/satijalab/seurat/issues/7998)
+- Fixed PercentageFeatureSet Layer calling [(#8009)](https://github.com/satijalab/seurat/issues/8009)
+- Fixed cell highlighting [(#7914)](https://github.com/satijalab/seurat/pull/7914) 
+- Updated marker sorting to be by p-value with ties broken by absolute difference in percent expression
+- Fixed issue with replicated barcodes in MappingScore [(#7922)](https://github.com/satijalab/seurat/issues/7922)
+- Improved `PseudobulkExpression` by adding 'g' to cell names that started with numeric values
+- Improved `PseudobulkExpression` by adding each variable specified in `group.by` as columns in the object metadata when `return.seurat=TRUE` 
+- Fixed `DimPlot` and `FeatureScatter` which were breaking when using the `split.by` argument with a variable that contained NAs
+
 # Seurat 5.0.0 (2023-10-25)
 
 ## Added

@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r, warning=F, message=F}
-library(Seurat)
+devtools::load_all()
 library(BPCells)
 library(dplyr)
 library(patchwork)
@@ -56,7 +56,7 @@ We first load the reference (available [here](https://zenodo.org/record/7779017#
 
 ```{r load.data}
 reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
-object <- readRDS("/brahms/hartmana/vignette_data/merged_covid_object.rds")
+object <- readRDS("/brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds")
 object <- NormalizeData(object, verbose = FALSE)
 ```
 
@@ -137,7 +137,9 @@ p2 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = Plasmablas
 
 p1 + p2 + plot_layout(ncol = 2)
 ```
-
+```{r, include=FALSE}
+#saveRDS(object, '/home/lis/seurat-private/output/covid_object.rds')
+```
 ## Differential expression analysis
 In addition to composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy individuals and COVID-19 donors. We aggregate all cells within the same cell type and donor using the `AggregateExpression` function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
 
@@ -147,15 +149,11 @@ bulk <- AggregateExpression(object,
   assays  = 'RNA',
   group.by = c("predicted.celltype.l2", "donor_id", "disease")
 )
-
-bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
-bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
-bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
 ```
 
 ```{r} 
 bulk <- subset(bulk, subset = disease %in% c('normal', 'COVID-19') )
-bulk <- subset(bulk, subset = celltype !=  c('Doublet') )
+bulk <- subset(bulk, subset = predicted.celltype.l2 !=  'Doublet')
 bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
 ```
 
@@ -163,13 +161,13 @@ Once a pseudobulk object is created, we can perform cell type-specific different
 
 ```{r, fig.width=10, fig.height=12}
 p1 <- VlnPlot(
-  object = bulk, features = 'IFI6', group.by = 'celltype',
+  object = bulk, features = 'IFI6', group.by = 'predicted.celltype.l2',
   split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
 p2 <- VlnPlot(
-  object = bulk, features = c('ISG15'), group.by = 'celltype',
+  object = bulk, features = c('ISG15'), group.by = 'predicted.celltype.l2',
   split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
 p3 <- VlnPlot(
-  object = bulk, features = c('IFIT5'), group.by = 'celltype',
+  object = bulk, features = c('IFIT5'), group.by = 'predicted.celltype.l2',
   split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
 p1 + p2 + p3 + plot_layout(ncol = 1)
 ```

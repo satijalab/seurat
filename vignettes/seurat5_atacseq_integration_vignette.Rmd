@@ -29,7 +29,7 @@ knitr::opts_chunk$set(
   time_it = TRUE,
   error = TRUE
 )
-options(SeuratData.repo.use = 'satijalab04.nygenome.org')
+options(SeuratData.repo.use = 'seurat.nygenome.org')
 ```
 
 Single-cell transcriptomics has transformed our ability to characterize cell states, but deep biological understanding requires more than a taxonomic listing of clusters. As new methods arise to measure distinct cellular modalities, a key analytical challenge is to integrate these datasets to better understand cellular identity and function. For example, users may perform scRNA-seq and scATAC-seq experiments on the same biological system and to consistently annotate both datasets with the same set of cell type labels. This analysis is particularly challenging as scATAC-seq datasets are difficult to annotate, due to both the sparsity of genomic data collected at single-cell resolution, and the lack of interpretable gene markers in scRNA-seq data.
@@ -40,7 +40,7 @@ In [Stuart\*, Butler\* et al, 2019](https://www.cell.com/cell/fulltext/S0092-867
 * How to co-visualize (co-embed) cells from scRNA-seq and scATAC-seq
 * How to project scATAC-seq cells onto a UMAP derived from an scRNA-seq experiment
 
-This vignette makes extensive use of the [Signac package](https://satijalab.org/signac/), recently developed for the analysis of chromatin datasets collected at single-cell resolution, including scATAC-seq. Please see the Signac website for additional  [vignettes](https://satijalab.org/signac/articles/pbmc_vignette.html) and documentation for analyzing scATAC-seq data. 
+This vignette makes extensive use of the [Signac package](https://stuartlab.org/signac/), recently developed for the analysis of chromatin datasets collected at single-cell resolution, including scATAC-seq. Please see the Signac website for additional  [vignettes](https://stuartlab.org/signac/articles/pbmc_vignette.html) and documentation for analyzing scATAC-seq data. 
 
 We demonstrate these methods using a publicly available ~12,000 human PBMC 'multiome' dataset from 10x Genomics. In this dataset, scRNA-seq and scATAC-seq profiles were simultaneously collected in the same cells. For the purposes of this vignette, we treat the datasets as originating from two different experiments and integrate them together. Since they were originally measured in the same cells, this provides a ground truth that we can use to assess the accuracy of integration. We emphasize that our use of the multiome dataset here is for demonstration and evaluation purposes, and that users should apply these methods to scRNA-seq and scATAC-seq datasets that are collected separately. We provide a separate [weighted nearest neighbors vignette (WNN)](weighted_nearest_neighbor_analysis.html) that describes analysis strategies for multi-omic single-cell data.
 
@@ -56,7 +56,6 @@ InstallData('pbmcMultiome')
 
 ```{r loadpkgs}
 library(Seurat)
-options(Seurat.object.assay.version = "v5")
 library(Signac)
 library(EnsDb.Hsapiens.v86)
 library(ggplot2)
@@ -113,7 +112,6 @@ ggsave(filename = "../output/images/atacseq_integration_vignette.jpg", height = 
 # Identifying anchors between scRNA-seq and scATAC-seq datasets
 
 In order to identify 'anchors' between scRNA-seq and scATAC-seq experiments, we first generate a rough estimate of the transcriptional activity of each gene by quantifying ATAC-seq counts in the 2 kb-upstream region and gene body, using the `GeneActivity()` function in the Signac package. The ensuing gene activity scores from the scATAC-seq data are then used as input for canonical correlation analysis, along with the gene expression quantifications from scRNA-seq. We perform this quantification for all genes identified as being highly variable from the scRNA-seq dataset.
-
 ```{r gene.activity}
 # quantify gene activity
 gene.activities <- GeneActivity(pbmc.atac, features = VariableFeatures(pbmc.rna))
@@ -221,7 +219,7 @@ coembed <- RunUMAP(coembed, dims = 1:30)
 DimPlot(coembed, group.by = c("orig.ident","seurat_annotations"))
 ```
 
-```{r save.times, include = TRUE}
+```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_atacseq_integration_vignette.csv")
 ```
 

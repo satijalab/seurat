@@ -42,30 +42,24 @@ In this vignette, we demonstrate how to use a previously established reference t
 
 To run this vignette please install Seurat v4, available on CRAN. Additionally, you will need to install the `SeuratDisk` package.
 
-```{r install, eval = FALSE}
-install.packages("Seurat")
-remotes::install_github("mojaveazure/seurat-disk")
-```
-
 ```{r packages, cache=FALSE}
 library(Seurat)
-library(SeuratDisk)
 library(ggplot2)
 library(patchwork)
 ```
 
 ```{r, include = TRUE, cache=FALSE}
-options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+options(SeuratData.repo.use = "http://seurat.nygenome.org")
 ```
 
 # Example 1: Mapping human peripheral blood cells 
 
 ## A Multimodal PBMC Reference Dataset
 
-We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048), and visualize the pre-computed UMAP. This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
+We load the reference from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048), and visualize the pre-computed UMAP. 
 
 ```{r pbmc.ref}
-reference <- readRDS("../data/pbmc_multimodal_2023.rds")
+reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
 ```
 
 ```{r ref.dimplot}
@@ -79,6 +73,9 @@ To demonstrate mapping to this multimodal reference, we will use a dataset of 2,
 ```{r 3k.load}
 library(SeuratData)
 InstallData('pbmc3k')
+
+pbmc3k <- LoadData('pbmc3k')
+pbmc3k <- UpdateSeuratObject(pbmc3k)
 ```
 
 The reference was normalized using `SCTransform()`, so we use the same approach to normalize the query here.
@@ -284,8 +281,8 @@ If you want to save and load a cached index for a `Neighbor` object generated wi
 
 ```{r neighbor.demo}
 bm[["spca.annoy.neighbors"]]
-SaveAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "../data/reftmp.idx")
-bm[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "../data/reftmp.idx")
+SaveAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "/brahms/shared/vignette-data/reftmp.idx")
+bm[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "/brahms/shared/vignette-data/reftmp.idx")
 ```
 </details>
 
@@ -378,7 +375,7 @@ p5 <- FeaturePlot(hcabm40k, features = c("CD45RA", "CD16", "CD161"), reduction =
 p3 / p4 / p5
 ```
 
-```{r save.times, include = TRUE}
+```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/reference_mapping_times.csv")
 ```
 

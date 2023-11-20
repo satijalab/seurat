@@ -1170,7 +1170,7 @@ PercentageFeatureSet <- function(
     warn(message = "Both pattern and features provided. Pattern is being ignored.")
   }
   percent.featureset <- list()
-  layers <- Layers(object = object, pattern = "counts")
+  layers <- Layers(object = object, search = "counts")
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
     features.layer <- features %||% grep(
@@ -1425,6 +1425,8 @@ PseudobulkExpression.Seurat <- function(
     stop("Number of layers provided does not match number of assays")
   }
   data <- FetchData(object = object, vars = rev(x = group.by))
+  #only keep meta-data columns that are in object
+  group.by <- intersect(group.by, colnames(data))
   data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
   if (nrow(x = data) < ncol(x = object)) {
     inform("Removing cells with NA for 1 or more grouping variables")
@@ -1450,6 +1452,22 @@ PseudobulkExpression.Seurat <- function(
     data <- data[, which(num.levels > 1), drop = F]
   }
   category.matrix <- CreateCategoryMatrix(labels = data, method = method)
+  #check if column names are numeric
+  col.names <- colnames(category.matrix)
+  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+    col.names <- ifelse(
+      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+      paste0("g", col.names),
+      col.names
+    )
+    colnames(category.matrix) <- col.names
+    inform(
+      message = paste0("First group.by variable `", group.by[1],
+      "` starts with a number, appending `g` to ensure valid variable names"),
+      .frequency = "regularly",
+      .frequency_id = "PseudobulkExpression"
+    )
+  }
   data.return <- list()
   for (i in 1:length(x = assays)) {
     if (inherits(x = features, what = "list")) {
@@ -1568,16 +1586,40 @@ PseudobulkExpression.Seurat <- function(
         toRet <- ScaleData(object = toRet, verbose = verbose)
       }
     }
-    if ('ident' %in% group.by) {
-      first.cells <- sapply(
-        X = 1:ncol(x = category.matrix),
-        FUN = function(x) {
-          return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
-        }
+    #add meta-data based on group.by variables
+    cells <- Cells(toRet)
+    for (i in 1:length(group.by)) {
+      if (group.by[i] != "ident") {
+        v <- sapply(
+          strsplit(cells, "_"),
+          function(x) {return(x[i])}
+        )
+        names(v) <- cells
+        toRet <- AddMetaData(toRet,
+                             metadata = v,
+                             col.name = group.by[i]
+        )
+      }
+    }
+    #set idents to pseudobulk variables
+    Idents(toRet) <- cells
+
+    #make orig.ident variable
+    #orig.ident = ident if group.by includes `ident`
+    #if not, orig.ident is equal to pseudobulk cell names
+    if(any(group.by == "ident")) {
+      i = which(group.by == "ident")
+      v <- sapply(
+        strsplit(cells, "_"),
+        function(x) {return(x[i])}
       )
-      Idents(object = toRet,
-             cells = colnames(x = toRet)
-      ) <- Idents(object = object)[first.cells]
+      names(v) <- cells
+      toRet <- AddMetaData(toRet,
+                           metadata = v,
+                           col.name = "orig.ident"
+      )
+    } else {
+      toRet$orig.ident <- cells
     }
     return(toRet)
   } else {

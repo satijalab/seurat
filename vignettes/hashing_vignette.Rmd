@@ -72,11 +72,11 @@ Read in data
 
 ```{r read_Data}
 # Load in the UMI matrix
-pbmc.umis <- readRDS("../data/pbmc_umi_mtx.rds")
+pbmc.umis <- readRDS("/brahms/shared/vignette-data/pbmc_umi_mtx.rds")
 
 # For generating a hashtag count matrix from FASTQ files, please refer to https://github.com/Hoohm/CITE-seq-Count.
 # Load in the HTO count matrix
-pbmc.htos <- readRDS("../data/pbmc_hto_mtx.rds")
+pbmc.htos <- readRDS("/brahms/shared/vignette-data/pbmc_hto_mtx.rds")
 
 # Select cell barcodes detected by both RNA and HTO
 # In the example datasets we have already filtered the cells for you, but perform this step for clarity.
@@ -94,7 +94,7 @@ Setup Seurat object and add in the HTO data
 
 ```{r hashtag_setup}
 # Setup Seurat object
-pbmc.hashtag <- CreateSeuratObject(counts = pbmc.umis)
+pbmc.hashtag <- CreateSeuratObject(counts = Matrix::Matrix(as.matrix(pbmc.umis),sparse = T))
 
 # Normalize RNA data with log normalization
 pbmc.hashtag <- NormalizeData(pbmc.hashtag)
@@ -154,7 +154,7 @@ Idents(pbmc.hashtag) <- 'HTO_classification.global'
 VlnPlot(pbmc.hashtag, features = 'nCount_RNA', pt.size = 0.1, log = TRUE)
 ```
 
-Generate a two dimensional tSNE embedding for HTOs.Here we are grouping cells by singlets and doublets for simplicity.
+Generate a two dimensional tSNE embedding for HTOs. Here we are grouping cells by singlets and doublets for simplicity.
 
 ```{r hashtag_sub_tsne, fig.width=9}
 #First, we will remove negative cells from the object
@@ -220,16 +220,16 @@ DimPlot(pbmc.singlet, group.by = "HTO_classification")
 
 ```{r hto_setup}
 # Read in UMI count matrix for RNA
-hto12.umis <- readRDS("../data/hto12_umi_mtx.rds")
+hto12.umis <- readRDS("/brahms/shared/vignette-data/hto12_umi_mtx.rds")
 
 # Read in HTO count matrix
-hto12.htos <- readRDS("../data/hto12_hto_mtx.rds")
+hto12.htos <- readRDS("/brahms/shared/vignette-data/hto12_hto_mtx.rds")
 
 # Select cell barcodes detected in both RNA and HTO
 cells.use <- intersect(rownames(hto12.htos), colnames(hto12.umis))
 
 # Create Seurat object and add HTO data
-hto12 <- CreateSeuratObject(counts = hto12.umis[, cells.use], min.features = 300)
+hto12 <- CreateSeuratObject(counts = Matrix::Matrix(as.matrix(hto12.umis[, cells.use]), sparse = T), min.features = 300)
 hto12[['HTO']] <- CreateAssayObject(counts = t(x = hto12.htos[colnames(hto12), 1:12]))
 
 # Normalize data
