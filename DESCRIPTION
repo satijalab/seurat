@@ -28,7 +28,8 @@ URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Depends:
     R (>= 4.0.0),
-    methods
+    methods, 
+    SeuratObject (==4.1.4)
 Imports:
     cluster,
     cowplot,
@@ -70,7 +71,6 @@ Imports:
     scales,
     scattermore (>= 1.2),
     sctransform (>= 0.4.0),
-    SeuratObject (>= 4.1.4),
     shiny,
     spatstat.explore,
     spatstat.geom,
