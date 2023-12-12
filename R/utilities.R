@@ -221,7 +221,7 @@ AddModuleScore <- function(
           if (search) {
             tryCatch(
               expr = {
-                updated.features <- UpdateSymbolList(symbols = missing.features, ...)
+                updated.features <- UpdateSymbolList(object = object, symbols = missing.features, ...)
                 names(x = updated.features) <- missing.features
                 for (miss in names(x = updated.features)) {
                   index <- which(x == miss)
