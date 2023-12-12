@@ -875,6 +875,7 @@ DimPlot <- function(
   label.box = FALSE,
   repel = FALSE,
   alpha = 1,
+  stroke.size = NULL,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
@@ -941,6 +942,7 @@ DimPlot <- function(
         shape.by = shape.by,
         order = order,
         alpha = alpha,
+        stroke.size = stroke.size
         label = FALSE,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
@@ -8224,6 +8226,7 @@ SingleDimPlot <- function(
   shape.by = NULL,
   alpha = 1,
   alpha.by = NULL,
+  stroke.size = NULL,
   order = NULL,
   label = FALSE,
   repel = FALSE,
@@ -8241,6 +8244,10 @@ SingleDimPlot <- function(
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
+
+  if (is.null(x = stroke.size)) {
+    stroke.size <- 0.600075815011372
+  }
 
   if (!is.null(x = cells.highlight) && pt.size != AutoPointSize(data = data, raster = raster) && sizes.highlight != pt.size && isTRUE(x = raster)) {
     warning("When `raster = TRUE` highlighted and non-highlighted cells must be the same size. Plot will use the value provided to 'sizes.highlight'.")
@@ -8352,7 +8359,8 @@ SingleDimPlot <- function(
         alpha = alpha.by
       ),
       size = pt.size,
-      alpha = alpha
+      alpha = alpha,
+      stroke = stroke.size
     )
   }
   plot <- plot +
