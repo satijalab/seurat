@@ -8185,6 +8185,7 @@ SingleCorPlot <- function(
 #' allowing for both different colors and different shapes on cells.
 #' @param alpha Alpha value for plotting (default is 1)
 #' @param alpha.by Mapping variable for the point alpha value
+#' @param stroke.size Adjust stroke (outline) size of points
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
