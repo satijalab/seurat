@@ -943,7 +943,7 @@ DimPlot <- function(
         shape.by = shape.by,
         order = order,
         alpha = alpha,
-        stroke.size = stroke.size
+        stroke.size = stroke.size,
         label = FALSE,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
