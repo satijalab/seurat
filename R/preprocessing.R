@@ -390,7 +390,6 @@ GetResidual <- function(
       warning("Object contains multiple UMI source assays. Setting source to ", umi.assay)
     }
   }
-  umi.assay <- umi.assay %||% c("RNA","Spatial") %in% Assays(object)
   if (IsSCT(assay = object[[assay]])) {
     object[[assay]] <- as(object[[assay]], 'SCTAssay')
   }
