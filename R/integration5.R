@@ -621,15 +621,24 @@ IntegrateLayers <- function(
     }
   }
   # Run the integration method
-  value <- method(
-    object = object[[assay]],
-    assay = assay,
-    orig = obj.orig,
-    layers = layers,
-    scale.layer = scale.layer,
-    features = features,
-    ...
-  )
+  if (identical(method, scVIIntegration)) {
+    value <- method(
+      object = object, 
+      assay = assay,
+      orig = obj.orig, 
+      scale.layer = scale.layer,
+      features = features, ...)
+  }else{
+    value <- method(
+      object = object[[assay]],
+      assay = assay,
+      orig = obj.orig,
+      layers = layers,
+      scale.layer = scale.layer,
+      features = features,
+      ...
+    )
+  }
   for (i in names(x = value)) {
     object[[i]] <- value[[i]]
   }
