@@ -81,7 +81,7 @@ may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
 \item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
-to split by cell identity'}
+to split by cell identity}
 
 \item{keep.scale}{How to handle the color scale across multiple plots. Options are:
 \itemize{

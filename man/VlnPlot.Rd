@@ -53,7 +53,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
 \item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
-to split by cell identity'}
+to split by cell identity}
 
 \item{adjust}{Adjust parameter for geom_violin}
 
