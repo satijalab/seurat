@@ -28,8 +28,7 @@ URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Depends:
     R (>= 4.0.0),
-    methods, 
-    SeuratObject (==4.1.4)
+    methods
 Imports:
     cluster,
     cowplot,
@@ -68,6 +67,7 @@ Imports:
     rlang,
     ROCR,
     Rtsne,
+    SeuratObject (>=4.1.4),
     scales,
     scattermore (>= 1.2),
     sctransform (>= 0.4.0),
