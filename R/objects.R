@@ -2039,15 +2039,6 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
 }
 
-#' @rdname ScaleFactors
-#' @method ScaleFactors VisiumV1
-#' @export
-#' @concept spatial
-#'
-ScaleFactors.VisiumV1 <- function(object, ...) {
-  return(slot(object = object, name = 'scale.factors'))
-}
-
 #' @method FetchData VisiumV1
 #' @export
 #' @concept spatial
