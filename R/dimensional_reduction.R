@@ -2335,7 +2335,7 @@ JackRandom <- function(
     rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
   }
   data.mod <- scaled.data
-  data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
+  data.mod[rand.genes, ] <- MatrixRowShuffle(x = as.matrix(scaled.data[rand.genes, ]))
   temp.object <- RunPCA(
     object = data.mod,
     assay = "temp",
