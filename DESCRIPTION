@@ -67,7 +67,7 @@ Imports:
     rlang,
     ROCR,
     Rtsne,
-    SeuratObject (>=4.1.4),
+    SeuratObject (>= 4.1.4),
     scales,
     scattermore (>= 1.2),
     sctransform (>= 0.4.0),
