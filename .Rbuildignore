@@ -1,6 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^.*\.old$
+^tests$
 .git
 .travis.yml
 appveyor.yml
