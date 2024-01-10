@@ -2230,7 +2230,7 @@ ReadXenium <- function(
       },
       stop("Unknown Xenium input type: ", otype)
     )
-  }, USE.NAMES = TRUE)
+  }, simplify = FALSE, USE.NAMES = TRUE)
   return(data)
 }
 
