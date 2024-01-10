@@ -201,10 +201,11 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
   )
 
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
-  if("Blank Codeword" %in% names(data$matrix))
+  if("Blank Codeword" %in% names(data$matrix)) {
     xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
-  else
+  } else if("Unassigned Codeword" %in% names(data$matrix)) {
     xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Unassigned Codeword"]])
+  }
   xenium.obj[["ControlCodeword"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Codeword"]])
   xenium.obj[["ControlProbe"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Probe"]])
 
