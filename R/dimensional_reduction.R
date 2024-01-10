@@ -1370,7 +1370,7 @@ RunUMAP.default <- function(
       umap_import <- import(module = "umap", delay_load = TRUE)
       sklearn <- import("sklearn", delay_load = TRUE)
       if (densmap &&
-          numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) <
+          numeric_version(x = umap_import$`__version__`) <
           numeric_version(x = "0.5.0")) {
         stop("densmap is only supported by versions >= 0.5.0 of umap-learn. Upgrade umap-learn (e.g. pip install --upgrade umap-learn).")
       }
@@ -1394,7 +1394,7 @@ RunUMAP.default <- function(
         angular_rp_forest = angular.rp.forest,
         verbose = verbose
       )
-      if (numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) >=
+      if (numeric_version(x = umap_import$`__version__`) >=
           numeric_version(x = "0.5.0")) {
         umap.args <- c(umap.args, list(
           densmap = densmap,
@@ -1613,7 +1613,7 @@ RunUMAP.Graph <- function(
     metric_kwds = metric.kwds,
     verbose = verbose
   )
-  if (numeric_version(x = umap$pkg_resources$get_distribution("umap-learn")$version) >=
+  if (numeric_version(x = umap$`__version__`) >=
       numeric_version(x = "0.5.0")) {
     umap.args <- c(umap.args, list(
       densmap = densmap,
