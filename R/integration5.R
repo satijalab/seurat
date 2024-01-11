@@ -390,7 +390,9 @@ RPCAIntegration <- function(
   } else {
     object.list <- list()
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = NULL, data = object[layers[i]][features,])))
+      object.list[[i]] <- suppressMessages(suppressWarnings(
+        CreateSeuratObject(counts = NULL, data = object[layers[i]][features,])
+      ))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
       object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
