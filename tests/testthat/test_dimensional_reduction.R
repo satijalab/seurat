@@ -53,8 +53,9 @@ test_that("pca returns total variance (see #982)", {
 
 test_that("pca is equivalent for BPCells", {
   skip_on_cran()
-  library(Matrix)
+  skip_if_not_installed("BPCells")
   library(BPCells)
+  library(Matrix)
   mat_bpcells <- t(x = as(object = t(x = obj[['RNA']]$counts ), Class = "IterableMatrix"))
   obj[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
   DefaultAssay(obj) <- "RNAbp"
