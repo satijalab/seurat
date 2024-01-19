@@ -4,6 +4,7 @@
 
 - Fixed `SCTransform` to handle `vars.to.regress` ([#8148](https://github.com/satijalab/seurat/issues/8148))
 - Fixed `SCTransform` to handle fetching residuals ([#8185](https://github.com/satijalab/seurat/issues/8185))
+- Fixed `scVIIntegration` ([#7944](https://github.com/satijalab/seurat/issues/7944), [#7164](https://github.com/satijalab/seurat/issues/7164), [#8293](https://github.com/satijalab/seurat/issues/8293))
 
 # Seurat 5.0.1 (2023-11-16)
 
