@@ -1999,10 +1999,11 @@ VariableFeatures.SCTAssay <- function(
   if (length(x = var.features) == 0) {
     return(NULL)
   }
-  for (i in 1:length(x = layer)) {
-    vst_out <- SCTModel_to_vst(SCTModel = slot(object = object, name = "SCTModel.list")[[layer[[i]]]])
-    var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
-  }
+  # # Check for overlaps in feature attributes
+  # for (i in 1:length(x = layer)) {
+  #   vst_out <- SCTModel_to_vst(SCTModel = slot(object = object, name = "SCTModel.list")[[layer[[i]]]])
+  #   var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
+  # }
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
   features <- names(x = var.features[which(x = var.features > tie.val)])
   if (length(x = features) > 0) {
