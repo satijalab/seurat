@@ -1148,8 +1148,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @export
 #' @concept preprocessing
 #'
-Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
-  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
+Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", filter.matrix = TRUE, ...) {
+  image <- readPNG(source = file.path(image.dir, image.name))
   scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
   tissue.positions.path <- Sys.glob(paths = file.path(image.dir, 'tissue_positions*'))
   tissue.positions <- read.csv(
