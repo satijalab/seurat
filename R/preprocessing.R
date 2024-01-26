@@ -3136,6 +3136,7 @@ SampleUMI <- function(
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
 #' is set to NULL; default is 1.3. Only applied if residual.features is not set.
 #' @param vars.to.regress Variables to regress out in a second non-regularized linear
+#' @param latent.data Extra data to regress out, should be cells x latent data
 #' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
@@ -3180,6 +3181,7 @@ SCTransform.default <- function(
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
+  latent.data = NULL,
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = umi) / 30), sqrt(x = ncol(x = umi) / 30)),
@@ -3418,7 +3420,7 @@ SCTransform.default <- function(
     scale.data,
     features = NULL,
     vars.to.regress = vars.to.regress,
-    latent.data = cell.attr[, vars.to.regress, drop = FALSE],
+    latent.data = latent.data,
     model.use = 'linear',
     use.umi = FALSE,
     do.scale = do.scale,
@@ -3452,6 +3454,7 @@ SCTransform.Assay <- function(
     variable.features.n = 3000,
     variable.features.rv.th = 1.3,
     vars.to.regress = NULL,
+    latent.data = NULL,
     do.scale = FALSE,
     do.center = TRUE,
     clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
@@ -3480,6 +3483,7 @@ SCTransform.Assay <- function(
                          variable.features.n = variable.features.n,
                          variable.features.rv.th = variable.features.rv.th,
                          vars.to.regress = vars.to.regress,
+                         latent.data = latent.data,
                          do.scale = do.scale,
                          do.center = do.center,
                          clip.range = clip.range,
@@ -3558,6 +3562,11 @@ SCTransform.Seurat <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
+  if (any(vars.to.regress %in% colnames(x = object[[]]))) {
+    latent.data <- object[[vars.to.regress[vars.to.regress %in% colnames(x = object[[]])]]]
+  } else {
+    latent.data <- NULL
+  }
   assay <- assay %||% DefaultAssay(object = object)
   if (assay == "SCT") {
     # if re-running SCTransform, use the RNA assay
@@ -3578,6 +3587,7 @@ SCTransform.Seurat <- function(
                             variable.features.n = variable.features.n,
                             variable.features.rv.th = variable.features.rv.th,
                             vars.to.regress = vars.to.regress,
+                            latent.data = latent.data,
                             do.scale = do.scale,
                             do.center = do.center,
                             clip.range = clip.range,
