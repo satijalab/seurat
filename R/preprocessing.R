@@ -3563,7 +3563,8 @@ SCTransform.Seurat <- function(
     set.seed(seed = seed.use)
   }
   if (any(vars.to.regress %in% colnames(x = object[[]]))) {
-    latent.data <- object[[vars.to.regress[vars.to.regress %in% colnames(x = object[[]])]]]
+    vars.to.regress.subset <- vars.to.regress[vars.to.regress %in% colnames(x = object[[]])]
+    latent.data <- object[[vars.to.regress.subset]]
   } else {
     latent.data <- NULL
   }
