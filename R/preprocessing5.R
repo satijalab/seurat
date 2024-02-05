@@ -1413,6 +1413,20 @@ SCTransform.StdAssay <- function(
                                             verbose = FALSE)
         old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
         merged_residual <- rbind(old_residual, new_residual)
+        merged_residual <- ScaleData(
+          merged_residual,
+          features = NULL,
+          vars.to.regress = vars.to.regress,
+          latent.data = latent.data,
+          model.use = 'linear',
+          use.umi = FALSE,
+          do.scale = do.scale,
+          do.center = do.center,
+          scale.max = Inf,
+          block.size = 750,
+          min.cells.to.block = 3000,
+          verbose = verbose
+        )
         sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
         VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
       }
