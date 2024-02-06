@@ -489,17 +489,21 @@ test_that("SCTransform `vars.to.regress` param works as expected", {
   # make sure that `ncells` is smaller than the datset being transformed 
   # so tha the regression model is trained on a subset of the data - make sure 
   # the regression is applied to the entire dataset
-  left <- SCTransform(
-    test.data,
-    vars.to.regress = NULL,
-    ncells = ncol(test.data) / 2,
-    verbose = FALSE
+  left <- suppressWarnings(
+      SCTransform(
+      test.data,
+      vars.to.regress = NULL,
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
   )
-  right <- SCTransform(
-    test.data,
-    vars.to.regress = "percent.mt",
-    ncells = ncol(test.data) / 2,
-    verbose = FALSE
+  right <- suppressWarnings(
+      SCTransform(
+      test.data,
+      vars.to.regress = "percent.mt",
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
   )
   expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
 
@@ -512,19 +516,23 @@ test_that("SCTransform `vars.to.regress` param works as expected", {
       layer = "counts"
     )
   )
-  left <- SCTransform(
-    test.data,
-    assay = "RNAv5",
-    vars.to.regress = NULL,
-    ncells = ncol(test.data) / 2,
-    verbose = FALSE
+  left <- suppressWarnings(
+    SCTransform(
+      test.data,
+      assay = "RNAv5",
+      vars.to.regress = NULL,
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
   )
-  right <- SCTransform(
-    test.data,
-    assay = "RNAv5",
-    vars.to.regress = "percent.mt",
-    ncells = ncol(test.data) / 2,
-    verbose = FALSE
+  right <- suppressWarnings(
+    SCTransform(
+      test.data,
+      assay = "RNAv5",
+      vars.to.regress = "percent.mt",
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
   )
   expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
 })
