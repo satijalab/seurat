@@ -20,12 +20,14 @@ NULL
 #'
 #' @param object A Seurat object.
 #' @param assay Assay name. Default is NULL, in which case the default assay of the object is used.
-#' @param ncells A positive integer indicating the number of cells to sample for the sketching. Default is 5000.
+#' @param cell.ratio Proportion of cells to sample from each layer.
+#' @min.cells Minimum cells a layer must have in order to be subsampled.
 #' @param sketched.assay Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.
 #' @param method  Sketching method to use. Can be 'LeverageScore' or 'Uniform'.
 #'               Default is 'LeverageScore'.
 #' @param var.name A metadata column name to store the leverage scores. Default is 'leverage.score'.
 #' @param over.write whether to overwrite existing column in the metadata. Default is FALSE.
+#' @leverage.already.calculated whether leverage scores have already been calculated.
 #' @param seed A positive integer for the seed of the random number generator. Default is 123.
 #' @param cast The type to cast the resulting assay to. Default is 'dgCMatrix'.
 #' @param verbose Print progress and diagnostic messages
