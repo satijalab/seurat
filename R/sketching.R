@@ -456,7 +456,7 @@ LeverageScore.default <- function(
   if (any(A == 0)) {
     bad_elem <- which(A == 0)
     message(paste0("Found 0 in diagonal of input matrix at ", bad_elem, ". Assigning all cells leverage score of 1"))
-    Z.score <- rep(1, ncol(x = object))
+    Z.score <- rep(1, nrow(x = object))
   } else {
     R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
     if (isTRUE(x = verbose)) {
