@@ -42,51 +42,51 @@ NULL
 SketchData <- function(
   object,
   assay = NULL,
-  ncells = 5000L,
+  cell.ratio = 0.25,
+  min.cells = 2500,
   sketched.assay = 'sketch',
   method = c('LeverageScore', 'Uniform'),
   var.name = "leverage.score",
-  over.write = FALSE,
+  over.write = F,
+  leverage.already.calculated = F,
   seed = 123L,
   cast = 'dgCMatrix',
-  verbose = TRUE,
+  verbose = T,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
-  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  assay <- match.arg(arg = assay, choices = SeuratObject::Assays(object = object))
   method <- match.arg(arg = method)
   if (sketched.assay == assay) {
-    abort(message = "Cannot overwrite existing assays")
+    rlang::abort(message = "Cannot overwrite existing assays")
   }
-  if (sketched.assay %in% Assays(object = object)) {
+  if (sketched.assay %in% SeuratObject::Assays(object = object)) {
     if (sketched.assay == DefaultAssay(object = object)) {
       DefaultAssay(object = object) <- assay
     }
     object[[sketched.assay]] <- NULL
   }
-  if (!over.write) {
-    var.name <- CheckMetaVarName(object = object, var.name = var.name)
-  }
-
-  if (method == 'LeverageScore') {
-    if (verbose) {
-      message("Calcuating Leverage Score")
+  
+  if (over.write == T | leverage.already.calculated == F) {
+    if (method == 'LeverageScore') {
+      if (verbose) {
+        message("Calcuating Leverage Score")
+      }
+      object <- LeverageScore(
+        object = object,
+        assay = assay,
+        var.name = var.name,
+        over.write = over.write,
+        seed = seed,
+        verbose = FALSE,
+        ...
+      )
+    } else if (method == 'Uniform') {
+      if (verbose) {
+        message("Uniformly sampling")
+      }
+      object[[var.name]] <- 1
     }
-    object <- LeverageScore(
-      object = object,
-      assay = assay,
-      var.name = var.name,
-      over.write = over.write,
-      seed = seed,
-      verbose = FALSE,
-      ...
-    )
-  } else if (method == 'Uniform') {
-    if (verbose) {
-      message("Uniformly sampling")
-    }
-    object[[var.name]] <- 1
-  }
   leverage.score <- object[[var.name]]
   layers.data <- Layers(object = object[[assay]], search = 'data')
   cells <- lapply(
@@ -94,12 +94,14 @@ SketchData <- function(
     FUN = function(i, seed) {
       set.seed(seed = seed)
       lcells <- Cells(x = object[[assay]], layer = layers.data[i])
-      if (length(x = lcells) < ncells) {
-        return(lcells)
+      if (length(lcells) < min.cells) {
+        ncells_per_sample = length(lcells)
+      } else {
+        ncells_per_sample = max(round(length(lcells)*cell.ratio), min.cells)
       }
       return(sample(
         x = lcells,
-        size = ncells,
+        size = ncells_per_sample,
         prob = leverage.score[lcells,]
       ))
     },
@@ -114,13 +116,13 @@ SketchData <- function(
     try(
       expr = VariableFeatures(object = sketched, method = "sketch", layer = lyr) <-
         VariableFeatures(object = object[[assay]], layer = lyr),
-      silent = TRUE
+      silent = F
     )
   }
   if (!is.null(x = cast) && inherits(x = sketched, what = 'Assay5')) {
     sketched <- CastAssay(object = sketched, to = cast, ...)
   }
-  Key(object = sketched) <- Key(object = sketched.assay, quiet = TRUE)
+  Key(object = sketched) <- Key(object = sketched.assay, quiet = F)
   object[[sketched.assay]] <- sketched
   DefaultAssay(object = object) <- sketched.assay
   return(object)
@@ -446,23 +448,28 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
-  R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
-  if (isTRUE(x = verbose)) {
-    message("Performing random projection")
-  }
-  JL <- as.sparse(x = JLEmbed(
-    nrow = ncol(x = R.inv),
-    ncol = ndims,
-    eps = eps,
-    seed = seed
-  ))
-  Z <- object %*% (R.inv %*% JL)
-  if (inherits(x = Z, what = 'IterableMatrix')) {
-    Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
-                            )$row_stats['mean',]*ncol(x = Z)
-    } else {
-    Z.score <- rowSums(x = Z ^ 2)
-  }
+  if (is.singular.matrix(R)) {
+    message("Found singular matrix. Assigning all cells leverage score of 1")
+    Z.score <- rep(1, ncol(x = object))
+  } else {
+    R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
+    if (isTRUE(x = verbose)) {
+      message("Performing random projection")
+    }
+    JL <- as.sparse(x = JLEmbed(
+      nrow = ncol(x = R.inv),
+      ncol = ndims,
+      eps = eps,
+      seed = seed
+    ))
+    Z <- object %*% (R.inv %*% JL)
+    if (inherits(x = Z, what = 'IterableMatrix')) {
+      Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
+                              )$row_stats['mean',]*ncol(x = Z)
+      } else {
+      Z.score <- rowSums(x = Z ^ 2)
+      }
+    }
   return(Z.score)
 }
 
