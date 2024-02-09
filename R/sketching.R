@@ -78,7 +78,7 @@ SketchData <- function(
         var.name = var.name,
         over.write = over.write,
         seed = seed,
-        verbose = FALSE,
+        verbose = verbose,
         ...
       )
     } else if (method == 'Uniform') {
