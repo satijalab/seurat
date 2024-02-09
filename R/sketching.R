@@ -374,6 +374,7 @@ TransferSketchLabels <- function(
 #' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and diagnostic messages
 #' @importFrom Matrix qrR t
+#' @importFrom matrixcalc is.singular.matrix
 #' @importFrom irlba irlba
 #'
 #' @rdname LeverageScore
@@ -451,7 +452,7 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
-  if (is.singular.matrix(R)) {
+  if (is.singular.matrix(diag(x = ncol(x = R))) == T) {
     message("Found singular matrix. Assigning all cells leverage score of 1")
     Z.score <- rep(1, ncol(x = object))
   } else {
