@@ -452,8 +452,10 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
-  if (is.singular.matrix(diag(x = ncol(x = R))) == T) {
-    message("Found singular matrix. Assigning all cells leverage score of 1")
+  A <- diag(x = R)
+  if (any(A == 0)) {
+    bad_elem <- which(A == 0)
+    message(paste0("Found 0 in diagonal of input matrix at ", bad_elem, ". Assigning all cells leverage score of 1"))
     Z.score <- rep(1, ncol(x = object))
   } else {
     R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
