@@ -87,6 +87,7 @@ SketchData <- function(
       }
       object[[var.name]] <- 1
     }
+  }
   leverage.score <- object[[var.name]]
   layers.data <- Layers(object = object[[assay]], search = 'data')
   cells <- lapply(
