@@ -1132,54 +1132,103 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' Load a 10X Genomics Visium Image
 #'
 #' @param image.dir Path to directory with 10X Genomics visium image data;
-#' should include files \code{tissue_lowres_iamge.png},
+#' should include files \code{tissue_lowres_image.png},
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
-#' have been determined to be over tissue.
-#' @param ... Ignored for now
+#' have been determined to be over tissue
 #'
 #' @return A \code{\link{VisiumV1}} object
-#'
-#' @importFrom png readPNG
-#' @importFrom jsonlite fromJSON
 #'
 #' @seealso \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
 #'
 #' @export
 #' @concept preprocessing
 #'
-Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
-  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
-  scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
-  tissue.positions.path <- Sys.glob(paths = file.path(image.dir, 'tissue_positions*'))
-  tissue.positions <- read.csv(
-    file = tissue.positions.path,
+Read10X_Image <- function(image.dir, filter.matrix = TRUE) {
+  coordinates <- Read10X_Coordinates(
+    filename = Sys.glob(file.path(image.dir, "tissue_positions*")),
+    filter.matrix
+  )
+
+  scale.factors <- Read10X_ScaleFactors(
+    filename = file.path(image.dir, "scalefactors_json.json")
+  )
+
+  image <- png::readPNG(
+    source = file.path(image.dir, "tissue_lowres_image.png")
+  )
+
+  # scale the spot size for plotting with the low resolution PNG
+  # TODO: this was originally written by 10X but looks kinda 
+  # wonky - double-check and maybe update
+  spot.radius <- (scale.factors$fiducial * scale.factors$lowres) / max(dim(image))
+
+  return(
+    new(
+      Class = 'VisiumV1',
+      image = image,
+      scale.factors = scale.factors,
+      coordinates = coordinates,
+      spot.radius = spot.radius
+    )
+  )
+}
+
+#' Load 10X Genomics Visium Tissue Positions
+#'
+#' @param filename Path to a \code{tissue_positions_list.csv} file
+#' @param filter.matrix Filter spot/feature matrix to only include spots that
+#' have been determined to be over tissue
+#'
+#' @return A data.frame
+#'
+#' @export
+#' @concept preprocessing
+#'
+Read10X_Coordinates <- function(filename, filter.matrix) {
+  coordinates <- read.csv(
+    file = filename,
     col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
     header = ifelse(
-      test = basename(tissue.positions.path) == "tissue_positions.csv",
+      # assume files calles "tissue_positions.csv" have headers, otherwise
+      # assume they do not (i.e. "tissue_positions_list.csv")
+      test = basename(filename) == "tissue_positions.csv",
       yes = TRUE,
       no = FALSE
     ),
     as.is = TRUE,
     row.names = 1
   )
+
+  # the `tissue` column should contain a boolean indicating whether or not a 
+  # spot sits on top of the the tissue sample - maybe filter spots that do not
   if (filter.matrix) {
-    tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
+    coordinates <- coordinates[which(coordinates$tissue == 1), , drop = FALSE]
   }
-  unnormalized.radius <- scale.factors$fiducial_diameter_fullres * scale.factors$tissue_lowres_scalef
-  spot.radius <-  unnormalized.radius / max(dim(x = image))
-  return(new(
-    Class = 'VisiumV1',
-    image = image,
-    scale.factors = scalefactors(
-      spot = scale.factors$spot_diameter_fullres,
-      fiducial = scale.factors$fiducial_diameter_fullres,
-      hires = scale.factors$tissue_hires_scalef,
-      scale.factors$tissue_lowres_scalef
-    ),
-    coordinates = tissue.positions,
-    spot.radius = spot.radius
-  ))
+
+  return (coordinates)
+}
+
+#' Load 10X Genomics Visium Scale Factors
+#'
+#' @param filename Path to a \code{scalefactors_json.json} file
+#'
+#' @return A scalefactors object
+#'
+#' @export
+#' @concept preprocessing
+#'
+Read10X_ScaleFactors <- function(filename) {
+  raw.data <- jsonlite::fromJSON(file.path(filename))
+
+  scale.factors <- scalefactors(
+    spot = raw.data$spot_diameter_fullres,
+    fiducial = raw.data$fiducial_diameter_fullres,
+    hires = raw.data$tissue_hires_scalef,
+    lowres = raw.data$tissue_lowres_scalef
+  )
+
+  return (scale.factors)
 }
 
 #' Read and Load Akoya CODEX data
