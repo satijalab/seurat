@@ -532,48 +532,55 @@ Load10X_Spatial <- function(
   image = NULL,
   ...
 ) {
+  # if more than one directory is passed in
   if (length(x = data.dir) > 1) {
-    warning("'Load10X_Spatial' accepts only one 'data.dir'",
-            immediate. = TRUE)
+    # party on with the first value
     data.dir <- data.dir[1]
+    # but also raise a warning  
+    warning(
+      paste0(
+        "`data.dir` expects a single value but recieved multiple - ",
+        "continuing using the first: '",
+        data.dir,
+        "'."
+      ),
+      immediate. = TRUE,
+    )
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
+
+  # if the specified directory does not exist 
+  if (!file.exists(data.dir)) {
+    # raise an error 
+    stop(paste0("No such file or directory: ", "'", data.dir, "'"))
+  }
+
+  # read in counts matrices from specified h5 files
+  counts <- Read10X_h5(file.path(data.dir, filename), ...)
+
+  # maybe convert Cell identifiers to uppercase
   if (to.upper) {
-    data <- imap(data, ~{
-      rownames(.x) <- toupper(x = rownames(.x))
-      .x
-    })
+    rownames(counts) <- lapply(rownames(counts), toupper)
   }
-  if (is.list(data) & "Antibody Capture" %in% names(data)) {
-    matrix_gex <- data$`Gene Expression`
-    matrix_protein <- data$`Antibody Capture`
-    object <- CreateSeuratObject(counts = matrix_gex, assay = assay)
-    object_protein <- CreateAssayObject(counts = matrix_protein)
-    object[["Protein"]] <- object_protein
-  }
-  else {
-    object <- CreateSeuratObject(counts = data, assay = assay)
-  }
-  if (is.null(x = image)) {
-    image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
-                           filter.matrix = filter.matrix)
-  } else {
-    if (!inherits(x = image, what = "VisiumV1"))
-      stop("Image must be an object of class 'VisiumV1'.")
-  }
-  image <- image[Cells(x = object)]
-  DefaultAssay(object = image) <- assay
+
+  # build a Seurat object
+  object <- CreateSeuratObject(counts, assay = assay)
+
+  # read in the corresponding images and coordinate mappings
+  image <- Read10X_Image(
+    file.path(data.dir, "spatial"), 
+    filter.matrix = filter.matrix
+  )
+
+  # align the image's identifiers with the object's
+  image <- image[Cells(object)]
+  # set the image's assay reference to point to the matching counts matrix
+  DefaultAssay(image) <- assay
+  # add the image to the corresponding Seurat instance
   object[[slice]] <- image
 
-  # if using the meta-data available for probes add to @misc slot
-  file_path <- file.path(data.dir, filename)
-  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
-  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
-    probe.metadata <- Read10X_probe_metadata(data.dir, filename)
-    Misc(object = object[['Spatial']], slot = "probe_metadata") <- probe.metadata
-  }
   return(object)
 }
+
 
 #' Read10x Probe Metadata
 #'
