@@ -27,21 +27,95 @@ test_that("Read10X handles missing files properly", {
   expect_error(Read10X(dname, gene.column = 10))
 })
 
-# Tests for reading in spatial 10x data
-if (requireNamespace("hdf5r", quietly = TRUE)) {
-  context("Load10X_Spatial")
-  dname <- "../testdata/visium"
-  txsp <- Load10X_Spatial(data.dir = '../testdata/visium')
-  test_that("10x Spatial Data Parsing", {
-    expect_is(txsp, "Seurat")
-    expect_equal(ncol(x = txsp), 2695)
-    expect_equal(nrow(x = txsp), 100)
-    expect_equal(Cells(x = txsp)[1], "AAACAAGTATCTCCCA-1")
-    expect_equal(Assays(object = txsp), "Spatial")
-    expect_equal(GetAssayData(object = txsp[["Spatial"]], layer = "counts")[5, 9], 1)
-  })
-  test_that("Read10X_Spatial handles missing files properly", {
-    expect_error(Load10X_Spatial(data.dir = "."))
-    expect_error(Load10X_Spatial(data.dir = "./notadir/"))
-  })
-}
+
+context("Load10X_Spatial")
+
+# setup test fixtures
+path.to.data = file.path("../testdata/visium")
+path.to.counts = file.path(path.to.data, "filtered_feature_bc_matrix.h5")
+path.to.image = file.path(path.to.data, "spatial")
+
+test_that("Read10X_h5 works as expected", {
+  skip_on_cran()
+  skip_if_not_installed("hdf5r")
+
+  counts <- Read10X_h5(path.to.counts)
+
+  # check that the shape of the returned matrix is correct
+  expect_equal(ncol(counts), 2695)
+  expect_equal(nrow(counts), 100)
+  # spot-check a few of the values
+  expect_equal(colnames(counts)[[151]], "AATGCAACCGGGTACC-1")
+  expect_equal(counts[1, 151], 1)
+  expect_equal(colnames(counts)[[9]], "AAACCGTTCGTCCAGG-1")
+  expect_equal(counts[5, 9], 1)
+  expect_equal(colnames(counts)[[2328]], "TCTCGAGGAGGTTCGC-1")
+  expect_equal(counts[99, 2328], 1)
+})
+
+test_that("Read10X_Image works as expected", {
+  # read in the coordinates as a data.frame - only keep the relevant columns
+  coordinates.expected <- Read10X_Coordinates(
+    file.path(path.to.image, "tissue_positions_list.csv"),
+    filter.matrix = TRUE
+  )[, c("imagerow", "imagecol")]
+  # read in the scale factors as an S3 object
+  scale.factors.expected <- Read10X_ScaleFactors(
+    file.path(path.to.image, "scalefactors_json.json")
+  )
+
+  image <- Read10X_Image(path.to.image)
+  coordinates <- GetTissueCoordinates(image)
+  scale.factors <- ScaleFactors(image)
+
+  # check that the scale factors were read in as expected
+  expect_true(identical(scale.factors, scale.factors.expected))
+  # check that `coordinates` contains values scaled for the low resolution PNG 
+  expect_equal(
+    coordinates / scale.factors$lowres, 
+    coordinates.expected
+  )
+  # check that the spot size is similarly scaled
+  expect_equal(
+    (Radius(image) * max(dim(image))) / scale.factors$lowres,
+    scale.factors.expected$fiducial,
+  )
+})
+
+test_that("Load10X_Spatial works as expected", {
+  skip_on_cran()
+  skip_if_not_installed("hdf5r")
+
+  # load the expected counts matrix
+  counts.expected <- Read10X_h5(path.to.counts)
+  # load the expected image
+  image.expected <- Read10X_Image(path.to.image)
+  # set the image's key
+  Key(image.expected) <- "slice1_"
+  # update the expected image's assay to match the default
+  DefaultAssay(image.expected) <- "Spatial"
+  # align the expected image's identifiers with the expected count matrix
+  image.expected <- image.expected[colnames(counts.expected)]
+
+  spatial <- Load10X_Spatial(path.to.data)
+
+  # check that `spatial` contains the expected counts matrix
+  expect_true(
+    identical(
+      LayerData(spatial, assay = "Spatial", layer = "counts"),
+      counts.expected
+    )
+  )
+  # check that `spatial` contains the expected image
+  expect_true(
+    identical(
+      spatial[["slice1"]],
+      image.expected
+    )
+  )
+})
+
+test_that("Read10X_Spatial handles missing files properly", {
+  expect_error(Load10X_Spatial(data.dir = "."))
+  expect_error(Load10X_Spatial(data.dir = "./notadir/"))
+})
