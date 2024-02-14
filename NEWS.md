@@ -1,4 +1,4 @@
-# Unreleased 
+# Seurat 5.0.2 (2024-02-28) 
 
 ## Changes
 
