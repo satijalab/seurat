@@ -20,11 +20,11 @@ NULL
 #' @rdname ReadAkoya
 #'
 LoadAkoya <- function(
-    filename,
-    type = c('inform', 'processor', 'qupath'),
-    fov,
-    assay = 'Akoya',
-    ...
+  filename,
+  type = c('inform', 'processor', 'qupath'),
+  fov,
+  assay = 'Akoya',
+  ...
 ) {
   # read in matrix and centroids
   data <- ReadAkoya(filename = filename, type = type)
@@ -114,8 +114,8 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
     molecules = data$pixels,
     assay = assay
   )
-  obj <- CreateSeuratObject(counts = data$matrix, assay = assay)
-  
+obj <- CreateSeuratObject(counts = data$matrix, assay = assay)
+    
   # subset both object and coords based on the cells shared by both
   cells <- intersect(
     Cells(x = coords, boundary = "segmentation"),
@@ -298,7 +298,7 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
     type = c("centroids", "segmentations"),
   )
   
-  segmentations.data <- list(
+segmentations.data <- list(
     "centroids" = CreateCentroids(data$centroids),
     "segmentation" = CreateSegmentation(data$segmentations)
   )
@@ -309,7 +309,7 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
     assay = assay
   )
   
-  xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
   if("Blank Codeword" %in% names(data$matrix))
     xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
   else
@@ -317,7 +317,7 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
   xenium.obj[["ControlCodeword"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Codeword"]])
   xenium.obj[["ControlProbe"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Probe"]])
   
-  xenium.obj[[fov]] <- coords
+xenium.obj[[fov]] <- coords
   return(xenium.obj)
 }
 
@@ -350,27 +350,27 @@ PCAPlot <- function(object, ...) {
 #' @export
 #'
 SpatialDimPlot <- function(
-    object,
-    group.by = NULL,
-    images = NULL,
-    cols = NULL,
-    crop = TRUE,
-    cells.highlight = NULL,
-    cols.highlight = c('#DE2D26', 'grey50'),
-    facet.highlight = FALSE,
-    label = FALSE,
-    label.size = 7,
-    label.color = 'white',
-    repel = FALSE,
-    ncol = NULL,
-    combine = TRUE,
-    pt.size.factor = 1.6,
-    alpha = c(1, 1),
-    image.alpha = 1,
-    stroke = 0.25,
-    label.box = TRUE,
-    interactive = FALSE,
-    information = NULL
+  object,
+  group.by = NULL,
+  images = NULL,
+  cols = NULL,
+  crop = TRUE,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
+  facet.highlight = FALSE,
+  label = FALSE,
+  label.size = 7,
+  label.color = 'white',
+  repel = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  image.alpha = 1,
+  stroke = 0.25,
+  label.box = TRUE,
+  interactive = FALSE,
+  information = NULL
 ) {
   return(SpatialPlot(
     object = object,
@@ -403,22 +403,22 @@ SpatialDimPlot <- function(
 #' @export
 #'
 SpatialFeaturePlot <- function(
-    object,
-    features,
-    images = NULL,
-    crop = TRUE,
-    slot = 'data',
-    keep.scale = "feature",
-    min.cutoff = NA,
-    max.cutoff = NA,
-    ncol = NULL,
-    combine = TRUE,
-    pt.size.factor = 1.6,
-    alpha = c(1, 1),
-    image.alpha = 1,
-    stroke = 0.25,
-    interactive = FALSE,
-    information = NULL
+  object,
+  features,
+  images = NULL,
+  crop = TRUE,
+  slot = 'data',
+  keep.scale = "feature",
+  min.cutoff = NA,
+  max.cutoff = NA,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  image.alpha = 1,
+  stroke = 0.25,
+  interactive = FALSE,
+  information = NULL
 ) {
   return(SpatialPlot(
     object = object,
