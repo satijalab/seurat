@@ -615,14 +615,22 @@ FindMarkers.default <- function(
 }
 
 
-#' @param slot Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
-#' \code{slot} will be set to "counts"
+#' @param slot Slot to pull data from; note that if \code{test.use} is
+#' "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"
+#' @param fc.slot Slot used to calculate fold-change.
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param norm.method Normalization method for fold change calculation when
 #' \code{slot} is \dQuote{\code{data}}
 #' @param mean.fxn Function to use for fold change or average difference calculation.
-#' If NULL, the appropriate function will be chose according to the slot used
+#' The default depends on the the value of \code{fc.slot}:
+#' \itemize{
+#'  \item{"counts"} : difference in the log of the mean counts, with pseudocount.
+#'  \item{"data"} : difference in the log of the average exponentiated data, with pseudocount.
+#'  This adjusts for differences in sequencing depth between cells, and assumes that "data"
+#'  has been log-normalized.
+#'  \item{"scale.data"} : difference in the means of scale.data.
+#' }
 #' @param fc.name Name of the fold change, average difference, or custom function column
 #' in the output data.frame. If NULL, the fold change column will be named
 #' according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
@@ -641,6 +649,7 @@ FindMarkers.Assay <- function(
   features = NULL,
   test.use = "wilcox",
   slot = "data",
+  fc.slot = "data",
   pseudocount.use = 1,
   norm.method = NULL,
   mean.fxn = NULL,
@@ -659,7 +668,7 @@ FindMarkers.Assay <- function(
   data.use <-  GetAssayData(object = object, slot = data.slot)
   fc.results <- FoldChange(
     object = object,
-    slot = data.slot,
+    slot = fc.slot,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
@@ -703,6 +712,7 @@ FindMarkers.SCTAssay <- function(
   test.use = "wilcox",
   pseudocount.use = 1,
   slot = "data",
+  fc.slot = "data",
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -747,13 +757,11 @@ FindMarkers.SCTAssay <- function(
   data.use <-  GetAssayData(object = object, slot = data.slot)
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
+    EXPR = fc.slot,
     "counts" = function(x) {
-      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
       return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
     },
     "scale.data" = rowMeans,
@@ -761,7 +769,7 @@ FindMarkers.SCTAssay <- function(
   )
   fc.results <- FoldChange(
     object = object,
-    slot = data.slot,
+    slot = fc.slot,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
