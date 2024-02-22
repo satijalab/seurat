@@ -2,6 +2,7 @@
 
 ## Changes
 
+- Added `fc.slot` parameter to `FindMarkers`
 - Fixed `SCTransform` to handle `vars.to.regress` ([#8148](https://github.com/satijalab/seurat/issues/8148)) and ([#8349](https://github.com/satijalab/seurat/issues/8349))
 - Fixed `SCTransform` to handle fetching residuals ([#8185](https://github.com/satijalab/seurat/issues/8185))
 
