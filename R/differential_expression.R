@@ -409,13 +409,17 @@ FindConservedMarkers <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param slot Slot to pull data from; note that if \code{test.use} is
+#' "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
 #' @param features Genes to test. Default is to use all genes
-#' @param scaled Indicates whether or not \code{object} contains scaled data
+#' @param slot Slot to pull data from; note that if \code{test.use} is
+#' "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
+#' If the \code{slot} parameter is "scale.data" no filtering is performed.
 #' @param test.use Denotes which test to use. Available options are:
 #' \itemize{
 #'  \item{"wilcox"} : Identifies differentially expressed genes between two
@@ -490,10 +494,10 @@ FindConservedMarkers <- function(
 #'
 FindMarkers.default <- function(
   object,
+  slot = "data",
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  scaled = FALSE,
   logfc.threshold = 0.1,
   test.use = "wilcox",
   min.pct = 0.01,
@@ -540,7 +544,7 @@ FindMarkers.default <- function(
   }
 
   # feature selection (based on logFC)
-  if (!scaled) {
+  if (slot != "scale.data") {
     total.diff <- fc.results[, 1] #first column is logFC
     names(total.diff) <- rownames(fc.results)
     features.diff <- if (only.pos) {
@@ -615,8 +619,6 @@ FindMarkers.default <- function(
 }
 
 
-#' @param slot Slot to pull data from; note that if \code{test.use} is
-#' "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"
 #' @param fc.slot Slot used to calculate fold-change.
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
@@ -644,11 +646,11 @@ FindMarkers.default <- function(
 #'
 FindMarkers.Assay <- function(
   object,
+  slot = "data",
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
   test.use = "wilcox",
-  slot = "data",
   fc.slot = "data",
   pseudocount.use = 1,
   norm.method = NULL,
@@ -683,7 +685,6 @@ FindMarkers.Assay <- function(
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    scaled = (data.slot == "scale.data"),
     test.use = test.use,
     fc.results = fc.results,
     ...
@@ -783,7 +784,6 @@ FindMarkers.SCTAssay <- function(
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    scaled = (data.slot == "scale.data"),
     test.use = test.use,
     fc.results = fc.results,
     ...
