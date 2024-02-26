@@ -619,7 +619,8 @@ FindMarkers.default <- function(
 }
 
 
-#' @param fc.slot Slot used to calculate fold-change.
+#' @param fc.slot Slot used to calculate fold-change - will also affect the 
+#' default for \code{mean.fxn}, see below for more details. 
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param norm.method Normalization method for fold change calculation when
