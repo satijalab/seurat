@@ -1411,6 +1411,13 @@ PseudobulkExpression.Seurat <- function(
 
   object.assays <- .FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
+
+  # `features` is expected to be a 2D array - one vector per assay
+  # in the case the `features` a vector, duplicate it for each assay
+  if (!inherits(features, what = "list")) {
+    features <- rep(list(features), times = length(assays))
+  }
+
   if (!all(assays %in% object.assays)) {
     assays <- assays[assays %in% object.assays]
     if (length(x = assays) == 0) {
@@ -1468,18 +1475,14 @@ PseudobulkExpression.Seurat <- function(
       .frequency_id = "PseudobulkExpression"
     )
   }
+
   data.return <- list()
   for (i in 1:length(x = assays)) {
-    if (inherits(x = features, what = "list")) {
-      features.i <- features[[i]]
-    } else {
-      features.i <- features
-    }
     data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
       category.matrix = category.matrix,
-      features = features.i,
+      features = features[[i]],
       layer = layer[i],
       verbose = verbose,
       ...
