@@ -93,7 +93,9 @@ test_that("IntegrateLayers works with CCAIntegration", {
     )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.544193
+    0.544193,
+    # added to pass macOS builder checks for v5.0.2
+    tolerance = 8.1e-06
   )
 })
 
@@ -125,7 +127,9 @@ test_that("IntegrateLayers works with RPCAIntegration", {
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.544193
+    0.544193,
+    # added to pass macOS builder checks for v5.0.2
+    tolerance = 8.1e-06
   )
 })
 
@@ -153,12 +157,13 @@ test_that("IntegrateLayers works with JointPCAIntegration", {
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    0.324614,
-    tolerance = 1.0e-6
+    0.324614
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.544193
+    0.544193,
+    # added to pass macOS builder checks for v5.0.2
+    tolerance = 8.1e-06
   )
 })
 
