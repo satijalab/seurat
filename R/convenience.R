@@ -193,20 +193,34 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
     "centroids" = CreateCentroids(data$centroids),
     "segmentation" = CreateSegmentation(data$segmentations)
   )
+  
   coords <- CreateFOV(
     coords = segmentations.data,
     type = c("segmentation", "centroids"),
     molecules = data$microns,
     assay = assay
   )
+  
+  slot.map <- c(
+    `Blank Codeword` = 'BlankCodeword',
+    `Unassigned Codeword` = 'BlankCodeword',
+    `Negative Control Codeword` = 'ControlCodeword',
+    `Negative Control Probe` = 'ControlProbe'
+  )
 
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
-  if("Blank Codeword" %in% names(data$matrix))
-    xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
-  else
-    xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Unassigned Codeword"]])
-  xenium.obj[["ControlCodeword"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Codeword"]])
-  xenium.obj[["ControlProbe"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Probe"]])
+  
+  if(!is.null(data$metadata)) {
+    Misc(xenium.obj, 'run_metadata') <- data$metadata
+  }
+  
+  if(!is.null(data$segmentation_method)) {
+    xenium.obj <- AddMetaData(xenium.obj, data$segmentation_method)
+  }
+  
+  for(name in intersect(names(slot.map), names(data$matrix))) {
+    xenium.obj[[slot.map[name]]] <- CreateAssayObject(counts = data$matrix[[name]])
+  }
 
   xenium.obj[[fov]] <- coords
   return(xenium.obj)
