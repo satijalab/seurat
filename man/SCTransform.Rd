@@ -21,6 +21,7 @@ SCTransform(object, ...)
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
+  latent.data = NULL,
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = umi)/30), sqrt(x = ncol(x = umi)/30)),
@@ -42,6 +43,7 @@ SCTransform(object, ...)
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
+  latent.data = NULL,
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = object)/30), sqrt(x = ncol(x = object)/30)),
@@ -86,6 +88,7 @@ SCTransform(object, ...)
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
+  latent.data = NULL,
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = object)/30), sqrt(x = ncol(x = object)/30)),
@@ -125,7 +128,9 @@ ranking by residual variance; default is 3000. Only applied if residual.features
 use this residual variance cutoff; this is only used when \code{variable.features.n}
 is set to NULL; default is 1.3. Only applied if residual.features is not set.}
 
-\item{vars.to.regress}{Variables to regress out in a second non-regularized linear
+\item{vars.to.regress}{Variables to regress out in a second non-regularized linear}
+
+\item{latent.data}{Extra data to regress out, should be cells x latent data
 regression. For example, percent.mito. Default is NULL}
 
 \item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}

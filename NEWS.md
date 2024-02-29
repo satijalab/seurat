@@ -1,3 +1,12 @@
+# Seurat 5.0.2 (2024-02-28) 
+
+## Changes
+
+- Fixed `AverageExpression` to handle `features` vector when `layer="scale.data"` and `return.seurat=TRUE`
+- Added `fc.slot` parameter to `FindMarkers`
+- Fixed `SCTransform` to handle `vars.to.regress` ([#8148](https://github.com/satijalab/seurat/issues/8148)) and ([#8349](https://github.com/satijalab/seurat/issues/8349))
+- Fixed `SCTransform` to handle fetching residuals ([#8185](https://github.com/satijalab/seurat/issues/8185))
+
 # Seurat 5.0.1 (2023-11-16)
 
 ## Changes
