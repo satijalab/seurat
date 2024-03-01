@@ -218,22 +218,86 @@ ImageDimPlot(vizgen.obj, fov = "hippo", molecules = rownames(markers.14)[1:4], c
 
 This dataset is a preview of the Xenium multimodal cell segmentation solution using a development version of the assay user guide and analysis software. It uses the [Xenium Human Multi-Tissue and Cancer Panel](https://www.10xgenomics.com/support/in-situ-gene-expression/documentation/steps/panel-design/pre-designed-xenium-gene-expression-panels) (377 genes) which was pre-designed by 10x Genomics. In this vignette, we will demonstrate how to load Xenium data for analysis and visualization using Seurat and, in particular, how to parse and visualize cell metadata. Note that this vignette requires the use of some optional dependencies in Seurat, namely `stars`, `jsonlite` and `gmp` in order to read data from `.zarr` files.
 
-This uses the full Xenium output bundle available from the [FFPE Human Lung Cancer with Xenium Multimodal Cell Segmentation Preview Data](https://www.10xgenomics.com/datasets/preview-data-ffpe-human-lung-cancer-with-xenium-multimodal-cell-segmentation-1-standard) page, which can be downloaded as described below.
+This uses the full Xenium output bundle available from the [FFPE Human Lung Cancer with Xenium Multimodal Cell Segmentation Preview Data](https://www.10xgenomics.com/datasets/preview-data-ffpe-human-lung-cancer-with-xenium-multimodal-cell-segmentation-1-standard) page, which can be downloaded as described below (note that this file is \~7 GB).
 
 ```{bash, eval=FALSE}
 wget https://cf.10xgenomics.com/samples/xenium/2.0.0/Xenium_V1_humanLung_Cancer_FFPE/Xenium_V1_humanLung_Cancer_FFPE_outs.zip
 unzip Xenium_V1_humanLung_Cancer_FFPE_outs.zip
 ```
 
-We will first load in the dataset and create the Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. Note that this dataset is moderate size. Installing `arrow` will permit you to load the data from Parquet files, which is much more efficient than from csv.
+We will first load in the dataset and create the Seurat object. We will flip the x/y coordinates for more convenient plotting. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. Installing `arrow` will permit you to load the data from Parquet files, which is much more efficient than from csv.
+
+By default, the subcellular coordinates of each Q20 transcript will be loaded, as well as the cell centroids, which can commonly take up more than 1 GB of RAM.
 
 ```{r, results='hide'}
-path <- "~/yard/data/Xenium_V1_humanLung_Cancer_FFPE_outs"
-# Load the Xenium data
-xenium.obj <- LoadXenium(path, fov = "fov")
+path <- "/brahms/hartmana/vignette_data/Xenium_V1_humanLung_Cancer_FFPE_outs"
+# Load the Xenium data, including cell segmentations
+xenium.obj <- LoadXenium(path, fov = "fov", segmentations = "cell", flip.xy = T)
 # remove cells with 0 counts
 xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
 ```
+
+This dataset uses Xenium multimodal segmentation, which involves custom deep learning models trained on Xenium In Situ data. After nuclei segmentation with DAPI, the algorithm uses three methods to segment cells. The segmentation results for each cell are prioritized in this order:
+
+1.  **Cell boundary stain:** This is the most reliable method. Antibodies target epithelial markers (CD45) and immune markers (pan-lymphocyte: ATP1A1, E-Cadherin). It can split nuclei and define cells missing a nucleus. Nuclei that overlap with anucleate cells are assigned to the cell
+
+2.  **Expansion from the nucleus to the cell interior stain edge:** This method requires both segmented nuclei and the interior stain (18S rRNA marker)
+
+3.  **Nuclear expansion:** For cases where cells that do not have boundary or interior stains, segment cells with a nuclear (DAPI) expansion distance of 5 µm or until another cell boundary is encountered
+
+We can directly visualize cells which were segmented according to each method.
+
+```{r}
+ImageDimPlot(xenium.obj, fov = "fov", dark.background = F, group.by = "segmentation_method", cols = c('#ffabc3', '#a9a900', '#a9ceff'))
+```
+
+It is also possible to load and visualize the unsupervised cluster annotations computed by the Xenium Onboard Analysis pipeline, which are stored in the `analysis` folder of an output bundle.
+
+```{r}
+where <- tempdir()
+untar(file.path(data.dir, 'analysis.tar.gz'), exdir = where)
+
+graph_clusters <- read.csv(file.path(where, 'analysis', 'clustering', 'gene_expression_graphclust', 'clusters.csv'), row.names = 'Barcode')
+
+# Store the graph-based clusters in the metadata
+xenium.obj <- AddMetaData(xenium.obj, graph_clusters)
+
+ImageDimPlot(xenium.obj, fov = "fov", dark.background = F, group.by = "Cluster")
+```
+
+Differential expression results from Xenium Onboard Analysis can also be loaded in a similar fashion.
+
+```{r}
+diff_exp <- read.csv(file.path(where, 'analysis', 'diffexp', 'gene_expression_graphclust', 'differential_expression.csv'))
+
+diff_exp <- melt(diff_exp, id.vars = c("Feature.ID", "Feature.Name"))
+
+colnames(diff_exp)[1:2] <- c('ensembl_id', 'gene_name')
+diff_exp$cluster <- unlist(lapply(strsplit(as.character(diff_exp$variable), '.', fixed = T), '[[', 2))
+diff_exp$measure <- factor(gsub('Cluster\\.\\d+\\.', '', as.character(diff_exp$variable)), c('Mean.Counts', 'Log2.fold.change', 'Adjusted.p.value'), c('mean_count', 'log2_fc', 'p_adj'))
+diff_exp$variable <- NULL
+
+diff_exp <- dcast(diff_exp, ensembl_id + gene_name + cluster ~ measure)
+
+significant_de <- subset(diff_exp, p_adj <= 0.05)
+significant_de <- significant_de[order(significant_de$mean_count, decreasing = T), ]
+significant_de[!duplicated(significant_de$cluster), ]
+```
+
+We will zoom in to visualize cell segmentations and expression of a select few marker genes.
+
+```{r}
+cropped.coords <- Crop(xenium.obj[["fov"]], x = c(6700, 7400), y = c(1500, 2000), coords = "plot")
+xenium.obj[["zoom"]] <- cropped.coords
+# visualize cropped area with cell segmentations & selected molecules
+DefaultBoundary(xenium.obj[["zoom"]]) <- "segmentation"
+ImageDimPlot(xenium.obj, fov = "zoom", group.by = "Cluster",
+             axes = TRUE, border.color = "white", border.size = 0.1,
+             cols = "polychrome", coord.fixed = FALSE,
+             molecules = c("SNTN", "MALL", "MS4A1", "IL7R", "CYP2B6"), nmols = 10000, mols.cols = RColorBrewer::brewer.pal(5, "Set3"), alpha = 0.4)
+```
+
+Lots of valuable data is output directly in each run, allowing for rapid interrogation of the biology. In the following vignette, we will see how we can use standard Seurat workflows to do more involved secondary analysis on Xenium data.
 
 # Mouse Brain: 10x Genomics Xenium In Situ
 
@@ -246,12 +310,12 @@ wget https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Co
 unzip Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
 ```
 
-First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
+First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute (you can improve this by installing `arrow` and `hdf5r`).
 
 ```{r load.xenium, results='hide'}
 path <- "/brahms/hartmana/vignette_data/xenium_tiny_subset"
 # Load the Xenium data
-xenium.obj <- LoadXenium(path, fov = "fov")
+xenium.obj <- LoadXenium(path, fov = "fov", segmentations = "cell")
 # remove cells with 0 counts
 xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
 ```

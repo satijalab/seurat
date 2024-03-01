@@ -197,7 +197,8 @@ LoadXenium <- function(
   mols.qv.threshold = 20,
   cell.centroids = TRUE,
   molecule.coordinates = TRUE,
-  segmentations = NULL
+  segmentations = NULL,
+  flip.xy = FALSE
 ) {
   if(!is.null(segmentations) && !(segmentations %in% c('nucleus', 'cell'))) {
     stop('segmentations must be NULL or one of "nucleus", "cell"')
@@ -217,7 +218,8 @@ LoadXenium <- function(
     outs = c("segmentation_method", "matrix", "microns")[
       c(cell.centroids || isTRUE(segmentations != 'nucleus'), TRUE, molecule.coordinates && (cell.centroids || !is.null(segmentations)))
     ],
-    mols.qv.threshold = mols.qv.threshold
+    mols.qv.threshold = mols.qv.threshold,
+    flip.xy = flip.xy
   )
   
   segmentations <- intersect(c("segmentations", "nucleus_segmentations"), names(data))

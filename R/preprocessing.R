@@ -2136,7 +2136,8 @@ ReadXenium <- function(
   data.dir,
   outs = c("segmentation_method", "matrix", "microns"),
   type = "centroids",
-  mols.qv.threshold = 20
+  mols.qv.threshold = 20,
+  flip.xy = F
 ) {
   # Argument checking
   type <- match.arg(
@@ -2230,7 +2231,11 @@ ReadXenium <- function(
           amount = 0
         )
         
-        col.use <- c(x_centroid = 'x', y_centroid = 'y', cell_id = 'cell')
+        col.use <- c(
+          x_centroid = letters[24 + flip.xy],
+          y_centroid = letters[25 - flip.xy],
+          cell_id = 'cell'
+        )
         
         for(option in Filter(function(x) x$req, list(
           list(
@@ -2281,7 +2286,11 @@ ReadXenium <- function(
           if(!inherits(cell_boundaries_df, "try-error")) { break }
         }
         
-        colnames(cell_boundaries_df) <- c('cell', 'x', 'y')
+        colnames(cell_boundaries_df) <- c(
+          'cell',
+          letters[24 + flip.xy],
+          letters[25 - flip.xy]
+        )
         
         psegs(type = "finish")
         
@@ -2312,7 +2321,11 @@ ReadXenium <- function(
           if(!inherits(nucleus_boundaries_df, "try-error")) { break }
         }
         
-        colnames(nucleus_boundaries_df) <- c('cell', 'x', 'y')
+        colnames(nucleus_boundaries_df) <- c(
+          'cell',
+          letters[24 + flip.xy],
+          letters[25 - flip.xy]
+        )
         
         psegs(type = "finish")
         
@@ -2326,7 +2339,11 @@ ReadXenium <- function(
           amount = 0
         )
 
-        col.use = c(x_location = 'x', y_location = 'y', feature_name = 'gene')
+        col.use = c(
+          x_location = letters[24+flip.xy],
+          y_location = letters[25-flip.xy],
+          feature_name = 'gene'
+        )
         
         for(option in Filter(function(x) x$req, list(
           list(
@@ -2363,10 +2380,9 @@ ReadXenium <- function(
       intersect(
         names(meta),
         c(
-          'run_name', 'run_start_time', 'region_name',
-          'preservation_method', 'panel_name', 'panel_organism',
-          'panel_tissue_type', 'instrument_sw_version',
-          'segmentation_stain'
+          'run_start_time', 'preservation_method', 'panel_name',
+          'panel_organism', 'panel_tissue_type',
+          'instrument_sw_version', 'segmentation_stain'
         )
       )
     ]
