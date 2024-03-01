@@ -2102,13 +2102,15 @@ ReadNanostring <- function(
 #' \itemize{
 #'  \item \dQuote{matrix}: the counts matrix
 #'  \item \dQuote{microns}: molecule coordinates
-#'  \item \dQuote{segmentation_method}: molecule coordinates
+#'  \item \dQuote{segmentation_method}: cell segmentation method (for runs which
+#'  use multi-modal segmentation)
 #' }
 #' @param type Type of cell spatial coordinate matrices to read; choose one
 #' or more of:
 #' \itemize{
 #'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
 #'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
+#'  \item \dQuote{nucleus_segmentations}: nucleus segmentations in pixel coordinate space
 #' }
 #' @param mols.qv.threshold Remove transcript molecules with
 #' a QV less than this threshold. QV >= 20 is the standard threshold
