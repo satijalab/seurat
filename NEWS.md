@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Fixed calculation of `spot.radius` attribute for `VisiumV1` instance returned by `Read10X_Image` — replace `scale.factors$fiducial` with `scale.factors$spot`
 - Added `Read10X_Coordinates` and `Read10X_ScaleFactors`
 - Fixed `SpatialPlot` to properly handle mutli-assay `Seurat` instances
 
