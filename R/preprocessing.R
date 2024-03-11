@@ -2102,12 +2102,15 @@ ReadNanostring <- function(
 #' \itemize{
 #'  \item \dQuote{matrix}: the counts matrix
 #'  \item \dQuote{microns}: molecule coordinates
+#'  \item \dQuote{segmentation_method}: cell segmentation method (for runs which
+#'  use multi-modal segmentation)
 #' }
 #' @param type Type of cell spatial coordinate matrices to read; choose one
 #' or more of:
 #' \itemize{
 #'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
 #'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
+#'  \item \dQuote{nucleus_segmentations}: nucleus segmentations in pixel coordinate space
 #' }
 #' @param mols.qv.threshold Remove transcript molecules with
 #' a QV less than this threshold. QV >= 20 is the standard threshold
@@ -2131,26 +2134,29 @@ ReadNanostring <- function(
 #'
 ReadXenium <- function(
   data.dir,
-  outs = c("matrix", "microns"),
+  outs = c("segmentation_method", "matrix", "microns"),
   type = "centroids",
-  mols.qv.threshold = 20
+  mols.qv.threshold = 20,
+  flip.xy = F
 ) {
   # Argument checking
   type <- match.arg(
     arg = type,
-    choices = c("centroids", "segmentations"),
+    choices = c("centroids", "segmentations", "nucleus_segmentations"),
     several.ok = TRUE
   )
 
   outs <- match.arg(
     arg = outs,
-    choices = c("matrix", "microns"),
+    choices = c("segmentation_method", "matrix", "microns"),
     several.ok = TRUE
   )
 
   outs <- c(outs, type)
 
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
+  has_arrow <- requireNamespace("arrow", quietly = TRUE)
+  has_hdf5r <- requireNamespace("hdf5r", quietly = TRUE)
 
   data <- sapply(outs, function(otype) {
     switch(
@@ -2158,9 +2164,64 @@ ReadXenium <- function(
       'matrix' = {
         pmtx <- progressor()
         pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
-        matrix <- suppressWarnings(Read10X(data.dir = file.path(data.dir, "cell_feature_matrix/")))
+        
+        for(option in Filter(function(x) x$req, list(
+          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_hdf5r),
+          list(filename = "cell_feature_matrix", fn = Read10X, req = TRUE)
+        ))) {
+          matrix <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          if(!inherits(matrix, "try-error")) { break }
+        }
+        
         pmtx(type = "finish")
         matrix
+      },
+      'segmentation_method' = {
+        if(!requireNamespace("stars", quietly = TRUE) || !requireNamespace("jsonlite", quietly = TRUE) || !requireNamespace("gmp", quietly = TRUE)) {
+          warning("Reading segmentation_method requires the `stars`, `gmp` and `jsonlite` packages")
+          return(NULL)
+        }
+        
+        if(file.exists(file.path(data.dir, "cells.zarr.zip"))) {
+          pcents <- progressor()
+          pcents(
+            message = 'Loading cell metadata',
+            class = 'sticky',
+            amount = 0
+          )
+          
+          tempdir <- path.expand(tempdir())
+          unzip(file.path(data.dir, "cells.zarr.zip"), exdir = tempdir)
+          zattr <- jsonlite::read_json(file.path(tempdir, '.zattrs'))
+          which_entry <- which(unlist(zattr$polygon_set_names) == 'cell')
+          
+          indices <- stars::read_mdim(file.path(tempdir, 'polygon_sets', which_entry - 1, 'cell_index'))$cell_index + 1
+          indices[is.na(indices)] <- 1
+          
+          ids <- stars::read_mdim(file.path(tempdir, 'cell_id'))$cell_id
+          ids[is.na(ids)] <- 0
+          
+          ids <- paste0(
+            gsub(' ', 'a', sprintf('%8s', sapply(
+              strsplit(as.character(gmp::as.bigz(ids[1,]), 16), ''),
+              function(id) {
+                rawToChar(as.raw(sapply(id, function(x) {
+                  as.numeric(charToRaw(x)) +
+                    ifelse(is.na(suppressWarnings(as.numeric(x))), 10, 49)
+                })))
+              }
+            ))), '-', ids[2,])
+          
+          method <- stars::read_mdim(file.path(tempdir, 'polygon_sets', which_entry - 1, 'method'))$method + 1
+          method[is.na(method)] <- 1
+          
+          segmentation_method <- unlist(zattr$segmentation_methods)[method]
+          
+          pcents(type = "finish")
+          data.frame(segmentation_method = segmentation_method, row.names = ids)
+        } else {
+          NULL
+        }
       },
       'centroids' = {
         pcents <- progressor()
@@ -2169,19 +2230,36 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-        if (has_dt) {
-          cell_info <- as.data.frame(data.table::fread(file.path(data.dir, "cells.csv.gz")))
-        } else {
-          cell_info <- read.csv(file.path(data.dir, "cells.csv.gz"))
-        }
-        cell_centroid_df <- data.frame(
-          x = cell_info$x_centroid,
-          y = cell_info$y_centroid,
-          cell = cell_info$cell_id,
-          stringsAsFactors = FALSE
+        
+        col.use <- c(
+          x_centroid = letters[24 + flip.xy],
+          y_centroid = letters[25 - flip.xy],
+          cell_id = 'cell'
         )
+        
+        for(option in Filter(function(x) x$req, list(
+          list(
+            filename = "cells.parquet",
+            fn = function(x) as.data.frame(arrow::read_parquet(x, col_select = names(col.use))),
+            req = has_arrow
+          ),
+          list(
+            filename = "cells.csv.gz",
+            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE, select = names(col.use)),
+            req = has_dt
+          ),
+          list(filename = "cells.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
+        ))) {
+          cell_info <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          if(!inherits(cell_info, "try-error")) { break }
+        }
+        
+        cell_info <- cell_info[, names(col.use)]
+        colnames(cell_info) <- col.use
+        
         pcents(type = 'finish')
-        cell_centroid_df
+        
+        cell_info
       },
       'segmentations' = {
         psegs <- progressor()
@@ -2190,16 +2268,68 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-
-        # load cell boundaries
-        if (has_dt) {
-          cell_boundaries_df <- as.data.frame(data.table::fread(file.path(data.dir, "cell_boundaries.csv.gz")))
-        } else {
-          cell_boundaries_df <- read.csv(file.path(data.dir, "cell_boundaries.csv.gz"), stringsAsFactors = FALSE)
+        
+        for(option in Filter(function(x) x$req, list(
+          list(
+            filename = "cell_boundaries.parquet",
+            fn = function(x) as.data.frame(arrow::read_parquet(x)),
+            req = has_arrow
+          ),
+          list(
+            filename = "cell_boundaries.csv.gz",
+            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE),
+            req = has_dt
+          ),
+          list(filename = "cell_boundaries.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
+        ))) {
+          cell_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          if(!inherits(cell_boundaries_df, "try-error")) { break }
         }
-        names(cell_boundaries_df) <- c("cell", "x", "y")
+        
+        colnames(cell_boundaries_df) <- c(
+          'cell',
+          letters[24 + flip.xy],
+          letters[25 - flip.xy]
+        )
+        
         psegs(type = "finish")
+        
         cell_boundaries_df
+      },
+      'nucleus_segmentations' = {
+        psegs <- progressor()
+        psegs(
+          message = 'Loading nucleus segmentations',
+          class = 'sticky',
+          amount = 0
+        )
+        
+        for(option in Filter(function(x) x$req, list(
+          list(
+            filename = "nucleus_boundaries.parquet",
+            fn = function(x) as.data.frame(arrow::read_parquet(x)),
+            req = has_arrow
+          ),
+          list(
+            filename = "nucleus_boundaries.csv.gz",
+            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE),
+            req = has_dt
+          ),
+          list(filename = "nucleus_boundaries.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
+        ))) {
+          nucleus_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          if(!inherits(nucleus_boundaries_df, "try-error")) { break }
+        }
+        
+        colnames(nucleus_boundaries_df) <- c(
+          'cell',
+          letters[24 + flip.xy],
+          letters[25 - flip.xy]
+        )
+        
+        psegs(type = "finish")
+        
+        nucleus_boundaries_df
       },
       'microns' = {
         pmicrons <- progressor()
@@ -2209,28 +2339,54 @@ ReadXenium <- function(
           amount = 0
         )
 
-        # molecules
-        if (has_dt) {
-          tx_dt <- as.data.frame(data.table::fread(file.path(data.dir, "transcripts.csv.gz")))
-          transcripts <- subset(tx_dt, qv >= mols.qv.threshold)
-        } else {
-          transcripts <- read.csv(file.path(data.dir, "transcripts.csv.gz"))
-          transcripts <- subset(transcripts, qv >= mols.qv.threshold)
+        col.use = c(
+          x_location = letters[24+flip.xy],
+          y_location = letters[25-flip.xy],
+          feature_name = 'gene'
+        )
+        
+        for(option in Filter(function(x) x$req, list(
+          list(
+            filename = "transcripts.parquet",
+            fn = function(x) as.data.frame(arrow::read_parquet(x, col_select = names(col.use))),
+            req = has_arrow
+          ),
+          list(
+            filename = "transcripts.csv.gz",
+            fn = function(x) data.table::fread(x, data.table = FALSE, select = names(col.use), stringsAsFactors = FALSE),
+            req = has_dt
+          ),
+          list(filename = "transcripts.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
+        ))) {
+          transcripts <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          if(!inherits(transcripts, "try-error")) { break }
         }
-
-        df <-
-          data.frame(
-            x = transcripts$x_location,
-            y = transcripts$y_location,
-            gene = transcripts$feature_name,
-            stringsAsFactors = FALSE
-          )
+        
+        transcripts <- transcripts[, names(col.use)]
+        colnames(transcripts) <- col.use
+        
         pmicrons(type = 'finish')
-        df
+        
+        transcripts
       },
       stop("Unknown Xenium input type: ", otype)
     )
   }, USE.NAMES = TRUE)
+  
+  metadata <- file.path(data.dir, "experiment.xenium")
+  if(file.exists(metadata) && requireNamespace("jsonlite", quietly = TRUE)) {
+    meta <- jsonlite::read_json(metadata)
+    data$metadata <- meta[
+      intersect(
+        names(meta),
+        c(
+          'run_start_time', 'preservation_method', 'panel_name',
+          'panel_organism', 'panel_tissue_type',
+          'instrument_sw_version', 'segmentation_stain'
+        )
+      )
+    ]
+  }
   return(data)
 }
 
