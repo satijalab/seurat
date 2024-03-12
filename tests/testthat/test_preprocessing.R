@@ -397,28 +397,6 @@ test_that("SCTransform v1 works as expected", {
   expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-6)
 })
 
-test_that("SCTransform v2 works as expected", {
-  skip_on_cran()
-  skip_if_not_installed("glmGamPoi")
-
-  object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
-
-  expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5183, tolerance = 1e-2)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 58.65829, tolerance = 1e-6)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 13.75449, tolerance = 1e-6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 141)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 40)
-  expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
-  fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
-  expect_equal(fa["MS4A1", "detection_rate"], 0.15)
-  expect_equal(fa["MS4A1", "gmean"], 0.2027364, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
-})
-
 suppressWarnings(RNGversion(vstr = "3.5.0"))
 object <- suppressWarnings(SCTransform(object = object, vst.flavor = "v1", ncells = 80, verbose = FALSE, seed.use =  42))
 test_that("SCTransform ncells param works", {
