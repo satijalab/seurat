@@ -1127,7 +1127,8 @@ MinMax <- function(data, min, max) {
 #' PercentAbove(sample(1:100, 10), 75)
 #'
 PercentAbove <- function(x, threshold) {
-  return(length(x = x[x > threshold]) / length(x = x))
+  # return(length(x = x[x > threshold]) / length(x = x))
+    return(sum(x > threshold, na.rm = T) / length(x = x))
 }
 
 #' Calculate the percentage of all counts that belong to a given set of features
