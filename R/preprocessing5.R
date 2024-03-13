@@ -1289,7 +1289,6 @@ SCTransform.StdAssay <- function(
       counts.x <- as.sparse(x = layer.data[, sample.int(n = ncol(x = layer.data), size =  min(ncells, ncol(x = layer.data)) )])
       min_var <- (median(counts.x@x)/5)^2
       }
-    res_clip_range <-  vst_out.reference$arguments$res_clip_range
 
     # Step 2: Use learned model to calculate residuals in chunks
     cells.vector <- 1:ncol(x = layer.data)
@@ -1324,7 +1323,7 @@ SCTransform.StdAssay <- function(
             umi = counts.vp[variable.features,,drop=FALSE],
             residual_type = "pearson",
             min_variance = min_var,
-            res_clip_range = res_clip_range,
+            res_clip_range = clip.range,
             verbosity =  FALSE
           )
         } else {
@@ -1333,7 +1332,7 @@ SCTransform.StdAssay <- function(
             umi = counts.vp[all_features,,drop=FALSE],
             residual_type = "pearson",
             min_variance = min_var,
-            res_clip_range = res_clip_range,
+            res_clip_range = clip.range,
             verbosity =  FALSE
           )
         }
@@ -1408,9 +1407,14 @@ SCTransform.StdAssay <- function(
         layer.counts.tmp <- as.sparse(x = layer.counts.tmp)
         vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
         vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
-        new_residual <- GetResidualsChunked(vst_out = vst_out, layer.counts = layer.counts.tmp,
-                                            residual_type = "pearson", min_variance = min_var, res_clip_range = res_clip_range,
-                                            verbose = FALSE)
+        new_residual <- GetResidualsChunked(
+          vst_out = vst_out, 
+          layer.counts = layer.counts.tmp,
+          residual_type = "pearson", 
+          min_variance = min_var, 
+          res_clip_range = clip.range,
+          verbose = FALSE
+        )
         old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
         merged_residual <- rbind(old_residual, new_residual)
         merged_residual <- ScaleData(
