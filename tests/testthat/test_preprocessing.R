@@ -462,9 +462,11 @@ test_that("SCTransform `clip.range` param works as expected", {
   # since this is expected behaviour we'll need to accomodate the difference
   clip.max.tolerance <- 0.1
 
-  test.result <- SCTransform(
-    test.data,
-    clip.range = c(clip.min, clip.max),
+  test.result <- suppressWarnings(
+      SCTransform(
+      test.data,
+      clip.range = c(clip.min, clip.max),
+    )
   )
   scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
   expect_true(min(scale.data) >= clip.min)
@@ -472,10 +474,12 @@ test_that("SCTransform `clip.range` param works as expected", {
 
   # when `ncells` is less than the size of the dataset the residuals will get 
   # re-clipped in batches, make sure this clipping is done correctly as well
-  test.result <- SCTransform(
-    test.data,
-    clip.range = c(clip.min, clip.max),
-    ncells = 40
+  test.result <- suppressWarnings(
+    SCTransform(
+      test.data,
+      clip.range = c(clip.min, clip.max),
+      ncells = 40
+    )
   )
   scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
   expect_true(min(scale.data) >= clip.min)
