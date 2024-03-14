@@ -195,3 +195,8 @@ if(class(object[['RNA']]) == "Assay5")  {
     )
   })
 }
+
+test_that("PercentAbove works as expected", {
+  vals <- c(1, 1, 2, 2, NA)
+  expect_equal(PercentAbove(vals, threshold = 1), 0.4)
+})

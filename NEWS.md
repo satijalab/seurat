@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Fixed `PercentAbove` to discount null values ([#8412](https://github.com/satijalab/seurat/issues/8412))
 - Added `log` parameter to `FeatureScatter`
 - Fixed handling of `clip.range` for `SCTransform` when `ncells` is less than the size of the passed dataset
 
