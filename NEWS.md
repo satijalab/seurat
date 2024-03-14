@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Added `log` parameter to `FeatureScatter`
 - Fixed handling of `clip.range` for `SCTransform` when `ncells` is less than the size of the passed dataset
 
 # Seurat 5.0.2 (2024-02-28) 
