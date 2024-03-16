@@ -3967,32 +3967,22 @@ SpatialPlot <- function(
     stop("Could not find any spatial image information")
   }
 
+  cells <- CellsByImage(object, images = images, unlist = TRUE)
+
   # Check keep.scale param for valid entries
   if (!(is.null(x = keep.scale)) && !(keep.scale %in% c("feature", "all"))) {
     stop("`keep.scale` must be set to either `feature`, `all`, or NULL")
   }
 
-  cells <- CellsByImage(object, images = images, unlist = TRUE)
-  if (is.null(x = features)) {
-    if (interactive) {
+  if (interactive) {
+    if (is.null(features)) {
       return(ISpatialDimPlot(
         object = object,
         image = images[1],
         group.by = group.by,
         alpha = alpha
       ))
-    }
-    group.by <- group.by %||% 'ident'
-    object[['ident']] <- Idents(object = object)
-    data <- object[[group.by]]
-    data <- data[cells,,drop=F]
-    for (group in group.by) {
-      if (!is.factor(x = data[, group])) {
-        data[, group] <- factor(x = data[, group])
-      }
-    }
-  } else {
-    if (interactive) {
+    } else {
       return(ISpatialFeaturePlot(
         object = object,
         feature = features[1],
@@ -4001,15 +3991,35 @@ SpatialPlot <- function(
         alpha = alpha
       ))
     }
-    data <- FetchData(
-      object = object,
-      vars = features,
-      cells = cells,
-      slot = slot,
-      clean = FALSE
-    )
-    features <- colnames(x = data)
-    # Determine cutoffs
+  }
+
+  if (is.null(x = features)) {
+    features <- group.by %||% "ident"
+    object[["ident"]] <- Idents(object = object)
+    filter.features <- FALSE
+    as.factors <- TRUE
+  } else {
+    filter.features <- (!is.null(min.cutoff) || !is.null(max.cutoff))
+    as.factors <- FALSE
+  }
+
+  data <- FetchData(
+    object = object,
+    vars = features,
+    cells = cells,
+    layer = slot,
+    clean = FALSE
+  )
+
+  if (as.factors) {
+    for (group in features) {
+      if (!is.factor(x = data[, group])) {
+        data[, group] <- factor(x = data[, group])
+      }
+    }
+  }
+
+  if (filter.features) {
     min.cutoff <- mapply(
       FUN = function(cutoff, feature) {
         return(ifelse(
@@ -4021,6 +4031,7 @@ SpatialPlot <- function(
       cutoff = min.cutoff,
       feature = features
     )
+
     max.cutoff <- mapply(
       FUN = function(cutoff, feature) {
         return(ifelse(
@@ -4032,15 +4043,17 @@ SpatialPlot <- function(
       cutoff = max.cutoff,
       feature = features
     )
+
     check.lengths <- unique(x = vapply(
       X = list(features, min.cutoff, max.cutoff),
       FUN = length,
       FUN.VALUE = numeric(length = 1)
     ))
+
     if (length(x = check.lengths) != 1) {
       stop("There must be the same number of minimum and maximum cuttoffs as there are features")
     }
-    # Apply cutoffs
+
     data <- sapply(
       X = 1:ncol(x = data),
       FUN = function(index) {
@@ -4052,12 +4065,11 @@ SpatialPlot <- function(
         return(data.feature)
       }
     )
-    colnames(x = data) <- features
-    rownames(x = data) <- cells
+
+    colnames(data) <- features
+    rownames(data) <- cells
   }
-  features <- colnames(x = data)
-  colnames(x = data) <- features
-  rownames(x = data) <- cells
+
   facet.highlight <- facet.highlight && (!is.null(x = cells.highlight) && is.list(x = cells.highlight))
   if (do.hover) {
     if (length(x = images) > 1) {
