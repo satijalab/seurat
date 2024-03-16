@@ -4005,7 +4005,8 @@ SpatialPlot <- function(
       object = object,
       vars = features,
       cells = cells,
-      slot = slot
+      slot = slot,
+      clean = FALSE
     )
     features <- colnames(x = data)
     # Determine cutoffs
