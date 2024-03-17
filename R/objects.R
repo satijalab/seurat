@@ -1739,8 +1739,17 @@ Radius.STARmap <- function(object, ...) {
 #' @method Radius VisiumV1
 #' @export
 #'
-Radius.VisiumV1 <- function(object, ...) {
-  return(slot(object = object, name = 'spot.radius'))
+Radius.VisiumV1 <- function(object, scale = "lowres", ...) {
+  scale.factors <- ScaleFactors(object = object)
+
+  spot.size <- scale.factors[["spot"]]
+  scale.factor <- scale.factors[[
+    match.arg(scale, choices = c("hires", "lowres"))
+  ]]
+
+  image.size <- max(dim(GetImage(object, resolution=scale)$raster))
+
+  return ((spot.size * scale.factor) / image.size)
 }
 
 #' @rdname RenameCells
