@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 5.0.3 (2024-03-18)
 
 ## Changes
 - Fixed `PercentAbove` to discount null values ([#8412](https://github.com/satijalab/seurat/issues/8412))
