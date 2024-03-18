@@ -9,6 +9,7 @@ NULL
 
 #' @param fov Name to store FOV as
 #' @param assay Name to store expression matrix as
+#' @param ... Ignored
 #'
 #' @return \code{LoadAkoya}: A \code{\link[SeuratObject]{Seurat}} object
 #'

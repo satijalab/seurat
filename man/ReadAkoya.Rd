@@ -39,6 +39,8 @@ quantification level to read in}
 \item{fov}{Name to store FOV as}
 
 \item{assay}{Name to store expression matrix as}
+
+\item{...}{Ignored}
 }
 \value{
 \code{ReadAkoya}: A list with some combination of the following values
