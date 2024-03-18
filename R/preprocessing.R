@@ -2173,6 +2173,10 @@ ReadXenium <- function(
           if(!inherits(matrix, "try-error")) { break }
         }
         
+        if(!exists('matrix') || inherits(matrix, "try-error")) {
+          stop("Xenium outputs were incomplete: missing cell_feature_matrix")
+        }
+        
         pmtx(type = "finish")
         matrix
       },
@@ -2254,6 +2258,10 @@ ReadXenium <- function(
           if(!inherits(cell_info, "try-error")) { break }
         }
         
+        if(!exists('cell_info') || inherits(cell_info, "try-error")) {
+          stop("Xenium outputs were incomplete: missing cells")
+        }
+        
         cell_info <- cell_info[, names(col.use)]
         colnames(cell_info) <- col.use
         
@@ -2284,6 +2292,10 @@ ReadXenium <- function(
         ))) {
           cell_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(cell_boundaries_df, "try-error")) { break }
+        }
+        
+        if(!exists('cell_boundaries_df') || inherits(cell_boundaries_df, "try-error")) {
+          stop("Xenium outputs were incomplete: missing cell_boundaries")
         }
         
         colnames(cell_boundaries_df) <- c(
@@ -2319,6 +2331,10 @@ ReadXenium <- function(
         ))) {
           nucleus_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(nucleus_boundaries_df, "try-error")) { break }
+        }
+        
+        if(!exists('cell_info') || inherits(cell_info, "try-error")) {
+          stop("Xenium outputs were incomplete: missing nucleus_boundaries")
         }
         
         colnames(nucleus_boundaries_df) <- c(
@@ -2360,6 +2376,15 @@ ReadXenium <- function(
         ))) {
           transcripts <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(transcripts, "try-error")) { break }
+        }
+        
+        if(!exists('transcripts') || inherits(transcripts, "try-error")) {
+          hint <- ""
+          if(file.exists(file.path(data.dir, "transcripts.parquet"))) {
+            hint <- " Xenium outputs no longer include `transcripts.csv.gz`. Instead, please install `arrow` to read transcripts.parquet"
+          }
+          
+          stop(paste0("Xenium outputs were incomplete: missing transcripts.", hint))
         }
         
         transcripts <- transcripts[, names(col.use)]
