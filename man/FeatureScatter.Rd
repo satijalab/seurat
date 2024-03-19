@@ -25,7 +25,8 @@ FeatureScatter(
   ncol = NULL,
   raster = NULL,
   raster.dpi = c(512, 512),
-  jitter = FALSE
+  jitter = FALSE,
+  log = FALSE
 )
 }
 \arguments{
@@ -75,6 +76,8 @@ which will automatically use raster if the number of points plotted is greater t
 Default is c(512, 512).}
 
 \item{jitter}{Jitter for easier visualization of crowded points (default is FALSE)}
+
+\item{log}{Plot features on the log scale (default is FALSE)}
 }
 \value{
 A ggplot object
