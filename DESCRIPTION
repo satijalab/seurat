@@ -6,6 +6,7 @@ Description: A toolkit for quality control, analysis, and exploration of single 
 Authors@R: c(
   person(given = "Andrew", family = "Butler", email = "abutler@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0003-3608-0463")),
   person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
+  person(given = 'David', family = 'Collins', email = 'dcollins@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0001-9243-7821')),
   person(given = "Charlotte", family = "Darby", email = "cdarby@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0003-2195-5300")),
   person(given = "Jeff", family = "Farrell", email = "jfarrell@g.harvard.edu", role = "ctb"),
   person(given = "Isabella", family = "Grabski", email = "igrabski@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-0616-5469")),
