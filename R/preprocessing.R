@@ -565,16 +565,17 @@ Load10X_Spatial <- function(
   # build a Seurat object
   object <- CreateSeuratObject(counts, assay = assay)
 
-  # read in the corresponding images and coordinate mappings
-  image <- Read10X_Image(
-    file.path(data.dir, "spatial"), 
-    filter.matrix = filter.matrix
-  )
+  # read in the corresponding image and coordinate mapping if none was provided
+  if (is.null(image)) {
+    image <- Read10X_Image(
+      file.path(data.dir, "spatial"), 
+      assay = assay,
+      filter.matrix = filter.matrix
+    )
+  }
 
   # align the image's identifiers with the object's
   image <- image[Cells(object)]
-  # set the image's assay reference to point to the matching counts matrix
-  DefaultAssay(image) <- assay
   # add the image to the corresponding Seurat instance
   object[[slice]] <- image
 
@@ -1141,6 +1142,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param image.dir Path to directory with 10X Genomics visium image data;
 #' should include files \code{tissue_lowres_image.png},
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
+#' @param image.scale ...
+#' @param assay ...
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue
 #'
@@ -1151,7 +1154,21 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @export
 #' @concept preprocessing
 #'
-Read10X_Image <- function(image.dir, filter.matrix = TRUE) {
+Read10X_Image <- function(
+  image.dir, 
+  image.scale = "lowres",
+  assay = NULL,
+  filter.matrix = TRUE
+) {
+
+  image.scale <- match.arg(image.scale, choices = c("hires", "lowres"))
+  image <- png::readPNG(
+    source = file.path(
+      image.dir, 
+      paste0("tissue_", image.scale, "_image.png")
+    )
+  )
+
   coordinates <- Read10X_Coordinates(
     filename = Sys.glob(file.path(image.dir, "tissue_positions*")),
     filter.matrix
@@ -1160,25 +1177,22 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE) {
   scale.factors <- Read10X_ScaleFactors(
     filename = file.path(image.dir, "scalefactors_json.json")
   )
-
-  image <- png::readPNG(
-    source = file.path(image.dir, "tissue_lowres_image.png")
-  )
-
-  # scale the spot size for plotting with the low resolution PNG
+  
+  # TODO: deprecate this attribute - `Radius.VisiumV1` now scales on-the-fly
   spot.radius <- (
-    scale.factors[["spot"]] * scale.factors[["lowres"]] / max(dim(image))
+    scale.factors[["spot"]] * scale.factors[[image.scale]] / max(dim(image))
   )
 
-  return(
-    new(
-      Class = 'VisiumV1',
-      image = image,
-      scale.factors = scale.factors,
-      coordinates = coordinates,
-      spot.radius = spot.radius
-    )
+  visium.image <- new(
+    Class = 'VisiumV1',
+    image = image,
+    scale.factors = scale.factors,
+    coordinates = coordinates,
+    spot.radius = spot.radius,
+    assay = ifelse(is.null(assay), character(0), assay)
   )
+
+  return (visium.image)
 }
 
 #' Load 10X Genomics Visium Tissue Positions
