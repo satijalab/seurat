@@ -15,7 +15,6 @@ FindMarkers(object, ...)
 \method{FindMarkers}{default}(
   object,
   slot = "data",
-  counts = numeric(),
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
@@ -30,7 +29,6 @@ FindMarkers(object, ...)
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   fc.results = NULL,
   densify = FALSE,
   ...
@@ -42,48 +40,28 @@ FindMarkers(object, ...)
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.01,
-  min.diff.pct = -Inf,
-  verbose = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  latent.vars = NULL,
-  min.cells.feature = 3,
-  min.cells.group = 3,
+  fc.slot = "data",
   pseudocount.use = 1,
+  norm.method = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
-  densify = FALSE,
-  norm.method = NULL,
   ...
 )
 
 \method{FindMarkers}{SCTAssay}(
   object,
-  slot = "data",
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.1,
   test.use = "wilcox",
-  min.pct = 0.01,
-  min.diff.pct = -Inf,
-  verbose = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  latent.vars = NULL,
-  min.cells.feature = 3,
-  min.cells.group = 3,
   pseudocount.use = 1,
+  slot = "data",
+  fc.slot = "data",
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
-  densify = FALSE,
   recorrect_umi = TRUE,
   ...
 )
@@ -104,39 +82,21 @@ FindMarkers(object, ...)
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  densify = FALSE,
   mean.fxn = rowMeans,
   fc.name = NULL,
-  densify = FALSE,
   ...
 )
 
 \method{FindMarkers}{Seurat}(
   object,
+  latent.vars = NULL,
   ident.1 = NULL,
   ident.2 = NULL,
   group.by = NULL,
   subset.ident = NULL,
   assay = NULL,
-  slot = "data",
   reduction = NULL,
-  features = NULL,
-  logfc.threshold = 0.1,
-  pseudocount.use = 1,
-  test.use = "wilcox",
-  min.pct = 0.01,
-  min.diff.pct = -Inf,
-  verbose = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  latent.vars = NULL,
-  min.cells.feature = 3,
-  min.cells.group = 3,
-  mean.fxn = NULL,
-  fc.name = NULL,
-  base = 2,
-  densify = FALSE,
   ...
 )
 }
@@ -145,12 +105,8 @@ FindMarkers(object, ...)
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
 
-\item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
-\code{slot} will be set to "counts"}
-
-\item{counts}{Count matrix if using scale.data for DE tests. This is used for
-computing pct.1 and pct.2 and for filtering features based on fraction
-expressing}
+\item{slot}{Slot to pull data from; note that if \code{test.use} is
+"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
 
 \item{cells.1}{Vector of cell names belonging to group 1}
 
@@ -160,7 +116,8 @@ expressing}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.1
-Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
+Increasing logfc.threshold speeds up the function, but can miss weaker signals.
+If the \code{slot} parameter is "scale.data" no filtering is performed.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
@@ -231,15 +188,29 @@ of the two groups, currently only used for poisson and negative binomial tests}
 
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
+\item{fc.results}{data.frame from FoldChange}
+
+\item{densify}{Convert the sparse matrix to a dense form before running the 
+DE test. This can provide speedups but might require higher memory; default is FALSE}
+
+\item{fc.slot}{Slot used to calculate fold-change - will also affect the 
+default for \code{mean.fxn}, see below for more details.}
+
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
-\item{fc.results}{data.frame from FoldChange}
-
-\item{densify}{Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE}
+\item{norm.method}{Normalization method for fold change calculation when
+\code{slot} is \dQuote{\code{data}}}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation.
-If NULL, the appropriate function will be chose according to the slot used}
+The default depends on the the value of \code{fc.slot}:
+\itemize{
+ \item{"counts"} : difference in the log of the mean counts, with pseudocount.
+ \item{"data"} : difference in the log of the average exponentiated data, with pseudocount.
+ This adjusts for differences in sequencing depth between cells, and assumes that "data"
+ has been log-normalized.
+ \item{"scale.data"} : difference in the means of scale.data.
+}}
 
 \item{fc.name}{Name of the fold change, average difference, or custom function column
 in the output data.frame. If NULL, the fold change column will be named
@@ -248,10 +219,8 @@ slot "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 
-\item{norm.method}{Normalization method for fold change calculation when
-\code{slot} is \dQuote{\code{data}}}
-
-\item{recorrect_umi}{Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE}
+\item{recorrect_umi}{Recalculate corrected UMI counts using minimum of the 
+median UMIs when performing DE using multiple SCT objects; default is TRUE}
 
 \item{ident.1}{Identity class to define markers for; pass an object of class
 \code{phylo} or 'clustertree' to find markers for a node in a cluster tree;
@@ -261,13 +230,16 @@ passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
 use all other cells for comparison; if an object of class \code{phylo} or
 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for}
 
-\item{group.by}{Regroup cells into a different identity class prior to performing differential expression (see example)}
+\item{group.by}{Regroup cells into a different identity class prior to 
+performing differential expression (see example)}
 
-\item{subset.ident}{Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)}
+\item{subset.ident}{Subset a particular identity class prior to regrouping. 
+Only relevant if group.by is set (see example)}
 
 \item{assay}{Assay to use in differential expression testing}
 
-\item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
+\item{reduction}{Reduction to use in differential expression testing - will 
+test for DE on cell embeddings}
 }
 \value{
 data.frame with a ranked list of putative markers as rows, and associated

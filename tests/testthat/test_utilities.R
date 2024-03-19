@@ -59,10 +59,37 @@ test_that("AverageExpression works for different layers", {
 
 test_that("AverageExpression handles features properly", {
   features <- rownames(x = object)[1:10]
-  average.expression <- AverageExpression(object, layer = 'data', features = features)$RNA
+
+  # check that the average expression is calcualted for the specifed features
+  average.expression <- AverageExpression(
+    object, 
+    layer = "data", 
+    features = features
+  )$RNA
   expect_equal(rownames(x = average.expression), features)
+  
+  # check that an error is raised if none of the specified features are present
   expect_warning(AverageExpression(object, layer = 'data', features = "BAD"))
-  expect_warning(AverageExpression(object, layer = "data", features = c(features, "BAD")))
+  # check that an error is raised if any of the features are missing
+  expect_warning(
+    AverageExpression(
+      object, 
+      layer = "data", 
+      features = c(features, "BAD")
+    )
+  )
+
+  # check that features can be specified as a simple vector even when
+  # `layer="scale.data"` and `return.seurat=TRUE`
+  object <- ScaleData(object = object, verbose = FALSE)
+  avg.scale <- AverageExpression(
+    object, 
+    layer = "scale.data", 
+    return.seurat = TRUE, 
+    features = features,
+    verbose = FALSE
+  )$RNA
+  expect_equal(rownames(avg.scale), features)
 })
 
 test_that("AverageExpression with return.seurat", {
@@ -168,3 +195,8 @@ if(class(object[['RNA']]) == "Assay5")  {
     )
   })
 }
+
+test_that("PercentAbove works as expected", {
+  vals <- c(1, 1, 2, 2, NA)
+  expect_equal(PercentAbove(vals, threshold = 1), 0.4)
+})
