@@ -312,6 +312,7 @@ SpatialFeaturePlot <- function(
   alpha = c(1, 1),
   image.alpha = 1,
   image.scale = "lowres",
+  shape = 21,
   stroke = 0.25,
   interactive = FALSE,
   information = NULL
@@ -331,6 +332,7 @@ SpatialFeaturePlot <- function(
     alpha = alpha,
     image.alpha = image.alpha,
     image.scale = image.scale,
+    shape = shape,
     stroke = stroke,
     interactive = interactive,
     information = information
