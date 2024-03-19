@@ -3890,6 +3890,7 @@ ISpatialFeaturePlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 #' alpha value for each plot.
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -3944,6 +3945,7 @@ SpatialPlot <- function(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
+  shape = 21,
   stroke = 0.25,
   interactive = FALSE,
   do.identify = FALSE,
@@ -4117,7 +4119,6 @@ SpatialPlot <- function(
     max.feature.value <- max(apply(data, 2, function(x) max(x, na.rm = TRUE)))
   }
 
-
   for (i in 1:ncols) {
     plot.idx <- i
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
@@ -4173,6 +4174,7 @@ SpatialPlot <- function(
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
+        shape = shape,
         stroke = stroke,
         crop = crop
       )
@@ -8961,6 +8963,7 @@ SingleRasterMap <- function(
 #' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE}
 #' to show entire background image.
 #' @param pt.size.factor Sets the size of the points relative to spot.radius
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter
 #' @param stroke Control the width of the border around the spots
 #' @param col.by Mapping variable for the point color
 #' @param alpha.by Mapping variable for the point alpha value
@@ -8994,6 +8997,7 @@ SingleSpatialPlot <- function(
   pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
+  shape = 21,
   stroke = 0.25,
   col.by = NULL,
   alpha.by = NULL,
@@ -9040,6 +9044,7 @@ SingleSpatialPlot <- function(
           image.alpha = image.alpha,
           image.scale = image.scale,
           crop = crop,
+          shape = shape,
           stroke = stroke,
         )
       } else {
@@ -9050,6 +9055,7 @@ SingleSpatialPlot <- function(
           image.alpha = image.alpha,
           image.scale = image.scale,
           crop = crop,
+          shape = shape,
           stroke = stroke,
           alpha = pt.alpha
         )
