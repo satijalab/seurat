@@ -1203,25 +1203,45 @@ Read10X_Image <- function(
 #'
 #' @return A data.frame
 #'
+#' @importFrom magrittr %>%
+#'
 #' @export
 #' @concept preprocessing
 #'
 Read10X_Coordinates <- function(filename, filter.matrix) {
-  coordinates <- read.csv(
-    file = filename,
-    col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
-    header = ifelse(
-      # assume files calles "tissue_positions.csv" have headers, otherwise
-      # assume they do not (i.e. "tissue_positions_list.csv")
-      test = basename(filename) == "tissue_positions.csv",
-      yes = TRUE,
-      no = FALSE
-    ),
-    as.is = TRUE,
-    row.names = 1
-  )
+  col.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
+  # if the coordinate mappings are in a parquet file
+  if(tools::file_ext(filename) == "parquet") {
+    # `arrow` must be installed to read parquet files
+    if (!requireNamespace("arrow", quietly = TRUE)) {
+      stop("Please install arrow to read parquet files")
+    }
 
-  # the `tissue` column should contain a boolean indicating whether or not a 
+    # read in coordinates and set the column headers manually
+    coordinates <- arrow::read_parquet(filename) %>%
+      dplyr::rename_with(~col.names)
+    # set rownames to the first column in the dataframe ("barcodes")
+    coordinates <- as.data.frame(coordinates)
+    rownames(coordinates) <- coordinates[[1]]
+    coordinates <- coordinates[, -1]
+  } else {
+    # the coordinate mappings must be in a CSV - read it in
+    coordinates <- read.csv(
+        file = filename,
+        col.names = col.names,
+        header = ifelse(
+          # assume files calles "tissue_positions.csv" have headers, otherwise
+          # assume they do not (i.e. "tissue_positions_list.csv")
+          test = basename(filename) == "tissue_positions.csv",
+          yes = TRUE,
+          no = FALSE
+        ),
+        as.is = TRUE,
+        row.names = 1
+      )
+  }
+
+  # the `tissue` column should contain a boolean indicating whether or not a
   # spot sits on top of the the tissue sample - maybe filter spots that do not
   if (filter.matrix) {
     coordinates <- coordinates[which(coordinates$tissue == 1), , drop = FALSE]
