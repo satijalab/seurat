@@ -498,12 +498,14 @@ GetResidual <- function(
 #' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
+#' @param bin.size Specifies the bin sizes to read in - defaults to c(16, 8)
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
+#' @param image \code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is 
+#' passed in it should be co-indexed with \code{`bin.size`}
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
-#' @param image Name of image to pull the coordinates from
 #'
 #' @return A \code{Seurat} object
 #'
@@ -522,11 +524,13 @@ GetResidual <- function(
 #' Load10X_Spatial(data.dir = data_dir)
 #' }
 #'
-Load10X_Spatial <- function(
+Load10X_Spatial <- function (
   data.dir,
-  filename = 'filtered_feature_bc_matrix.h5',
-  assay = 'Spatial',
-  slice = 'slice1',
+  filename = "filtered_feature_bc_matrix.h5",
+  assay = "Spatial",
+  slice = "slice1",
+  bin.size = NULL,
+  image.scale = "lowres",
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
@@ -536,7 +540,7 @@ Load10X_Spatial <- function(
   if (length(x = data.dir) > 1) {
     # party on with the first value
     data.dir <- data.dir[1]
-    # but also raise a warning  
+    # but also raise a warning
     warning(
       paste0(
         "`data.dir` expects a single value but recieved multiple - ",
@@ -547,37 +551,97 @@ Load10X_Spatial <- function(
       immediate. = TRUE,
     )
   }
-
-  # if the specified directory does not exist 
+  # if the specified directory does not exist
   if (!file.exists(data.dir)) {
-    # raise an error 
+    # raise an error
     stop(paste0("No such file or directory: ", "'", data.dir, "'"))
   }
 
-  # read in counts matrices from specified h5 files
-  counts <- Read10X_h5(file.path(data.dir, filename), ...)
+  # if `bin.size` is not set but `data.dir` points to a folder with binned data
+  if (is.null(bin.size) & file.exists(paste0(data.dir, "/binned_outputs"))) {
+    # point `bin.size` to the "standard" set - i.e. everything in the default
+    # output except the 8 um binning because it's a memory hog
+    bin.size <- c(16, 8)
+  }
+  # if `bin.size` is specified
+  if(!is.null(bin.size)) {
+    # convert `bin.size` to a character vector and pad values to three digits
+    bin.size.pretty <- paste0(sprintf("%03d", bin.size), "um")
+    # point `data.dirs` to the specified binnings
+    data.dirs <- paste0(
+      data.dir,
+      "/binned_outputs/",
+      "square_",
+      bin.size.pretty
+    )
+    # suffix assay/slice names with each bin size
+    assay.names <- paste0(assay, ".", bin.size.pretty)
+    slice.names <- paste0(slice, ".", bin.size.pretty)
+  } else {
+    # otherwise just hold onto the top-level directory
+    data.dirs <- data.dir
+    # and keep the assay/slice names unchanged
+    assay.names <- assay
+    slice.names <- slice
+  }
 
+  # read in counts matrices from specified h5 files
+  counts.paths <- lapply(data.dirs, file.path, filename)
+  counts.list <- lapply(counts.paths, Read10X_h5, ...)
   # maybe convert Cell identifiers to uppercase
   if (to.upper) {
     rownames(counts) <- lapply(rownames(counts), toupper)
   }
 
-  # build a Seurat object
-  object <- CreateSeuratObject(counts, assay = assay)
-
-  # read in the corresponding image and coordinate mapping if none was provided
   if (is.null(image)) {
-    image <- Read10X_Image(
-      file.path(data.dir, "spatial"), 
-      assay = assay,
-      filter.matrix = filter.matrix
+    # read in the corresponding images and coordinate mappings
+    image.list <- mapply(
+      Read10X_Image,
+      file.path(data.dirs, "spatial"),
+      assay = assay.names,
+      MoreArgs = list(filter.matrix = filter.matrix)
+    )
+  } else {
+    # make sure any passed images are in a vector
+    image.list <- c(image)
+  }
+
+  # check that for each counts matrix there is a corresponding image
+  if (length(image.list) != length(counts.list)) {
+    stop(
+      paste0(
+        "The number of images does not match the number of counts matrices. ",
+        "Ensure each spatial dataset has a corresponding image."
+      )
     )
   }
 
-  # align the image's identifiers with the object's
-  image <- image[Cells(object)]
-  # add the image to the corresponding Seurat instance
-  object[[slice]] <- image
+  # for each counts matrix, build a Seurat object
+  object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+  # associate each counts matrix with its corresponding image
+  object.list <- mapply(
+    function(
+      .object,
+      .image,
+      .assay,
+      .slice
+    ) {
+	    # align the image's identifiers with the object's
+	    .image <- .image[Cells(.object)]
+      # add the image to the corresponding Seurat instance
+      .object[[.slice]] <- .image
+      return (.object)
+    },
+    object.list,
+    image.list,
+    assay.names,
+    slice.names
+  )
+  # merge the Seurat instances - each assay should have unique Cell identifiers
+  object <- merge(
+    object.list[[1]],
+    y = object.list[-1]
+  )
 
   return(object)
 }
@@ -1155,7 +1219,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @concept preprocessing
 #'
 Read10X_Image <- function(
-  image.dir, 
+  image.dir,
   image.scale = "lowres",
   assay = NULL,
   filter.matrix = TRUE
@@ -1164,7 +1228,7 @@ Read10X_Image <- function(
   image.scale <- match.arg(image.scale, choices = c("hires", "lowres"))
   image <- png::readPNG(
     source = file.path(
-      image.dir, 
+      image.dir,
       paste0("tissue_", image.scale, "_image.png")
     )
   )
