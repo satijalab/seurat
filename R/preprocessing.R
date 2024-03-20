@@ -1225,7 +1225,7 @@ Read10X_Image <- function(
   assay = NULL,
   filter.matrix = TRUE
 ) {
-
+  # read in the PNG pointed to by `image.scale`
   image.scale <- match.arg(image.scale, choices = c("hires", "lowres"))
   image <- png::readPNG(
     source = file.path(
@@ -1234,30 +1234,35 @@ Read10X_Image <- function(
     )
   )
 
-  coordinates <- Read10X_Coordinates(
-    filename = Sys.glob(file.path(image.dir, "tissue_positions*")),
-    filter.matrix
-  )
-
+  # read in the scale factors 
   scale.factors <- Read10X_ScaleFactors(
     filename = file.path(image.dir, "scalefactors_json.json")
   )
-  
-  # TODO: deprecate this attribute - `Radius.VisiumV1` now scales on-the-fly
-  spot.radius <- (
-    scale.factors[["spot"]] * scale.factors[[image.scale]] / max(dim(image))
-  )
 
-  visium.image <- new(
-    Class = 'VisiumV1',
+  # read in the tissue coordinates as a data.frame
+  coordinates.raw <- Read10X_Coordinates(
+    filename = Sys.glob(file.path(image.dir, "*tissue_positions*")),
+    filter.matrix
+  )
+  # convert coordinate data.frame into an `sp` compatible `Centroid` instance
+  centroids <- CreateCentroids(
+    coordinates.raw[, c("imagerow", "imagecol")],
+    # use the unscaled spot size as centroid radius
+    radius = scale.factors[["spot"]]
+  )
+  coordinates <- list(centroids)
+  names(coordinates) <- as.character(tolower(class(centroids)[1]))
+
+  visium.fov <- new(
+    Class = "VisiumV2",
+    boundaries = coordinates,
     image = image,
     scale.factors = scale.factors,
-    coordinates = coordinates,
-    spot.radius = spot.radius,
+    molecules = list(),
     assay = ifelse(is.null(assay), character(0), assay)
   )
 
-  return (visium.image)
+  return(visium.fov)
 }
 
 #' Load 10X Genomics Visium Tissue Positions
