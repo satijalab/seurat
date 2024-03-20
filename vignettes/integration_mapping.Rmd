@@ -69,7 +69,7 @@ pancreas.ref <- RunPCA(pancreas.ref)
 pancreas.ref <- FindNeighbors(pancreas.ref, dims=1:30)
 pancreas.ref <- FindClusters(pancreas.ref)
 pancreas.ref <- RunUMAP(pancreas.ref, dims = 1:30)
-DimPlot(pancreas.ref,group.by = c("celltytpe","tech"))
+DimPlot(pancreas.ref,group.by = c("celltype","tech"))
 ```
 
 Next, we integrate the datasets into a shared reference. Please see our [introduction to integration vignette](https://satijalab.org/seurat/articles/integration_introduction)
