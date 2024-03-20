@@ -11,8 +11,6 @@ ScaleFactors(object, ...)
 scalefactors(spot, fiducial, hires, lowres)
 
 \method{ScaleFactors}{VisiumV1}(object, ...)
-
-\method{ScaleFactors}{VisiumV1}(object, ...)
 }
 \arguments{
 \item{object}{An object to get scale factors from}
