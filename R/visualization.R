@@ -4005,7 +4005,7 @@ SpatialPlot <- function(
       object = object,
       vars = features,
       cells = cells,
-      slot = slot,
+      layer = slot,
       clean = FALSE
     )
     features <- colnames(x = data)
