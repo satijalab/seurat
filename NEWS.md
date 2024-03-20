@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Added `Read10X_Coordinates` and `Read10X_ScaleFactors`
 - Fixed `SpatialPlot` to properly handle mutli-assay `Seurat` instances
 
 # Seurat 5.0.3 (2024-03-18)
