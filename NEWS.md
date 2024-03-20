@@ -1,3 +1,8 @@
+# Unreleased
+
+## Changes
+- Fixed `SpatialPlot` to properly handle mutli-assay `Seurat` instances
+
 # Seurat 5.0.3 (2024-03-18)
 
 ## Changes

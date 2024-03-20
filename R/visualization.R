@@ -3972,6 +3972,7 @@ SpatialPlot <- function(
     stop("`keep.scale` must be set to either `feature`, `all`, or NULL")
   }
 
+  cells <- CellsByImage(object, images = images, unlist = TRUE)
   if (is.null(x = features)) {
     if (interactive) {
       return(ISpatialDimPlot(
@@ -3984,6 +3985,7 @@ SpatialPlot <- function(
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
     data <- object[[group.by]]
+    data <- data[cells,,drop=F]
     for (group in group.by) {
       if (!is.factor(x = data[, group])) {
         data[, group] <- factor(x = data[, group])
@@ -4002,7 +4004,9 @@ SpatialPlot <- function(
     data <- FetchData(
       object = object,
       vars = features,
-      slot = slot
+      cells = cells,
+      layer = slot,
+      clean = FALSE
     )
     features <- colnames(x = data)
     # Determine cutoffs
@@ -4049,11 +4053,11 @@ SpatialPlot <- function(
       }
     )
     colnames(x = data) <- features
-    rownames(x = data) <- Cells(x = object)
+    rownames(x = data) <- cells
   }
   features <- colnames(x = data)
   colnames(x = data) <- features
-  rownames(x = data) <- colnames(x = object)
+  rownames(x = data) <- cells
   facet.highlight <- facet.highlight && (!is.null(x = cells.highlight) && is.list(x = cells.highlight))
   if (do.hover) {
     if (length(x = images) > 1) {
