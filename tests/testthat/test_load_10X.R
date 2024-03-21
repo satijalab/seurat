@@ -64,10 +64,11 @@ test_that("Read10X_Image works as expected", {
     file.path(path.to.image, "scalefactors_json.json")
   )
 
+  # check default/lowres scaling
   image <- Read10X_Image(path.to.image)
   coordinates <- GetTissueCoordinates(image)
+  spot.radius <- Radius(image)
   scale.factors <- ScaleFactors(image)
-
   # check that the scale factors were read in as expected
   expect_true(identical(scale.factors, scale.factors.expected))
   # check that `coordinates` contains values scaled for the low resolution PNG 
@@ -77,7 +78,25 @@ test_that("Read10X_Image works as expected", {
   )
   # check that the spot size is similarly scaled
   expect_equal(
-    (Radius(image) / scale.factors$lowres * max(dim(image))),
+    (spot.radius / scale.factors$lowres * max(dim(image))),
+    scale.factors.expected$spot,
+  )
+
+  # check hires scaling
+  image <- Read10X_Image(path.to.image, image.scale = "hires")
+  coordinates <- GetTissueCoordinates(image, scale = "hires")
+  spot.radius <- Radius(image, scale = "hires")
+  scale.factors <- ScaleFactors(image)
+  # check that the scale factors were read in as expected
+  expect_true(identical(scale.factors, scale.factors.expected))
+  # check that `coordinates` contains values scaled for the low resolution PNG 
+  expect_equal(
+    coordinates / scale.factors$hires, 
+    coordinates.expected
+  )
+  # check that the spot size is similarly scaled
+  expect_equal(
+    (spot.radius / scale.factors$hires * max(dim(image))),
     scale.factors.expected$spot,
   )
 })
