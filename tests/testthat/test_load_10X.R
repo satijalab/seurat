@@ -40,7 +40,7 @@ test_that("Read10X_h5 works as expected", {
   skip_if_not_installed("hdf5r")
 
   path.to.counts <- file.path(
-    path.to.visium, 
+    path.to.visium,
     "filtered_feature_bc_matrix.h5"
   )
   counts <- Read10X_h5(path.to.counts)
@@ -58,17 +58,22 @@ test_that("Read10X_h5 works as expected", {
 })
 
 test_that("Read10X_Image works as expected", {
-  path.to.images <- c(
-    file.path(path.to.visium, "spatial"),
-    file.path(
-      path.to.visium.hd, 
-      "binned_outputs/square_008um/spatial"
+  path.to.images <- file.path(path.to.visium, "spatial")
+  coordinate.filesnames <-  "tissue_positions_list.csv"
+  # only test HD the dataset containing a parquet file if `arrow` is installed
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    path.to.images <- c(
+      path.to.images,
+      file.path(
+        path.to.visium.hd,
+        "binned_outputs/square_008um/spatial"
+      )
     )
-  )
-  coordinate.filenames <- c(
-    "tissue_positions_list.csv",
-    "tissue_positions.parquet"
-  )
+    coordinate.filenames <- c(
+      coordinate.filesnames,
+      "tissue_positions.parquet"
+    )
+  }
 
   for (i in seq_along(path.to.images)) {
     path.to.image <- path.to.images[[i]]
@@ -79,6 +84,7 @@ test_that("Read10X_Image works as expected", {
       file.path(path.to.image, coordinate.filename),
       filter.matrix = TRUE
     )[, c("imagerow", "imagecol")]
+    colnames(coordinates.expected) <- c("x", "y")
     # read in the scale factors as an S3 object
     scale.factors.expected <- Read10X_ScaleFactors(
       file.path(path.to.image, "scalefactors_json.json")
@@ -86,13 +92,13 @@ test_that("Read10X_Image works as expected", {
 
     # default/lowres scaling
     image <- Read10X_Image(path.to.image)
-    coordinates <- GetTissueCoordinates(image)
+    coordinates <- GetTissueCoordinates(image, scale = "lowres")
     scale.factors <- ScaleFactors(image)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
-    # check that `coordinates` contains values scaled for the low resolution PNG 
+    # check that `coordinates` contains values scaled for the low resolution PNG
     expect_equal(
-      coordinates / scale.factors$lowres, 
+      coordinates / scale.factors[["lowres"]], 
       coordinates.expected
     )
     # check that the spot size is similarly scaled
@@ -108,7 +114,7 @@ test_that("Read10X_Image works as expected", {
     scale.factors <- ScaleFactors(image)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
-    # check that `coordinates` contains values scaled for the low resolution PNG 
+    # check that `coordinates` contains values scaled for the low resolution PNG
     expect_equal(
       coordinates / scale.factors[["hires"]], 
       coordinates.expected
@@ -126,7 +132,7 @@ test_that("Load10X_Spatial works with SD data", {
   skip_if_not_installed("hdf5r")
 
   path.to.counts <- file.path(
-    path.to.visium, 
+    path.to.visium,
     "filtered_feature_bc_matrix.h5"
   )
   path.to.image <- file.path(path.to.visium, "spatial")
@@ -176,13 +182,13 @@ test_that("Load10X_Spatial works with HD data", {
     assay.name <- paste0("Spatial.", bin.size.pretty)
     image.name <- paste0("slice1.", bin.size.pretty)
     image.key <- paste0("slice1", bin.size.pretty, "_")
-    
+
     path.to.bin <- file.path(
       path.to.visium.hd,
       paste0("binned_outputs/square_", bin.size.pretty)
     )
     path.to.counts <- file.path(
-      path.to.bin, 
+      path.to.bin,
       "filtered_feature_bc_matrix.h5"
     )
     path.to.image <- file.path(path.to.bin, "spatial")
