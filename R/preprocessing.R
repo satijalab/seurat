@@ -1240,26 +1240,29 @@ Read10X_Image <- function(
   )
 
   # read in the tissue coordinates as a data.frame
-  coordinates.raw <- Read10X_Coordinates(
+  coordinates <- Read10X_Coordinates(
     filename = Sys.glob(file.path(image.dir, "*tissue_positions*")),
     filter.matrix
   )
-  # convert coordinate data.frame into an `sp` compatible `Centroid` instance
-  centroids <- CreateCentroids(
-    coordinates.raw[, c("imagerow", "imagecol")],
-    # use the unscaled spot size as centroid radius
-    radius = scale.factors[["spot"]]
+  # create an `sp` compatible `FOV` instance
+  fov <- CreateFOV(
+    coordinates[, c("imagerow", "imagecol")],
+    type = "centroids",
+    radius = scale.factors[["spot"]],
+    assay = assay,
+    key = Key(slice, quiet = TRUE)
   )
-  coordinates <- list(centroids)
-  names(coordinates) <- as.character(tolower(class(centroids)[1]))
 
+  # build the final `VisiumV2` - essentially just adding `image` and 
+  # `scale.factors` to the object
   visium.fov <- new(
     Class = "VisiumV2",
-    boundaries = coordinates,
+    boundaries = fov@boundaries,
+    molecules = fov@molecules,
+    assay = fov@assay,
+    key = fov@key,
     image = image,
-    scale.factors = scale.factors,
-    molecules = list(),
-    assay = ifelse(is.null(assay), character(0), assay)
+    scale.factors = scale.factors
   )
 
   return(visium.fov)
