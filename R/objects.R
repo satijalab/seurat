@@ -1729,7 +1729,7 @@ Radius.SlideSeq <- function(object, ...) {
 #' @method Radius STARmap
 #' @export
 #'
-Radius.STARmap <- function(object) {
+Radius.STARmap <- function(object, ...) {
   return(NULL)
 }
 
