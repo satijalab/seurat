@@ -599,6 +599,7 @@ Load10X_Spatial <- function (
       Read10X_Image,
       file.path(data.dirs, "spatial"),
       assay = assay.names,
+      slice = slice.names,
       MoreArgs = list(filter.matrix = filter.matrix)
     )
   } else {
@@ -1222,10 +1223,11 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 Read10X_Image <- function(
   image.dir,
   image.scale = "lowres",
-  assay = NULL,
+  assay = "Spatial",
+  slice = "slice1",
   filter.matrix = TRUE
 ) {
-
+  # read in the PNG pointed to by `image.scale`
   image.scale <- match.arg(image.scale, choices = c("hires", "lowres"))
   image <- png::readPNG(
     source = file.path(
@@ -1234,30 +1236,38 @@ Read10X_Image <- function(
     )
   )
 
-  coordinates <- Read10X_Coordinates(
-    filename = Sys.glob(file.path(image.dir, "tissue_positions*")),
-    filter.matrix
-  )
-
+  # read in the scale factors
   scale.factors <- Read10X_ScaleFactors(
     filename = file.path(image.dir, "scalefactors_json.json")
   )
-  
-  # TODO: deprecate this attribute - `Radius.VisiumV1` now scales on-the-fly
-  spot.radius <- (
-    scale.factors[["spot"]] * scale.factors[[image.scale]] / max(dim(image))
+
+  # read in the tissue coordinates as a data.frame
+  coordinates <- Read10X_Coordinates(
+    filename = Sys.glob(file.path(image.dir, "*tissue_positions*")),
+    filter.matrix
+  )
+  # create an `sp` compatible `FOV` instance
+  fov <- CreateFOV(
+    coordinates[, c("imagerow", "imagecol")],
+    type = "centroids",
+    radius = scale.factors[["spot"]],
+    assay = assay,
+    key = Key(slice, quiet = TRUE)
   )
 
-  visium.image <- new(
-    Class = 'VisiumV1',
+  # build the final `VisiumV2` - essentially just adding `image` and
+  # `scale.factors` to the object
+  visium.fov <- new(
+    Class = "VisiumV2",
+    boundaries = fov@boundaries,
+    molecules = fov@molecules,
+    assay = fov@assay,
+    key = fov@key,
     image = image,
-    scale.factors = scale.factors,
-    coordinates = coordinates,
-    spot.radius = spot.radius,
-    assay = ifelse(is.null(assay), character(0), assay)
+    scale.factors = scale.factors
   )
 
-  return (visium.image)
+  return(visium.fov)
 }
 
 #' Load 10X Genomics Visium Tissue Positions

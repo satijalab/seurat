@@ -4,6 +4,7 @@
 \alias{ScaleFactors}
 \alias{scalefactors}
 \alias{ScaleFactors.VisiumV1}
+\alias{ScaleFactors.VisiumV2}
 \title{Get image scale factors}
 \usage{
 ScaleFactors(object, ...)
@@ -11,6 +12,8 @@ ScaleFactors(object, ...)
 scalefactors(spot, fiducial, hires, lowres)
 
 \method{ScaleFactors}{VisiumV1}(object, ...)
+
+\method{ScaleFactors}{VisiumV2}(object, ...)
 }
 \arguments{
 \item{object}{An object to get scale factors from}

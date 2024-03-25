@@ -7,7 +7,8 @@
 Read10X_Image(
   image.dir,
   image.scale = "lowres",
-  assay = NULL,
+  assay = "Spatial",
+  slice = "slice1",
   filter.matrix = TRUE
 )
 }
