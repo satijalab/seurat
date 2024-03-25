@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Added `VisiumV2` class - inherits `SeuratObject::FOV`
 - Updated `Load10X_Spatial` to support loading Visium HD datasets - added `bin.size` parameter 
 - Updated `Read10X_Coordinates` to handle new `tissue_coordinates.parquet` files
 - Added `shape` parameter to `SpatialPlot` and wrappers: `SpatialFeaturePlot` and `SpatialDimPlot`
