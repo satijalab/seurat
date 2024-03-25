@@ -865,19 +865,22 @@ RunPCA.default <- function(
   }
  if (inherits(x = object, what = 'matrix')) {
    RowVar.function <- RowVar
+   svd.function <- irlba
  } else if (inherits(x = object, what = 'dgCMatrix')) {
    RowVar.function <- RowVarSparse
+   svd.function <- irlba
  } else if (inherits(x = object, what = 'IterableMatrix')) {
    RowVar.function <- function(x) {
      return(BPCells::matrix_stats(
        matrix = x,
        row_stats = 'variance'
      )$row_stats['variance',])
-     }
+    }
+    svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
  }
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = npcs, ...)
+    pca.results <- svd.function(A = object, nv = npcs, ...)
     total.variance <- sum(RowVar.function(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
@@ -891,7 +894,7 @@ RunPCA.default <- function(
     total.variance <- sum(RowVar.function(x = object))
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
-      pca.results <- irlba(A = t(x = object), nv = npcs, ...)
+      pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
       if (weight.by.var) {
@@ -2335,7 +2338,7 @@ JackRandom <- function(
     rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
   }
   data.mod <- scaled.data
-  data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
+  data.mod[rand.genes, ] <- MatrixRowShuffle(x = as.matrix(scaled.data[rand.genes, ]))
   temp.object <- RunPCA(
     object = data.mod,
     assay = "temp",
