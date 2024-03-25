@@ -146,3 +146,4 @@ Suggests:
     presto,
     DelayedArray,
     harmony
+Remotes: github::satijalab/seurat-object@visium-hd
