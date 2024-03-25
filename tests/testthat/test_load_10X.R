@@ -73,13 +73,13 @@ test_that("Read10X_Image works as expected", {
   expect_true(identical(scale.factors, scale.factors.expected))
   # check that `coordinates` contains values scaled for the low resolution PNG 
   expect_equal(
-    coordinates / scale.factors$lowres, 
+    coordinates / scale.factors[["lowres"]], 
     coordinates.expected
   )
   # check that the spot size is similarly scaled
   expect_equal(
-    (spot.radius / scale.factors$lowres * max(dim(image))),
-    scale.factors.expected$spot,
+    (spot.radius / scale.factors[["lowres"]] * max(dim(image))),
+    scale.factors.expected[["spot"]],
   )
 
   # check hires scaling
@@ -91,13 +91,13 @@ test_that("Read10X_Image works as expected", {
   expect_true(identical(scale.factors, scale.factors.expected))
   # check that `coordinates` contains values scaled for the low resolution PNG 
   expect_equal(
-    coordinates / scale.factors$hires, 
+    coordinates / scale.factors[["hires"]], 
     coordinates.expected
   )
   # check that the spot size is similarly scaled
   expect_equal(
-    (spot.radius / scale.factors$hires * max(dim(image))),
-    scale.factors.expected$spot,
+    (spot.radius / scale.factors[["hires"]] * max(dim(image))),
+    scale.factors.expected[["spot"]],
   )
 })
 
