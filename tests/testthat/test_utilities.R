@@ -62,19 +62,19 @@ test_that("AverageExpression handles features properly", {
 
   # check that the average expression is calcualted for the specifed features
   average.expression <- AverageExpression(
-    object, 
-    layer = "data", 
+    object,
+    layer = "data",
     features = features
   )$RNA
   expect_equal(rownames(x = average.expression), features)
-  
+
   # check that an error is raised if none of the specified features are present
   expect_warning(AverageExpression(object, layer = 'data', features = "BAD"))
   # check that an error is raised if any of the features are missing
   expect_warning(
     AverageExpression(
-      object, 
-      layer = "data", 
+      object,
+      layer = "data",
       features = c(features, "BAD")
     )
   )
@@ -83,9 +83,9 @@ test_that("AverageExpression handles features properly", {
   # `layer="scale.data"` and `return.seurat=TRUE`
   object <- ScaleData(object = object, verbose = FALSE)
   avg.scale <- AverageExpression(
-    object, 
-    layer = "scale.data", 
-    return.seurat = TRUE, 
+    object,
+    layer = "scale.data",
+    return.seurat = TRUE,
     features = features,
     verbose = FALSE
   )$RNA
@@ -246,4 +246,46 @@ test_that("BuildNicheAssay works as expected", {
       length(results[["niches"]][results[["niches"]]["niches"] == niche])
     )
   }
+})
+
+test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
+  path.to.data = file.path("../testdata/visium_hd")
+
+  test.case <- Load10X_Spatial(
+    path.to.data,
+    assay = "Spatial",
+    slice = "slice",
+    bin.size = 16
+  )
+
+  # populate a meta.data column with random labels
+  random_labels <- sample(1:3, size = ncol(test.case), replace = TRUE)
+  test.case[["random_labels"]] <- random_labels
+
+  fov <- CreateFOV(
+    GetTissueCoordinates(test.case[["slice.016um"]]),
+    type = "centroids",
+    radius = Radius(test.case[["slice.016um"]]),
+    assay = "Spatial.016um",
+    key = "fov"
+  )
+
+  test.case[["fov"]] <- fov
+
+  left <- BuildNicheAssay(
+    test.case,
+    fov = "fov",
+    group.by = "random_labels"
+  )
+
+  right <- BuildNicheAssay(
+    test.case,
+    fov = "fov",
+    group.by = "random_labels"
+  )
+
+  expect_equal(
+    LayerData(left, layer = "scale.data"), 
+    LayerData(left, layer = "scale.data")
+  )
 })
