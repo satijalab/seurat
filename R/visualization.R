@@ -3891,7 +3891,7 @@ ISpatialFeaturePlot <- function(
 #' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 #' alpha value for each plot.
 #' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
-#' The default is 22, which plots squares - use 21 to plot circles. 
+#' The default is 21, which plots circles - use 22 to plot squares. 
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -3946,7 +3946,7 @@ SpatialPlot <- function(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
-  shape = 22,
+  shape = 21,
   stroke = NA,
   interactive = FALSE,
   do.identify = FALSE,
@@ -6973,7 +6973,7 @@ GeomSpatial <- ggproto(
   required_aes = c("x", "y"),
   extra_params = c("na.rm", "image", "image.alpha", "image.scale", "crop"),
   default_aes = aes(
-    shape = 22,
+    shape = 21,
     colour = "black",
     point.size.factor = 1.0,
     fill = NA,
@@ -8966,7 +8966,7 @@ SingleRasterMap <- function(
 #' @param pt.size.factor Sets the size of the points relative to spot.radius
 #' @param stroke Control the width of the border around the spots
 #' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
-#' The default is 22, which plots squares - use 21 to plot circles. 
+#' The default is 21, which plots cirlces - use 22 to plot squares. 
 #' @param col.by Mapping variable for the point color
 #' @param alpha.by Mapping variable for the point alpha value
 #' @param cells.highlight A list of character or numeric vectors of cells to
@@ -8999,7 +8999,7 @@ SingleSpatialPlot <- function(
   pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
-  shape = 22,
+  shape = 21,
   stroke = NA,
   col.by = NULL,
   alpha.by = NULL,
