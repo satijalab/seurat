@@ -77,8 +77,8 @@ test_that("Read10X_Image works as expected", {
   )
   # check that the spot size is similarly scaled
   expect_equal(
-    (Radius(image) * max(dim(image))) / scale.factors$lowres,
-    scale.factors.expected$fiducial,
+    (Radius(image) / scale.factors$lowres * max(dim(image))),
+    scale.factors.expected$spot,
   )
 })
 
