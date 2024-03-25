@@ -160,6 +160,65 @@ test_that("Load10X_Spatial works with SD data", {
   )
 })
 
+test_that("Load10X_Spatial works with HD data", {
+  skip_on_cran()
+  skip_if_not_installed("hdf5r")
+  skip_if_not_installed("arrow")
+
+  # since the "HD" test data is actually just the standard definition test
+  # data re-structured to look like it's been binned at multiple resolutions
+  # the `merge` call inside `Load10X_Spatial` throws a warning
+  spatial <- suppressWarnings(Load10X_Spatial(path.to.visium.hd))
+
+  bin.size <- c(16, 8)
+  for (i in seq_along(bin.size)) {
+    bin.size.pretty <- paste0(sprintf("%03d", bin.size[[i]]), "um")
+    assay.name <- paste0("Spatial.", bin.size.pretty)
+    image.name <- paste0("slice1.", bin.size.pretty)
+    image.key <- paste0("slice1", bin.size.pretty, "_")
+    
+    path.to.bin <- file.path(
+      path.to.visium.hd,
+      paste0("binned_outputs/square_", bin.size.pretty)
+    )
+    path.to.counts <- file.path(
+      path.to.bin, 
+      "filtered_feature_bc_matrix.h5"
+    )
+    path.to.image <- file.path(path.to.bin, "spatial")
+
+    # load the expected counts matrix
+    counts.expected <- Read10X_h5(path.to.counts)
+    # accomodate for the way cell identifiers will be reset during
+    # the call to `merge` inside `Load10X_Spatial`
+    colnames(counts.expected) <- paste0(colnames(counts.expected), "_", i)
+    # load the expected image
+    image.expected <- Read10X_Image(path.to.image, assay = assay.name)
+    # set the image's key
+    Key(image.expected) <- image.key
+    # again, accomodate for the way cell identifiers will be reset during
+    # the call to `merge` inside `Load10X_Spatial`
+    image.expected <- RenameCells(image.expected, paste0(Cells(image.expected), "_", i))
+    # align the expected image's identifiers with the expected count matrix
+    image.expected <- image.expected[colnames(counts.expected)]
+
+    # check that `spatial` contains the expected counts matrix
+    expect_true(
+      identical(
+        LayerData(spatial, assay = assay.name, layer = "counts"),
+        counts.expected
+      )
+    )
+    # check that `spatial` contains the expected image
+    expect_true(
+      identical(
+        spatial[[image.name]],
+        image.expected
+      )
+    )
+  }
+})
+
 test_that("Read10X_Spatial handles missing files properly", {
   expect_error(Load10X_Spatial(data.dir = "."))
   expect_error(Load10X_Spatial(data.dir = "./notadir/"))
