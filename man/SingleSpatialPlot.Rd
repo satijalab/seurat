@@ -13,7 +13,7 @@ SingleSpatialPlot(
   pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
-  shape = 22,
+  shape = 21,
   stroke = NA,
   col.by = NULL,
   alpha.by = NULL,
@@ -49,7 +49,7 @@ to show entire background image.}
 \item{pt.size.factor}{Sets the size of the points relative to spot.radius}
 
 \item{shape}{Control the shape of the spots - same as the ggplot2 parameter. 
-The default is 22, which plots squares - use 21 to plot circles.}
+The default is 21, which plots cirlces - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
 

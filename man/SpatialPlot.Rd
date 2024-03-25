@@ -31,7 +31,7 @@ SpatialPlot(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
-  shape = 22,
+  shape = 21,
   stroke = NA,
   interactive = FALSE,
   do.identify = FALSE,
@@ -59,7 +59,7 @@ SpatialDimPlot(
   alpha = c(1, 1),
   image.alpha = 1,
   image.scale = "lowres",
-  shape = 22,
+  shape = 21,
   stroke = NA,
   label.box = TRUE,
   interactive = FALSE,
@@ -81,7 +81,7 @@ SpatialFeaturePlot(
   alpha = c(1, 1),
   image.alpha = 1,
   image.scale = "lowres",
-  shape = 22,
+  shape = 21,
   stroke = NA,
   interactive = FALSE,
   information = NULL
@@ -167,7 +167,7 @@ min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 alpha value for each plot.}
 
 \item{shape}{Control the shape of the spots - same as the ggplot2 parameter. 
-The default is 22, which plots squares - use 21 to plot circles.}
+The default is 21, which plots circles - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
 
