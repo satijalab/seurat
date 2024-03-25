@@ -31,14 +31,18 @@ test_that("Read10X handles missing files properly", {
 context("Load10X_Spatial")
 
 # setup test fixtures
-path.to.data = file.path("../testdata/visium")
-path.to.counts = file.path(path.to.data, "filtered_feature_bc_matrix.h5")
-path.to.image = file.path(path.to.data, "spatial")
+path.to.data <- file.path("../testdata")
+path.to.visium <- file.path(path.to.data, "visium")
+path.to.visium.hd <- file.path(path.to.data, "visium_hd")
 
 test_that("Read10X_h5 works as expected", {
   skip_on_cran()
   skip_if_not_installed("hdf5r")
 
+  path.to.counts <- file.path(
+    path.to.visium, 
+    "filtered_feature_bc_matrix.h5"
+  )
   counts <- Read10X_h5(path.to.counts)
 
   # check that the shape of the returned matrix is correct
@@ -54,56 +58,78 @@ test_that("Read10X_h5 works as expected", {
 })
 
 test_that("Read10X_Image works as expected", {
-  # read in the coordinates as a data.frame - only keep the relevant columns
-  coordinates.expected <- Read10X_Coordinates(
-    file.path(path.to.image, "tissue_positions_list.csv"),
-    filter.matrix = TRUE
-  )[, c("imagerow", "imagecol")]
-  # read in the scale factors as an S3 object
-  scale.factors.expected <- Read10X_ScaleFactors(
-    file.path(path.to.image, "scalefactors_json.json")
+  path.to.images <- c(
+    file.path(path.to.visium, "spatial"),
+    file.path(
+      path.to.visium.hd, 
+      "binned_outputs/square_008um/spatial"
+    )
+  )
+  coordinate.filenames <- c(
+    "tissue_positions_list.csv",
+    "tissue_positions.parquet"
   )
 
-  # check default/lowres scaling
-  image <- Read10X_Image(path.to.image)
-  coordinates <- GetTissueCoordinates(image)
-  spot.radius <- Radius(image)
-  scale.factors <- ScaleFactors(image)
-  # check that the scale factors were read in as expected
-  expect_true(identical(scale.factors, scale.factors.expected))
-  # check that `coordinates` contains values scaled for the low resolution PNG 
-  expect_equal(
-    coordinates / scale.factors[["lowres"]], 
-    coordinates.expected
-  )
-  # check that the spot size is similarly scaled
-  expect_equal(
-    (spot.radius / scale.factors[["lowres"]] * max(dim(image))),
-    scale.factors.expected[["spot"]],
-  )
+  for (i in seq_along(path.to.images)) {
+    path.to.image <- path.to.images[[i]]
+    coordinate.filename <- coordinate.filenames[[i]]
 
-  # check hires scaling
-  image <- Read10X_Image(path.to.image, image.scale = "hires")
-  coordinates <- GetTissueCoordinates(image, scale = "hires")
-  spot.radius <- Radius(image, scale = "hires")
-  scale.factors <- ScaleFactors(image)
-  # check that the scale factors were read in as expected
-  expect_true(identical(scale.factors, scale.factors.expected))
-  # check that `coordinates` contains values scaled for the low resolution PNG 
-  expect_equal(
-    coordinates / scale.factors[["hires"]], 
-    coordinates.expected
-  )
-  # check that the spot size is similarly scaled
-  expect_equal(
-    (spot.radius / scale.factors[["hires"]] * max(dim(image))),
-    scale.factors.expected[["spot"]],
-  )
+    # read in the coordinates as a data.frame - only keep the relevant columns
+    coordinates.expected <- Read10X_Coordinates(
+      file.path(path.to.image, coordinate.filename),
+      filter.matrix = TRUE
+    )[, c("imagerow", "imagecol")]
+    # read in the scale factors as an S3 object
+    scale.factors.expected <- Read10X_ScaleFactors(
+      file.path(path.to.image, "scalefactors_json.json")
+    )
+
+    # default/lowres scaling
+    image <- Read10X_Image(path.to.image)
+    coordinates <- GetTissueCoordinates(image)
+    scale.factors <- ScaleFactors(image)
+    # check that the scale factors were read in as expected
+    expect_true(identical(scale.factors, scale.factors.expected))
+    # check that `coordinates` contains values scaled for the low resolution PNG 
+    expect_equal(
+      coordinates / scale.factors$lowres, 
+      coordinates.expected
+    )
+    # check that the spot size is similarly scaled
+    expect_equal(
+      (Radius(image) / scale.factors[["lowres"]] * max(dim(image))),
+      scale.factors.expected[["spot"]],
+    )
+
+    # hires scaling
+    image <- Read10X_Image(path.to.image, image.scale = "hires")
+    coordinates <- GetTissueCoordinates(image, scale = "hires")
+    spot.radius <- Radius(image, scale = "hires")
+    scale.factors <- ScaleFactors(image)
+    # check that the scale factors were read in as expected
+    expect_true(identical(scale.factors, scale.factors.expected))
+    # check that `coordinates` contains values scaled for the low resolution PNG 
+    expect_equal(
+      coordinates / scale.factors[["hires"]], 
+      coordinates.expected
+    )
+    # check that the spot size is similarly scaled
+    expect_equal(
+      (spot.radius / scale.factors[["hires"]] * max(dim(image))),
+      scale.factors.expected[["spot"]],
+    )
+  }
 })
 
-test_that("Load10X_Spatial works as expected", {
+test_that("Load10X_Spatial works with SD data", {
   skip_on_cran()
   skip_if_not_installed("hdf5r")
+
+  path.to.counts <- file.path(
+    path.to.visium, 
+    "filtered_feature_bc_matrix.h5"
+  )
+  path.to.image <- file.path(path.to.visium, "spatial")
 
   # load the expected counts matrix
   counts.expected <- Read10X_h5(path.to.counts)
@@ -116,7 +142,7 @@ test_that("Load10X_Spatial works as expected", {
   # align the expected image's identifiers with the expected count matrix
   image.expected <- image.expected[colnames(counts.expected)]
 
-  spatial <- Load10X_Spatial(path.to.data)
+  spatial <- Load10X_Spatial(path.to.visium)
 
   # check that `spatial` contains the expected counts matrix
   expect_true(
