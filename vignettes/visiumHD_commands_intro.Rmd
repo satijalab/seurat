@@ -1,0 +1,145 @@
+---
+title: "Quick start for Visium HD spatial datasets with Seurat"
+output:
+  html_document:
+  theme: united
+  df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+# Visium HD support in Seurat
+
+We have [previously released support](https://satijalab.org/seurat/articles/spatial_vignette) Seurat for sequencing-based spatial transcriptomic (ST) technologies, including 10x visium and SLIDE-seq. We have now updated Seurat to be compatible with the Visium HD technology, which performs profiling at substantially higher spatial resolution than previous versions.
+
+Users can install the Visium HD-compatible release from Github. Existing Seurat workflows for [clustering, visualization, and downstream analysis](https://satijalab.org/seurat/articles/pbmc3k_tutorial) have been updated to support both Visium and Visium HD data.
+
+We note that Visium HD data is generated from spatially patterned olignocleotides labeled in 2um x 2um bins. However, since the data from this resolution is sparse, adjacent bins are pooled together to create 8um and 16um resolutions. 10x recommends the use of 8um binned data for analysis, but Seurat supports in the simultaneous loading of multiple binnings - and stores them in a single object as multiple assays.
+
+In the brief vignette below we demonstrate how the standard Seurat workflows can be applied to a Visium HD dataset of the mouse intestine, which can be downloaded [here](https://www.10xgenomics.com/datasets/visium-hd-cytassist-gene-expression-libraries-of-mouse-intestine). We demonstrate how users can analyze and visualize data at multiple resolutions, and switch between the results. 
+
+We are finalizing a full vignette with tailored analytical strategies for high-resolution ST datasets, as well as a formal CRAN release, and look forward to sharing these soon. 
+
+## Install Seurat update
+```{r, eval=F}
+# packages required for Visium HD
+install.packages("hdf5r")
+install.packages("arrow")
+
+remotes::install_github(repo = 'satijalab/seurat', ref = 'visium-hd')
+```
+```{r install}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+```
+
+# Load Visium HD data
+
+* Visium HD mouse small intestine dataset is available for download [here](https://support.10xgenomics.com/spatial-gene-expression/datasets)
+* `bin.size` parameter specifies resolutions to load (8 and 16um are loaded by default)
+
+```{r loader}
+# alter localdir to the path where you have saved the outs folder of the demo data 
+localdir <- "/brahms/lis/visium_hd/Visium_HD_Public_Data/HD_public_data/Visium_HD_Mouse_Small_Intestine/outs" 
+object <- Load10X_Spatial(data.dir = localdir, bin.size = c(8, 16))
+```
+
+## Standard QC (8um)
+
+```{r qc, fig.height=5}
+vln.plot <- VlnPlot(object, features = 'nCount_Spatial.008um', pt.size = 0) + NoLegend()
+count.plot <- SpatialFeaturePlot(object, features = 'nCount_Spatial.008um', pt.size.factor = 1.2) + theme(legend.position = "right")
+```
+```{r}
+vln.plot | count.plot
+```
+
+## Normalize datasets
+```{r normalize}
+# SCTransform also supported, but we use LogNormalize here
+DefaultAssay(object) <- "Spatial.008um"
+object <- NormalizeData(object)
+
+DefaultAssay(object) <- "Spatial.016um"
+object <- NormalizeData(object)
+```
+
+## Visualize gene expression 
+
+* Setting `pt.size.factor` to 1.2 helps to visualize molecular and histological info in this HD dataset  
+* You can also adjust the `shape`, and `stroke` (outline) parameters for visualization
+
+```{r feature.plots}
+# spatial resolution previously set at 16um
+p1 <- SpatialFeaturePlot(object, features = "Ighm", pt.size.factor = 1.2) + ggtitle("Ighm expression (16um)")
+
+# switch spatial resolution
+DefaultAssay(object) <- "Spatial.008um"
+p2 <- SpatialFeaturePlot(object, features = "Jchain", pt.size.factor = 1.2) + ggtitle("Jchain expression (8um)")
+```
+```{r}
+p1 | p2
+```
+
+## Standard processing workflow 
+
+```{r preprocess8}
+# can use Spatial.016um to analyze 16um binning as well
+DefaultAssay(object) <- "Spatial.008um"
+
+# note that data has already been normalized 
+object <- FindVariableFeatures(object)
+object <- ScaleData(object)
+object <- RunPCA(object, reduction.name = "pca.008um")
+object <- FindNeighbors(object, reduction = "pca.008um", dims = 1:30) 
+object <- FindClusters(object, resolution = 0.6, cluster.name = "seurat_cluster.008um") 
+object <- RunUMAP(object, reduction = "pca.008um", reduction.name = "umap.008um", dims = 1:30)
+```
+```{r dim.plots}
+dim.plot <- DimPlot(object, reduction = "umap.008um", group.by = "seurat_cluster.008um", label = TRUE, repel = T) + NoLegend() 
+cluster.plot <- SpatialDimPlot(object, group.by = "seurat_cluster.008um", label = FALSE, pt.size.factor = 1.2) + theme(legend.position = "right")
+```
+```{r, fig.width=8}
+dim.plot
+```
+```{r, fig.width=10, fig.height=6}
+cluster.plot
+```
+```{r highlight.plots}
+# can highlight by identity for more detailed visualization
+p5 <- SpatialDimPlot(object,cells.highlight = WhichCells(object,expression = seurat_cluster.008um==0), pt.size.factor = 1.2) + NoLegend() + ggtitle("Cluster 0")
+p6 <- SpatialDimPlot(object,cells.highlight = WhichCells(object,expression = seurat_cluster.008um==1), pt.size.factor = 1.2) + NoLegend() + ggtitle("Cluster 1")
+```
+```{r}
+p5 | p6
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
