@@ -259,7 +259,7 @@ SpatialDimPlot <- function(
   alpha = c(1, 1),
   image.alpha = 1,
   image.scale = "lowres",
-  shape = 22,
+  shape = 21,
   stroke = NA,
   label.box = TRUE,
   interactive = FALSE,
