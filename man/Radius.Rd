@@ -4,11 +4,14 @@
 \alias{Radius.SlideSeq}
 \alias{Radius.STARmap}
 \alias{Radius.VisiumV1}
+\alias{Radius.VisiumV2}
 \title{Get Spot Radius}
 \usage{
 \method{Radius}{SlideSeq}(object, ...)
 
 \method{Radius}{STARmap}(object, ...)
+
+\method{Radius}{VisiumV1}(object, scale = "lowres", ...)
 
 \method{Radius}{VisiumV1}(object, scale = "lowres", ...)
 }
