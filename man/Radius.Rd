@@ -6,11 +6,11 @@
 \alias{Radius.VisiumV1}
 \title{Get Spot Radius}
 \usage{
-\method{Radius}{SlideSeq}(object)
+\method{Radius}{SlideSeq}(object, ...)
 
-\method{Radius}{STARmap}(object)
+\method{Radius}{STARmap}(object, ...)
 
-\method{Radius}{VisiumV1}(object)
+\method{Radius}{VisiumV1}(object, scale = "lowres", ...)
 }
 \arguments{
 \item{object}{An image object}

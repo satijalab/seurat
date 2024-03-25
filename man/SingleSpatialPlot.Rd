@@ -9,6 +9,7 @@ SingleSpatialPlot(
   image,
   cols = NULL,
   image.alpha = 1,
+  image.scale = "lowres",
   pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
@@ -34,6 +35,9 @@ colors}
 
 \item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
 remove.}
+
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{pt.alpha}{Adjust the opacity of the points if plotting a
 \code{SpatialDimPlot}}

@@ -258,6 +258,7 @@ SpatialDimPlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
+  image.scale = "lowres",
   stroke = 0.25,
   label.box = TRUE,
   interactive = FALSE,
@@ -281,6 +282,7 @@ SpatialDimPlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     image.alpha = image.alpha,
+    image.scale = image.scale,
     stroke = stroke,
     label.box = label.box,
     interactive = interactive,
@@ -307,6 +309,7 @@ SpatialFeaturePlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
+  image.scale = "lowres",
   stroke = 0.25,
   interactive = FALSE,
   information = NULL
@@ -325,6 +328,7 @@ SpatialFeaturePlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     image.alpha = image.alpha,
+    image.scale = image.scale,
     stroke = stroke,
     interactive = interactive,
     information = information

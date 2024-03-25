@@ -4,12 +4,21 @@
 \alias{Read10X_Image}
 \title{Load a 10X Genomics Visium Image}
 \usage{
-Read10X_Image(image.dir, filter.matrix = TRUE)
+Read10X_Image(
+  image.dir,
+  image.scale = "lowres",
+  assay = NULL,
+  filter.matrix = TRUE
+)
 }
 \arguments{
 \item{image.dir}{Path to directory with 10X Genomics visium image data;
 should include files \code{tissue_lowres_image.png},
 \code{scalefactors_json.json} and \code{tissue_positions_list.csv}}
+
+\item{image.scale}{...}
+
+\item{assay}{...}
 
 \item{filter.matrix}{Filter spot/feature matrix to only include spots that
 have been determined to be over tissue}
