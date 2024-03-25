@@ -1719,7 +1719,7 @@ HVFInfo.SCTAssay <- function(object, method, status = FALSE, ...) {
 #'
 #' @seealso \code{\link[SeuratObject:Radius]{SeuratObject::Radius}}
 #'
-Radius.SlideSeq <- function(object) {
+Radius.SlideSeq <- function(object, ...) {
   return(0.005)
 }
 
