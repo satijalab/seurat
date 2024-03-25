@@ -3946,7 +3946,7 @@ SpatialPlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   shape = 21,
-  stroke = 0.25,
+  stroke = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -6977,7 +6977,7 @@ GeomSpatial <- ggproto(
     point.size.factor = 1.0,
     fill = NA,
     alpha = NA,
-    stroke = 0.25
+    stroke = NA
   ),
   setup_data = function(self, data, params) {
     data <- ggproto_parent(Geom, self)$setup_data(data, params)
@@ -8998,7 +8998,7 @@ SingleSpatialPlot <- function(
   crop = TRUE,
   pt.size.factor = NULL,
   shape = 21,
-  stroke = 0.25,
+  stroke = NA,
   col.by = NULL,
   alpha.by = NULL,
   cells.highlight = NULL,
