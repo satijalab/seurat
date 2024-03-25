@@ -1,6 +1,9 @@
 # Unreleased
 
 ## Changes
+- Added `image.scale` parameter to `SpatialPlot` and wrappers: `SpatialFeaturePlot` and `SpatialDimPlot`
+- Added `image.scale` parameter to `Read10X_Image`
+- Added `scale` parameter to `Radius.VisiumV1`
 - Fixed calculation of `spot.radius` attribute for `VisiumV1` instance returned by `Read10X_Image` — replace `scale.factors$fiducial` with `scale.factors$spot`
 - Added `Read10X_Coordinates` and `Read10X_ScaleFactors`
 - Fixed `SpatialPlot` to properly handle mutli-assay `Seurat` instances
