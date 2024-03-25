@@ -1166,7 +1166,9 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE) {
   )
 
   # scale the spot size for plotting with the low resolution PNG
-  spot.radius <- (scale.factors$spot * scale.factors$lowres) / max(dim(image))
+  spot.radius <- (
+    scale.factors[["spot"]] * scale.factors[["lowres"]] / max(dim(image))
+  )
 
   return(
     new(
