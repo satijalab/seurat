@@ -1739,7 +1739,7 @@ Radius.STARmap <- function(object, ...) {
 #' @method Radius VisiumV1
 #' @export
 #'
-Radius.VisiumV1 <- function(object) {
+Radius.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'spot.radius'))
 }
 
