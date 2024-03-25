@@ -31,7 +31,8 @@ SpatialPlot(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -58,7 +59,8 @@ SpatialDimPlot(
   alpha = c(1, 1),
   image.alpha = 1,
   image.scale = "lowres",
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   label.box = TRUE,
   interactive = FALSE,
   information = NULL
@@ -79,7 +81,8 @@ SpatialFeaturePlot(
   alpha = c(1, 1),
   image.alpha = 1,
   image.scale = "lowres",
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   interactive = FALSE,
   information = NULL
 )
@@ -162,6 +165,9 @@ themeing will not work when plotting multiple features/groupings}
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
 min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 alpha value for each plot.}
+
+\item{shape}{Control the shape of the spots - same as the ggplot2 parameter. 
+The default is 21, which plots circles - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
 

@@ -3890,6 +3890,8 @@ ISpatialFeaturePlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 #' alpha value for each plot.
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
+#' The default is 21, which plots circles - use 22 to plot squares. 
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -3944,7 +3946,8 @@ SpatialPlot <- function(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -4117,7 +4120,6 @@ SpatialPlot <- function(
     max.feature.value <- max(apply(data, 2, function(x) max(x, na.rm = TRUE)))
   }
 
-
   for (i in 1:ncols) {
     plot.idx <- i
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
@@ -4173,6 +4175,7 @@ SpatialPlot <- function(
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
+        shape = shape,
         stroke = stroke,
         crop = crop
       )
@@ -6975,7 +6978,7 @@ GeomSpatial <- ggproto(
     point.size.factor = 1.0,
     fill = NA,
     alpha = NA,
-    stroke = 0.25
+    stroke = NA
   ),
   setup_data = function(self, data, params) {
     data <- ggproto_parent(Geom, self)$setup_data(data, params)
@@ -8962,6 +8965,8 @@ SingleRasterMap <- function(
 #' to show entire background image.
 #' @param pt.size.factor Sets the size of the points relative to spot.radius
 #' @param stroke Control the width of the border around the spots
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
+#' The default is 21, which plots cirlces - use 22 to plot squares. 
 #' @param col.by Mapping variable for the point color
 #' @param alpha.by Mapping variable for the point alpha value
 #' @param cells.highlight A list of character or numeric vectors of cells to
@@ -8994,7 +8999,8 @@ SingleSpatialPlot <- function(
   pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   col.by = NULL,
   alpha.by = NULL,
   cells.highlight = NULL,
@@ -9040,6 +9046,7 @@ SingleSpatialPlot <- function(
           image.alpha = image.alpha,
           image.scale = image.scale,
           crop = crop,
+          shape = shape,
           stroke = stroke,
         )
       } else {
@@ -9050,6 +9057,7 @@ SingleSpatialPlot <- function(
           image.alpha = image.alpha,
           image.scale = image.scale,
           crop = crop,
+          shape = shape,
           stroke = stroke,
           alpha = pt.alpha
         )

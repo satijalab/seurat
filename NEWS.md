@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Added `shape` parameter to `SpatialPlot` and wrappers: `SpatialFeaturePlot` and `SpatialDimPlot`
 - Added `image.scale` parameter to `SpatialPlot` and wrappers: `SpatialFeaturePlot` and `SpatialDimPlot`
 - Added `image.scale` parameter to `Read10X_Image`
 - Added `scale` parameter to `Radius.VisiumV1`
