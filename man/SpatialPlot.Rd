@@ -13,6 +13,7 @@ SpatialPlot(
   images = NULL,
   cols = NULL,
   image.alpha = 1,
+  image.scale = "lowres",
   crop = TRUE,
   slot = "data",
   keep.scale = "feature",
@@ -56,6 +57,7 @@ SpatialDimPlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
+  image.scale = "lowres",
   stroke = 0.25,
   label.box = TRUE,
   interactive = FALSE,
@@ -76,6 +78,7 @@ SpatialFeaturePlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
+  image.scale = "lowres",
   stroke = 0.25,
   interactive = FALSE,
   information = NULL
@@ -98,6 +101,9 @@ default, ggplot2 assigns colors}
 
 \item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
 remove.}
+
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{crop}{Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 entire background image.}
