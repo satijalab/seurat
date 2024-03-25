@@ -1206,8 +1206,9 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param image.dir Path to directory with 10X Genomics visium image data;
 #' should include files \code{tissue_lowres_image.png},
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
-#' @param image.scale ...
-#' @param assay ...
+#' @param image.scale Indicates which \code{tissue_{"hires"/"lowres"}_image.png}
+#' file to read in
+#' @param assay Name of associated assay
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue
 #'
