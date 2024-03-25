@@ -599,6 +599,7 @@ Load10X_Spatial <- function (
       Read10X_Image,
       file.path(data.dirs, "spatial"),
       assay = assay.names,
+      slice = slice.names,
       MoreArgs = list(filter.matrix = filter.matrix)
     )
   } else {
@@ -1222,7 +1223,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 Read10X_Image <- function(
   image.dir,
   image.scale = "lowres",
-  assay = NULL,
+  assay = "Spatial",
+  slice = "slice1",
   filter.matrix = TRUE
 ) {
   # read in the PNG pointed to by `image.scale`
@@ -1234,7 +1236,7 @@ Read10X_Image <- function(
     )
   )
 
-  # read in the scale factors 
+  # read in the scale factors
   scale.factors <- Read10X_ScaleFactors(
     filename = file.path(image.dir, "scalefactors_json.json")
   )
@@ -1253,7 +1255,7 @@ Read10X_Image <- function(
     key = Key(slice, quiet = TRUE)
   )
 
-  # build the final `VisiumV2` - essentially just adding `image` and 
+  # build the final `VisiumV2` - essentially just adding `image` and
   # `scale.factors` to the object
   visium.fov <- new(
     Class = "VisiumV2",
