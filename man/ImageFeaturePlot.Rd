@@ -73,7 +73,7 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
 \item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
-to split by cell identity'}
+to split by cell identity}
 
 \item{molecules}{A vector of molecules to plot}
 
