@@ -1286,7 +1286,7 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
   col.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
   
   # if the coordinate mappings are in a parquet file
-  if(tools::file_ext(filename) == "parquet") {
+  if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
     if (!requireNamespace("arrow", quietly = TRUE)) {
       stop("Please install arrow to read parquet files")
@@ -1303,7 +1303,7 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
       "pxl_row_in_fullres", 
       "pxl_col_in_fullres"
     )
-    col.map <- setNames(col.names, input.col.names)
+    col.map <- stats::setNames(col.names, input.col.names)
     colnames(coordinates) <- ifelse(
       colnames(coordinates) %in% names(col.map), 
       col.map[colnames(coordinates)], 
