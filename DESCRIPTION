@@ -118,6 +118,7 @@ RoxygenNote: 7.3.1
 Encoding: UTF-8
 Suggests:
     ape,
+    arrow,
     BPCells,
     rsvd,
     testthat,
