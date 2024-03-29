@@ -2929,35 +2929,35 @@ BuildNicheAssay <- function(
   neighbors.k = 20,
   niches.k = 4
 ) {
-  # find neighbors based on tissue position
-  coords <- GetTissueCoordinates(object[[fov]], which = "centroids")
-  cells <- coords$cell
-  rownames(coords) <- cells
-  coords <- as.matrix(coords[ , c("x", "y")])
-  neighbors <- FindNeighbors(coords, k.param = neighbors.k)
-  neighbors$nn <- neighbors$nn[Cells(object), Cells(object)]
-
-  # build cell x cell type matrix
-  ct.mtx <- matrix(
+  # initialize an empty cells x groups binary matrix
+  cells <- Cells(object[[fov]])
+  group.labels <- unlist(object[[group.by]][cells, ])
+  groups <- sort(unique(group.labels))
+  cell.type.mtx <- matrix(
     data = 0,
     nrow = length(cells),
-    ncol = length(unlist(unique(object[[group.by]])))
+    ncol = length(groups)
   )
-  rownames(ct.mtx) <- cells
-  colnames(ct.mtx) <- unique(unlist(object[[group.by]]))
-  cts <- object[[group.by]]
-  for (i in 1:length(cells)) {
-    ct <- as.character(cts[cells[[i]], ])
-    ct.mtx[cells[[i]], ct] <- 1
-  }
+  rownames(cell.type.mtx) <- cells
+  colnames(cell.type.mtx) <- groups
+  # populate the binary matrix 
+  cells.idx <- seq_along(cells)
+  group.idx <- match(group.labels, groups)
+  cell.type.mtx[cbind(cells.idx, group.idx)] <- 1
+
+  # find neighbors based on tissue position
+  coords <- GetTissueCoordinates(object[[fov]], which = "centroids")
+  rownames(coords) <- coords[["cell"]]
+  coords <- as.matrix(coords[ , c("x", "y")])
+  neighbors <- FindNeighbors(coords, k.param = neighbors.k, compute.SNN = FALSE)
 
   # create niche assay
-  sum.mtx <- as.matrix(neighbors$nn %*% ct.mtx)
+  sum.mtx <- as.matrix(neighbors[["nn"]] %*% cell.type.mtx)
   niche.assay <- CreateAssayObject(counts = t(sum.mtx))
   object[[assay]] <- niche.assay
   DefaultAssay(object) <- assay
 
-  # cluster niches assay
+  # cluster niche assay
   object <- ScaleData(object)
   results <- kmeans(
     x = t(object[[assay]]@scale.data),
