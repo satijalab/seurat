@@ -200,3 +200,50 @@ test_that("PercentAbove works as expected", {
   vals <- c(1, 1, 2, 2, NA)
   expect_equal(PercentAbove(vals, threshold = 1), 0.4)
 })
+
+
+context("BuildNicheAssay")
+
+test_that("BuildNicheAssay works as expected", {
+  test.data <- pbmc_small
+
+  # generate fake coordinates arranging the cells from pbmc_small into a grid
+  test.coordinates <- data.frame(
+    cell = Cells(test.data), 
+    x = rep(1:4, times = 20), 
+    y = rep(1:4, each = 20)
+  )
+  # associate the coordinates and counts with a FOV
+  fov <- CreateFOV(
+    test.coordinates,
+    type = "centroids",
+    assay = "RNA"
+  )
+  test.data[["fov"]] <- fov
+
+  # dividing the grid into 4 along each axis creates 16 regions - label
+  # each cell with the region containing it's x, y position
+  x.regions <- cut(test.coordinates[["x"]], breaks = 4, labels = FALSE)
+  y.regions <- cut(test.coordinates[["y"]], breaks = 4, labels = FALSE)
+  test.data[["test_labels"]] <- ((y.regions - 1) * 4 + x.regions)
+
+  results <- BuildNicheAssay(
+    test.data,
+    fov = "fov",
+    group.by = "test_labels",
+    assay = "niche"
+  )
+  # the new niche assay should contain the same number of cells as the input
+  # and a feature for each unique label from the specified `group.by` variable
+  expect_equal(
+    c(16, ncol(test.data[["RNA"]])),
+    dim(results[["niche"]])
+  )
+  # exaclty a quarter of the cells should be assigned to each niche 
+  for (niche in 1:4) {
+    expect_equal(
+      20,
+      length(results[["niches"]][results[["niches"]]["niches"] == niche])
+    )
+  }
+})
