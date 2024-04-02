@@ -2913,6 +2913,7 @@ CreateCategoryMatrix <- function(
 #' @param fov FOV object to gather cell positions from
 #' @param group.by Cell classifications to count in spatial neighborhood
 #' @param assay Name for spatial neighborhoods assay
+#' @param cluster.name Name of output clusters
 #' @param neighbors.k Number of neighbors to consider for each cell
 #' @param niches.k Number of clusters to return based on the niche assay
 #'
@@ -2926,6 +2927,7 @@ BuildNicheAssay <- function(
   fov,
   group.by,
   assay = "niche",
+  cluster.name = "niches",
   neighbors.k = 20,
   niches.k = 4
 ) {
@@ -2964,7 +2966,7 @@ BuildNicheAssay <- function(
     centers = niches.k,
     nstart = 30
   )
-  object$niches <- results[["cluster"]]
+  object[[cluster.name]] <- results[["cluster"]]
 
   return(object)
 }
