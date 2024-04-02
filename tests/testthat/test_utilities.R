@@ -231,7 +231,8 @@ test_that("BuildNicheAssay works as expected", {
     test.data,
     fov = "fov",
     group.by = "test_labels",
-    assay = "niche"
+    assay = "niche",
+    cluster.name = "niches"
   )
   # the new niche assay should contain the same number of cells as the input
   # and a feature for each unique label from the specified `group.by` variable
