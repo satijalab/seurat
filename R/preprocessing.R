@@ -1282,7 +1282,7 @@ Read10X_Image <- function(
 #' @concept preprocessing
 #'
 Read10X_Coordinates <- function(filename, filter.matrix) {
-  # ouput columns names
+  # output columns names
   col.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
   
   # if the coordinate mappings are in a parquet file
