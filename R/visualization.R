@@ -6988,8 +6988,7 @@ GeomSpatial <- ggproto(
   },
   draw_key = draw_key_point,
   draw_panel = function(data, panel_scales, coord, image, image.alpha, image.scale, crop) {
-    img.grob <- GetImage(image)
-    img.dim <- dim(img.grob$raster)
+    img.dim <- dim(image)
 
     # This should be in native units, where
     # Locations and sizes are relative to the x- and yscales for the current viewport.
@@ -7020,7 +7019,7 @@ GeomSpatial <- ggproto(
     spot.size <- Radius(object = image, scale = image.scale)
     coords <- coord$transform(data, panel_scales)
 
-    img <- editGrob(grob = img.grob, vp = vp)
+    img <- editGrob(grob = GetImage(image), vp = vp)
     pts <- pointsGrob(
       x = coords$x,
       y = coords$y,
