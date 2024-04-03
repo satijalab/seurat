@@ -600,7 +600,7 @@ Load10X_Spatial <- function (
       file.path(data.dirs, "spatial"),
       assay = assay.names,
       slice = slice.names,
-      MoreArgs = list(filter.matrix = filter.matrix)
+      MoreArgs = list(filter.matrix = filter.matrix, image.scale = image.scale)
     )
   } else {
     # make sure any passed images are in a vector
