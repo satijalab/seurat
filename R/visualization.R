@@ -3978,7 +3978,7 @@ SpatialPlot <- function(
     stop("`keep.scale` must be set to either `feature`, `all`, or NULL")
   }
 
-  cells <- CellsByImage(object, images = images, unlist = TRUE)
+  cells <- unique(CellsByImage(object, images = images, unlist = TRUE))
   if (is.null(x = features)) {
     if (interactive) {
       return(ISpatialDimPlot(
