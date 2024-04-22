@@ -3649,6 +3649,7 @@ ISpatialFeaturePlot <- function(
   object,
   feature,
   image = NULL,
+  image.scale = "lowres",
   slot = 'data',
   alpha = c(0.1, 1)
 ) {
@@ -3740,7 +3741,7 @@ ISpatialFeaturePlot <- function(
   # Prepare plotting data
   image <- image %||% DefaultImage(object = object)
   cells.use <- Cells(x = object[[image]])
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   feature.data <- FetchData(
     object = object,
     vars = feature,
@@ -4005,6 +4006,7 @@ SpatialPlot <- function(
         object = object,
         feature = features[1],
         image = images[1],
+        image.scale = image.scale,
         slot = slot,
         alpha = alpha
       ))
