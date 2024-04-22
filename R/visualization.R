@@ -3182,6 +3182,7 @@ LinkedDimPlot <- function(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   group.by = NULL,
   alpha = c(0.1, 1),
   combine = TRUE
@@ -3225,7 +3226,7 @@ LinkedDimPlot <- function(
     vars = group.by,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   plot.data$selected_ <- FALSE
