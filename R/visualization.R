@@ -3522,6 +3522,7 @@ LinkedFeaturePlot <- function(
 ISpatialDimPlot <- function(
   object,
   image = NULL,
+  image.scale = "lowres",
   group.by = NULL,
   alpha = c(0.3, 1)
 ) {
@@ -3555,7 +3556,7 @@ ISpatialDimPlot <- function(
     vars = group.by,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   plot.data <- cbind(coords, group.data)
   plot.data$selected_ <- FALSE
   Idents(object = object) <- group.by
@@ -3984,6 +3985,7 @@ SpatialPlot <- function(
       return(ISpatialDimPlot(
         object = object,
         image = images[1],
+        image.scale = image.scale,
         group.by = group.by,
         alpha = alpha
       ))
