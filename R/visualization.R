@@ -3563,6 +3563,7 @@ ISpatialDimPlot <- function(
     cells = cells.use
   )
   coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
+  scale.factor <- ScaleFactors(object[[image]])[[image.scale]]
   plot.data <- cbind(coords, group.data)
   plot.data$selected_ <- FALSE
   Idents(object = object) <- group.by
@@ -3618,14 +3619,26 @@ ISpatialDimPlot <- function(
     # Add hover text
     output$info <- renderPrint(
       expr = {
-        cell.hover <- rownames(x = nearPoints(
+        hovered <- nearPoints(
           df = plot.data,
           coordinfo = InvertCoordinate(x = input$hover),
           threshold = 10,
           maxpoints = 1
-        ))
-        if (length(x = cell.hover) == 1) {
-          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        )
+        if (nrow(hovered) == 1) {
+          cell.hover <- rownames(hovered)
+          # SingleSpatialPlot relies on the spatial coordinates appearing
+          # in the first two columns of the returned data.frame - it's kinda
+          # fragile but we're obligated to use the same behaviour here
+          coords.hover <- hovered[1, colnames(coords)[1:2]] / scale.factor
+          group.hover <- hovered[1, group.by]
+          sprintf(
+            "Cell: %s, Group: %s, Coordinates: (%.2f, %.2f)", 
+            cell.hover, 
+            group.hover, 
+            coords.hover[[1]],
+            coords.hover[[2]]
+          )
         } else {
           NULL
         }
