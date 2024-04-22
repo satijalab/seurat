@@ -3392,6 +3392,7 @@ LinkedFeaturePlot <- function(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   slot = 'data',
   alpha = c(0.1, 1),
   combine = TRUE
@@ -3431,7 +3432,7 @@ LinkedFeaturePlot <- function(
     vars = feature,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
