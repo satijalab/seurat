@@ -59,7 +59,7 @@ test_that("Read10X_h5 works as expected", {
 
 test_that("Read10X_Image works as expected", {
   path.to.images <- file.path(path.to.visium, "spatial")
-  coordinate.filesnames <-  "tissue_positions_list.csv"
+  coordinate.filenames <-  "tissue_positions_list.csv"
   # only test HD the dataset containing a parquet file if `arrow` is installed
   if (requireNamespace("arrow", quietly = TRUE)) {
     path.to.images <- c(
@@ -70,7 +70,7 @@ test_that("Read10X_Image works as expected", {
       )
     )
     coordinate.filenames <- c(
-      coordinate.filesnames,
+      coordinate.filenames,
       "tissue_positions.parquet"
     )
   }
@@ -93,6 +93,7 @@ test_that("Read10X_Image works as expected", {
     # default/lowres scaling
     image <- Read10X_Image(path.to.image)
     coordinates <- GetTissueCoordinates(image, scale = "lowres")
+    spot.radius <- Radius(image, scale = "lowres")
     scale.factors <- ScaleFactors(image)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
@@ -103,15 +104,15 @@ test_that("Read10X_Image works as expected", {
     )
     # check that the spot size is similarly scaled
     expect_equal(
-      (Radius(image) / scale.factors[["lowres"]] * max(dim(image))),
+      (spot.radius / scale.factors[["lowres"]] * max(dim(image))),
       scale.factors.expected[["spot"]],
     )
 
     # hires scaling
-    image <- Read10X_Image(path.to.image, image.scale = "hires")
-    coordinates <- GetTissueCoordinates(image, scale = "hires")
-    spot.radius <- Radius(image, scale = "hires")
-    scale.factors <- ScaleFactors(image)
+    image.hires <- Read10X_Image(path.to.image, image.scale = "hires")
+    coordinates <- GetTissueCoordinates(image.hires, scale = "hires")
+    spot.radius <- Radius(image.hires, scale = "hires")
+    scale.factors <- ScaleFactors(image.hires)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
     # check that `coordinates` contains values scaled for the high resolution PNG
@@ -121,9 +122,11 @@ test_that("Read10X_Image works as expected", {
     )
     # check that the spot size is similarly scaled
     expect_equal(
-      (spot.radius / scale.factors[["hires"]] * max(dim(image))),
-      scale.factors.expected[["spot"]],
+      (spot.radius / scale.factors[["hires"]] * max(dim(image.hires))),
+      scale.factors.expected[["spot"]]
     )
+    # the size of the two images should be different
+    expect_false(all(dim(image.hires) == dim(image)))
   }
 })
 
