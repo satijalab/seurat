@@ -1310,9 +1310,9 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
       colnames(coordinates)
     )
 
-    # set rownames to the first column in the dataframe ("barcodes")
-    rownames(coordinates) <- coordinates[[1]]
-    coordinates <- coordinates[, -1]
+    # set rownames to "barcodes" then drop the column
+    rownames(coordinates) <- coordinates[["barcodes"]]
+    coordinates[["barcodes"]] <- NULL
 
   } else {
     # the coordinate mappings must be in a CSV - read it in
