@@ -80,6 +80,7 @@ test_that("Read10X_Image works as expected", {
     coordinate.filename <- coordinate.filenames[[i]]
 
     # read in the coordinates as a data.frame - only keep the relevant columns
+    # and rename them to match the processed output
     coordinates.expected <- Read10X_Coordinates(
       file.path(path.to.image, coordinate.filename),
       filter.matrix = TRUE
@@ -89,7 +90,6 @@ test_that("Read10X_Image works as expected", {
     scale.factors.expected <- Read10X_ScaleFactors(
       file.path(path.to.image, "scalefactors_json.json")
     )
-
     # default/lowres scaling
     image <- Read10X_Image(path.to.image)
     coordinates <- GetTissueCoordinates(image, scale = "lowres")
@@ -98,7 +98,7 @@ test_that("Read10X_Image works as expected", {
     expect_true(identical(scale.factors, scale.factors.expected))
     # check that `coordinates` contains values scaled for the low resolution PNG
     expect_equal(
-      coordinates / scale.factors[["lowres"]], 
+      coordinates[, c("x", "y")] / scale.factors[["lowres"]], 
       coordinates.expected
     )
     # check that the spot size is similarly scaled
@@ -114,9 +114,9 @@ test_that("Read10X_Image works as expected", {
     scale.factors <- ScaleFactors(image)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
-    # check that `coordinates` contains values scaled for the low resolution PNG
+    # check that `coordinates` contains values scaled for the high resolution PNG
     expect_equal(
-      coordinates / scale.factors[["hires"]], 
+      coordinates[, c("x", "y")] / scale.factors[["hires"]], 
       coordinates.expected
     )
     # check that the spot size is similarly scaled
