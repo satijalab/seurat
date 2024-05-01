@@ -96,6 +96,35 @@ test_that("SpatialFeaturePlot works with multiple layers & images", {
   expect_true(equivalent_plots(plots[[2]], plot.2))
 })
 
+test_that("SpatialFeaturePlot works with multiple overlapping images", {
+  test.case <- test.data.1
+  suppressWarnings(
+    test.case[["slice1.crop"]] <- Crop(
+      test.case[["slice1.A"]], 
+      x = c(0, 5000),
+      y = c(0, 5000)
+    )
+  )
+
+  plots <- SpatialFeaturePlot(test.case, features = "nCount_Spatial.A")
+  plot.1 <- SpatialFeaturePlot(
+    test.case,
+    images = "slice1.A",
+    features = "nCount_Spatial.A"
+  )
+  plot.2 <- SpatialFeaturePlot(
+    test.case,
+    images = "slice1.crop",
+    features = "nCount_Spatial.A"
+  )
+  expect_equal(length(plots), 2)
+  expect_no_error(test_render(plots))
+  expect_no_error(test_render(plot.1))
+  expect_no_error(test_render(plot.2))
+  expect_true(equivalent_plots(plots[[1]], plot.1))
+  expect_true(equivalent_plots(plots[[2]], plot.2))
+})
+
 test_that("SpatialFeaturePlot works with multiple assays & images", {
   test.case <- merge(test.data.1, test.data.3)
 
@@ -216,6 +245,32 @@ test_that("SpatialDimPlot works with multiple layers/images", {
   expect_true(equivalent_plots(plots[[2]], plot.2))
 })
 
+test_that("SpatialDimPlot works with multiple overlapping images", {
+  test.case <- test.data.1
+  suppressWarnings(
+    test.case[["slice1.crop"]] <- Crop(
+      test.case[["slice1.A"]], 
+      x = c(0, 5000),
+      y = c(0, 5000)
+    )
+  )
+
+  plots <- SpatialDimPlot(test.case)
+  plot.1 <- SpatialDimPlot(
+    test.case,
+    images = "slice1.A"
+  )
+  plot.2 <- SpatialDimPlot(
+    test.case,
+    images = "slice1.crop"
+  )
+  expect_equal(length(plots), 2)
+  expect_no_error(test_render(plots))
+  expect_no_error(test_render(plot.1))
+  expect_no_error(test_render(plot.2))
+  expect_true(equivalent_plots(plots[[1]], plot.1))
+  expect_true(equivalent_plots(plots[[2]], plot.2))
+})
 
 test_that("SpatialDimPlot works with multiple assays/images", {
   test.case <- merge(test.data.1, test.data.3)
