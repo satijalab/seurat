@@ -13,12 +13,12 @@ cluster.ape <- paste(
 
 #' Phylogenetic Analysis of Identity Classes
 #'
-#' Constructs a phylogenetic tree relating the 'average' cell from each
+#' Constructs a phylogenetic tree relating the 'aggregate' cell from each
 #' identity class. Tree is estimated based on a distance matrix constructed in
 #' either gene expression space or PCA space.
 #'
-#' Note that the tree is calculated for an 'average' cell, so gene expression
-#' or PC scores are averaged across all cells in an identity class before the
+#' Note that the tree is calculated for an 'aggregate' cell, so gene expression
+#' or PC scores are summed across all cells in an identity class before the
 #' tree is constructed.
 #'
 #' @param object Seurat object
@@ -37,7 +37,7 @@ cluster.ape <- paste(
 #' @param reorder.numeric Re-order identity classes according to position on
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @param verbose Show progress updates
-#' @inheritParams AverageExpression
+#' @inheritParams PseudobulkExpression
 #'
 #' @return A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 #'
@@ -135,14 +135,23 @@ BuildClusterTree <- function(
   } else {
     features <- features %||% VariableFeatures(object = object)
     features <- intersect(x = features, y = rownames(x = object))
-    data.avg <- AverageExpression(
+    # this block essentially re-implements `AggregateExpression` except that
+    # it doesn't require that the `layer` param to be set to "counts"
+    data.agg <- PseudobulkExpression(
       object = object,
       assays = assay,
       features = features,
-      slot = slot,
-      verbose = verbose
+      layer = slot,
+      return.seurat = FALSE,
+      group.by = "ident",
+      add.ident = NULL,
+      method = "aggregate",
+      normalization.method = "LogNormalize",
+      scale.factor = 10000,
+      margin = 1,
+      verbose = verbose,
     )[[1]]
-    data.dist <- dist(x = t(x = data.avg[features, ]))
+    data.dist <- dist(x = t(x = data.agg[features, ]))
   }
   data.tree <- ape::as.phylo(x = hclust(d = data.dist))
   Tool(object = object) <- data.tree
