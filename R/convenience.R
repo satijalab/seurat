@@ -172,7 +172,7 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
 
 #' @return \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
 #'
-#' @param data.dir Path to folder containing Nanostring SMI outputs
+#' @param data.dir Path to folder containing Xenium outputs
 #' @param fov FOV name
 #' @param assay Assay name
 #' @param mols.qv.threshold Remove transcript molecules with
@@ -182,6 +182,8 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
 #' @param molecule.coordinates Whether or not to load molecule pixel coordinates
 #' @param segmentations One of "cell", "nucleus" or NULL (to load either cell
 #' segmentations, nucleus segmentations or neither)
+#' @param flip.xy Whether or not to flip the x/y coordinates of the Xenium outputs
+#' to match what is displayed in Xenium Explorer, or fit on your screen better.
 #'
 #' @importFrom SeuratObject Cells CreateCentroids CreateFOV
 #' CreateSegmentation CreateSeuratObject CreateMolecules
@@ -203,13 +205,13 @@ LoadXenium <- function(
   if(!is.null(segmentations) && !(segmentations %in% c('nucleus', 'cell'))) {
     stop('segmentations must be NULL or one of "nucleus", "cell"')
   }
-  
+
   if(!cell.centroids && is.null(segmentations)) {
     stop(
       "Must load either centroids or cell/nucleus segmentations"
     )
   }
-  
+
   data <- ReadXenium(
     data.dir = data.dir,
     type = c("centroids", "segmentations", "nucleus_segmentations")[
@@ -221,7 +223,7 @@ LoadXenium <- function(
     mols.qv.threshold = mols.qv.threshold,
     flip.xy = flip.xy
   )
-  
+
   segmentations <- intersect(c("segmentations", "nucleus_segmentations"), names(data))
 
   segmentations.data <- Filter(Negate(is.null), list(
@@ -238,7 +240,7 @@ LoadXenium <- function(
       NULL
     }
   ))
-  
+
   coords <- if(length(segmentations.data) > 0) {
     CreateFOV(
       segmentations.data,
@@ -252,7 +254,7 @@ LoadXenium <- function(
   } else {
     NULL
   }
-  
+
   slot.map <- c(
     `Blank Codeword` = 'BlankCodeword',
     `Unassigned Codeword` = 'BlankCodeword',
@@ -261,15 +263,15 @@ LoadXenium <- function(
   )
 
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
-  
+
   if(!is.null(data$metadata)) {
     Misc(xenium.obj, 'run_metadata') <- data$metadata
   }
-  
+
   if(!is.null(data$segmentation_method)) {
     xenium.obj <- AddMetaData(xenium.obj, data$segmentation_method)
   }
-  
+
   for(name in intersect(names(slot.map), names(data$matrix))) {
     xenium.obj[[slot.map[name]]] <- CreateAssayObject(counts = data$matrix[[name]])
   }
