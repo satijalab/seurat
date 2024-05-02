@@ -137,21 +137,27 @@ BuildClusterTree <- function(
     features <- intersect(x = features, y = rownames(x = object))
     # if `slot` is set to "counts" sum the expression of the
     # ident groups, otherwise average them
-    method.pseudobulk <- ifelse(slot == "counts", "aggregate", "average")
-    data.pseudobulk <- PseudobulkExpression(
-      object = object,
-      assays = assay,
-      features = features,
-      layer = slot,
-      return.seurat = FALSE,
-      group.by = "ident",
-      add.ident = NULL,
-      method = method.pseudobulk,
-      normalization.method = "LogNormalize",
-      scale.factor = 10000,
-      margin = 1,
-      verbose = verbose,
-    )[[1]]
+    if(slot == "counts") {
+      # AggregateExpression only operates on a "counts" matrix so `layer`
+      # cannot be specified
+      data.pseudobulk <- AggregateExpression(
+        object,
+        assays = assay,
+        features = features,
+        verbose = verbose
+      )[[1]]
+    } else {
+      data.pseudobulk <- (
+        AverageExpression(
+          object,
+          assays = assay,
+          features = features,
+          # explicitly pass in the value of `slot` in as `layer`
+          layer = slot,
+          verbose = verbose
+        )
+      )[[1]]
+    }
     data.dist <- dist(x = t(x = data.pseudobulk[features, ]))
   }
   data.tree <- ape::as.phylo(x = hclust(d = data.dist))
