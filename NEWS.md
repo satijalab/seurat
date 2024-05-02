@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Fixed `SpatialPlot` to properly handle images with shared cells
 - Added `cluster.name` parameter to `BuildNicheAssay`
 - Added `VisiumV2` class, inherits `SeuratObject::FOV`, returned by `Load10X_Spatial`
 - Updated `Load10X_Spatial` to support loading Visium HD datasets - added `bin.size` parameter 
