@@ -70,7 +70,7 @@ BuildClusterTree <- function(
   reorder.numeric = FALSE,
   verbose = TRUE
 ) {
-  if (!PackageCheck('ape', error = FALSE)) {
+  if (!requireNamespace('ape', quietly = TRUE)) {
     stop(cluster.ape, call. = FALSE)
   }
   assay <- assay %||% DefaultAssay(object = object)
