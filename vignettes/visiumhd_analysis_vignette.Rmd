@@ -41,7 +41,7 @@ install.packages("arrow")
 
 remotes::install_github(repo = "satijalab/seurat", ref = "visium-hd")
 ```
-```{r install}
+```{r install, eval = FALSE}
 library(Seurat)
 library(SeuratData)
 library(ggplot2)
@@ -127,14 +127,36 @@ p1 <- DimPlot(object, reduction = "umap.sketch", label=T, repel=T)
 p2 <- SpatialDimPlot(object, label=T, repel=T)
 p1 | p2
 ```
-```{r heatmap}
+```{r cluster.plot, fig.height = 10}
+plot_cluster_grid <- function(object, ident) {
+  Idents(object) <- ident
+  num_clusters <- length(levels(object))
+  num_cols <- ceiling(sqrt(num_clusters))
+  cluster_chunks <- split(levels(object), ceiling(seq_along(levels(object)) / num_cols))
+  
+  combined_plots <- lapply(cluster_chunks, function(chunk) {
+    plot_list <- lapply(chunk, function(ident_level) {
+      SpatialDimPlot(object, cells.highlight = WhichCells(object, idents = ident_level), cols.highlight = c("#FFFF00", "grey50")) + NoLegend() + ggtitle(ident_level)
+    })
+    wrap_plots(plot_list, ncol = length(plot_list)) +
+      plot_layout(guides = 'collect') +
+      plot_annotation(theme = theme(plot.margin = unit(rep(-0.5, 4), "lines")))
+  })
+  
+  final_plot <- wrap_plots(combined_plots, ncol = 1)
+  return(final_plot)
+}
+
+p <- plot_cluster_grid(object,ident = "seurat_cluster.projected")
+p
+```
+```{r heatmap, fig.height = 10}
+DefaultAssay(object) <- "Spatial.008um"
 Idents(object) <- "seurat_cluster.projected"
 object_subset <- subset(object, downsample=1000)
-object_subset <- BuildClusterTree(object_subset, assay = "Spatial.008um", reduction = "pca.008um", reorder.numeric = T, verbose = TRUE)
-node_order <- gsub("g", "", Tool(object = object_subset, slot = 'BuildClusterTree')$tip.label)
-object_subset$ordered_seurat_cluster.projected <- factor(object_subset$seurat_cluster.projected, levels = as.numeric(node_order))
+object_subset <- BuildClusterTree(object_subset, assay = "Spatial.008um", reduction = "pca.008um", reorder = T, verbose = TRUE)
 
-Idents(object_subset) <- "ordered_seurat_cluster.projected"
+Idents(object_subset) <- "seurat_cluster.projected"
 markers <- FindAllMarkers(object_subset, assay = 'Spatial.008um', only.pos = TRUE)
 markers %>%
     group_by(cluster) %>%
@@ -142,14 +164,15 @@ markers %>%
     slice_head(n = 5) %>%
     ungroup() -> top5
 
-p <- DoHeatmap(object_subset, features = top5$gene, group.by = 'ordered_seurat_cluster.projected') + NoLegend()
+p <- DoHeatmap(object_subset, features = top5$gene, group.by = 'seurat_cluster.projected', size = 2.5) + NoLegend()
 p
 ```
 
 ## Spatial neighborhood identification with BANKSY
 
 ```{r banksy}
-#remotes::install_github('jleechung/seurat-wrappers@feat-aft')
+#remotes::install_github('jleechung/seurat-wrappers&#64;feat-aft')
+#remotes::install_github("prabhakarlab/Banksy&#64;devel")
 library(SeuratWrappers)
 library(Banksy)
 ```
@@ -174,6 +197,11 @@ p <- SpatialDimPlot(object, group.by="banksy_cluster",label=T, repel=T)
 p
 ```
 
+```{r banksy.cluster.plot, fig.height = 10}
+p <- plot_cluster_grid(object, ident = "banksy_cluster")
+p
+```
+
 ## Subset out anatomical regions 
 
 ```{r subset1}
@@ -188,8 +216,8 @@ cortex <- subset(object, cells=Cells(object[['cortex']]))
 
 ## Spatial deconvolution using RCTD
 
-```{r, eval=FALSE}
-devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+```{r install.rctd}
+# devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 library(spacexr)
 ```
 
@@ -254,7 +282,7 @@ query <- SpatialRNA(coords, counts_hd, colSums(counts_hd))
 ```{r run.rctd, warning=FALSE, results=FALSE, eval=FALSE}
 RCTD <- create.RCTD(query, reference, max_cores = 28)
 RCTD <- run.RCTD(RCTD, doublet_mode = "doublet")
-cortex <- AddMetaData(cortex, metadata = RCTD@results$results_df)
+cortex <- AddMetaData(cortex, metadata = RCTD&#64;results$results_df)
 ```
 ```{r project.rctd}
 cortex$first_type <- as.character(cortex$first_type)
@@ -270,25 +298,23 @@ cortex <- ProjectData(
   refdata = list(full_first_type = "first_type")
 )
 ```
-
-```{r}
+```{r rctd_results, fig.height=8, eval=FALSE}
 DefaultAssay(object) <- "Spatial.008um"
 object[[]][, "cortex_first_type"] <- "Unknown"
 object$cortex_first_type[Cells(cortex)] <- cortex$full_first_type[Cells(cortex)]
-```
-```{r rctd_results, fig.height=8, fig.width=14, eval=FALSE}
+
 p <- SpatialDimPlot(object, images="slice1.008um", group.by = "cortex_first_type", label=T, repel=T, label.size = 2) 
 p
 ```
 
 ## Spatial neighborhood identification with BuildNicheAssay
 
-```{r build.niches, eval=FALSE}
+```{r build.niches}
 DefaultAssay(object) <- "Spatial.008um"
 neighbors <- 200
 object <- BuildNicheAssay(object = object, fov = "slice1.008um", group.by = "cortex_first_type", niches.k = 20, neighbors.k = neighbors)
 ```
-```{r niches.plot, eval=FALSE}
+```{r niches.plot}
 p <- SpatialDimPlot(object, group.by="niches", label=T, repel=T)
 p
 ```
@@ -296,12 +322,12 @@ p
 ## Analysis
 
 Labeling niches/Banksy clusters as layers
-```{r celltype.plot}
+```{r celltype.plot, fig.height = 12}
 # decide whether to use niches or Banksy clusters to define layers 
 excitatory_neurons <- c("L6 CT CTX","L2 IT ENTl","L5-6 NP CTX","L4-5 IT CTX","L5 IT CTX","L6b CTX", "L2-3 IT ENTl", "L4 RSP-ACA", "L2-3 IT CTX", " L5 PT CTX", "L6 IT CTX", "L2-3 IT PPP", "L5-6 IT TPE-ENT", "L6b-CT ENT", "L3 IT ENT", "L2 IT ENTm", "L5 PPP", "L2-3 IT RHP", "L6 IT ENTl")
 
 plot_cell_types <- function(data, label) {
-  ggplot(data, aes(x = get(label), y = n, fill = cortex_first_type)) +
+  p <- ggplot(data, aes(x = get(label), y = n, fill = cortex_first_type)) +
     geom_bar(stat = "identity", position = "stack") +
     geom_text(aes(label = ifelse(n >= min_count_to_show_label, cortex_first_type, "")),
               position = position_stack(vjust = 0.5), size = 2) +
@@ -321,8 +347,9 @@ cell_type_niche_counts <- object[[]] %>%
 
 min_count_to_show_label <- 50
 
-plot_cell_types(cell_type_banksy_counts, "banksy_cluster")
-plot_cell_types(cell_type_niche_counts, "niches")
+p1 <- plot_cell_types(cell_type_banksy_counts, "banksy_cluster")
+p2 <- plot_cell_types(cell_type_niche_counts, "niches")
+p1/p2
 ```
 ```{r layer.label}
 # label layers
@@ -343,156 +370,11 @@ ggplot(neuron_props, aes(x = Var1, y = value, fill = Var2)) +
   theme_classic()
 ```
 
-```{r oligo}
+```{r oligo, fig.height = 14}
 DefaultAssay(object) <- "Spatial.008um"
 
 Idents(object) <- "cortex_first_type"
 oligo_cells <- WhichCells(object, ident = "Oligo")
 
 Idents(object) <- "layer"
-oligo_l2 <- intersect(oligo_cells, WhichCells(object,ident="L2 IT ENTl"))
-oligo_l45 <- intersect(oligo_cells, WhichCells(object,ident="L4-5 IT CTX"))
-oligo_l5 <- intersect(oligo_cells, WhichCells(object,ident="L5 IT CTX"))
-oligo_l6 <- intersect(oligo_cells, WhichCells(object,ident="L6 CT CTX"))
-
-cells <- list(oligo_l2, oligo_l5, oligo_l45, oligo_l6)
-oligo.markers <- do.call(rbind, lapply(cells, function(cell) {
-    head(FindMarkers(object, assay = "Spatial.008um", features = VariableFeatures(object), ident.1 = cell, ident.2 = setdiff(oligo_cells, cell)), 10) #seems like assay argument doesnt work
-}))
-
-DefaultAssay(object) <- "Spatial.008um"
-p1 <- DoHeatmap(
-  object = object,
-  assay = "Spatial.008um",
-  cells = unlist(cells),
-  features = intersect(rownames(oligo.markers), Features(ref_subset, assay="RNA")),
-  group.by = "layer",
-  slot="scale.data",
-  label = TRUE,
-  size=2.5
-) + NoLegend()
-
-DefaultAssay(ref) <- "RNA"
-Idents(ref) <- "subclass_label"
-ref_subset <- subset(ref, downsample = 2000, idents = c("Oligo","L6 CT CTX","L2 IT ENTl","L5/6 NP CTX","L4/5 IT CTX","L5 IT CTX","L6b CTX","L2/3 IT ENTl","L4 RSP-ACA","L2/3 IT CTX","L5 PT CTX","L6 IT CTX","L2/3 IT PPP","L5/6 IT TPE-ENT","L6b/CT ENT","L3 IT ENT","L2 IT ENTm","L5 PPP","L2/3 IT RHP","L6 IT ENTl"))
-ref_subset[["RNA"]]$counts <- as(object = ref_subset[["RNA"]]$counts, Class = "dgCMatrix")
-ref_subset <- NormalizeData(ref_subset)
-ref_subset <- ScaleData(ref_subset, features = Features(ref_subset))
-
-p2 <- DoHeatmap(
-  object = ref_subset,
-  assay = "RNA",
-  features = rownames(oligo.markers),
-  group.by = "subclass_label",
-  slot="scale.data",
-  label = TRUE,
-  size=2.5
-) + NoLegend()
-
-p1 | p2
-```
-
-## Sketching & clustering on mouse intestine
-
-```{r intestine}
-localdir <- "/brahms/lis/visium_hd/intestine/outs/" 
-object <- Load10X_Spatial(data.dir = localdir, bin.size = c(8, 16))
-```
-```{r intestine.process}
-DefaultAssay(object) <- "Spatial.008um"
-
-object <- NormalizeData(object)
-object <- FindVariableFeatures(object)
-object <- ScaleData(object)
-object <- RunPCA(object, reduction.name = "pca.Spatial.008um")
-object <- FindNeighbors(object, reduction = "pca.Spatial.008um", dims = 1:30)
-object <- FindClusters(object, resolution = 0.6, cluster.name = "seurat_cluster.008um")
-object <- RunUMAP(object, reduction = "pca.Spatial.008um", reduction.name = "umap.Spatial.008um", dims = 1:30)
-```
-
-```{r intestine.sketching}
-DefaultAssay(object) <- "Spatial.008um"
-object <- SketchData(
-  object = object,
-  ncells = 50000,
-  method = "LeverageScore",
-  sketched.assay = "sketch"
-)
-```
-
-```{r intestine.sketch.preprocess}
-DefaultAssay(object) <- "sketch"
-object <- FindVariableFeatures(object)
-object <- ScaleData(object)
-object <- RunPCA(object, assay="sketch", reduction.name = "pca.sketch", verbose = T)
-object <- FindNeighbors(object, assay="sketch", reduction = "pca.sketch", dims = 1:30, verbose = T)
-object <- FindClusters(object, cluster.name="seurat_cluster.sketched", resolution = 3, verbose = T)
-object <- RunUMAP(object, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:30, verbose = T)
-```
-
-```{r intestine.project}
-object <- ProjectData(
-  object = object,
-  assay = "Spatial.008um",
-  full.reduction = "pca.Spatial.008um",
-  sketched.assay = "sketch",
-  sketched.reduction = "pca.sketch",
-  umap.model = "umap.sketch",
-  dims = 1:50,
-  refdata = list(seurat_cluster.projected = "seurat_cluster.sketched")
-)
-```
-```{r intestine.project.plots}
-Idents(object) <- "seurat_cluster.projected"
-DefaultAssay(object) <- "Spatial.008um"
-
-p1 <- DimPlot(object, reduction = "umap.sketch", label=T, repel=T)
-p2 <- SpatialDimPlot(object, label=T, repel=T)
-p1 | p2
-```
-
-```{r heatmap.compare}
-DefaultAssay(object) <- "Spatial.008um"
-Idents(object) <- "seurat_cluster.projected"
-object_subset <- subset(object, downsample=1000)
-object_subset <- BuildClusterTree(object_subset, assay = "Spatial.008um", reduction = "pca.008um", reorder.numeric = F, verbose = TRUE)
-node_order <- gsub("g", "", Tool(object = object_subset, slot = 'BuildClusterTree')$tip.label)
-object_subset$ordered_seurat_cluster.projected <- factor(object_subset$seurat_cluster.projected, levels = as.numeric(node_order))
-
-Idents(object_subset) <- "ordered_seurat_cluster.projected"
-markers <- FindAllMarkers(object_subset, assay = 'Spatial.008um', only.pos = TRUE)
-markers %>%
-    group_by(cluster) %>%
-    dplyr::filter(avg_log2FC > 1) %>%
-    slice_head(n = 5) %>%
-    ungroup() -> top5
-
-p1 <- DoHeatmap(object_subset, features = top5$gene, group.by = 'ordered_seurat_cluster.projected') + NoLegend()
-
-Idents(object_subset) <- "seurat_cluster.projected"
-object_subset$seurat_cluster.projected <- factor(object_subset$seurat_cluster.projected)
-markers2 <- FindAllMarkers(object_subset, assay = 'Spatial.008um', only.pos = TRUE)
-markers2 %>%
-    group_by(cluster) %>%
-    dplyr::filter(avg_log2FC > 1) %>%
-    slice_head(n = 5) %>%
-    ungroup() -> top5_2
-
-p2 <- DoHeatmap(object_subset, features = top5_2$gene, group.by = 'seurat_cluster.projected') + NoLegend()
-
-p1 | p2
-```
-
-## Acknowledgments
-
-We would like to thank Stephen Williams for their helpful feedback and contributions to the new spatial Seurat code. 
-
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/visiumhd_analysis_vignette_times.csv")
-```
-<details>
-  <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
-```
-</details>
+oligo_l2 <- intersect(oligo_cell
