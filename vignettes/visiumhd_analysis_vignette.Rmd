@@ -32,15 +32,36 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Overview
+# Visium HD support in Seurat
 
+We have [previously released support](https://satijalab.org/seurat/articles/spatial_vignette) Seurat for sequencing-based spatial transcriptomic (ST) technologies, including 10x visium and SLIDE-seq. We have now updated Seurat to be compatible with the Visium HD technology, which performs profiling at substantially higher spatial resolution than previous versions.
+
+Users can install the Visium HD-compatible release from Github. Existing Seurat workflows for [clustering, visualization, and downstream analysis](https://satijalab.org/seurat/articles/pbmc3k_tutorial) have been updated to support both Visium and Visium HD data.
+
+We note that Visium HD data is generated from spatially patterned olignocleotides labeled in 2um x 2um bins. However, since the data from this resolution is sparse, adjacent bins are pooled together to create 8um and 16um resolutions. 10x recommends the use of 8um binned data for analysis, but Seurat supports in the simultaneous loading of multiple binnings - and stores them in a single object as multiple assays.
+
+In this vignette, we provide an overview of some of the spatial workflows that Seurat supports for analyzing Visium HD data, in particular:
+
+* Unsupervised clustering
+* Identification of spatial tissue domains
+* Subsetting spatial regions
+* Integration with scRNA-seq data
+* Comparing the spatial localization of different cell types
+
+Please note that Visium HD is a new data type, and we expect to update this vignette as we test additional methods for spatial data analysis. We strongly encourage users to explore how different parameter settings affect their results, to analyze data iteratively (and in collaboration with biological experts), and to orthogonally validate unexpected or surprising biological findings.
+
+We focus our analysis on a Visium HD dataset from the mouse brain, available to download [here](https://www.10xgenomics.com/datasets/visium-hd-cytassist-gene-expression-libraries-of-mouse-brain-he) but also run clustering workflow on a dataset from the mouse intestine. 
+
+## Install Seurat Update
 ```{r, eval=FALSE}
 # packages required for Visium HD
 install.packages("hdf5r")
 install.packages("arrow")
 
+# Install version v5.0.4
 remotes::install_github(repo = "satijalab/seurat", ref = "visium-hd")
 ```
+
 ```{r install, eval = FALSE}
 library(Seurat)
 library(SeuratData)
@@ -49,46 +70,76 @@ library(patchwork)
 library(dplyr)
 ```
 
-# 10x Visium
+## Load Visium HD data
 
-## Dataset
+* Visium HD mouse brain dataset is available for download [here](https://support.10xgenomics.com/spatial-gene-expression/datasets)
+* The Seurat can store multiple binnings/resolutions in different assays
+* `bin.size` parameter specifies resolutions to load (8 and 16um are loaded by default)
+* Users can switch between resolutions by [changing the assay](https://satijalab.org/seurat/articles/multimodal_vignette)
 
 ```{r data}
 localdir <- "/brahms/lis/visium_hd/mouse/new_mousebrain/" 
-object <- Load10X_Spatial(data.dir = localdir, bin.size = c(8))
-```
+object <- Load10X_Spatial(data.dir = localdir, bin.size = c(8, 16))
 
-## Data preprocessing
-
-```{r qc, fig.height=5}
-p1 <- VlnPlot(object, features = 'nCount_Spatial.008um', pt.size = 0) + NoLegend()
-p2 <- SpatialFeaturePlot(object, features = 'nCount_Spatial.008um') + theme(legend.position = "right")
-p1 | p2
-```
-
-```{r preprocess}
+# Setting default assay changes between 8um and 16um binning
+Assays(object)
 DefaultAssay(object) <- "Spatial.008um"
-
-object <- NormalizeData(object)
-object <- FindVariableFeatures(object)
-object <- ScaleData(object)
-object <- RunPCA(object, reduction.name = "pca.Spatial.008um")
-object <- FindNeighbors(object, reduction = "pca.Spatial.008um", dims = 1:30)
-object <- FindClusters(object, resolution = 0.6, cluster.name = "seurat_cluster.008um")
-object <- RunUMAP(object, reduction = "pca.Spatial.008um", reduction.name = "umap.Spatial.008um", dims = 1:30)
+```
+```{r qc, fig.height=5}
+vln.plot <- VlnPlot(object, features = 'nCount_Spatial.008um', pt.size = 0) + NoLegend()
+count.plot <- SpatialFeaturePlot(object, features = 'nCount_Spatial.008um', pt.size.factor = 1.2) + theme(legend.position = "right")
+```
+```{r}
+# note that many spots have very few counts, in-part 
+# due to low cellular density in certain tissue regions
+vln.plot | count.plot
 ```
 
-```{r dim.plots,fig.height=5}
-Idents(object) <- "seurat_cluster.008um"
-p1 <- DimPlot(object, reduction = "umap.Spatial.008um", label = T, repel=T) 
-p2 <- SpatialDimPlot(object, , label = T, repel=T, label.size = 3) 
+## Normalize datasets
+
+In this vignette we use standard log-normalization for spatial data. We note that the best normalization methods for spatial data are still being developed and evaluated, and encourage users to read manuscripts from the [Phipson/Davis](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03241-7) and [Fan](https://www.biorxiv.org/content/10.1101/2023.08.30.555624v2) labs to learn more about potential caveats for spatial normalization.
+
+```{r normalize}
+# normalize both 8um and 16um bins
+DefaultAssay(object) <- "Spatial.008um"
+object <- NormalizeData(object)
+
+DefaultAssay(object) <- "Spatial.016um"
+object <- NormalizeData(object)
+```
+
+## Visualize gene expression 
+
+* Setting `pt.size.factor` to 1.2 helps to visualize molecular and histological info in this HD dataset  
+* You can also adjust the `shape`, and `stroke` (outline) parameters for visualization
+
+```{r feature.plots}
+# switch spatial resolution to 16um from 8um
+DefaultAssay(object) <- "Spatial.016um"
+p1 <- SpatialFeaturePlot(object, features = "Rorb", pt.size.factor = 1.2) + ggtitle("Rorb expression (16um)")
+
+# switch back to 8um
+p2 <- SpatialFeaturePlot(object, features = "Hpca", pt.size.factor = 1.2) + ggtitle("Hpca expression (8um)")
+```
+```{r}
 p1 | p2
 ```
 
-## Sketching & clustering 
+## Unsupervised clustering
+
+While the standard scRNA-seq clustering workflow can also be applied to spatial datasets - we have observed that when working with Visium HD datasets, the [Seurat v5 sketch clustering workflow](https://satijalab.org/seurat/articles/seurat5_sketch_analysis) exhibits improved performance, especially for identifying rare and spatially restricted groups.
+
+As described in [Hao et al, Nature Biotechnology 2023](https://www.nature.com/articles/s41587-023-01767-y) and [Hie et al](https://www.sciencedirect.com/science/article/pii/S2405471219301528), sketch-based analyses aim to 'subsample' large datasets in a way that preserves rare populations. Here, we sketch the Visium HD dataset, perform clustering on the subsampled cells, and then project the cluster labels back to the full dataset.
+
+Details of the sketching procedure and workflow are described in [Hao et al, Nature Biotechnology 2023](https://www.nature.com/articles/s41587-023-01767-y) and the [Seurat v5 sketch clustering vignette](https://satijalab.org/seurat/articles/seurat5_sketch_analysis). Since the full Visium HD dataset fits in memory, we do not use any of the on-disk capabilities of Seurat v5 in this vignette.
+
 
 ```{r sketching}
+# note that data is already normalized
 DefaultAssay(object) <- "Spatial.008um"
+object <- FindVariableFeatures(object)
+
+# we select 50,0000 cells and create a new 'sketch' assay
 object <- SketchData(
   object = object,
   ncells = 50000,
@@ -98,16 +149,26 @@ object <- SketchData(
 ```
 
 ```{r sketch.preprocess}
+# switch analysis to sketched cells
 DefaultAssay(object) <- "sketch"
+
+# perform clustering workflow
 object <- FindVariableFeatures(object)
 object <- ScaleData(object)
-object <- RunPCA(object, assay="sketch", reduction.name = "pca.sketch", verbose = T)
-object <- FindNeighbors(object, assay="sketch", reduction = "pca.sketch", dims = 1:30, verbose = T)
-object <- FindClusters(object, cluster.name="seurat_cluster.sketched", resolution = 3, verbose = T)
-object <- RunUMAP(object, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:30, verbose = T)
+object <- RunPCA(object, assay="sketch", reduction.name = "pca.sketch")
+object <- FindNeighbors(object, assay="sketch", reduction = "pca.sketch", dims = 1:50)
+object <- FindClusters(object, cluster.name="seurat_cluster.sketched", resolution = 3)
+object <- RunUMAP(object, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:50)
 ```
 
+Now we can project the cluster labels, and dimensional reductions (PCA and UMAP) that we learned from the 50,000 sketched cells - to the entire dataset, using the `ProjectData` function. 
+
+In the resulting object, for all cells:
+* cluster labels will be stored in `object$seurat_cluster.projected`
+* Projected PCA embeddings will be stored in `object[["pca.008um"]]`
+* Projected UMAP embeddings will be stored in `object[["umap.sketch"]]`
 ```{r project}
+
 object <- ProjectData(
   object = object,
   assay = "Spatial.008um",
@@ -119,15 +180,33 @@ object <- ProjectData(
   refdata = list(seurat_cluster.projected = "seurat_cluster.sketched")
 )
 ```
-```{r project.plots}
-Idents(object) <- "seurat_cluster.projected"
-DefaultAssay(object) <- "Spatial.008um"
 
+We can visualize the clustering results for the sketched cells, as well as the projected clustering results for the full dataset"
+
+```{r project.plots}
+DefaultAssay(object) <- "sketch"
+Idents(object) <- "seurat_cluster.sketched"
 p1 <- DimPlot(object, reduction = "umap.sketch", label=T, repel=T)
-p2 <- SpatialDimPlot(object, label=T, repel=T)
+p1 <- p1 + ggtitle("Sketched clustering (50,000 cells)")
+
+# switch to full dataset
+DefaultAssay(object) <- "Spatial.008um"
+Idents(object) <- "seurat_cluster.projected"
+p2 <- DimPlot(object, reduction = "umap.sketch", label=T, repel=T)
+p2 <- p2 + ggtitle("Projected clustering (full dataset)")
 p1 | p2
 ```
+
+Of course, we can now also visualize the unsupervised clusters based on their spatial location. Note that running `SpatialDimPlot(object, interactive = TRUE)`, also enables interactive visualization and exploration.
+
+```{r cluster.plot}
+SpatialDimPlot(object, label=T, repel=T)
+```
+
+When there are many different clusters (some of which are spatially restricted and others are mixed), plotting the spatial location of all clusters can be challenging to interpret. We find it helpful to plot the spatial location of different clusters individually. For example, we highlight the spatial localization of a few clusters below, which happen to correspond to different cortical layers:
+
 ```{r cluster.plot, fig.height = 10}
+
 plot_cluster_grid <- function(object, ident) {
   Idents(object) <- ident
   num_clusters <- length(levels(object))
@@ -150,13 +229,19 @@ plot_cluster_grid <- function(object, ident) {
 p <- plot_cluster_grid(object,ident = "seurat_cluster.projected")
 p
 ```
-```{r heatmap, fig.height = 10}
-DefaultAssay(object) <- "Spatial.008um"
-Idents(object) <- "seurat_cluster.projected"
-object_subset <- subset(object, downsample=1000)
-object_subset <- BuildClusterTree(object_subset, assay = "Spatial.008um", reduction = "pca.008um", reorder = T, verbose = TRUE)
 
-Idents(object_subset) <- "seurat_cluster.projected"
+
+We can also find and visualize the top gene expression markers for each cluster
+
+```{r heatmap, fig.height = 10}
+Idents(object) <- "seurat_cluster.projected"
+
+# Crete downsampled object to make visualization either
+object_subset <- subset(object, downsample=1000)
+
+# Order clusters by similarity
+object_subset <- BuildClusterTree(object_subset, assay = "Spatial.008um", reduction = "pca.008um", reorder = T)
+
 markers <- FindAllMarkers(object_subset, assay = 'Spatial.008um', only.pos = TRUE)
 markers %>%
     group_by(cluster) %>%
@@ -168,7 +253,14 @@ p <- DoHeatmap(object_subset, features = top5$gene, group.by = 'seurat_cluster.p
 p
 ```
 
-## Spatial neighborhood identification with BANKSY
+## Identifying spatially-defined tissue domains
+
+While the previous analyses consider each bin independently, spatial data enables cells to be defined not just by their neighborhood, but also by their broader spatial context.
+
+In [Singhal et al.](https://www.nature.com/articles/s41588-024-01664-3), the authors introduce BANKSY, Building Aggregates with a Neighborhood Kernel and Spatial Yardstick (BANKSY). BANKSY performs multiple tasks, but we find it particularly valuable for identifying and segmenting tissue domains. When performing clustering, BANKSY augments a spot's expression pattern with both the mean and the gradient of gene expression levels in a spot's broader neighborhood.
+
+We thank the authors for enabling BANKSY to be compatible with Seurat via the [`SeuratWrappers`](https://github.com/satijalab/seurat-wrappers) framework:
+
 
 ```{r banksy}
 #remotes::install_github('jleechung/seurat-wrappers&#64;feat-aft')
@@ -177,7 +269,12 @@ library(SeuratWrappers)
 library(Banksy)
 ```
 
-Here, users can adjust the `k_geom` parameter to alter the number of neighbors that BANKSY looks for when defining a niche neighborhood. 
+Before running BANKSY, there are two important model parameters that users should consider:
+
+* `k_geom` : Local neighborhood size. Larger values will yield larger domains
+* `lambda` : Influence of the neighborhood. Larger values yield more spatially coherent domains
+
+The `RunBanksy` function creates a new `BANKSY` assay, which can be used for dimensional reduction and clustering:
 
 ```{r banksy.run}
 object <- RunBanksy(object, lambda = 0.8, verbose=TRUE, 
@@ -191,11 +288,14 @@ object <- RunUMAP(object, reduction = "pca.banksy", reduction.name = "umap.banks
 object <- FindNeighbors(object, reduction = "pca.banksy", dims = 1:30)
 object <- FindClusters(object, cluster.name = "banksy_cluster", resolution = 0.5)
 ```
+
 ```{r banksy.plot}
 Idents(object) <- "banksy_cluster"
 p <- SpatialDimPlot(object, group.by="banksy_cluster",label=T, repel=T) 
 p
 ```
+
+As with unsupervised clustering, we can highlight the spatial location of each tissue domain individually.
 
 ```{r banksy.cluster.plot, fig.height = 10}
 p <- plot_cluster_grid(object, ident = "banksy_cluster")
@@ -203,6 +303,10 @@ p
 ```
 
 ## Subset out anatomical regions 
+
+Users may wish to segment or subset out a restricted region for further downstream analysis. For example, here we create a coordinate-defined segmentation mask marking cortical and hippocampal regions from the entire dataset using the `CreateSegmentation` function, and then identify cells that fall into this region with the `Overlay` function.
+
+The list of coordinates is available for download [here](INSERT LINK), and users can identify these boundaries when exploring their own datasets using the `interactive=TRUE` argument to `SpatialDimPlot`.
 
 ```{r subset1}
 cortex.coordinates <- as.data.frame(read.csv('/brahms/lis/visium_hd/final_mouse/cortex-hippocampus_coordinates.csv'))
@@ -214,30 +318,30 @@ object[["cortex"]] <- Overlay(object[["slice1.008um"]], cortex)
 cortex <- subset(object, cells=Cells(object[['cortex']]))
 ```
 
-## Spatial deconvolution using RCTD
+## Integration with scRNA-seq data (deconvolution)
 
-```{r install.rctd}
-# devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
-library(spacexr)
+Seurat v5 also includes support for the [Robust Cell Type Decomposition](https://www.nature.com/articles/s41587-021-00830-w), a computational approach to deconvolve spot-level data from spatial datasets, when provided with an scRNA-seq reference. RCTD has been shown to accurately annotate spatial data from a variety of technologies, including SLIDE-seq, Visium, and the 10x Xenium in-situ spatial platform. We observe good performance with Visium HD as well.
+
+To run RCTD, we first install the `spacexr` package from GitHub which implements RCTD.
+
+```{r, eval=FALSE}
+devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 ```
 
+RCTD takes an scRNA-seq dataset as a reference, and a spatial dataset as a query. For a reference, we use SKYLAR TO DESCRIBE, available for download [here](). We use the cortex Visium HD object as the spatial query. For computational efficiency, we sketch the spatial query dataset, apply RCTD to deconvolute the 'sketched' cortical cells and annotate them, and then project these annotations to the full cortical dataset.
+
 ```{r sketch.cortex}
+#sketch the cortical dataset
 DefaultAssay(cortex) <- "Spatial.008um"
 cortex <- NormalizeData(cortex)
 cortex <- FindVariableFeatures(cortex)
-cortex <- RunPCA(cortex, reduction.name = "pca.cortex") 
-cortex <- FindNeighbors(cortex, reduction = "pca.cortex", dims = 1:30)
-cortex <- RunUMAP(cortex, reduction = "pca.cortex", reduction.name = "umap.cortex", dims = 1:30)
-
 cortex <- SketchData(
   object = cortex,
   ncells = 50000,
   method = "LeverageScore",
   sketched.assay = "sketch"
 )
-```
 
-```{r sketch.cortex.preprocess}
 DefaultAssay(cortex) <- "sketch"
 cortex <- ScaleData(cortex)
 cortex <- RunPCA(cortex, assay="sketch", reduction.name = "pca.cortex.sketch", verbose = T)
@@ -245,7 +349,9 @@ cortex <- FindNeighbors(cortex, reduction = "pca.cortex.sketch", dims = 1:30)
 cortex <- RunUMAP(cortex, reduction = "pca.cortex.sketch", reduction.name = "umap.cortex.sketch", return.model = T, dims = 1:30, verbose = T)
 ```
 
+
 ```{r sc.data}
+# load in the reference scRNA-seq dataset
 ref <- readRDS("/brahms/lis/visium_hd/mouse/visiumV2/allen_ref_withsketchumap.rds")
 ```
 
@@ -370,11 +476,3 @@ ggplot(neuron_props, aes(x = Var1, y = value, fill = Var2)) +
   theme_classic()
 ```
 
-```{r oligo, fig.height = 14}
-DefaultAssay(object) <- "Spatial.008um"
-
-Idents(object) <- "cortex_first_type"
-oligo_cells <- WhichCells(object, ident = "Oligo")
-
-Idents(object) <- "layer"
-oligo_l2 <- intersect(oligo_cell
