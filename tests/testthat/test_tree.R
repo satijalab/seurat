@@ -21,7 +21,10 @@ setup_test_data <- function(cluster_resolution) {
 
 context("BuildClusterTree")
 
-test_that("BuildClusterTree works as expected with `slot = 'counts'`", {
+test_that("BuildClusterTree works as expected", {
+    skip_on_cran()
+    skip_if_not_installed("ape")
+
     # TODO: this test doesn't really check that the phylogenic trees being
     # generated are biologically valid but that would be more useful
     # for testing purposes we'll over-cluster our dataset to introduce
