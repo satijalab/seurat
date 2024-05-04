@@ -147,7 +147,7 @@ BuildClusterTree <- function(
         verbose = verbose
       )[[1]]
     } else {
-      data.pseudobulk <- (
+      data.pseudobulk <- suppressMessages(
         AverageExpression(
           object,
           assays = assay,
