@@ -142,31 +142,34 @@ test_that("Load10X_Spatial works with SD data", {
 
   # load the expected counts matrix
   counts.expected <- Read10X_h5(path.to.counts)
-  # load the expected image
-  image.expected <- Read10X_Image(path.to.image)
-  # set the image's key
-  Key(image.expected) <- "slice1_"
-  # update the expected image's assay to match the default
-  DefaultAssay(image.expected) <- "Spatial"
-  # align the expected image's identifiers with the expected count matrix
-  image.expected <- image.expected[colnames(counts.expected)]
 
-  spatial <- Load10X_Spatial(path.to.visium)
+  for (image.scale in c("lowres", "hires")) {
+    # load the expected image
+    image.expected <- Read10X_Image(path.to.image, image.scale = image.scale)
+    # set the image's key
+    Key(image.expected) <- "slice1_"
+    # update the expected image's assay to match the default
+    DefaultAssay(image.expected) <- "Spatial"
+    # align the expected image's identifiers with the expected count matrix
+    image.expected <- image.expected[colnames(counts.expected)]
 
-  # check that `spatial` contains the expected counts matrix
-  expect_true(
-    identical(
-      LayerData(spatial, assay = "Spatial", layer = "counts"),
-      counts.expected
+    spatial <- Load10X_Spatial(path.to.visium, image.scale = image.scale)
+
+    # check that `spatial` contains the expected counts matrix
+    expect_true(
+      identical(
+        LayerData(spatial, assay = "Spatial", layer = "counts"),
+        counts.expected
+      )
     )
-  )
-  # check that `spatial` contains the expected image
-  expect_true(
-    identical(
-      spatial[["slice1"]],
-      image.expected
+    # check that `spatial` contains the expected image
+    expect_true(
+      identical(
+        spatial[["slice1"]],
+        image.expected
+      )
     )
-  )
+  }
 })
 
 test_that("Load10X_Spatial works with HD data", {
@@ -174,17 +177,14 @@ test_that("Load10X_Spatial works with HD data", {
   skip_if_not_installed("hdf5r")
   skip_if_not_installed("arrow")
 
-  # since the "HD" test data is actually just the standard definition test
-  # data re-structured to look like it's been binned at multiple resolutions
-  # the `merge` call inside `Load10X_Spatial` throws a warning
-  spatial <- suppressWarnings(Load10X_Spatial(path.to.visium.hd))
-
   bin.size <- c(16, 8)
+  all.image.scales <- c("lowres", "hires")
   for (i in seq_along(bin.size)) {
     bin.size.pretty <- paste0(sprintf("%03d", bin.size[[i]]), "um")
     assay.name <- paste0("Spatial.", bin.size.pretty)
     image.name <- paste0("slice1.", bin.size.pretty)
     image.key <- paste0("slice1", bin.size.pretty, "_")
+    image.scale <- all.image.scales[[i]]
 
     path.to.bin <- file.path(
       path.to.visium.hd,
@@ -202,7 +202,11 @@ test_that("Load10X_Spatial works with HD data", {
     # the call to `merge` inside `Load10X_Spatial`
     colnames(counts.expected) <- paste0(colnames(counts.expected), "_", i)
     # load the expected image
-    image.expected <- Read10X_Image(path.to.image, assay = assay.name)
+    image.expected <- Read10X_Image(
+      path.to.image, 
+      assay = assay.name,
+      image.scale = image.scale
+    )
     # set the image's key
     Key(image.expected) <- image.key
     # again, accomodate for the way cell identifiers will be reset during
@@ -210,6 +214,13 @@ test_that("Load10X_Spatial works with HD data", {
     image.expected <- RenameCells(image.expected, paste0(Cells(image.expected), "_", i))
     # align the expected image's identifiers with the expected count matrix
     image.expected <- image.expected[colnames(counts.expected)]
+
+    # since the "HD" test data is actually just the standard definition test
+    # data re-structured to look like it's been binned at multiple resolutions
+    # the `merge` call inside `Load10X_Spatial` throws a warning
+    spatial <- suppressWarnings(
+      Load10X_Spatial(path.to.visium.hd, image.scale = image.scale)
+    )
 
     # check that `spatial` contains the expected counts matrix
     expect_true(
