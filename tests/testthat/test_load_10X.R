@@ -91,10 +91,13 @@ test_that("Read10X_Image works as expected", {
       file.path(path.to.image, "scalefactors_json.json")
     )
     # default/lowres scaling
-    image <- Read10X_Image(path.to.image)
-    coordinates <- GetTissueCoordinates(image, scale = "lowres")
-    spot.radius <- Radius(image, scale = "lowres")
-    scale.factors <- ScaleFactors(image)
+    image.lowres <- Read10X_Image(
+      path.to.image, 
+      image.name = "tissue_lowres_image.png"
+    )
+    coordinates <- GetTissueCoordinates(image.lowres, scale = "lowres")
+    spot.radius <- Radius(image.lowres, scale = "lowres")
+    scale.factors <- ScaleFactors(image.lowres)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
     # check that `coordinates` contains values scaled for the low resolution PNG
@@ -104,12 +107,15 @@ test_that("Read10X_Image works as expected", {
     )
     # check that the spot size is similarly scaled
     expect_equal(
-      (spot.radius / scale.factors[["lowres"]] * max(dim(image))),
+      (spot.radius / scale.factors[["lowres"]] * max(dim(image.lowres))),
       scale.factors.expected[["spot"]],
     )
 
     # hires scaling
-    image.hires <- Read10X_Image(path.to.image, image.scale = "hires")
+    image.hires <- Read10X_Image(
+      path.to.image, 
+      image.name = "tissue_hires_image.png"
+    )
     coordinates <- GetTissueCoordinates(image.hires, scale = "hires")
     spot.radius <- Radius(image.hires, scale = "hires")
     scale.factors <- ScaleFactors(image.hires)
@@ -126,7 +132,7 @@ test_that("Read10X_Image works as expected", {
       scale.factors.expected[["spot"]]
     )
     # the size of the two images should be different
-    expect_false(all(dim(image.hires) == dim(image)))
+    expect_false(all(dim(image.hires) == dim(image.lowres)))
   }
 })
 
@@ -143,9 +149,9 @@ test_that("Load10X_Spatial works with SD data", {
   # load the expected counts matrix
   counts.expected <- Read10X_h5(path.to.counts)
 
-  for (image.scale in c("lowres", "hires")) {
+  for (image.name in c("tissue_lowres_image.png", "tissue_hires_image.png")) {
     # load the expected image
-    image.expected <- Read10X_Image(path.to.image, image.scale = image.scale)
+    image.expected <- Read10X_Image(path.to.image, image.name = image.name)
     # set the image's key
     Key(image.expected) <- "slice1_"
     # update the expected image's assay to match the default
@@ -153,7 +159,7 @@ test_that("Load10X_Spatial works with SD data", {
     # align the expected image's identifiers with the expected count matrix
     image.expected <- image.expected[colnames(counts.expected)]
 
-    spatial <- Load10X_Spatial(path.to.visium, image.scale = image.scale)
+    spatial <- Load10X_Spatial(path.to.visium, image.name = image.name)
 
     # check that `spatial` contains the expected counts matrix
     expect_true(
@@ -178,13 +184,13 @@ test_that("Load10X_Spatial works with HD data", {
   skip_if_not_installed("arrow")
 
   bin.size <- c(16, 8)
-  all.image.scales <- c("lowres", "hires")
+  image.names <- c("tissue_lowres_image.png", "tissue_hires_image.png")
   for (i in seq_along(bin.size)) {
+    image.name <- image.names[[i]]
     bin.size.pretty <- paste0(sprintf("%03d", bin.size[[i]]), "um")
     assay.name <- paste0("Spatial.", bin.size.pretty)
-    image.name <- paste0("slice1.", bin.size.pretty)
     image.key <- paste0("slice1", bin.size.pretty, "_")
-    image.scale <- all.image.scales[[i]]
+    image.key.pretty <- paste0("slice1.", bin.size.pretty)
 
     path.to.bin <- file.path(
       path.to.visium.hd,
@@ -205,7 +211,7 @@ test_that("Load10X_Spatial works with HD data", {
     image.expected <- Read10X_Image(
       path.to.image, 
       assay = assay.name,
-      image.scale = image.scale
+      image.name = image.name
     )
     # set the image's key
     Key(image.expected) <- image.key
@@ -219,7 +225,7 @@ test_that("Load10X_Spatial works with HD data", {
     # data re-structured to look like it's been binned at multiple resolutions
     # the `merge` call inside `Load10X_Spatial` throws a warning
     spatial <- suppressWarnings(
-      Load10X_Spatial(path.to.visium.hd, image.scale = image.scale)
+      Load10X_Spatial(path.to.visium.hd, image.name = image.name)
     )
 
     # check that `spatial` contains the expected counts matrix
@@ -232,7 +238,7 @@ test_that("Load10X_Spatial works with HD data", {
     # check that `spatial` contains the expected image
     expect_true(
       identical(
-        spatial[[image.name]],
+        spatial[[image.key.pretty]],
         image.expected
       )
     )

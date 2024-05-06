@@ -530,7 +530,7 @@ Load10X_Spatial <- function (
   assay = "Spatial",
   slice = "slice1",
   bin.size = NULL,
-  image.scale = "lowres",
+  image.name = "tissue_lowres_image.png",
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
@@ -600,7 +600,7 @@ Load10X_Spatial <- function (
       file.path(data.dirs, "spatial"),
       assay = assay.names,
       slice = slice.names,
-      MoreArgs = list(filter.matrix = filter.matrix, image.scale = image.scale)
+      MoreArgs = list(filter.matrix = filter.matrix, image.name = image.name)
     )
   } else {
     # make sure any passed images are in a vector
@@ -1207,8 +1207,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param image.dir Path to directory with 10X Genomics visium image data;
 #' should include files \code{tissue_lowres_image.png},
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
-#' @param image.scale Indicates which \code{tissue_{"hires"/"lowres"}_image.png}
-#' file to read in
+#' @param image.scale PNG file to read in
 #' @param assay Name of associated assay
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue
@@ -1222,17 +1221,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #'
 Read10X_Image <- function(
   image.dir,
-  image.scale = "lowres",
+  image.name,
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE
 ) {
-  # read in the PNG pointed to by `image.scale`
-  image.scale <- match.arg(image.scale, choices = c("hires", "lowres"))
   image <- png::readPNG(
     source = file.path(
       image.dir,
-      paste0("tissue_", image.scale, "_image.png")
+      image.name
     )
   )
 

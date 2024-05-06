@@ -10,7 +10,7 @@ Load10X_Spatial(
   assay = "Spatial",
   slice = "slice1",
   bin.size = NULL,
-  image.scale = "lowres",
+  image.name = "tissue_lowres_image.png",
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,

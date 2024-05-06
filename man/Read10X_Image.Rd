@@ -6,7 +6,7 @@
 \usage{
 Read10X_Image(
   image.dir,
-  image.scale = "lowres",
+  image.name,
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE
@@ -17,13 +17,12 @@ Read10X_Image(
 should include files \code{tissue_lowres_image.png},
 \code{scalefactors_json.json} and \code{tissue_positions_list.csv}}
 
-\item{image.scale}{Indicates which \code{tissue_{"hires"/"lowres"}_image.png}
-file to read in}
-
 \item{assay}{Name of associated assay}
 
 \item{filter.matrix}{Filter spot/feature matrix to only include spots that
 have been determined to be over tissue}
+
+\item{image.scale}{PNG file to read in}
 }
 \value{
 A \code{\link{VisiumV1}} object
