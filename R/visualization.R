@@ -3182,6 +3182,7 @@ LinkedDimPlot <- function(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   group.by = NULL,
   alpha = c(0.1, 1),
   combine = TRUE
@@ -3225,7 +3226,7 @@ LinkedDimPlot <- function(
     vars = group.by,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   plot.data$selected_ <- FALSE
@@ -3391,6 +3392,7 @@ LinkedFeaturePlot <- function(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   slot = 'data',
   alpha = c(0.1, 1),
   combine = TRUE
@@ -3430,7 +3432,7 @@ LinkedFeaturePlot <- function(
     vars = feature,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
@@ -3522,6 +3524,7 @@ LinkedFeaturePlot <- function(
 ISpatialDimPlot <- function(
   object,
   image = NULL,
+  image.scale = "lowres",
   group.by = NULL,
   alpha = c(0.3, 1)
 ) {
@@ -3555,7 +3558,7 @@ ISpatialDimPlot <- function(
     vars = group.by,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   plot.data <- cbind(coords, group.data)
   plot.data$selected_ <- FALSE
   Idents(object = object) <- group.by
@@ -3648,6 +3651,7 @@ ISpatialFeaturePlot <- function(
   object,
   feature,
   image = NULL,
+  image.scale = "lowres",
   slot = 'data',
   alpha = c(0.1, 1)
 ) {
@@ -3739,7 +3743,7 @@ ISpatialFeaturePlot <- function(
   # Prepare plotting data
   image <- image %||% DefaultImage(object = object)
   cells.use <- Cells(x = object[[image]])
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   feature.data <- FetchData(
     object = object,
     vars = feature,
@@ -3984,6 +3988,7 @@ SpatialPlot <- function(
       return(ISpatialDimPlot(
         object = object,
         image = images[1],
+        image.scale = image.scale,
         group.by = group.by,
         alpha = alpha
       ))
@@ -4003,6 +4008,7 @@ SpatialPlot <- function(
         object = object,
         feature = features[1],
         image = images[1],
+        image.scale = image.scale,
         slot = slot,
         alpha = alpha
       ))

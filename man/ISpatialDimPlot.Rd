@@ -4,12 +4,21 @@
 \alias{ISpatialDimPlot}
 \title{Visualize clusters spatially and interactively}
 \usage{
-ISpatialDimPlot(object, image = NULL, group.by = NULL, alpha = c(0.3, 1))
+ISpatialDimPlot(
+  object,
+  image = NULL,
+  image.scale = "lowres",
+  group.by = NULL,
+  alpha = c(0.3, 1)
+)
 }
 \arguments{
 \item{object}{A Seurat object}
 
 \item{image}{Name of the image to use in the plot}
+
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{group.by}{Name of meta.data column to group the data by}
 
