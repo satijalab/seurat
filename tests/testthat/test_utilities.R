@@ -250,6 +250,9 @@ test_that("BuildNicheAssay works as expected", {
 })
 
 test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
+  skip_on_cran()
+  skip_if_not_installed("hdf5r")
+
   path.to.data = file.path("../testdata/visium_hd")
 
   test.case <- Load10X_Spatial(
