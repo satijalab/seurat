@@ -530,7 +530,6 @@ Load10X_Spatial <- function (
   assay = "Spatial",
   slice = "slice1",
   bin.size = NULL,
-  image.name = "tissue_lowres_image.png",
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
@@ -600,7 +599,7 @@ Load10X_Spatial <- function (
       file.path(data.dirs, "spatial"),
       assay = assay.names,
       slice = slice.names,
-      MoreArgs = list(filter.matrix = filter.matrix, image.name = image.name)
+      MoreArgs = list(filter.matrix = filter.matrix)
     )
   } else {
     # make sure any passed images are in a vector
@@ -1221,7 +1220,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #'
 Read10X_Image <- function(
   image.dir,
-  image.name,
+  image.name = "tissue_lowres_image.png",
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE
