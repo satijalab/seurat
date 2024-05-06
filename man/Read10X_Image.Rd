@@ -6,7 +6,7 @@
 \usage{
 Read10X_Image(
   image.dir,
-  image.name,
+  image.name = "tissue_lowres_image.png",
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE
