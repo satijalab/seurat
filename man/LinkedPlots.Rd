@@ -13,6 +13,7 @@ LinkedDimPlot(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   group.by = NULL,
   alpha = c(0.1, 1),
   combine = TRUE
@@ -24,6 +25,7 @@ LinkedFeaturePlot(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   slot = "data",
   alpha = c(0.1, 1),
   combine = TRUE
@@ -37,6 +39,9 @@ LinkedFeaturePlot(
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
 \item{image}{Name of the image to use in the plot}
+
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{group.by}{Name of meta.data column to group the data by}
 
