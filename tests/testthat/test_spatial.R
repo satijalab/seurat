@@ -8,7 +8,6 @@ build_spatial_data <- function(assay_name, image_name, id_prefix) {
 
   image <- Read10X_Image(
     path_to_image,
-    image.name = "tissue_lowres_image.png",
     assay = assay_name,
     slice = image_name
   )
