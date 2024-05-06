@@ -149,7 +149,7 @@ test_that("AverageExpression with return.seurat", {
 
 test.dat <- LayerData(object = object, layer = "data")
 rownames(x = test.dat) <- paste0("test-", rownames(x = test.dat))
-object[["TEST"]] <- CreateAssayObject(data = test.dat)
+suppressWarnings(object[["TEST"]] <- CreateAssayObject(data = test.dat))
 
 test_that("AverageExpression with multiple assays", {
   avg.test <- AverageExpression(object = object, assays = "TEST", layer = "data")
