@@ -90,9 +90,9 @@ FindMarkers(object, ...)
 
 \method{FindMarkers}{Seurat}(
   object,
-  latent.vars = NULL,
   ident.1 = NULL,
   ident.2 = NULL,
+  latent.vars = NULL,
   group.by = NULL,
   subset.ident = NULL,
   assay = NULL,
