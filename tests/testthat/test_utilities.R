@@ -149,7 +149,7 @@ test_that("AverageExpression with return.seurat", {
 
 test.dat <- LayerData(object = object, layer = "data")
 rownames(x = test.dat) <- paste0("test-", rownames(x = test.dat))
-object[["TEST"]] <- CreateAssayObject(data = test.dat)
+suppressWarnings(object[["TEST"]] <- CreateAssayObject(data = test.dat))
 
 test_that("AverageExpression with multiple assays", {
   avg.test <- AverageExpression(object = object, assays = "TEST", layer = "data")
@@ -209,8 +209,8 @@ test_that("BuildNicheAssay works as expected", {
 
   # generate fake coordinates arranging the cells from pbmc_small into a grid
   test.coordinates <- data.frame(
-    cell = Cells(test.data), 
-    x = rep(1:4, times = 20), 
+    cell = Cells(test.data),
+    x = rep(1:4, times = 20),
     y = rep(1:4, each = 20)
   )
   # associate the coordinates and counts with a FOV
@@ -240,7 +240,7 @@ test_that("BuildNicheAssay works as expected", {
     c(16, ncol(test.data[["RNA"]])),
     dim(results[["niche"]])
   )
-  # exaclty a quarter of the cells should be assigned to each niche 
+  # exaclty a quarter of the cells should be assigned to each niche
   for (niche in 1:4) {
     expect_equal(
       20,
@@ -253,13 +253,12 @@ test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
   skip_on_cran()
   skip_if_not_installed("hdf5r")
 
-  path.to.data = file.path("../testdata/visium_hd")
+  path.to.data = file.path("../testdata/visium")
 
   test.case <- Load10X_Spatial(
     path.to.data,
     assay = "Spatial",
-    slice = "slice",
-    bin.size = 16
+    slice = "slice"
   )
 
   # populate a meta.data column with random labels
@@ -267,10 +266,10 @@ test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
   test.case[["random_labels"]] <- random_labels
 
   fov <- CreateFOV(
-    GetTissueCoordinates(test.case[["slice.016um"]]),
+    GetTissueCoordinates(test.case[["slice"]]),
     type = "centroids",
-    radius = Radius(test.case[["slice.016um"]]),
-    assay = "Spatial.016um",
+    radius = Radius(test.case[["slice"]]),
+    assay = "Spatial",
     key = "fov"
   )
 
@@ -289,7 +288,7 @@ test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
   )
 
   expect_equal(
-    LayerData(left, layer = "scale.data"), 
+    LayerData(left, layer = "scale.data"),
     LayerData(left, layer = "scale.data")
   )
 })
