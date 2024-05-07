@@ -657,6 +657,8 @@ Load10X_Spatial <- function (
 #' @return Returns a data.frame containing the probe metadata.
 #'
 #' @export
+#' @concept preprocessing
+#' 
 Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
