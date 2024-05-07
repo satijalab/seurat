@@ -246,7 +246,9 @@ In [Singhal et al.](https://www.nature.com/articles/s41588-024-01664-3), the aut
 We thank the authors for enabling BANKSY to be compatible with Seurat via the [`SeuratWrappers`](https://github.com/satijalab/seurat-wrappers) framework, which requires separate installation of the BANKSY package:
   
 ```{r banksy}
-#remotes::install_github("prabhakarlab/Banksy@devel")
+if (!requireNamespace("Banksy", quietly = TRUE)) {
+  remotes::install_github("prabhakarlab/Banksy@devel")
+}
 library(SeuratWrappers)
 library(Banksy)
 ```
