@@ -111,22 +111,6 @@ SketchData <- function(
     }
     seed = seed
   }
-  # cells <- lapply(
-  #   X = seq_along(along.with = layers.data),
-  #   FUN = function(i, seed) {
-  #     set.seed(seed = seed)
-  #     lcells <- Cells(x = object[[assay]], layer = layers.data[i])
-  #     if (length(x = lcells) < ncells) {
-  #       return(lcells)
-  #     }
-  #     return(sample(
-  #       x = lcells,
-  #       size = ncells,
-  #       prob = leverage.score[lcells,]
-  #     ))
-  #   },
-  #   seed = seed
-  # )
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
     cells = unlist(cells),
