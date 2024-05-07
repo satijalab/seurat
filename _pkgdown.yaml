@@ -173,3 +173,12 @@ reference:
   desc: "Functions re-exported from other packages"
 - contents:
   - reexports
+  - Seurat-class
+  - Assay-class
+  - DimReduc-class
+  - Neighbor-class
+  - Graph-class
+  - SpatialImage-class
+  - JackStrawData-class
+  - SeuratCommand-class
+  - Seurat-package
