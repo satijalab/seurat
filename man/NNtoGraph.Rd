@@ -19,3 +19,4 @@ Returns a Graph object
 \description{
 Convert Neighbor class to an asymmetrical Graph class
 }
+\concept{integration}

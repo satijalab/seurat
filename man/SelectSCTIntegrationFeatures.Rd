@@ -26,3 +26,4 @@ SelectSCTIntegrationFeatures(
 \description{
 Select SCT integration features
 }
+\concept{integration}

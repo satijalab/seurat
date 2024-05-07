@@ -45,3 +45,4 @@ If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 \description{
 Returns a representative expression value for each identity class
 }
+\concept{utilities}

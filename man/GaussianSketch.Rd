@@ -22,4 +22,5 @@ GaussianSketch(nsketch, ncells, seed = NA_integer_, ...)
 \description{
 Gaussian sketching
 }
+\concept{sketching}
 \keyword{internal}

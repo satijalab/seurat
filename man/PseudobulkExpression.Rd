@@ -17,3 +17,4 @@ Returns object after normalization
 \description{
 Normalize the count data present in a given assay.
 }
+\concept{utilities}
