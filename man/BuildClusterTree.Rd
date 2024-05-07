@@ -34,8 +34,6 @@ is not NULL.}
 \item{graph}{If graph is passed, build tree based on graph connectivity between
 clusters; overrides \code{dims} and \code{features}}
 
-\item{slot}{(Deprecated). Slots(s) to use}
-
 \item{reorder}{Re-order identity classes (factor ordering), according to
 position on the tree. This groups similar classes together which can be
 helpful, for example, when drawing violin plots.}
@@ -49,13 +47,13 @@ the tree, assigning a numeric value ('1' is the leftmost node)}
 A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 }
 \description{
-Constructs a phylogenetic tree relating the 'average' cell from each
+Constructs a phylogenetic tree relating the 'aggregate' cell from each
 identity class. Tree is estimated based on a distance matrix constructed in
 either gene expression space or PCA space.
 }
 \details{
-Note that the tree is calculated for an 'average' cell, so gene expression
-or PC scores are averaged across all cells in an identity class before the
+Note that the tree is calculated for an 'aggregate' cell, so gene expression
+or PC scores are summed across all cells in an identity class before the
 tree is constructed.
 }
 \examples{

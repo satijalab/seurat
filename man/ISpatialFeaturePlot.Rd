@@ -8,6 +8,7 @@ ISpatialFeaturePlot(
   object,
   feature,
   image = NULL,
+  image.scale = "lowres",
   slot = "data",
   alpha = c(0.1, 1)
 )
@@ -18,6 +19,9 @@ ISpatialFeaturePlot(
 \item{feature}{Feature to visualize}
 
 \item{image}{Name of the image to use in the plot}
+
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{slot}{If plotting a feature, which data slot to pull from (counts,
 data, or scale.data)}

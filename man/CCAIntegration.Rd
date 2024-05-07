@@ -125,3 +125,4 @@ obj <- IntegrateLayers(object = obj, method = CCAIntegration,
 }
 
 }
+\concept{integration}

@@ -321,7 +321,6 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 #'
 #' @export
 #'
-#'
 LeverageScore <- function(object, ...) {
   UseMethod(generic = 'LeverageScore', object = object)
 }
@@ -454,6 +453,7 @@ ProjectUMAP <- function(query, ...) {
 #'
 #' @rdname PseudobulkExpression
 #' @export PseudobulkExpression
+#' @concept utilities
 #'
 PseudobulkExpression <- function(object, ...) {
   UseMethod(generic = "PseudobulkExpression", object = object)

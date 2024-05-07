@@ -26,3 +26,4 @@ UnSketchEmbeddings(
 \description{
 Transfer embeddings from sketched cells to the full data
 }
+\concept{integration}

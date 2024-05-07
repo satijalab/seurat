@@ -530,7 +530,6 @@ Load10X_Spatial <- function (
   assay = "Spatial",
   slice = "slice1",
   bin.size = NULL,
-  image.scale = "lowres",
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
@@ -658,6 +657,8 @@ Load10X_Spatial <- function (
 #' @return Returns a data.frame containing the probe metadata.
 #'
 #' @export
+#' @concept preprocessing
+#' 
 Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
@@ -1207,8 +1208,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param image.dir Path to directory with 10X Genomics visium image data;
 #' should include files \code{tissue_lowres_image.png},
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
-#' @param image.scale Indicates which \code{tissue_{"hires"/"lowres"}_image.png}
-#' file to read in
+#' @param image.scale PNG file to read in
 #' @param assay Name of associated assay
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue
@@ -1222,17 +1222,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #'
 Read10X_Image <- function(
   image.dir,
-  image.scale = "lowres",
+  image.name = "tissue_lowres_image.png",
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE
 ) {
-  # read in the PNG pointed to by `image.scale`
-  image.scale <- match.arg(image.scale, choices = c("hires", "lowres"))
   image <- png::readPNG(
     source = file.path(
       image.dir,
-      paste0("tissue_", image.scale, "_image.png")
+      image.name
     )
   )
 
@@ -1278,27 +1276,42 @@ Read10X_Image <- function(
 #'
 #' @return A data.frame
 #'
-#' @importFrom magrittr %>%
-#'
 #' @export
 #' @concept preprocessing
 #'
 Read10X_Coordinates <- function(filename, filter.matrix) {
+  # output columns names
   col.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
+  
   # if the coordinate mappings are in a parquet file
-  if(tools::file_ext(filename) == "parquet") {
+  if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
     if (!requireNamespace("arrow", quietly = TRUE)) {
       stop("Please install arrow to read parquet files")
     }
+    
+    # read in coordinates and conver the resulting tibble into a data.frame
+    coordinates <- as.data.frame(arrow::read_parquet(filename))
+    # normalize column names for consistency with other datatypes
+    input.col.names <- c(
+      "barcode", 
+      "in_tissue", 
+      "array_row", 
+      "array_col", 
+      "pxl_row_in_fullres", 
+      "pxl_col_in_fullres"
+    )
+    col.map <- stats::setNames(col.names, input.col.names)
+    colnames(coordinates) <- ifelse(
+      colnames(coordinates) %in% names(col.map), 
+      col.map[colnames(coordinates)], 
+      colnames(coordinates)
+    )
 
-    # read in coordinates and set the column headers manually
-    coordinates <- arrow::read_parquet(filename) %>%
-      dplyr::rename_with(~col.names)
-    # set rownames to the first column in the dataframe ("barcodes")
-    coordinates <- as.data.frame(coordinates)
-    rownames(coordinates) <- coordinates[[1]]
-    coordinates <- coordinates[, -1]
+    # set rownames to "barcodes" then drop the column
+    rownames(coordinates) <- coordinates[["barcodes"]]
+    coordinates[["barcodes"]] <- NULL
+
   } else {
     # the coordinate mappings must be in a CSV - read it in
     coordinates <- read.csv(

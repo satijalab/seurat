@@ -50,3 +50,4 @@ the full data are also projected onto the UMAP space, with the results stored in
 This function transfers cell type labels from a sketched dataset to a full dataset
 based on the similarities in the lower dimensional space.
 }
+\concept{sketching}

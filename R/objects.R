@@ -342,6 +342,8 @@ VisiumV1 <- setClass(
 #' @importClassesFrom SeuratObject FOV
 #' @name VisiumV2-class
 #'
+#' @concept objects
+#' @concept spatial
 #' @exportClass VisiumV2
 VisiumV2 <- setClass(
   Class = "VisiumV2",
@@ -371,6 +373,8 @@ setClass(Class = 'SliceImage', contains = 'VisiumV1')
 #' \dontrun{
 #' CellsByImage(object = object, images = "slice1")
 #' }
+#'
+#' @keywords internal
 #'
 CellsByImage <- function(object, images = NULL, unlist = FALSE) {
   images <- images %||% Images(object = object)
@@ -1706,13 +1710,17 @@ GetTissueCoordinates.VisiumV2 <- function(
 ) {
   # make call to GetTissueCoordiantes.FOV
   coordinates <- NextMethod(object, ...)
+  # do some cleanup of the resulting data.frame to make it play nice
+  # with `SpatialPlot` - namely set rownames and re-order the columns so
+  # that the actual position values appear first
   rownames(coordinates) <- coordinates[["cell"]]
-  coordinates <- coordinates[, c("x", "y")]
+  coordinates <- coordinates[, c("x", "y", "cell")]
 
   if (!is.null(scale)) {
+    # scale the coordinates by the specified factor
     scale <- match.arg(scale, choices = c("lowres", "hires"))
     scale.factor <- ScaleFactors(object)[[scale]]
-    coordinates <- coordinates * scale.factor
+    coordinates[, c("x", "y")] <- coordinates[, c("x", "y")] * scale.factor
   }
 
   return (coordinates)
@@ -1726,6 +1734,7 @@ GetTissueCoordinates.VisiumV2 <- function(
 #' @param method method to determine variable features
 #'
 #' @export
+#' @concept objects
 #' @method HVFInfo SCTAssay
 #'
 #' @seealso \code{\link[SeuratObject]{HVFInfo}}

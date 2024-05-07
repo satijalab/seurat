@@ -17,6 +17,8 @@
 }
 \arguments{
 \item{object}{An image object}
+
+\item{...}{Arguments passed to other methods}
 }
 \description{
 Get Spot Radius

@@ -80,3 +80,4 @@ This function performs the following three steps:
 Laplacian Eigendecomposition
 3. Constructs a bridge dictionary representation for unimodal reference cells
 }
+\concept{integration}

@@ -24,3 +24,4 @@ object <- AddAzimuthScores(object, filename = "azimuth_pred.tsv")
 }
 
 }
+\keyword{internal}

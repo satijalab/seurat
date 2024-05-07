@@ -59,7 +59,7 @@ test_that("Read10X_h5 works as expected", {
 
 test_that("Read10X_Image works as expected", {
   path.to.images <- file.path(path.to.visium, "spatial")
-  coordinate.filesnames <-  "tissue_positions_list.csv"
+  coordinate.filenames <-  "tissue_positions_list.csv"
   # only test HD the dataset containing a parquet file if `arrow` is installed
   if (requireNamespace("arrow", quietly = TRUE)) {
     path.to.images <- c(
@@ -70,7 +70,7 @@ test_that("Read10X_Image works as expected", {
       )
     )
     coordinate.filenames <- c(
-      coordinate.filesnames,
+      coordinate.filenames,
       "tissue_positions.parquet"
     )
   }
@@ -80,6 +80,7 @@ test_that("Read10X_Image works as expected", {
     coordinate.filename <- coordinate.filenames[[i]]
 
     # read in the coordinates as a data.frame - only keep the relevant columns
+    # and rename them to match the processed output
     coordinates.expected <- Read10X_Coordinates(
       file.path(path.to.image, coordinate.filename),
       filter.matrix = TRUE
@@ -89,41 +90,49 @@ test_that("Read10X_Image works as expected", {
     scale.factors.expected <- Read10X_ScaleFactors(
       file.path(path.to.image, "scalefactors_json.json")
     )
-
     # default/lowres scaling
-    image <- Read10X_Image(path.to.image)
-    coordinates <- GetTissueCoordinates(image, scale = "lowres")
-    scale.factors <- ScaleFactors(image)
+    image.lowres <- Read10X_Image(
+      path.to.image, 
+      image.name = "tissue_lowres_image.png"
+    )
+    coordinates <- GetTissueCoordinates(image.lowres, scale = "lowres")
+    spot.radius <- Radius(image.lowres, scale = "lowres")
+    scale.factors <- ScaleFactors(image.lowres)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
     # check that `coordinates` contains values scaled for the low resolution PNG
     expect_equal(
-      coordinates / scale.factors[["lowres"]], 
+      coordinates[, c("x", "y")] / scale.factors[["lowres"]], 
       coordinates.expected
     )
     # check that the spot size is similarly scaled
     expect_equal(
-      (Radius(image) / scale.factors[["lowres"]] * max(dim(image))),
+      (spot.radius / scale.factors[["lowres"]] * max(dim(image.lowres))),
       scale.factors.expected[["spot"]],
     )
 
     # hires scaling
-    image <- Read10X_Image(path.to.image, image.scale = "hires")
-    coordinates <- GetTissueCoordinates(image, scale = "hires")
-    spot.radius <- Radius(image, scale = "hires")
-    scale.factors <- ScaleFactors(image)
+    image.hires <- Read10X_Image(
+      path.to.image, 
+      image.name = "tissue_hires_image.png"
+    )
+    coordinates <- GetTissueCoordinates(image.hires, scale = "hires")
+    spot.radius <- Radius(image.hires, scale = "hires")
+    scale.factors <- ScaleFactors(image.hires)
     # check that the scale factors were read in as expected
     expect_true(identical(scale.factors, scale.factors.expected))
-    # check that `coordinates` contains values scaled for the low resolution PNG
+    # check that `coordinates` contains values scaled for the high resolution PNG
     expect_equal(
-      coordinates / scale.factors[["hires"]], 
+      coordinates[, c("x", "y")] / scale.factors[["hires"]], 
       coordinates.expected
     )
     # check that the spot size is similarly scaled
     expect_equal(
-      (spot.radius / scale.factors[["hires"]] * max(dim(image))),
-      scale.factors.expected[["spot"]],
+      (spot.radius / scale.factors[["hires"]] * max(dim(image.hires))),
+      scale.factors.expected[["spot"]]
     )
+    # the size of the two images should be different
+    expect_false(all(dim(image.hires) == dim(image.lowres)))
   }
 })
 
@@ -139,6 +148,7 @@ test_that("Load10X_Spatial works with SD data", {
 
   # load the expected counts matrix
   counts.expected <- Read10X_h5(path.to.counts)
+
   # load the expected image
   image.expected <- Read10X_Image(path.to.image)
   # set the image's key
@@ -171,17 +181,12 @@ test_that("Load10X_Spatial works with HD data", {
   skip_if_not_installed("hdf5r")
   skip_if_not_installed("arrow")
 
-  # since the "HD" test data is actually just the standard definition test
-  # data re-structured to look like it's been binned at multiple resolutions
-  # the `merge` call inside `Load10X_Spatial` throws a warning
-  spatial <- suppressWarnings(Load10X_Spatial(path.to.visium.hd))
-
   bin.size <- c(16, 8)
   for (i in seq_along(bin.size)) {
     bin.size.pretty <- paste0(sprintf("%03d", bin.size[[i]]), "um")
     assay.name <- paste0("Spatial.", bin.size.pretty)
-    image.name <- paste0("slice1.", bin.size.pretty)
     image.key <- paste0("slice1", bin.size.pretty, "_")
+    image.key.pretty <- paste0("slice1.", bin.size.pretty)
 
     path.to.bin <- file.path(
       path.to.visium.hd,
@@ -208,6 +213,11 @@ test_that("Load10X_Spatial works with HD data", {
     # align the expected image's identifiers with the expected count matrix
     image.expected <- image.expected[colnames(counts.expected)]
 
+    # since the "HD" test data is actually just the standard definition test
+    # data re-structured to look like it's been binned at multiple resolutions
+    # the `merge` call inside `Load10X_Spatial` throws a warning
+    spatial <- suppressWarnings(Load10X_Spatial(path.to.visium.hd))
+
     # check that `spatial` contains the expected counts matrix
     expect_true(
       identical(
@@ -218,7 +228,7 @@ test_that("Load10X_Spatial works with HD data", {
     # check that `spatial` contains the expected image
     expect_true(
       identical(
-        spatial[[image.name]],
+        spatial[[image.key.pretty]],
         image.expected
       )
     )

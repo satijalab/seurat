@@ -10,7 +10,6 @@ Load10X_Spatial(
   assay = "Spatial",
   slice = "slice1",
   bin.size = NULL,
-  image.scale = "lowres",
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
