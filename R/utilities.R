@@ -18,12 +18,15 @@ NULL
 #'
 #' @return \code{object} with Azimuth results added
 #'
+#' @export
+#' @concept utilities
+#'
 #' @examples
 #' \dontrun{
 #' object <- AddAzimuthResults(object, filename = "azimuth_results.Rds")
 #' }
 #'
-#' @export
+
 AddAzimuthResults <- function(object = NULL, filename) {
   if (is.null(x = filename)) {
     stop("No Azimuth results provided.")
@@ -82,6 +85,8 @@ AddAzimuthResults <- function(object = NULL, filename) {
 #' @param filename Path to Azimuth mapping scores file
 #'
 #' @return \code{object} with the mapping scores added
+#'
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
@@ -1214,8 +1219,8 @@ PercentageFeatureSet <- function(
 #' @method PseudobulkExpression Assay
 #' @importFrom SeuratObject .IsFutureSeurat
 #' @export
-#
-#
+#' @concept utilities
+#'
 PseudobulkExpression.Assay <- function(
   object,
   assay,
@@ -1279,8 +1284,8 @@ PseudobulkExpression.Assay <- function(
 
 #' @method PseudobulkExpression StdAssay
 #' @export
-#
-#
+#' @concept utilities
+#'
 PseudobulkExpression.StdAssay <- function(
   object,
   assay,
@@ -1361,6 +1366,7 @@ PseudobulkExpression.StdAssay <- function(
 #' @method PseudobulkExpression Seurat
 #' @importFrom SeuratObject .IsFutureSeurat
 #' @export
+#' @concept utilities
 PseudobulkExpression.Seurat <- function(
   object,
   assays = NULL,
@@ -2827,6 +2833,7 @@ SweepNonzero <- function(
 #' @importFrom Matrix colSums sparse.model.matrix
 #' @importFrom stats as.formula
 #' @export
+#' @concept utilities
 #'
 CreateCategoryMatrix <- function(
   labels,

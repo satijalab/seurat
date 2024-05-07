@@ -134,3 +134,4 @@ obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
 }
 
 }
+\concept{utilities}

@@ -20,3 +20,5 @@ Visium platform
 \code{\link{scalefactors}} for more information}
 }}
 
+\concept{objects}
+\concept{spatial}

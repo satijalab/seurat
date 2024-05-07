@@ -36,8 +36,7 @@ NULL
 #' @importFrom SeuratObject CastAssay Key Key<- Layers
 #'
 #' @export
-#'
-#'
+#' @concept sketching
 #'
 SketchData <- function(
   object,
@@ -153,6 +152,7 @@ SketchData <- function(
 #' The projected data are stored in the specified full reduction.
 #'
 #' @export
+#' @concept sketching
 #'
 ProjectData <- function(
   object,
@@ -225,8 +225,8 @@ ProjectData <- function(
 #' @return A Seurat object with transferred labels stored in the metadata. If a UMAP model is provided,
 #' the full data are also projected onto the UMAP space, with the results stored in a new reduction, full.`reduction.model`
 #'
-#'
 #' @export
+#' @concept sketching
 #'
 TransferSketchLabels <- function(
   object,
@@ -373,7 +373,9 @@ TransferSketchLabels <- function(
 #'
 #' @rdname LeverageScore
 #' @method LeverageScore default
+#'
 #' @export
+#' @concept sketching
 #'
 LeverageScore.default <- function(
   object,
@@ -484,6 +486,7 @@ LeverageScore.default <- function(
 #' @method LeverageScore StdAssay
 #'
 #' @export
+#' @concept sketching
 #'
 LeverageScore.StdAssay <- function(
   object,
@@ -552,7 +555,9 @@ LeverageScore.Assay <- LeverageScore.StdAssay
 #'
 #' @rdname LeverageScore
 #' @method LeverageScore Seurat
+#'
 #' @export
+#' @concept sketching
 #'
 LeverageScore.Seurat <- function(
   object,
@@ -613,6 +618,7 @@ LeverageScore.Seurat <- function(
 #' @importFrom Matrix sparseMatrix
 #'
 #' @export
+#' @concept sketching
 #'
 #' @keywords internal
 #'
@@ -646,6 +652,7 @@ CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
 #' @return ...
 #'
 #' @export
+#' @concept sketching
 #'
 #' @keywords internal
 #'

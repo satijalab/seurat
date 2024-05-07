@@ -70,3 +70,4 @@ First learn a atom dictionary representation to reconstruct each cell.
 Then, using this dictionary representation,
 reconstruct the embeddings of each cell from the integrated atoms.
 }
+\concept{integration}

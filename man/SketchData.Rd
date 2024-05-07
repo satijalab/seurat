@@ -49,3 +49,4 @@ A Seurat object with the sketched data added as a new assay.
 This function uses sketching methods to downsample high-dimensional single-cell RNA expression data,
 which can help with scalability for large datasets.
 }
+\concept{sketching}

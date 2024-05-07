@@ -64,3 +64,4 @@ This function performs three steps:
 These anchors can later be used to integrate embeddings or transfer data from the reference to
 query object using the \code{\link{MapQuery}} object.
 }
+\concept{integration}

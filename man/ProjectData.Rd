@@ -57,3 +57,4 @@ The projected data are stored in the specified full reduction.
 This function allows projection of high-dimensional single-cell RNA expression data from a full dataset
 onto the lower-dimensional embedding of the sketch of the dataset.
 }
+\concept{sketching}

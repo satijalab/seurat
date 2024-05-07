@@ -342,6 +342,8 @@ VisiumV1 <- setClass(
 #' @importClassesFrom SeuratObject FOV
 #' @name VisiumV2-class
 #'
+#' @concept objects
+#' @concept spatial
 #' @exportClass VisiumV2
 VisiumV2 <- setClass(
   Class = "VisiumV2",
@@ -371,6 +373,8 @@ setClass(Class = 'SliceImage', contains = 'VisiumV1')
 #' \dontrun{
 #' CellsByImage(object = object, images = "slice1")
 #' }
+#'
+#' @keywords internal
 #'
 CellsByImage <- function(object, images = NULL, unlist = FALSE) {
   images <- images %||% Images(object = object)
@@ -1730,6 +1734,7 @@ GetTissueCoordinates.VisiumV2 <- function(
 #' @param method method to determine variable features
 #'
 #' @export
+#' @concept objects
 #' @method HVFInfo SCTAssay
 #'
 #' @seealso \code{\link[SeuratObject]{HVFInfo}}
