@@ -60,7 +60,6 @@ install.packages("arrow")
 
 ```{r install, eval = FALSE}
 library(Seurat)
-library(SeuratData)
 library(ggplot2)
 library(patchwork)
 library(dplyr)
