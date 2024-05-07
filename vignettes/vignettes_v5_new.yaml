@@ -122,6 +122,12 @@
       summary: |
         Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
       image: spatial_vignette_ttr.jpg
+    
+    - title: Analysis of Visium HD spatial datasets
+      name: visiumhd_analysis_vignette
+      summary: |
+        Learn to explore spatially-resolved transcriptomic data in high-definition from 10x Visium HD. 
+      image: spatial_vignette_hd.jpg
 
 - category: Other
   vignettes:
