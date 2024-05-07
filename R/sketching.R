@@ -49,6 +49,7 @@ SketchData <- function(
   seed = 123L,
   cast = 'dgCMatrix',
   verbose = TRUE,
+  features = NULL,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
@@ -78,6 +79,7 @@ SketchData <- function(
       over.write = over.write,
       seed = seed,
       verbose = FALSE,
+      features = features,
       ...
     )
   } else if (method == 'Uniform') {
@@ -88,22 +90,43 @@ SketchData <- function(
   }
   leverage.score <- object[[var.name]]
   layers.data <- Layers(object = object[[assay]], search = 'data')
-  cells <- lapply(
-    X = seq_along(along.with = layers.data),
-    FUN = function(i, seed) {
-      set.seed(seed = seed)
-      lcells <- Cells(x = object[[assay]], layer = layers.data[i])
-      if (length(x = lcells) < ncells) {
-        return(lcells)
-      }
-      return(sample(
+  cells <- list()
+  for (i in seq_along(layers.data)){
+    set.seed(seed = seed) # does this need to be set in the forloop? is it getting updated somehow 
+    lyr <- layers.data[i]
+    if (length(ncells) == 1) { # use the same number of cells per layer 
+      ncells.lyr <- ncells
+    } else {
+      ncells.lyr <- ncells[i]
+    }
+    lcells <- Cells(x = object[[assay]], layer = lyr)
+    if (length(x = lcells) < ncells.lyr) {
+      cells[[i]] <- lcells
+    } else {
+      cells[[i]] <- sample(
         x = lcells,
-        size = ncells,
+        size = ncells.lyr,
         prob = leverage.score[lcells,]
-      ))
-    },
+      )
+    }
     seed = seed
-  )
+  }
+  # cells <- lapply(
+  #   X = seq_along(along.with = layers.data),
+  #   FUN = function(i, seed) {
+  #     set.seed(seed = seed)
+  #     lcells <- Cells(x = object[[assay]], layer = layers.data[i])
+  #     if (length(x = lcells) < ncells) {
+  #       return(lcells)
+  #     }
+  #     return(sample(
+  #       x = lcells,
+  #       size = ncells,
+  #       prob = leverage.score[lcells,]
+  #     ))
+  #   },
+  #   seed = seed
+  # )
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
     cells = unlist(cells),
@@ -498,6 +521,7 @@ LeverageScore.StdAssay <- function(
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 ) {
   layer <- unique(x = layer) %||% DefaultLayer(object = object)
@@ -513,15 +537,21 @@ LeverageScore.StdAssay <- function(
     if (isTRUE(x = verbose)) {
       message("Running LeverageScore for layer ", l)
     }
+    features <- features %||% tryCatch({
+      VariableFeatures(
+        object = object,
+        method = vf.method,
+        layer = l
+      )
+    }, error = function(e) {
+      stop("Unable to get Variable Features from layer ", l, ". Try providing `features` argument instead.")
+    })
+    
     scores[Cells(x = object, layer = l), 1] <- LeverageScore(
       object = LayerData(
         object = object,
         layer = l,
-        features = VariableFeatures(
-          object = object,
-          method = vf.method,
-          layer = l
-        ),
+        features = features,
         fast = TRUE
       ),
       nsketch = nsketch,
@@ -572,6 +602,7 @@ LeverageScore.Seurat <- function(
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 ) {
   if (!over.write) {
@@ -590,6 +621,7 @@ LeverageScore.Seurat <- function(
     eps = eps,
     seed = seed,
     verbose = verbose,
+    features = features,
     ...
   )
   names(x = scores) <- var.name
