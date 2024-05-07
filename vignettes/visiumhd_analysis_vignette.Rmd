@@ -307,7 +307,9 @@ Seurat v5 also includes support for [Robust Cell Type Decomposition](https://www
 To run RCTD, we first install the `spacexr` package from GitHub which implements RCTD. When running RCTD, we follow the instructions from the [RCTD vignette](https://raw.githack.com/dmcable/spacexr/master/vignettes/spatial-transcriptomics.html).
 
 ```{r load.spacexr}
-#devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+if (!requireNamespace("spacexr", quietly = TRUE)) {
+  devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+}
 library(spacexr)
 ```
 
