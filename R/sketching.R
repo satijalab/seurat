@@ -528,7 +528,7 @@ LeverageScore.StdAssay <- function(
         layer = l
       )
     }, error = function(e) {
-      stop("Unable to get Variable Features from layer ", l, ". Try providing `features` argument instead.")
+      stop("Unable to get variable features from layer `", l, "`. Try providing `features` argument instead.")
     })
     
     scores[Cells(x = object, layer = l), 1] <- LeverageScore(
