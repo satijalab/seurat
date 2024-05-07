@@ -56,9 +56,6 @@ We focus our analysis on a Visium HD dataset from the mouse brain, available to 
 # packages required for Visium HD
 install.packages("hdf5r")
 install.packages("arrow")
-
-# Install version v5.1.0
-remotes::install_github(repo = "satijalab/seurat", ref = "visium-hd")
 ```
 
 ```{r install, eval = FALSE}
