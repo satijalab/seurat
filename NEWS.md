@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Updated interactive `SpatialDimPlot`s to display spatial coordinates
 - Updated `BuildClusterTree` to `PseudobulkExpression(..., method = "aggregate")` instead of `AverageExpression`
 - Fixed `SpatialPlot` to properly handle images with shared cells
 - Added `cluster.name` parameter to `BuildNicheAssay`
