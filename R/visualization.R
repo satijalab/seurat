@@ -2391,6 +2391,8 @@ PolyFeaturePlot <- function(
 #' DefaultBoundary FetchData Images Overlay
 #'
 #' @export
+#' @concept visualization
+#' @concept spatial
 #'
 ImageDimPlot <- function(
   object,
@@ -2622,6 +2624,8 @@ ImageDimPlot <- function(
 #' FetchData Images Overlay
 #'
 #' @export
+#' @concept visualization
+#' @concept spatial
 #'
 ImageFeaturePlot <- function(
   object,
