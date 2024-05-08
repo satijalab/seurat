@@ -1792,6 +1792,10 @@ Radius.STARmap <- function(object, ...) {
   return(NULL)
 }
 
+#'
+#' @param scale A factor to scale the radius by; one of: "hires", 
+#' "lowres", or \code{NULL} for the unscaled value.  
+#'
 #' @rdname Radius
 #' @concept objects
 #' @concept spatial
