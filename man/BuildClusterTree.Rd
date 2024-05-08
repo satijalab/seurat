@@ -34,6 +34,8 @@ is not NULL.}
 \item{graph}{If graph is passed, build tree based on graph connectivity between
 clusters; overrides \code{dims} and \code{features}}
 
+\item{slot}{slot/layer to use.}
+
 \item{reorder}{Re-order identity classes (factor ordering), according to
 position on the tree. This groups similar classes together which can be
 helpful, for example, when drawing violin plots.}

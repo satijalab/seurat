@@ -17,20 +17,22 @@ Read10X_Image(
 should include files \code{tissue_lowres_image.png},
 \code{scalefactors_json.json} and \code{tissue_positions_list.csv}}
 
+\item{image.name}{PNG file to read in}
+
 \item{assay}{Name of associated assay}
+
+\item{slice}{Name for the image, used to populate the instance's key}
 
 \item{filter.matrix}{Filter spot/feature matrix to only include spots that
 have been determined to be over tissue}
-
-\item{image.scale}{PNG file to read in}
 }
 \value{
-A \code{\link{VisiumV1}} object
+A \code{\link{VisiumV2}} object
 }
 \description{
 Load a 10X Genomics Visium Image
 }
 \seealso{
-\code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
+\code{\link{VisiumV2}} \code{\link{Load10X_Spatial}}
 }
 \concept{preprocessing}
