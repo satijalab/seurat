@@ -521,7 +521,7 @@ LeverageScore.StdAssay <- function(
     if (isTRUE(x = verbose)) {
       message("Running LeverageScore for layer ", l)
     }
-    features <- features %||% tryCatch({
+    features.use <- features %||% tryCatch({
       VariableFeatures(
         object = object,
         method = vf.method,
@@ -535,7 +535,7 @@ LeverageScore.StdAssay <- function(
       object = LayerData(
         object = object,
         layer = l,
-        features = features,
+        features = features.use,
         fast = TRUE
       ),
       nsketch = nsketch,
