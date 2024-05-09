@@ -178,6 +178,11 @@ test_that("Load10X_Spatial works with HD data", {
   skip_if_not_installed("hdf5r")
   skip_if_not_installed("arrow")
 
+  # since the "HD" test data is actually just the standard definition test
+  # data re-structured to look like it's been binned at multiple resolutions
+  # the `merge` call inside `Load10X_Spatial` throws a warning
+  spatial <- suppressWarnings(Load10X_Spatial(path.to.visium.hd))
+
   bin.size <- c(16, 8)
   for (i in seq_along(bin.size)) {
     bin.size.pretty <- paste0(sprintf("%03d", bin.size[[i]]), "um")
@@ -209,11 +214,6 @@ test_that("Load10X_Spatial works with HD data", {
     image.expected <- RenameCells(image.expected, paste0(Cells(image.expected), "_", i))
     # align the expected image's identifiers with the expected count matrix
     image.expected <- image.expected[colnames(counts.expected)]
-
-    # since the "HD" test data is actually just the standard definition test
-    # data re-structured to look like it's been binned at multiple resolutions
-    # the `merge` call inside `Load10X_Spatial` throws a warning
-    spatial <- suppressWarnings(Load10X_Spatial(path.to.visium.hd))
 
     # check that `spatial` contains the expected counts matrix
     expect_true(
