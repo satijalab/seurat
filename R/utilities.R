@@ -1232,14 +1232,7 @@ PseudobulkExpression.Assay <- function(
   ...
 ) {
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'GetAssayData(slot = )',
       with = 'GetAssayData(layer = )'
@@ -1298,14 +1291,7 @@ PseudobulkExpression.StdAssay <- function(
   ...
 ) {
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'GetAssayData(slot = )',
       with = 'GetAssayData(layer = )'
@@ -1404,14 +1390,7 @@ PseudobulkExpression.Seurat <- function(
     stop("'method' must be either 'average' or 'aggregate'")
   }
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'AverageExpression(slot = )',
       with = 'AverageExpression(layer = )'
