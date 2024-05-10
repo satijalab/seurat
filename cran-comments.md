@@ -18,13 +18,13 @@ There were two NOTEs
 >   presto    yes   https://satijalab.r-universe.dev
 
 > * checking package dependencies ... NOTE
-> Package suggested but not available for checking: 'BPCells'
+> Package suggested but not available for checking: 'BPCells', 'presto'
 
-BPCells is hosted on R-universe and used conditionally in SeuratObject.
+BPCells and presto are hosted on R-universe and used conditionally in Seurat.
 
 ## Downstream dependencies
 
-There are two packages that depend on Seurat: CACIMAR and scCustomize; this update does not impact their functionality
+There are three packages that depend on Seurat: CACIMAR, scCustomize, and SCdeconR; this update does not impact their functionality
 
 There are 30 packages that import Seurat: AnanseSeurat, APackOfTheClones, bbknnR, CAMML, DR.SC, DWLS, GeneNMF, ggsector, mixhvg, nebula, Platypus, PRECAST, ProFAST, rPanglaoDB, scAnnotate, scaper, sccca, scDiffCom, scGate, scGOclust, scMappR, scperturbR, scpoisson, SCRIP, scRNAstat, SignacX, SoupX, SPECK, STREAK, and tidyseurat; this update does not impact their functionality
 
