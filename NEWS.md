@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 5.1.0 (2024-05-08)
 
 ## Changes
 - Updated interactive `SpatialDimPlot`s to display spatial coordinates

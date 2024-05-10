@@ -29,6 +29,7 @@ cluster.ape <- paste(
 #' overrides \code{features}
 #' @param reduction Name of dimension reduction to use. Only used if \code{dims}
 #' is not NULL.
+#' @param slot slot/layer to use. 
 #' @param graph If graph is passed, build tree based on graph connectivity between
 #' clusters; overrides \code{dims} and \code{features}
 #' @param reorder Re-order identity classes (factor ordering), according to
@@ -37,7 +38,6 @@ cluster.ape <- paste(
 #' @param reorder.numeric Re-order identity classes according to position on
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @param verbose Show progress updates
-#' @inheritParams PseudobulkExpression
 #'
 #' @return A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 #'

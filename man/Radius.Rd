@@ -19,6 +19,9 @@
 \item{object}{An image object}
 
 \item{...}{Arguments passed to other methods}
+
+\item{scale}{A factor to scale the radius by; one of: "hires", 
+"lowres", or \code{NULL} for the unscaled value.}
 }
 \description{
 Get Spot Radius

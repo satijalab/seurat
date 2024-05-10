@@ -1203,20 +1203,20 @@ PercentageFeatureSet <- function(
 #'
 #' @param object Seurat object
 #' @param method Whether to 'average' (default) or 'aggregate' expression levels
-#' @param assays Which assays to use. Default is all assays
+#' @param assay  The name of the passed assay - used primarily for warning/error messages
+#' @param category.matrix A matrix defining groupings for pseudobulk expression 
+#' calculations; each column represents an identity class, and each row a sample
 #' @param features Features to analyze. Default is all features in the assay
-#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
-#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
-#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+#' @param layer Layer(s) to user; if multiple are given, assumed to follow
 #' the order of 'assays' (if specified) or object's assays
+#' @param slot (Deprecated) See \code{layer}
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
+#' @rdname PseudobulkExpression
 #' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #' @concept utilities
@@ -1232,14 +1232,7 @@ PseudobulkExpression.Assay <- function(
   ...
 ) {
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'GetAssayData(slot = )',
       with = 'GetAssayData(layer = )'
@@ -1283,6 +1276,7 @@ PseudobulkExpression.Assay <- function(
 }
 
 #' @method PseudobulkExpression StdAssay
+#' @rdname PseudobulkExpression
 #' @export
 #' @concept utilities
 #'
@@ -1297,14 +1291,7 @@ PseudobulkExpression.StdAssay <- function(
   ...
 ) {
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'GetAssayData(slot = )',
       with = 'GetAssayData(layer = )'
@@ -1362,11 +1349,22 @@ PseudobulkExpression.StdAssay <- function(
   return(data.return)
 }
 
-
+#' @param assays Which assays to use. Default is all assays
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+#' @param group.by Categories for grouping (e.g, "ident", "replicate", 
+#' "celltype"); "ident" by default
+#' @param add.ident (Deprecated) See group.by
+#' @param method The method used for calculating pseudobulk expression; one of: 
+#' "average" or "aggregate"
+#' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
+#' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
+#' @param margin Margin to perform CLR normalization, see \code{\link{NormalizeData}}
+#'
 #' @method PseudobulkExpression Seurat
-#' @importFrom SeuratObject .IsFutureSeurat
+#' @rdname PseudobulkExpression
 #' @export
 #' @concept utilities
+#'
 PseudobulkExpression.Seurat <- function(
   object,
   assays = NULL,
@@ -1392,14 +1390,7 @@ PseudobulkExpression.Seurat <- function(
     stop("'method' must be either 'average' or 'aggregate'")
   }
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'AverageExpression(slot = )',
       with = 'AverageExpression(layer = )'
