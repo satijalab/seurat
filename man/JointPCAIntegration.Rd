@@ -96,3 +96,4 @@ integration.}
 \description{
 Seurat-Joint PCA Integration
 }
+\concept{integration}

@@ -1642,7 +1642,8 @@ FetchResiduals <- function(
 #'
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
-#
+#'
+#' @keywords internal
 FetchResidualSCTModel <- function(
   object,
   assay = "SCT",
@@ -1923,7 +1924,7 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
 #'
-
+#' @keywords internal
 FetchResiduals_reference <- function(object,
                                      reference.SCT.model = NULL,
                                      features = NULL,

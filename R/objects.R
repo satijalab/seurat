@@ -328,6 +328,32 @@ VisiumV1 <- setClass(
   )
 )
 
+#' The VisiumV2 class
+#'
+#' The VisiumV2 class represents spatial information from the 10X Genomics 
+#' Visium HD platform - it can also accomodate data from the standard 
+#' Visium platform
+#' 
+#' @slot image A three-dimensional array with PNG image data, see
+#' \code{\link[png]{readPNG}} for more details
+#' @slot scale.factors An object of class \code{\link{scalefactors}}; see
+#' \code{\link{scalefactors}} for more information
+#'
+#' @importClassesFrom SeuratObject FOV
+#' @name VisiumV2-class
+#'
+#' @concept objects
+#' @concept spatial
+#' @exportClass VisiumV2
+VisiumV2 <- setClass(
+  Class = "VisiumV2",
+  contains = "FOV",
+  slots = list(
+    image = "array",
+    scale.factors = "scalefactors"
+  )
+)
+
 setClass(Class = 'SliceImage', contains = 'VisiumV1')
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -347,6 +373,8 @@ setClass(Class = 'SliceImage', contains = 'VisiumV1')
 #' \dontrun{
 #' CellsByImage(object = object, images = "slice1")
 #' }
+#'
+#' @keywords internal
 #'
 CellsByImage <- function(object, images = NULL, unlist = FALSE) {
   images <- images %||% Images(object = object)
@@ -1575,7 +1603,9 @@ GetImage.VisiumV1 <- function(
   ...
 ) {
   mode <- match.arg(arg = mode)
+  
   image <- slot(object = object, name = 'image')
+
   image <- switch(
     EXPR = mode,
     'grob' = rasterGrob(
@@ -1585,11 +1615,9 @@ GetImage.VisiumV1 <- function(
     ),
     'raster' = as.raster(x = image),
     'plotly' = list(
-      source = raster2uri(r = GetImage(object = object, mode = 'raster')),
+      source = raster2uri(GetImage(object, mode = 'raster')),
       xref = 'x',
       yref = 'y',
-      # x = -7,
-      # y = -7,
       sizex = ncol(x = object),
       sizey = nrow(x = object),
       sizing = 'stretch',
@@ -1601,6 +1629,8 @@ GetImage.VisiumV1 <- function(
   )
   return(image)
 }
+
+GetImage.VisiumV2 <- GetImage.VisiumV1
 
 #' Get Tissue Coordinates
 #'
@@ -1668,6 +1698,34 @@ GetTissueCoordinates.VisiumV1 <- function(
   return(coordinates)
 }
 
+
+#' @rdname GetTissueCoordinates
+#' @method GetTissueCoordinates VisiumV2
+#' @export
+#'
+GetTissueCoordinates.VisiumV2 <- function(
+  object,
+  scale = NULL,
+  ...
+) {
+  # make call to GetTissueCoordiantes.FOV
+  coordinates <- NextMethod(object, ...)
+  # do some cleanup of the resulting data.frame to make it play nice
+  # with `SpatialPlot` - namely set rownames and re-order the columns so
+  # that the actual position values appear first
+  rownames(coordinates) <- coordinates[["cell"]]
+  coordinates <- coordinates[, c("x", "y", "cell")]
+
+  if (!is.null(scale)) {
+    # scale the coordinates by the specified factor
+    scale <- match.arg(scale, choices = c("lowres", "hires"))
+    scale.factor <- ScaleFactors(object)[[scale]]
+    coordinates[, c("x", "y")] <- coordinates[, c("x", "y")] * scale.factor
+  }
+
+  return (coordinates)
+}
+
 #' Get Variable Feature Information
 #'
 #' Get variable feature information from \code{\link{SCTAssay}} objects
@@ -1676,6 +1734,7 @@ GetTissueCoordinates.VisiumV1 <- function(
 #' @param method method to determine variable features
 #'
 #' @export
+#' @concept objects
 #' @method HVFInfo SCTAssay
 #'
 #' @seealso \code{\link[SeuratObject]{HVFInfo}}
@@ -1719,7 +1778,7 @@ HVFInfo.SCTAssay <- function(object, method, status = FALSE, ...) {
 #'
 #' @seealso \code{\link[SeuratObject:Radius]{SeuratObject::Radius}}
 #'
-Radius.SlideSeq <- function(object) {
+Radius.SlideSeq <- function(object, ...) {
   return(0.005)
 }
 
@@ -1729,8 +1788,31 @@ Radius.SlideSeq <- function(object) {
 #' @method Radius STARmap
 #' @export
 #'
-Radius.STARmap <- function(object) {
+Radius.STARmap <- function(object, ...) {
   return(NULL)
+}
+
+#'
+#' @param scale A factor to scale the radius by; one of: "hires", 
+#' "lowres", or \code{NULL} for the unscaled value.  
+#'
+#' @rdname Radius
+#' @concept objects
+#' @concept spatial
+#' @method Radius VisiumV1
+#' @export
+#'
+Radius.VisiumV1 <- function(object, scale = "lowres", ...) {
+  scale.factors <- ScaleFactors(object = object)
+
+  spot.size <- scale.factors[["spot"]]
+  scale.factor <- scale.factors[[
+    match.arg(scale, choices = c("hires", "lowres"))
+  ]]
+
+  image.size <- max(dim(GetImage(object, resolution=scale)$raster))
+
+  return ((spot.size * scale.factor) / image.size)
 }
 
 #' @rdname Radius
@@ -1739,9 +1821,7 @@ Radius.STARmap <- function(object) {
 #' @method Radius VisiumV1
 #' @export
 #'
-Radius.VisiumV1 <- function(object) {
-  return(slot(object = object, name = 'spot.radius'))
-}
+Radius.VisiumV2 <- Radius.VisiumV1
 
 #' @rdname RenameCells
 #' @export
@@ -2040,13 +2120,11 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 }
 
 #' @rdname ScaleFactors
-#' @method ScaleFactors VisiumV1
+#' @method ScaleFactors VisiumV2
 #' @export
 #' @concept spatial
 #'
-ScaleFactors.VisiumV1 <- function(object, ...) {
-  return(slot(object = object, name = 'scale.factors'))
-}
+ScaleFactors.VisiumV2 <- ScaleFactors.VisiumV1
 
 #' @method FetchData VisiumV1
 #' @export
@@ -2124,6 +2202,12 @@ dim.STARmap <- function(x) {
 dim.VisiumV1 <- function(x) {
   return(dim(x = GetImage(object = x)$raster))
 }
+
+#' @method dim VisiumV2
+#' @concept objects
+#' @export
+#'
+dim.VisiumV2 <- dim.VisiumV1
 
 #' @rdname SCTAssay-class
 #' @name SCTAssay-class

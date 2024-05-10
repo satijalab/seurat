@@ -87,3 +87,4 @@ query object using the \code{\link{MapQuery}} object.
  }
 }
 }
+\keyword{internal}

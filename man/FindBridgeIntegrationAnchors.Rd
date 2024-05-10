@@ -61,3 +61,4 @@ using a pre-computed \code{\link{BridgeReferenceSet}}.
 These integration anchors can later be used to integrate query and reference
 using the \code{\link{IntegrateEmbeddings}} object.
 }
+\concept{integration}

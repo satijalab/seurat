@@ -9,6 +9,7 @@ BuildNicheAssay(
   fov,
   group.by,
   assay = "niche",
+  cluster.name = "niches",
   neighbors.k = 20,
   niches.k = 4
 )
@@ -21,6 +22,8 @@ BuildNicheAssay(
 \item{group.by}{Cell classifications to count in spatial neighborhood}
 
 \item{assay}{Name for spatial neighborhoods assay}
+
+\item{cluster.name}{Name of output clusters}
 
 \item{neighbors.k}{Number of neighbors to consider for each cell}
 

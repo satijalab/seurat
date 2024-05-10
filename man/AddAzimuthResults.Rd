@@ -25,3 +25,4 @@ object <- AddAzimuthResults(object, filename = "azimuth_results.Rds")
 }
 
 }
+\concept{utilities}
