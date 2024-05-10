@@ -4,9 +4,6 @@
 * local ubuntu 20.04 install, R 4.3.2
 * local macOS 14.1, R 4.4.0
 * win-builder (oldrelease, release, devel)
-* mac-builder (devel)
-
-We were unable to test on r-release on mac-builder because the portal seemed to point to the wrong version.
 
 ## R CMD check results
 
