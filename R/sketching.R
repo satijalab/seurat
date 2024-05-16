@@ -89,23 +89,23 @@ SketchData <- function(
     object[[var.name]] <- 1
   }
   leverage.score <- object[[var.name]]
-  layers.data <- Layers(object = object[[assay]], search = 'data')
+  layer.names <- Layers(object = object[[assay]], search = 'data')
   cells <- list()
-  for (i in seq_along(layers.data)){
-    set.seed(seed = seed) # does this need to be set in the forloop? is it getting updated somehow 
-    lyr <- layers.data[i]
+  for (i in seq_along(layer.names)){
+    set.seed(seed = seed) 
+    layer.name <- layer.names[i]
     if (length(ncells) == 1) { # use the same number of cells per layer 
-      ncells.lyr <- ncells
+      ncells.layer <- ncells
     } else {
-      ncells.lyr <- ncells[i]
+      ncells.layer <- ncells[i]
     }
-    lcells <- Cells(x = object[[assay]], layer = lyr)
-    if (length(x = lcells) < ncells.lyr) {
+    lcells <- Cells(x = object[[assay]], layer = layer.name)
+    if (length(x = lcells) < ncells.layer) {
       cells[[i]] <- lcells
     } else {
       cells[[i]] <- sample(
         x = lcells,
-        size = ncells.lyr,
+        size = ncells.layer,
         prob = leverage.score[lcells,]
       )
     }
@@ -116,10 +116,10 @@ SketchData <- function(
     cells = unlist(cells),
     layers = Layers(object = object[[assay]], search = c('counts', 'data'))
   ))
-  for (lyr in layers.data) {
+  for (layer.name in layers.names) {
     try(
-      expr = VariableFeatures(object = sketched, method = "sketch", layer = lyr) <-
-        VariableFeatures(object = object[[assay]], layer = lyr),
+      expr = VariableFeatures(object = sketched, method = "sketch", layer = layer.name) <-
+        VariableFeatures(object = object[[assay]], layer = layer.name),
       silent = TRUE
     )
   }
