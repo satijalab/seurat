@@ -56,7 +56,7 @@ Imports:
     irlba,
     jsonlite,
     KernSmooth,
-    leiden (>= 0.3.1),
+    leidenbase,
     lifecycle,
     lmtest,
     MASS,
@@ -114,7 +114,6 @@ Collate:
     'sketching.R'
     'tree.R'
     'utilities.R'
-RoxygenNote: 7.3.1
 Encoding: UTF-8
 Suggests:
     ape,
@@ -147,3 +146,4 @@ Suggests:
     presto,
     DelayedArray,
     harmony
+RoxygenNote: 7.3.1

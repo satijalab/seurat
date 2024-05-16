@@ -1650,7 +1650,6 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #
 # @keywords graph network igraph mvtnorm simulation
 #
-#' @importFrom leiden leiden
 #' @importFrom reticulate py_module_available
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
@@ -1706,17 +1705,17 @@ RunLeiden <- function(
     },
     stop("Method for Leiden must be either 'matrix' or igraph'")
   )
-  #run leiden from CRAN package (calls python with reticulate)
-  partition <- leiden(
+  # run clustering with leidenbase
+  partition <- leidenbase::leiden_find_partition(
     object = input,
     partition_type = partition.type,
     initial_membership = initial.membership,
-    weights = NULL,
+    edge_weights = NULL,
     node_sizes = node.sizes,
     resolution_parameter = resolution.parameter,
     seed = random.seed,
-    n_iterations = n.iter
-  )
+    num_iter = n.iter
+  )$membership
   return(partition)
 }
 
