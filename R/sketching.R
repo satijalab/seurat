@@ -90,20 +90,21 @@ SketchData <- function(
   }
   leverage.score <- object[[var.name]]
   layer.names <- Layers(object = object[[assay]], search = 'data')
+  if (length(ncells) == 1) {
+    ncells <- rep(ncells, length(layer.names))
+  }
+  if (is.null(names(ncells))) {
+    names(ncells) <- layer.names
+  }
   cells <- list()
-  for (i in seq_along(layer.names)){
+  for (layer.name in layer.names){
     set.seed(seed = seed) 
-    layer.name <- layer.names[i]
-    if (length(ncells) == 1) { # use the same number of cells per layer 
-      ncells.layer <- ncells
-    } else {
-      ncells.layer <- ncells[i]
-    }
+    ncells.layer <- ncells[[layer.name]]
     lcells <- Cells(x = object[[assay]], layer = layer.name)
     if (length(x = lcells) < ncells.layer) {
-      cells[[i]] <- lcells
+      cells[[layer.name]] <- lcells
     } else {
-      cells[[i]] <- sample(
+      cells[[layer.name]] <- sample(
         x = lcells,
         size = ncells.layer,
         prob = leverage.score[lcells,]
@@ -116,7 +117,7 @@ SketchData <- function(
     cells = unlist(cells),
     layers = Layers(object = object[[assay]], search = c('counts', 'data'))
   ))
-  for (layer.name in layers.names) {
+  for (layer.name in layer.names) {
     try(
       expr = VariableFeatures(object = sketched, method = "sketch", layer = layer.name) <-
         VariableFeatures(object = object[[assay]], layer = layer.name),
