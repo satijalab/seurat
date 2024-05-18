@@ -13,6 +13,7 @@ SpatialPlot(
   images = NULL,
   cols = NULL,
   image.alpha = 1,
+  image.scale = "lowres",
   crop = TRUE,
   slot = "data",
   keep.scale = "feature",
@@ -30,7 +31,8 @@ SpatialPlot(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -56,7 +58,9 @@ SpatialDimPlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
-  stroke = 0.25,
+  image.scale = "lowres",
+  shape = 21,
+  stroke = NA,
   label.box = TRUE,
   interactive = FALSE,
   information = NULL
@@ -76,7 +80,9 @@ SpatialFeaturePlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
-  stroke = 0.25,
+  image.scale = "lowres",
+  shape = 21,
+  stroke = NA,
   interactive = FALSE,
   information = NULL
 )
@@ -98,6 +104,9 @@ default, ggplot2 assigns colors}
 
 \item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
 remove.}
+
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{crop}{Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 entire background image.}
@@ -156,6 +165,9 @@ themeing will not work when plotting multiple features/groupings}
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
 min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 alpha value for each plot.}
+
+\item{shape}{Control the shape of the spots - same as the ggplot2 parameter. 
+The default is 21, which plots circles - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
 

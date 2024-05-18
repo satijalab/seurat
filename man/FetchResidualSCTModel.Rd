@@ -64,3 +64,4 @@ added features
 Calculate pearson residuals of features not in the scale.data
 This function is the secondary function under FetchResiduals
 }
+\keyword{internal}

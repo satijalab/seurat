@@ -20,3 +20,4 @@ CreateCategoryMatrix(
 \description{
 Create one hot matrix for a given label
 }
+\concept{utilities}

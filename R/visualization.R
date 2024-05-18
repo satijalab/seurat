@@ -2391,6 +2391,8 @@ PolyFeaturePlot <- function(
 #' DefaultBoundary FetchData Images Overlay
 #'
 #' @export
+#' @concept visualization
+#' @concept spatial
 #'
 ImageDimPlot <- function(
   object,
@@ -2622,6 +2624,8 @@ ImageDimPlot <- function(
 #' FetchData Images Overlay
 #'
 #' @export
+#' @concept visualization
+#' @concept spatial
 #'
 ImageFeaturePlot <- function(
   object,
@@ -3182,6 +3186,7 @@ LinkedDimPlot <- function(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   group.by = NULL,
   alpha = c(0.1, 1),
   combine = TRUE
@@ -3225,7 +3230,7 @@ LinkedDimPlot <- function(
     vars = group.by,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   plot.data$selected_ <- FALSE
@@ -3391,6 +3396,7 @@ LinkedFeaturePlot <- function(
   dims = 1:2,
   reduction = NULL,
   image = NULL,
+  image.scale = "lowres",
   slot = 'data',
   alpha = c(0.1, 1),
   combine = TRUE
@@ -3430,7 +3436,7 @@ LinkedFeaturePlot <- function(
     vars = feature,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
@@ -3522,6 +3528,7 @@ LinkedFeaturePlot <- function(
 ISpatialDimPlot <- function(
   object,
   image = NULL,
+  image.scale = "lowres",
   group.by = NULL,
   alpha = c(0.3, 1)
 ) {
@@ -3555,7 +3562,8 @@ ISpatialDimPlot <- function(
     vars = group.by,
     cells = cells.use
   )
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
+  scale.factor <- ScaleFactors(object[[image]])[[image.scale]]
   plot.data <- cbind(coords, group.data)
   plot.data$selected_ <- FALSE
   Idents(object = object) <- group.by
@@ -3611,14 +3619,26 @@ ISpatialDimPlot <- function(
     # Add hover text
     output$info <- renderPrint(
       expr = {
-        cell.hover <- rownames(x = nearPoints(
+        hovered <- nearPoints(
           df = plot.data,
           coordinfo = InvertCoordinate(x = input$hover),
           threshold = 10,
           maxpoints = 1
-        ))
-        if (length(x = cell.hover) == 1) {
-          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        )
+        if (nrow(hovered) == 1) {
+          cell.hover <- rownames(hovered)
+          # SingleSpatialPlot relies on the spatial coordinates appearing
+          # in the first two columns of the returned data.frame - it's kinda
+          # fragile but we're obligated to use the same behaviour here
+          coords.hover <- hovered[1, colnames(coords)[1:2]] / scale.factor
+          group.hover <- hovered[1, group.by]
+          sprintf(
+            "Cell: %s, Group: %s, Coordinates: (%.2f, %.2f)", 
+            cell.hover, 
+            group.hover, 
+            coords.hover[[1]],
+            coords.hover[[2]]
+          )
         } else {
           NULL
         }
@@ -3648,6 +3668,7 @@ ISpatialFeaturePlot <- function(
   object,
   feature,
   image = NULL,
+  image.scale = "lowres",
   slot = 'data',
   alpha = c(0.1, 1)
 ) {
@@ -3739,7 +3760,7 @@ ISpatialFeaturePlot <- function(
   # Prepare plotting data
   image <- image %||% DefaultImage(object = object)
   cells.use <- Cells(x = object[[image]])
-  coords <- GetTissueCoordinates(object = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   feature.data <- FetchData(
     object = object,
     vars = feature,
@@ -3846,6 +3867,8 @@ ISpatialFeaturePlot <- function(
 #' default, ggplot2 assigns colors
 #' @param image.alpha Adjust the opacity of the background images. Set to 0 to
 #' remove.
+#' @param image.scale Choose the scale factor ("lowres"/"hires") to apply in 
+#' order to matchthe plot with the specified `image` - defaults to "lowres"
 #' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 #' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
@@ -3888,6 +3911,8 @@ ISpatialFeaturePlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 #' alpha value for each plot.
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
+#' The default is 21, which plots circles - use 22 to plot squares. 
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -3924,6 +3949,7 @@ SpatialPlot <- function(
   images = NULL,
   cols = NULL,
   image.alpha = 1,
+  image.scale = "lowres",
   crop = TRUE,
   slot = 'data',
   keep.scale = "feature",
@@ -3941,7 +3967,8 @@ SpatialPlot <- function(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -3972,11 +3999,13 @@ SpatialPlot <- function(
     stop("`keep.scale` must be set to either `feature`, `all`, or NULL")
   }
 
+  cells <- unique(CellsByImage(object, images = images, unlist = TRUE))
   if (is.null(x = features)) {
     if (interactive) {
       return(ISpatialDimPlot(
         object = object,
         image = images[1],
+        image.scale = image.scale,
         group.by = group.by,
         alpha = alpha
       ))
@@ -3984,6 +4013,7 @@ SpatialPlot <- function(
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
     data <- object[[group.by]]
+    data <- data[cells,,drop=F]
     for (group in group.by) {
       if (!is.factor(x = data[, group])) {
         data[, group] <- factor(x = data[, group])
@@ -3995,6 +4025,7 @@ SpatialPlot <- function(
         object = object,
         feature = features[1],
         image = images[1],
+        image.scale = image.scale,
         slot = slot,
         alpha = alpha
       ))
@@ -4002,7 +4033,9 @@ SpatialPlot <- function(
     data <- FetchData(
       object = object,
       vars = features,
-      slot = slot
+      cells = cells,
+      layer = slot,
+      clean = FALSE
     )
     features <- colnames(x = data)
     # Determine cutoffs
@@ -4049,11 +4082,11 @@ SpatialPlot <- function(
       }
     )
     colnames(x = data) <- features
-    rownames(x = data) <- Cells(x = object)
+    rownames(x = data) <- cells
   }
   features <- colnames(x = data)
   colnames(x = data) <- features
-  rownames(x = data) <- colnames(x = object)
+  rownames(x = data) <- cells
   facet.highlight <- facet.highlight && (!is.null(x = cells.highlight) && is.list(x = cells.highlight))
   if (do.hover) {
     if (length(x = images) > 1) {
@@ -4110,12 +4143,16 @@ SpatialPlot <- function(
     max.feature.value <- max(apply(data, 2, function(x) max(x, na.rm = TRUE)))
   }
 
-
   for (i in 1:ncols) {
     plot.idx <- i
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
     image.use <- object[[images[[image.idx]]]]
-    coordinates <- GetTissueCoordinates(object = image.use)
+
+    coordinates <- GetTissueCoordinates(
+      object = image.use,
+      scale = image.scale
+    )
+
     highlight.use <- if (facet.highlight) {
       cells.highlight[i]
     } else {
@@ -4139,6 +4176,7 @@ SpatialPlot <- function(
           data[rownames(x = coordinates), features[j], drop = FALSE]
         ),
         image = image.use,
+        image.scale = image.scale,
         image.alpha = image.alpha,
         col.by = features[j],
         cols = cols,
@@ -4160,6 +4198,7 @@ SpatialPlot <- function(
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
+        shape = shape,
         stroke = stroke,
         crop = crop
       )
@@ -4216,21 +4255,7 @@ SpatialPlot <- function(
       }
     }
   }
-  # if (do.identify) {
-  #   return(CellSelector(
-  #     plot = plot,
-  #     object = identify.ident %iff% object,
-  #     ident = identify.ident
-  #   ))
-  # } else if (do.hover) {
-  #   return(HoverLocator(
-  #     plot = plots[[1]],
-  #     information = information %||% data[, features, drop = FALSE],
-  #     axes = FALSE,
-  #     # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
-  #     images = GetImage(object = object, mode = 'plotly', image = images)
-  #   ))
-  # }
+
   if (combine) {
     if (!is.null(x = ncol)) {
       return(wrap_plots(plots = plots, ncol = ncol))
@@ -6969,14 +6994,14 @@ GeomSpatial <- ggproto(
   "GeomSpatial",
   Geom,
   required_aes = c("x", "y"),
-  extra_params = c("na.rm", "image", "image.alpha", "crop"),
+  extra_params = c("na.rm", "image", "image.alpha", "image.scale", "crop"),
   default_aes = aes(
     shape = 21,
     colour = "black",
     point.size.factor = 1.0,
     fill = NA,
     alpha = NA,
-    stroke = 0.25
+    stroke = NA
   ),
   setup_data = function(self, data, params) {
     data <- ggproto_parent(Geom, self)$setup_data(data, params)
@@ -6985,19 +7010,21 @@ GeomSpatial <- ggproto(
     data
   },
   draw_key = draw_key_point,
-  draw_panel = function(data, panel_scales, coord, image, image.alpha, crop) {
+  draw_panel = function(data, panel_scales, coord, image, image.alpha, image.scale, crop) {
+    img.dim <- dim(image)
+
     # This should be in native units, where
     # Locations and sizes are relative to the x- and yscales for the current viewport.
     if (!crop) {
-      y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
+      y.transform <- c(0, img.dim[[1]]) - panel_scales$y.range
       data$y <- data$y + sum(y.transform)
-      panel_scales$x$continuous_range <- c(0, ncol(x = image))
-      panel_scales$y$continuous_range <- c(0, nrow(x = image))
-      panel_scales$y.range <- c(0, nrow(x = image))
-      panel_scales$x.range <- c(0, ncol(x = image))
+      panel_scales$x$continuous_range <- c(0, img.dim[[2]])
+      panel_scales$y$continuous_range <- c(0, img.dim[[1]])
+      panel_scales$y.range <- c(0, img.dim[[1]])
+      panel_scales$x.range <- c(0, img.dim[[2]])
     }
     z <- coord$transform(
-      data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
+      data.frame(x = c(0, img.dim[[2]]), y = c(0, img.dim[[1]])),
       panel_scales
     )
     # Flip Y axis for image
@@ -7011,12 +7038,11 @@ GeomSpatial <- ggproto(
       height = unit(x = hgth, units = "npc"),
       just = c("left", "bottom")
     )
-    img.grob <- GetImage(object = image)
 
-    img <- editGrob(grob = img.grob, vp = vp)
-    # spot.size <- slot(object = image, name = "spot.radius")
-    spot.size <- Radius(object = image)
+    spot.size <- Radius(object = image, scale = image.scale)
     coords <- coord$transform(data, panel_scales)
+
+    img <- editGrob(grob = GetImage(image), vp = vp)
     pts <- pointsGrob(
       x = coords$x,
       y = coords$y,
@@ -7045,7 +7071,6 @@ GeomSpatial <- ggproto(
     # Replacement for ggname
     gt$name <- grobName(grob = gt, prefix = 'geom_spatial')
     return(gt)
-    # ggplot2:::ggname("geom_spatial", gt)
   }
 )
 
@@ -7059,6 +7084,7 @@ geom_spatial <-  function(
   data = NULL,
   image = image,
   image.alpha = image.alpha,
+  image.scale = image.scale,
   crop = crop,
   stat = "identity",
   position = "identity",
@@ -7075,7 +7101,14 @@ geom_spatial <-  function(
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(na.rm = na.rm, image = image, image.alpha = image.alpha, crop = crop, ...)
+    params = list(
+      na.rm = na.rm,
+      image = image,
+      image.alpha = image.alpha,
+      image.scale = image.scale,
+      crop = crop,
+      ...
+    )
   )
 }
 
@@ -8946,12 +8979,16 @@ SingleRasterMap <- function(
 #' colors
 #' @param image.alpha Adjust the opacity of the background images. Set to 0 to
 #' remove.
+#' @param image.scale Choose the scale factor ("lowres"/"hires") to apply in 
+#' order to matchthe plot with the specified `image` - defaults to "lowres"
 #' @param pt.alpha Adjust the opacity of the points if plotting a
 #' \code{SpatialDimPlot}
 #' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE}
 #' to show entire background image.
 #' @param pt.size.factor Sets the size of the points relative to spot.radius
 #' @param stroke Control the width of the border around the spots
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
+#' The default is 21, which plots cirlces - use 22 to plot squares. 
 #' @param col.by Mapping variable for the point color
 #' @param alpha.by Mapping variable for the point alpha value
 #' @param cells.highlight A list of character or numeric vectors of cells to
@@ -8980,10 +9017,12 @@ SingleSpatialPlot <- function(
   image,
   cols = NULL,
   image.alpha = 1,
+  image.scale = "lowres",
   pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   col.by = NULL,
   alpha.by = NULL,
   cells.highlight = NULL,
@@ -9027,7 +9066,9 @@ SingleSpatialPlot <- function(
           data = data,
           image = image,
           image.alpha = image.alpha,
+          image.scale = image.scale,
           crop = crop,
+          shape = shape,
           stroke = stroke,
         )
       } else {
@@ -9036,7 +9077,9 @@ SingleSpatialPlot <- function(
           data = data,
           image = image,
           image.alpha = image.alpha,
+          image.scale = image.scale,
           crop = crop,
+          shape = shape,
           stroke = stroke,
           alpha = pt.alpha
         )
@@ -9045,7 +9088,14 @@ SingleSpatialPlot <- function(
     },
     'interactive' = {
       plot + geom_spatial_interactive(
-        data = tibble(grob = list(GetImage(object = image, mode = 'grob'))),
+        data = tibble(
+          grob = list(
+            GetImage(
+              object = image,
+              mode = 'grob'
+            )
+          )
+        ),
         mapping = aes_string(grob = 'grob'),
         x = 0.5,
         y = 0.5
@@ -9060,7 +9110,11 @@ SingleSpatialPlot <- function(
       data[, c('x', 'y')] <- NULL
       data <- merge(
         x = data,
-        y = GetTissueCoordinates(object = image, qhulls = TRUE),
+        y = GetTissueCoordinates(
+          object = image,
+          qhulls = TRUE,
+          scale = image.scale
+        ),
         by = "cell"
       )
       plot + geom_polygon(

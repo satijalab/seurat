@@ -55,3 +55,4 @@ Returns a query-only or query-reference combined seurat object
 \description{
 Project query data to reference dimensional reduction
 }
+\concept{integration}

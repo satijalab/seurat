@@ -48,3 +48,4 @@ Returns a object list in which each object has a bridge cell derived assay
 \description{
 Construct a dictionary representation for each unimodal dataset
 }
+\concept{integration}

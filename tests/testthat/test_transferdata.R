@@ -74,7 +74,7 @@ test_that("TransferData handles weight.reduction properly, ", {
   cdr.preds <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, weight.reduction = custom.dr, verbose = FALSE, dims = 1:30)
   expect_equal(preds, cdr.preds)
   # weight.reduction = "pca
-  pca.preds <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, weight.reduction = "pca", verbose = FALSE)
+  pca.preds <- suppressWarnings(TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, weight.reduction = "pca", verbose = FALSE))
   expect_true(inherits(pca.preds, "Seurat"))
   expect_equal(sum(GetAssayData(pca.preds[['prediction.score.id']])[1, ]), 27.83330252, tolerance = 1e-6)
   # weight.reduction = "cca"
@@ -134,11 +134,11 @@ test_that("TransferData with multiple items to transfer works ", {
 })
 
 test_that("TransferData can return a modified query object ", {
-  query <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, verbose = FALSE)
+  query <- suppressWarnings(TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, verbose = FALSE))
   expect_true("prediction.score.id" %in% Assays(query))
   expect_true("predicted.id" %in% colnames(query[[]]))
   expect_true("predicted.id.score" %in% colnames(query[[]]))
-  query <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, store.weights = TRUE, verbose = FALSE)
+  query <- suppressWarnings(TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, store.weights = TRUE, verbose = FALSE))
   expect_equal(dim(Tool(query, slot = "TransferData")$weights.matrix), c(128, 80))
 })
 

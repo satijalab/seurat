@@ -13,12 +13,12 @@ cluster.ape <- paste(
 
 #' Phylogenetic Analysis of Identity Classes
 #'
-#' Constructs a phylogenetic tree relating the 'average' cell from each
+#' Constructs a phylogenetic tree relating the 'aggregate' cell from each
 #' identity class. Tree is estimated based on a distance matrix constructed in
 #' either gene expression space or PCA space.
 #'
-#' Note that the tree is calculated for an 'average' cell, so gene expression
-#' or PC scores are averaged across all cells in an identity class before the
+#' Note that the tree is calculated for an 'aggregate' cell, so gene expression
+#' or PC scores are summed across all cells in an identity class before the
 #' tree is constructed.
 #'
 #' @param object Seurat object
@@ -29,6 +29,7 @@ cluster.ape <- paste(
 #' overrides \code{features}
 #' @param reduction Name of dimension reduction to use. Only used if \code{dims}
 #' is not NULL.
+#' @param slot slot/layer to use. 
 #' @param graph If graph is passed, build tree based on graph connectivity between
 #' clusters; overrides \code{dims} and \code{features}
 #' @param reorder Re-order identity classes (factor ordering), according to
@@ -37,7 +38,6 @@ cluster.ape <- paste(
 #' @param reorder.numeric Re-order identity classes according to position on
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @param verbose Show progress updates
-#' @inheritParams AverageExpression
 #'
 #' @return A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 #'
@@ -70,7 +70,7 @@ BuildClusterTree <- function(
   reorder.numeric = FALSE,
   verbose = TRUE
 ) {
-  if (!PackageCheck('ape', error = FALSE)) {
+  if (!requireNamespace('ape', quietly = TRUE)) {
     stop(cluster.ape, call. = FALSE)
   }
   assay <- assay %||% DefaultAssay(object = object)
@@ -135,14 +135,30 @@ BuildClusterTree <- function(
   } else {
     features <- features %||% VariableFeatures(object = object)
     features <- intersect(x = features, y = rownames(x = object))
-    data.avg <- AverageExpression(
-      object = object,
-      assays = assay,
-      features = features,
-      slot = slot,
-      verbose = verbose
-    )[[1]]
-    data.dist <- dist(x = t(x = data.avg[features, ]))
+    # if `slot` is set to "counts" sum the expression of the
+    # ident groups, otherwise average them
+    if(slot == "counts") {
+      # AggregateExpression only operates on a "counts" matrix so `layer`
+      # cannot be specified
+      data.pseudobulk <- AggregateExpression(
+        object,
+        assays = assay,
+        features = features,
+        verbose = verbose
+      )[[1]]
+    } else {
+      data.pseudobulk <- suppressMessages(
+        AverageExpression(
+          object,
+          assays = assay,
+          features = features,
+          # explicitly pass in the value of `slot` in as `layer`
+          layer = slot,
+          verbose = verbose
+        )
+      )[[1]]
+    }
+    data.dist <- dist(x = t(x = data.pseudobulk[features, ]))
   }
   data.tree <- ape::as.phylo(x = hclust(d = data.dist))
   Tool(object = object) <- data.tree

@@ -158,6 +158,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @inheritParams RPCAIntegration
 #' @export
+#' @concept integration
 #'
 #' @examples
 #' \dontrun{
@@ -342,6 +343,8 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
 #'
+#' @concept utilities
+#'
 RPCAIntegration <- function(
     object = NULL,
     assay = NULL,
@@ -444,6 +447,7 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @inheritParams IntegrateEmbeddings
 #' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
+#' @concept integration
 #'
 JointPCAIntegration <- function(
     object = NULL,
