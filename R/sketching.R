@@ -96,22 +96,31 @@ SketchData <- function(
   if (is.null(names(ncells))) {
     names(ncells) <- layer.names
   }
-  cells <- list()
-  for (layer.name in layer.names){
-    set.seed(seed = seed) 
-    ncells.layer <- ncells[[layer.name]]
-    lcells <- Cells(x = object[[assay]], layer = layer.name)
-    if (length(x = lcells) < ncells.layer) {
-      cells[[layer.name]] <- lcells
-    } else {
-      cells[[layer.name]] <- sample(
-        x = lcells,
-        size = ncells.layer,
-        prob = leverage.score[lcells,]
-      )
-    }
-    seed = seed
-  }
+  # align index of `ncells` with `layer.names`
+  ncells <- ncells[layer.names]
+  cells <- mapply(
+    function(
+    layer.name,
+    ncells.layer
+    ) {
+      if (!is.null(seed)) {
+        set.seed(seed)
+      }
+      cells.layer <- Cells(object[[assay]], layer = layer.name)
+      if (length(cells.layer) < ncells.layer) {
+        cells.to.keep <- cells.layer
+      } else {
+        cells.to.keep <- sample(
+          x = cells.layer,
+          size = ncells.layer,
+          prob = leverage.score[cells.layer,]
+        )
+      }
+      return (cells.to.keep)
+    },
+    layer.names,
+    ncells
+  )
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
     cells = unlist(cells),
