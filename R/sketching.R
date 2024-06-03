@@ -611,7 +611,7 @@ LeverageScore.Seurat <- function(
     ndims = ndims,
     method = method,
     vf.method = vf.method,
-    layer = layer,
+    layer = 'data',
     eps = eps,
     seed = seed,
     verbose = verbose,
