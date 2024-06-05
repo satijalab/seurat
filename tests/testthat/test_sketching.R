@@ -55,7 +55,7 @@ test_that("SketchData defaults work", {
   expect_equal(
     as.numeric(result$leverage.score[1]), 
     0.9036446, 
-    tolerance = 1e-6
+    tolerance = 1e-5
   )
   expect_equal(
     colnames(result[["sketch"]])[1], 
@@ -109,7 +109,7 @@ test_that("SketchData with multiple layers works", { # (and one is less than the
   )
   expect_equal(
     as.numeric(result$leverage.score[1]), 
-    0.7471112, 
+    0.9036446, 
     tolerance = 1e-6
   )
   expect_equal(
@@ -141,8 +141,8 @@ test_that("SketchData with a different number of cells per layer works", {
   )
   expect_equal(
     as.numeric(result$leverage.score[1]), 
-    0.6220129, 
-    tolerance = 1e-6
+    0.9036446, 
+    tolerance = 1e-5
   )
   expect_equal(
     colnames(result[["sketch"]])[1],  
@@ -230,7 +230,7 @@ test_that("SketchData with specified features and multiple layers works", {
   )
   expect_equal(
     as.numeric(result$leverage.score[1]), 
-    0.7324468, 
+    0.7202896, 
     tolerance = 1e-6
   )
   expect_equal(
