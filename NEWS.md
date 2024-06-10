@@ -1,3 +1,9 @@
+# Unreleased
+
+## Changes
+- Added `features` parameter to `LeverageScore` and `SketchData`
+- Updated `SketchData`'s `ncells` parameter to accept integer vector
+
 # Seurat 5.1.0 (2024-05-08)
 
 ## Changes
