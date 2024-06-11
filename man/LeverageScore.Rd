@@ -31,6 +31,7 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 )
 
@@ -44,6 +45,7 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 )
 
@@ -60,6 +62,7 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 )
 }
@@ -86,6 +89,8 @@ defaults to 0.5.}
 \item{vf.method}{VariableFeatures method}
 
 \item{layer}{layer to use}
+
+\item{features}{A vector of feature names to use for calculating leverage score.}
 
 \item{assay}{assay to use}
 
