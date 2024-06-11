@@ -498,6 +498,7 @@ LeverageScore.default <- function(
 #'            defaults to 0.5.
 #' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and diagnostic messages
+#' @param features A vector of feature names to use for calculating leverage score. 
 #'
 #' @importFrom SeuratObject EmptyDF
 #'
