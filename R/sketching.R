@@ -20,7 +20,9 @@ NULL
 #'
 #' @param object A Seurat object.
 #' @param assay Assay name. Default is NULL, in which case the default assay of the object is used.
-#' @param ncells A positive integer indicating the number of cells to sample for the sketching. Default is 5000.
+#' @param ncells A positive integer or a named vector/list specifying the 
+#' number of cells to sample per layer. If a single integer is provided, the 
+#' same number of cells will be sampled from each layer. Default is 5000.
 #' @param sketched.assay Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.
 #' @param method  Sketching method to use. Can be 'LeverageScore' or 'Uniform'.
 #'               Default is 'LeverageScore'.
