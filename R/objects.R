@@ -601,13 +601,13 @@ DietSeurat <- function(
       }
       for (lyr in layers.rm) {
         suppressWarnings(object <- tryCatch(expr = {
-          object[[assay]][[lyr]] <- NULL
+          object[[assay]][lyr] <- NULL
           object
         }, error = function(e) {
           if (lyr == "data"){
-            object[[assay]][[lyr]] <- sparseMatrix(i = 1, j = 1, x = 1,
-                         dims = dim(object[[assay]][[lyr]]),
-                         dimnames = dimnames(object[[assay]][[lyr]]))
+            object[[assay]][lyr] <- sparseMatrix(i = 1, j = 1, x = 1,
+                         dims = dim(object[[assay]][lyr]),
+                         dimnames = dimnames(object[[assay]][lyr]))
           } else{
             slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
           }
