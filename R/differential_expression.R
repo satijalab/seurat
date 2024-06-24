@@ -354,6 +354,7 @@ FindConservedMarkers <- function(
       ident.1 = ident.use.1,
       ident.2 = ident.use.2,
       verbose = verbose,
+      min.cells.group =   min.cells.group,
       ...
     )
     names(x = marker.test)[i] <- levels.split[i]
