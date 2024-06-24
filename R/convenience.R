@@ -259,7 +259,8 @@ LoadXenium <- function(
     `Blank Codeword` = 'BlankCodeword',
     `Unassigned Codeword` = 'BlankCodeword',
     `Negative Control Codeword` = 'ControlCodeword',
-    `Negative Control Probe` = 'ControlProbe'
+    `Negative Control Probe` = 'ControlProbe',
+    `Genomic Control` = 'GenomicControl'
   )
 
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
