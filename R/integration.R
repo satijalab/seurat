@@ -4269,9 +4269,32 @@ FindIntegrationMatrix <- function(
   )
   anchors1 <- nn.cells1[anchors[, "cell1"]]
   anchors2 <- nn.cells2[anchors[, "cell2"]]
-  data.use1 <- data.use1[anchors1, ]
-  data.use2 <- data.use2[anchors2, ]
-  integration.matrix <- data.use2 - data.use1
+
+  overflow <- length(anchors1) * as.numeric(ncol(data.use1)) / (2^31 - 1)
+  if (overflow > 1) {
+    suppressPackageStartupMessages(require("spam"))
+    suppressPackageStartupMessages(require("spam64"))
+    chunks <- sort((1:ncol(data.use1)) %% ceiling(overflow))
+    data.use1 <- do.call(cbind, lapply(unique(chunks), function(ck) spam::as.spam.dgCMatrix(data.use1[anchors1, chunks == ck])))
+    data.use2 <- do.call(cbind, lapply(unique(chunks), function(ck) spam::as.spam.dgCMatrix(data.use2[anchors2, chunks == ck])))
+  } else {
+    data.use1 <- data.use1[anchors1, ]
+    data.use2 <- data.use2[anchors2, ]
+  }
+
+  overflow <- as.numeric(length(data.use1) * 2) / (2^31 - 1)
+  if (overflow > 1 && !inherits(data.use1, "spam")) {
+    chunks <- sort((1:ncol(data.use1)) %% ceiling(overflow))
+    integration.matrix <- do.call(cbind, lapply(unique(chunks), function(ck) data.use2[, chunks == ck] - data.use1[, chunks == ck]))
+  } else {
+    integration.matrix <- data.use2 - data.use1
+  }
+
+  if (inherits(integration.matrix, "spam")) {
+    attr(integration.matrix, "rownames") <- anchors2
+    attr(integration.matrix, "colnames") <- features.integrate
+  }
+
   object <- SetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -4504,7 +4527,7 @@ FindWeights <- function(
     cells2 = 0:(length(x = nn.cells2) - 1),
     distances = as.matrix(x = distances),
     anchor_cells2 = anchors.cells2,
-    integration_matrix_rownames = rownames(x = integration.matrix),
+    integration_matrix_rownames = rownames(x = integration.matrix) %||% attr(integration.matrix, "rownames"),
     cell_index = cell.index,
     anchor_score = anchors[, "score"],
     min_dist = 0,
@@ -5790,9 +5813,18 @@ TransformDataMatrix <- function(
     slot = "data")[features.to.integrate, nn.cells2]
   )
 
-  integrated <- IntegrateDataC(integration_matrix = as.sparse(x = integration.matrix),
-                               weights = as.sparse(x = weights),
-                               expression_cells2 = as.sparse(x = data.use2))
+  if (inherits(integration.matrix, "spam")) {
+    weights.spam <- spam::as.spam.dgCMatrix(as.sparse(weights))
+    data.use2.spam <- spam::as.spam.dgCMatrix(as.sparse(data.use2))
+    integrated <- data.use2.spam - t(weights.spam) %*% integration.matrix
+    integrated <- spam::as.dgCMatrix.spam(integrated)
+  } else {
+    integrated <- IntegrateDataC(
+      integration_matrix = as.sparse(x = integration.matrix),
+      weights = as.sparse(x = weights),
+      expression_cells2 = as.sparse(x = data.use2)
+    )
+  }
   dimnames(integrated) <- dimnames(data.use2)
 
   new.expression <- t(rbind(data.use1, integrated))
