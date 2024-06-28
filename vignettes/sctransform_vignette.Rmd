@@ -34,7 +34,7 @@ knitr::opts_chunk$set(
 Biological heterogeneity in single-cell RNA-seq data is often confounded by technical factors including sequencing depth. The number of molecules detected in each cell can vary significantly between cells, even within the same celltype.
 Interpretation of scRNA-seq data requires effective pre-processing and normalization to remove this technical variability. 
 
-In [our manuscript](https://genomebiology-biomedcentral-com/articles/10.1186/s13059-021-02584-9) we introduce a modeling framework for the normalization and variance stabilization of molecular count data from scRNA-seq experiments. This procedure omits the need for heuristic steps including pseudocount addition or log-transformation and improves common downstream analytical tasks such as variable gene selection, dimensional reduction, and differential expression. We named this method `sctransform`.
+In [our manuscript](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02584-9) we introduce a modeling framework for the normalization and variance stabilization of molecular count data from scRNA-seq experiments. This procedure omits the need for heuristic steps including pseudocount addition or log-transformation and improves common downstream analytical tasks such as variable gene selection, dimensional reduction, and differential expression. We named this method `sctransform`.
 
 Inspired by important and rigorous work from [Lause et al](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02451-7), we released an [updated manuscript](https://link.springer.com/article/10.1186/s13059-021-02584-9) and updated the sctransform software to a v2 version, which is now the default in Seurat v5.
 
