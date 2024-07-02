@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Fixed `RunPCA` to avoid converting `BPCells` matrices into dense matrices - significantly reduces the function's memory usage when running on `BPCells` matrices
 - Added `features` parameter to `LeverageScore` and `SketchData`
 - Updated `SketchData`'s `ncells` parameter to accept integer vector
 
