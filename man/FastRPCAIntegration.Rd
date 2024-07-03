@@ -67,3 +67,4 @@ that are often run together when perform integration.
 #' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
 \code{\link{IntegrateEmbeddings}}.
 }
+\concept{integration}

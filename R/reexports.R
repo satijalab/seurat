@@ -204,13 +204,11 @@ SeuratObject::Cells
 SeuratObject::CellsByIdentities
 
 #' @importFrom SeuratObject Command
-
 #' @export
 #'
 SeuratObject::Command
 
 #' @importFrom SeuratObject CreateAssayObject
-
 #' @export
 #'
 SeuratObject::CreateAssayObject
@@ -221,7 +219,6 @@ SeuratObject::CreateAssayObject
 SeuratObject::CreateDimReducObject
 
 #' @importFrom SeuratObject CreateSeuratObject
-
 #' @export
 #'
 SeuratObject::CreateSeuratObject
@@ -312,7 +309,6 @@ SeuratObject::IsGlobal
 SeuratObject::JS
 
 #' @importFrom SeuratObject JS<-
-
 #' @export
 #'
 SeuratObject::`JS<-`
@@ -323,13 +319,11 @@ SeuratObject::`JS<-`
 SeuratObject::Key
 
 #' @importFrom SeuratObject Key<-
-
 #' @export
 #'
 SeuratObject::`Key<-`
 
 #' @importFrom SeuratObject Loadings
-
 #' @export
 #'
 SeuratObject::Loadings
@@ -340,7 +334,6 @@ SeuratObject::Loadings
 SeuratObject::`Loadings<-`
 
 #' @importFrom SeuratObject LogSeuratCommand
-
 #' @export
 #'
 SeuratObject::LogSeuratCommand
@@ -446,7 +439,6 @@ SeuratObject::`Tool<-`
 SeuratObject::UpdateSeuratObject
 
 #' @importFrom SeuratObject VariableFeatures
-
 #' @export
 #'
 SeuratObject::VariableFeatures

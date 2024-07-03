@@ -59,10 +59,37 @@ test_that("AverageExpression works for different layers", {
 
 test_that("AverageExpression handles features properly", {
   features <- rownames(x = object)[1:10]
-  average.expression <- AverageExpression(object, layer = 'data', features = features)$RNA
+
+  # check that the average expression is calcualted for the specifed features
+  average.expression <- AverageExpression(
+    object,
+    layer = "data",
+    features = features
+  )$RNA
   expect_equal(rownames(x = average.expression), features)
+
+  # check that an error is raised if none of the specified features are present
   expect_warning(AverageExpression(object, layer = 'data', features = "BAD"))
-  expect_warning(AverageExpression(object, layer = "data", features = c(features, "BAD")))
+  # check that an error is raised if any of the features are missing
+  expect_warning(
+    AverageExpression(
+      object,
+      layer = "data",
+      features = c(features, "BAD")
+    )
+  )
+
+  # check that features can be specified as a simple vector even when
+  # `layer="scale.data"` and `return.seurat=TRUE`
+  object <- ScaleData(object = object, verbose = FALSE)
+  avg.scale <- AverageExpression(
+    object,
+    layer = "scale.data",
+    return.seurat = TRUE,
+    features = features,
+    verbose = FALSE
+  )$RNA
+  expect_equal(rownames(avg.scale), features)
 })
 
 test_that("AverageExpression with return.seurat", {
@@ -122,7 +149,7 @@ test_that("AverageExpression with return.seurat", {
 
 test.dat <- LayerData(object = object, layer = "data")
 rownames(x = test.dat) <- paste0("test-", rownames(x = test.dat))
-object[["TEST"]] <- CreateAssayObject(data = test.dat)
+suppressWarnings(object[["TEST"]] <- CreateAssayObject(data = test.dat))
 
 test_that("AverageExpression with multiple assays", {
   avg.test <- AverageExpression(object = object, assays = "TEST", layer = "data")
@@ -168,3 +195,99 @@ if(class(object[['RNA']]) == "Assay5")  {
     )
   })
 }
+
+test_that("PercentAbove works as expected", {
+  vals <- c(1, 1, 2, 2, NA)
+  expect_equal(PercentAbove(vals, threshold = 1), 0.4)
+})
+
+
+context("BuildNicheAssay")
+
+test_that("BuildNicheAssay works as expected", {
+  test.data <- pbmc_small
+
+  # generate fake coordinates arranging the cells from pbmc_small into a grid
+  test.coordinates <- data.frame(
+    cell = Cells(test.data),
+    x = rep(1:4, times = 20),
+    y = rep(1:4, each = 20)
+  )
+  # associate the coordinates and counts with a FOV
+  fov <- CreateFOV(
+    test.coordinates,
+    type = "centroids",
+    assay = "RNA"
+  )
+  test.data[["fov"]] <- fov
+
+  # dividing the grid into 4 along each axis creates 16 regions - label
+  # each cell with the region containing it's x, y position
+  x.regions <- cut(test.coordinates[["x"]], breaks = 4, labels = FALSE)
+  y.regions <- cut(test.coordinates[["y"]], breaks = 4, labels = FALSE)
+  test.data[["test_labels"]] <- ((y.regions - 1) * 4 + x.regions)
+
+  results <- BuildNicheAssay(
+    test.data,
+    fov = "fov",
+    group.by = "test_labels",
+    assay = "niche",
+    cluster.name = "niches"
+  )
+  # the new niche assay should contain the same number of cells as the input
+  # and a feature for each unique label from the specified `group.by` variable
+  expect_equal(
+    c(16, ncol(test.data[["RNA"]])),
+    dim(results[["niche"]])
+  )
+  # exaclty a quarter of the cells should be assigned to each niche
+  for (niche in 1:4) {
+    expect_equal(
+      20,
+      length(results[["niches"]][results[["niches"]]["niches"] == niche])
+    )
+  }
+})
+
+test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
+  skip_if_not_installed("hdf5r")
+
+  path.to.data = file.path("../testdata/visium")
+
+  test.case <- Load10X_Spatial(
+    path.to.data,
+    assay = "Spatial",
+    slice = "slice"
+  )
+
+  # populate a meta.data column with random labels
+  random_labels <- sample(1:3, size = ncol(test.case), replace = TRUE)
+  test.case[["random_labels"]] <- random_labels
+
+  fov <- CreateFOV(
+    GetTissueCoordinates(test.case[["slice"]]),
+    type = "centroids",
+    radius = Radius(test.case[["slice"]]),
+    assay = "Spatial",
+    key = "fov"
+  )
+
+  test.case[["fov"]] <- fov
+
+  left <- BuildNicheAssay(
+    test.case,
+    fov = "fov",
+    group.by = "random_labels"
+  )
+
+  right <- BuildNicheAssay(
+    test.case,
+    fov = "fov",
+    group.by = "random_labels"
+  )
+
+  expect_equal(
+    LayerData(left, layer = "scale.data"),
+    LayerData(left, layer = "scale.data")
+  )
+})

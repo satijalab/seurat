@@ -49,6 +49,7 @@ Other contributors:
 \itemize{
   \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID}) [contributor]
   \item Saket Choudhary \email{schoudhary@nygenome.org} (\href{https://orcid.org/0000-0001-5202-7633}{ORCID}) [contributor]
+  \item David Collins \email{dcollins@nygenome.org} (\href{https://orcid.org/0000-0001-9243-7821}{ORCID}) [contributor]
   \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID}) [contributor]
   \item Jeff Farrell \email{jfarrell@g.harvard.edu} [contributor]
   \item Isabella Grabski \email{igrabski@nygenome.org} (\href{https://orcid.org/0000-0002-0616-5469}{ORCID}) [contributor]

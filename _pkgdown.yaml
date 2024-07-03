@@ -128,6 +128,11 @@ reference:
 - contents:
   - has_concept("spatial")
 
+- title: "Sketching"
+  desc: "Functions for flexible analysis of massively scalable datasets"
+- contents:
+  - has_concept("sketching")
+
 - title: "Mixscape"
   desc: >
       Functions related to the mixscape algorithm
@@ -159,12 +164,7 @@ reference:
 - contents:
   - has_concept("convenience")
 
-- title: "Multimodal"
-  desc: "Functions for multimodal analysis"
-- contents:
-  - has_concept("multimodal")
-
-- title: "Re-exports"
+- title: "Sketching"
   desc: "Functions for flexible analysis of massively scalable datasets"
 - contents:
   - has_concept("sketching")
@@ -173,3 +173,12 @@ reference:
   desc: "Functions re-exported from other packages"
 - contents:
   - reexports
+  - Seurat-class
+  - Assay-class
+  - DimReduc-class
+  - Neighbor-class
+  - Graph-class
+  - SpatialImage-class
+  - JackStrawData-class
+  - SeuratCommand-class
+  - Seurat-package

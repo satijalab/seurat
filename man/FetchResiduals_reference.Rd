@@ -28,3 +28,4 @@ column sums of object}
 \description{
 temporal function to get residuals from reference
 }
+\keyword{internal}

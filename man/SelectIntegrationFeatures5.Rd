@@ -40,3 +40,4 @@ following:
 \description{
 Select integration features
 }
+\concept{integration}

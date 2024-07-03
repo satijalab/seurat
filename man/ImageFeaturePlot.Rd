@@ -130,3 +130,5 @@ ggplot object; otherwise, a list of ggplot objects
 \description{
 Visualize expression in a spatial context
 }
+\concept{spatial}
+\concept{visualization}

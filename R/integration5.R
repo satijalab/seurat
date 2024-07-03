@@ -158,6 +158,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @inheritParams RPCAIntegration
 #' @export
+#' @concept integration
 #'
 #' @examples
 #' \dontrun{
@@ -342,6 +343,8 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
 #'
+#' @concept utilities
+#'
 RPCAIntegration <- function(
     object = NULL,
     assay = NULL,
@@ -390,7 +393,9 @@ RPCAIntegration <- function(
   } else {
     object.list <- list()
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = object[layers[i]][features,])))
+      object.list[[i]] <- suppressMessages(suppressWarnings(
+        CreateSeuratObject(counts = NULL, data = object[layers[i]][features,])
+      ))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
       object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
@@ -442,6 +447,7 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @inheritParams IntegrateEmbeddings
 #' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
+#' @concept integration
 #'
 JointPCAIntegration <- function(
     object = NULL,

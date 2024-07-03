@@ -106,3 +106,5 @@ ggplot object; otherwise, a list of ggplot objects
 \description{
 Visualize clusters or other categorical groupings in a spatial context
 }
+\concept{spatial}
+\concept{visualization}

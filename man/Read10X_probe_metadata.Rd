@@ -17,3 +17,4 @@ Returns a data.frame containing the probe metadata.
 \description{
 This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
 }
+\concept{preprocessing}

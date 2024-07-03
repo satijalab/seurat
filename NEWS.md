@@ -1,3 +1,37 @@
+# Seurat 5.1.0 (2024-05-08)
+
+## Changes
+- Updated interactive `SpatialDimPlot`s to display spatial coordinates
+- Updated `BuildClusterTree` to `PseudobulkExpression(..., method = "aggregate")` instead of `AverageExpression`
+- Fixed `SpatialPlot` to properly handle images with shared cells
+- Added `cluster.name` parameter to `BuildNicheAssay`
+- Added `VisiumV2` class, inherits `SeuratObject::FOV`, returned by `Load10X_Spatial`
+- Updated `Load10X_Spatial` to support loading Visium HD datasets - added `bin.size` parameter 
+- Updated `Read10X_Coordinates` to handle new `tissue_coordinates.parquet` files
+- Added `shape` parameter to `SpatialPlot` and wrappers: `SpatialFeaturePlot` and `SpatialDimPlot`
+- Added `image.scale` parameter to `SpatialPlot` and related functions: `SpatialFeaturePlot`/`ISpatialFeaturePlot` and `SpatialDimPlot`/`ISpatialDimPlot`
+- Restored `image.name` parameter to `Read10X_Image`
+- Added `scale` parameter to `Radius.VisiumV1`
+- Fixed calculation of `spot.radius` attribute for `VisiumV1` instance returned by `Read10X_Image` — replace `scale.factors$fiducial` with `scale.factors$spot`
+- Added `Read10X_Coordinates` and `Read10X_ScaleFactors`
+- Fixed `SpatialPlot` to properly handle mutli-assay `Seurat` instances
+
+# Seurat 5.0.3 (2024-03-18)
+
+## Changes
+- Fixed `PercentAbove` to discount null values ([#8412](https://github.com/satijalab/seurat/issues/8412))
+- Added `log` parameter to `FeatureScatter`
+- Fixed handling of `clip.range` for `SCTransform` when `ncells` is less than the size of the passed dataset
+
+# Seurat 5.0.2 (2024-02-28) 
+
+## Changes
+
+- Fixed `AverageExpression` to handle `features` vector when `layer="scale.data"` and `return.seurat=TRUE`
+- Added `fc.slot` parameter to `FindMarkers`
+- Fixed `SCTransform` to handle `vars.to.regress` ([#8148](https://github.com/satijalab/seurat/issues/8148)) and ([#8349](https://github.com/satijalab/seurat/issues/8349))
+- Fixed `SCTransform` to handle fetching residuals ([#8185](https://github.com/satijalab/seurat/issues/8185))
+
 # Seurat 5.0.1 (2023-11-16)
 
 ## Changes

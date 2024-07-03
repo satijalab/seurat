@@ -409,15 +409,17 @@ FindConservedMarkers <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param slot Slot to pull data from; note that if \code{test.use} is
+#' "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
-#' @param counts Count matrix if using scale.data for DE tests. This is used for
-#' computing pct.1 and pct.2 and for filtering features based on fraction
-#' expressing
 #' @param features Genes to test. Default is to use all genes
+#' @param slot Slot to pull data from; note that if \code{test.use} is
+#' "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
+#' If the \code{slot} parameter is "scale.data" no filtering is performed.
 #' @param test.use Denotes which test to use. Available options are:
 #' \itemize{
 #'  \item{"wilcox"} : Identifies differentially expressed genes between two
@@ -467,8 +469,8 @@ FindConservedMarkers <- function(
 #' by not testing genes that are very infrequently expressed. Default is 0.01
 #' @param min.diff.pct  only test genes that show a minimum difference in the
 #' fraction of detection between the two groups. Set to -Inf by default
-#' @param only.pos Only return positive markers (FALSE by default)
 #' @param verbose Print a progress bar once expression testing begins
+#' @param only.pos Only return positive markers (FALSE by default)
 #' @param max.cells.per.ident Down sample each identity class to a max number.
 #' Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
@@ -477,10 +479,9 @@ FindConservedMarkers <- function(
 #' @param min.cells.feature Minimum number of cells expressing the feature in at least one
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
-#' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
 #' @param fc.results data.frame from FoldChange
-#' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
+#' @param densify Convert the sparse matrix to a dense form before running the 
+#' DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
 #'
 #' @importFrom Matrix rowMeans
@@ -494,12 +495,11 @@ FindConservedMarkers <- function(
 FindMarkers.default <- function(
   object,
   slot = "data",
-  counts = numeric(),
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
   logfc.threshold = 0.1,
-  test.use = 'wilcox',
+  test.use = "wilcox",
   min.pct = 0.01,
   min.diff.pct = -Inf,
   verbose = TRUE,
@@ -509,7 +509,6 @@ FindMarkers.default <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   fc.results = NULL,
   densify = FALSE,
   ...
@@ -527,11 +526,6 @@ FindMarkers.default <- function(
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
-  data <- switch(
-    EXPR = slot,
-    'scale.data' = counts,
-    object
-  )
   # feature selection (based on percentages)
   alpha.min <- pmax(fc.results$pct.1, fc.results$pct.2)
   names(x = alpha.min) <- rownames(x = fc.results)
@@ -548,6 +542,7 @@ FindMarkers.default <- function(
     warning("No features pass min.diff.pct threshold; returning empty data.frame")
     return(fc.results[features, ])
   }
+
   # feature selection (based on logFC)
   if (slot != "scale.data") {
     total.diff <- fc.results[, 1] #first column is logFC
@@ -563,6 +558,7 @@ FindMarkers.default <- function(
       return(fc.results[features, ])
     }
   }
+
   # subsample cell groups if they are too large
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
@@ -622,8 +618,27 @@ FindMarkers.default <- function(
   return(de.results)
 }
 
+
+#' @param fc.slot Slot used to calculate fold-change - will also affect the 
+#' default for \code{mean.fxn}, see below for more details. 
+#' @param pseudocount.use Pseudocount to add to averaged expression values when
+#' calculating logFC. 1 by default.
 #' @param norm.method Normalization method for fold change calculation when
 #' \code{slot} is \dQuote{\code{data}}
+#' @param mean.fxn Function to use for fold change or average difference calculation.
+#' The default depends on the the value of \code{fc.slot}:
+#' \itemize{
+#'  \item{"counts"} : difference in the log of the mean counts, with pseudocount.
+#'  \item{"data"} : difference in the log of the average exponentiated data, with pseudocount.
+#'  This adjusts for differences in sequencing depth between cells, and assumes that "data"
+#'  has been log-normalized.
+#'  \item{"scale.data"} : difference in the means of scale.data.
+#' }
+#' @param fc.name Name of the fold change, average difference, or custom function column
+#' in the output data.frame. If NULL, the fold change column will be named
+#' according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
+#' slot "avg_diff".
+#' @param base The base with respect to which logarithms are computed.
 #'
 #' @rdname FindMarkers
 #' @concept differential_expression
@@ -636,42 +651,27 @@ FindMarkers.Assay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.1,
-  test.use = 'wilcox',
-  min.pct = 0.01,
-  min.diff.pct = -Inf,
-  verbose = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  latent.vars = NULL,
-  min.cells.feature = 3,
-  min.cells.group = 3,
+  test.use = "wilcox",
+  fc.slot = "data",
   pseudocount.use = 1,
+  norm.method = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
-  densify = FALSE,
-  norm.method = NULL,
   ...
 ) {
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
-    yes = 'counts',
+    yes = "counts",
     no = slot
   )
   if (length(x = Layers(object = object, search = slot)) > 1) {
-    stop(slot, ' layers are not joined. Please run JoinLayers')
+    stop(slot, " layers are not joined. Please run JoinLayers")
   }
   data.use <-  GetAssayData(object = object, slot = data.slot)
-  counts <- switch(
-    EXPR = data.slot,
-    'scale.data' = GetAssayData(object = object, slot = "counts"),
-    numeric()
-  )
   fc.results <- FoldChange(
     object = object,
-    slot = data.slot,
+    slot = fc.slot,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
@@ -683,25 +683,11 @@ FindMarkers.Assay <- function(
   )
   de.results <- FindMarkers(
     object = data.use,
-    slot = data.slot,
-    counts = counts,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    logfc.threshold = logfc.threshold,
     test.use = test.use,
-    min.pct = min.pct,
-    min.diff.pct = min.diff.pct,
-    verbose = verbose,
-    only.pos = only.pos,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed,
-    latent.vars = latent.vars,
-    min.cells.feature = min.cells.feature,
-    min.cells.group = min.cells.group,
-    pseudocount.use = pseudocount.use,
     fc.results = fc.results,
-    densify = densify,
     ...
   )
   return(de.results)
@@ -712,7 +698,8 @@ FindMarkers.Assay <- function(
 #'
 FindMarkers.StdAssay <- FindMarkers.Assay
 
-#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE
+#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the 
+#' median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
 #' @rdname FindMarkers
 #' @concept differential_expression
@@ -721,32 +708,22 @@ FindMarkers.StdAssay <- FindMarkers.Assay
 #'
 FindMarkers.SCTAssay <- function(
   object,
-  slot = "data",
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  logfc.threshold = 0.1,
-  test.use = 'wilcox',
-  min.pct = 0.01,
-  min.diff.pct = -Inf,
-  verbose = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  latent.vars = NULL,
-  min.cells.feature = 3,
-  min.cells.group = 3,
+  test.use = "wilcox",
   pseudocount.use = 1,
+  slot = "data",
+  fc.slot = "data",
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
-  densify = FALSE,
   recorrect_umi = TRUE,
   ...
 ) {
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
-    yes = 'counts',
+    yes = "counts",
     no = slot
   )
   if (test.use %in% DEmethods_counts()){
@@ -780,28 +757,21 @@ FindMarkers.SCTAssay <- function(
   }
 
   data.use <-  GetAssayData(object = object, slot = data.slot)
-  counts <- switch(
-    EXPR = data.slot,
-    'scale.data' = GetAssayData(object = object, slot = "counts"),
-    numeric()
-  )
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'counts' = function(x) {
-      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    EXPR = fc.slot,
+    "counts" = function(x) {
       return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
     },
-    'scale.data' = rowMeans,
+    "scale.data" = rowMeans,
     default.mean.fxn
   )
   fc.results <- FoldChange(
     object = object,
-    slot = data.slot,
+    slot = fc.slot,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
@@ -809,28 +779,14 @@ FindMarkers.SCTAssay <- function(
     mean.fxn = mean.fxn,
     fc.name = fc.name,
     base = base
-    )
+  )
   de.results <- FindMarkers(
     object = data.use,
-    slot = data.slot,
-    counts = counts,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    logfc.threshold = logfc.threshold,
     test.use = test.use,
-    min.pct = min.pct,
-    min.diff.pct = min.diff.pct,
-    verbose = verbose,
-    only.pos = only.pos,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed,
-    latent.vars = latent.vars,
-    min.cells.feature = min.cells.feature,
-    min.cells.group = min.cells.group,
-    pseudocount.use = pseudocount.use,
     fc.results = fc.results,
-    densify = densify,
     ...
   )
   return(de.results)
@@ -846,7 +802,7 @@ FindMarkers.SCTAssay <- function(
 FindMarkers.DimReduc <- function(
   object,
   cells.1 = NULL,
-  cells.2 = NULL,
+  cells.2 = NULL, 
   features = NULL,
   logfc.threshold = 0.1,
   test.use = "wilcox",
@@ -859,10 +815,9 @@ FindMarkers.DimReduc <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  densify = FALSE,
   mean.fxn = rowMeans,
   fc.name = NULL,
-  densify = FALSE,
   ...
 
 ) {
@@ -940,19 +895,13 @@ FindMarkers.DimReduc <- function(
 #' @param ident.2 A second identity class for comparison; if \code{NULL},
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
-#' @param reduction Reduction to use in differential expression testing - will test for DE on cell embeddings
-#' @param group.by Regroup cells into a different identity class prior to performing differential expression (see example)
-#' @param subset.ident Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)
+#' @param group.by Regroup cells into a different identity class prior to 
+#' performing differential expression (see example)
+#' @param subset.ident Subset a particular identity class prior to regrouping. 
+#' Only relevant if group.by is set (see example)
 #' @param assay Assay to use in differential expression testing
-#' @param slot Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
-#' \code{slot} will be set to "counts"
-#' @param mean.fxn Function to use for fold change or average difference calculation.
-#' If NULL, the appropriate function will be chose according to the slot used
-#' @param fc.name Name of the fold change, average difference, or custom function column
-#' in the output data.frame. If NULL, the fold change column will be named
-#' according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
-#' slot "avg_diff".
-#' @param base The base with respect to which logarithms are computed.
+#' @param reduction Reduction to use in differential expression testing - will 
+#' test for DE on cell embeddings
 #'
 #' @rdname FindMarkers
 #' @concept differential_expression
@@ -963,28 +912,11 @@ FindMarkers.Seurat <- function(
   object,
   ident.1 = NULL,
   ident.2 = NULL,
+  latent.vars = NULL,
   group.by = NULL,
   subset.ident = NULL,
   assay = NULL,
-  slot = 'data',
   reduction = NULL,
-  features = NULL,
-  logfc.threshold = 0.1,
-  pseudocount.use = 1,
-  test.use = "wilcox",
-  min.pct = 0.01,
-  min.diff.pct = -Inf,
-  verbose = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  latent.vars = NULL,
-  min.cells.feature = 3,
-  min.cells.group = 3,
-  mean.fxn = NULL,
-  fc.name = NULL,
-  base = 2,
-  densify = FALSE,
   ...
 ) {
   if (!is.null(x = group.by)) {
@@ -999,6 +931,7 @@ FindMarkers.Seurat <- function(
   if (length(x = ident.1) == 0) {
     stop("At least 1 ident must be specified in `ident.1`")
   }
+
   # select which data to use
   if (is.null(x = reduction)) {
     assay <- assay %||% DefaultAssay(object = object)
@@ -1008,6 +941,7 @@ FindMarkers.Seurat <- function(
     data.use <- object[[reduction]]
     cellnames.use <- rownames(x = data.use)
   }
+
   cells <- IdentsToCells(
     object = object,
     ident.1 = ident.1,
@@ -1026,6 +960,7 @@ FindMarkers.Seurat <- function(
       message = "Cells in one or both identity groups are not present in the data requested"
     )
   }
+
   # fetch latent.vars
   if (!is.null(x = latent.vars)) {
     latent.vars <- FetchData(
@@ -1034,6 +969,7 @@ FindMarkers.Seurat <- function(
       cells = c(cells$cells.1, cells$cells.2)
     )
   }
+
   # check normalization method
   norm.command <- paste0("NormalizeData.", assay)
   norm.method <- if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
@@ -1051,32 +987,17 @@ FindMarkers.Seurat <- function(
       )
     } else {
     NULL
-    }
+  }
+
   de.results <- FindMarkers(
     object = data.use,
-    slot = slot,
+    latent.vars = latent.vars,
     cells.1 = cells$cells.1,
     cells.2 = cells$cells.2,
-    features = features,
-    logfc.threshold = logfc.threshold,
-    pseudocount.use = pseudocount.use,
-    test.use = test.use,
-    min.pct = min.pct,
-    min.diff.pct = min.diff.pct,
-    verbose = verbose,
-    only.pos = only.pos,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed,
-    latent.vars = latent.vars,
-    min.cells.feature = min.cells.feature,
-    min.cells.group = min.cells.group,
-    mean.fxn = mean.fxn,
-    base = base,
-    fc.name = fc.name,
-    densify = densify,
     norm.method = norm.method,
     ...
   )
+
   return(de.results)
 }
 

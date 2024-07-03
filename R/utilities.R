@@ -18,12 +18,15 @@ NULL
 #'
 #' @return \code{object} with Azimuth results added
 #'
+#' @export
+#' @concept utilities
+#'
 #' @examples
 #' \dontrun{
 #' object <- AddAzimuthResults(object, filename = "azimuth_results.Rds")
 #' }
 #'
-#' @export
+
 AddAzimuthResults <- function(object = NULL, filename) {
   if (is.null(x = filename)) {
     stop("No Azimuth results provided.")
@@ -82,6 +85,8 @@ AddAzimuthResults <- function(object = NULL, filename) {
 #' @param filename Path to Azimuth mapping scores file
 #'
 #' @return \code{object} with the mapping scores added
+#'
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
@@ -1127,7 +1132,7 @@ MinMax <- function(data, min, max) {
 #' PercentAbove(sample(1:100, 10), 75)
 #'
 PercentAbove <- function(x, threshold) {
-  return(length(x = x[x > threshold]) / length(x = x))
+  return (sum(x > threshold, na.rm = T) / length(x))
 }
 
 #' Calculate the percentage of all counts that belong to a given set of features
@@ -1192,30 +1197,30 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
-# Pseudobulk feature expression by identity class
+#' Pseudobulk feature expression by identity class
+#'
+#' Returns a representative expression value for each identity class
+#'
+#' @param object Seurat object
+#' @param method Whether to 'average' (default) or 'aggregate' expression levels
+#' @param assay  The name of the passed assay - used primarily for warning/error messages
+#' @param category.matrix A matrix defining groupings for pseudobulk expression 
+#' calculations; each column represents an identity class, and each row a sample
+#' @param features Features to analyze. Default is all features in the assay
+#' @param layer Layer(s) to user; if multiple are given, assumed to follow
+#' the order of 'assays' (if specified) or object's assays
+#' @param slot (Deprecated) See \code{layer}
+#' @param verbose Print messages and show progress bar
+#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #
-# Returns a representative expression value for each identity class
-#
-# @param object Seurat object
-# @param method Whether to 'average' (default) or 'aggregate' expression levels
-# @param assays Which assays to use. Default is all assays
-# @param features Features to analyze. Default is all features in the assay
-# @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-# @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-# @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
-# (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
-# @param slot Slot(s) to use; if multiple slots are given, assumed to follow
-# the order of 'assays' (if specified) or object's assays
-# @param verbose Print messages and show progress bar
-# @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
-#
-# @return Returns a matrix with genes as rows, identity classes as columns.
-# If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#' @return Returns a matrix with genes as rows, identity classes as columns.
+#' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
+#' @rdname PseudobulkExpression
 #' @importFrom SeuratObject .IsFutureSeurat
 #' @export
-#
-#
+#' @concept utilities
+#'
 PseudobulkExpression.Assay <- function(
   object,
   assay,
@@ -1227,14 +1232,7 @@ PseudobulkExpression.Assay <- function(
   ...
 ) {
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'GetAssayData(slot = )',
       with = 'GetAssayData(layer = )'
@@ -1278,9 +1276,10 @@ PseudobulkExpression.Assay <- function(
 }
 
 #' @method PseudobulkExpression StdAssay
+#' @rdname PseudobulkExpression
 #' @export
-#
-#
+#' @concept utilities
+#'
 PseudobulkExpression.StdAssay <- function(
   object,
   assay,
@@ -1292,14 +1291,7 @@ PseudobulkExpression.StdAssay <- function(
   ...
 ) {
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'GetAssayData(slot = )',
       with = 'GetAssayData(layer = )'
@@ -1357,10 +1349,22 @@ PseudobulkExpression.StdAssay <- function(
   return(data.return)
 }
 
-
+#' @param assays Which assays to use. Default is all assays
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+#' @param group.by Categories for grouping (e.g, "ident", "replicate", 
+#' "celltype"); "ident" by default
+#' @param add.ident (Deprecated) See group.by
+#' @param method The method used for calculating pseudobulk expression; one of: 
+#' "average" or "aggregate"
+#' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
+#' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
+#' @param margin Margin to perform CLR normalization, see \code{\link{NormalizeData}}
+#'
 #' @method PseudobulkExpression Seurat
-#' @importFrom SeuratObject .IsFutureSeurat
+#' @rdname PseudobulkExpression
 #' @export
+#' @concept utilities
+#'
 PseudobulkExpression.Seurat <- function(
   object,
   assays = NULL,
@@ -1386,14 +1390,7 @@ PseudobulkExpression.Seurat <- function(
     stop("'method' must be either 'average' or 'aggregate'")
   }
   if (is_present(arg = slot)) {
-    f <- if (.IsFutureSeurat(version = '5.1.0')) {
-      deprecate_stop
-    } else if (.IsFutureSeurat(version = '5.0.0')) {
-      deprecate_warn
-    } else {
-      deprecate_soft
-    }
-    f(
+    deprecate_soft(
       when = '5.0.0',
       what = 'AverageExpression(slot = )',
       with = 'AverageExpression(layer = )'
@@ -1411,6 +1408,13 @@ PseudobulkExpression.Seurat <- function(
 
   object.assays <- .FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
+
+  # `features` is expected to be a 2D array - one vector per assay
+  # in the case the `features` a vector, duplicate it for each assay
+  if (!inherits(features, what = "list")) {
+    features <- rep(list(features), times = length(assays))
+  }
+
   if (!all(assays %in% object.assays)) {
     assays <- assays[assays %in% object.assays]
     if (length(x = assays) == 0) {
@@ -1468,18 +1472,14 @@ PseudobulkExpression.Seurat <- function(
       .frequency_id = "PseudobulkExpression"
     )
   }
+
   data.return <- list()
   for (i in 1:length(x = assays)) {
-    if (inherits(x = features, what = "list")) {
-      features.i <- features[[i]]
-    } else {
-      features.i <- features
-    }
     data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
       category.matrix = category.matrix,
-      features = features.i,
+      features = features[[i]],
       layer = layer[i],
       verbose = verbose,
       ...
@@ -2824,6 +2824,7 @@ SweepNonzero <- function(
 #' @importFrom Matrix colSums sparse.model.matrix
 #' @importFrom stats as.formula
 #' @export
+#' @concept utilities
 #'
 CreateCategoryMatrix <- function(
   labels,
@@ -2910,6 +2911,7 @@ CreateCategoryMatrix <- function(
 #' @param fov FOV object to gather cell positions from
 #' @param group.by Cell classifications to count in spatial neighborhood
 #' @param assay Name for spatial neighborhoods assay
+#' @param cluster.name Name of output clusters
 #' @param neighbors.k Number of neighbors to consider for each cell
 #' @param niches.k Number of clusters to return based on the niche assay
 #'
@@ -2923,45 +2925,46 @@ BuildNicheAssay <- function(
   fov,
   group.by,
   assay = "niche",
+  cluster.name = "niches",
   neighbors.k = 20,
   niches.k = 4
 ) {
-  # find neighbors based on tissue position
-  coords <- GetTissueCoordinates(object[[fov]], which = "centroids")
-  cells <- coords$cell
-  rownames(coords) <- cells
-  coords <- as.matrix(coords[ , c("x", "y")])
-  neighbors <- FindNeighbors(coords, k.param = neighbors.k)
-  neighbors$nn <- neighbors$nn[Cells(object), Cells(object)]
-
-  # build cell x cell type matrix
-  ct.mtx <- matrix(
+  # initialize an empty cells x groups binary matrix
+  cells <- Cells(object[[fov]])
+  group.labels <- unlist(object[[group.by]][cells, ])
+  groups <- sort(unique(group.labels))
+  cell.type.mtx <- matrix(
     data = 0,
     nrow = length(cells),
-    ncol = length(unlist(unique(object[[group.by]])))
+    ncol = length(groups)
   )
-  rownames(ct.mtx) <- cells
-  colnames(ct.mtx) <- unique(unlist(object[[group.by]]))
-  cts <- object[[group.by]]
-  for (i in 1:length(cells)) {
-    ct <- as.character(cts[cells[[i]], ])
-    ct.mtx[cells[[i]], ct] <- 1
-  }
+  rownames(cell.type.mtx) <- cells
+  colnames(cell.type.mtx) <- groups
+  # populate the binary matrix 
+  cells.idx <- seq_along(cells)
+  group.idx <- match(group.labels, groups)
+  cell.type.mtx[cbind(cells.idx, group.idx)] <- 1
+
+  # find neighbors based on tissue position
+  coords <- GetTissueCoordinates(object[[fov]], which = "centroids")
+  rownames(coords) <- coords[["cell"]]
+  coords <- as.matrix(coords[ , c("x", "y")])
+  neighbors <- FindNeighbors(coords, k.param = neighbors.k, compute.SNN = FALSE)
 
   # create niche assay
-  sum.mtx <- as.matrix(neighbors$nn %*% ct.mtx)
+  sum.mtx <- as.matrix(neighbors[["nn"]] %*% cell.type.mtx)
   niche.assay <- CreateAssayObject(counts = t(sum.mtx))
   object[[assay]] <- niche.assay
   DefaultAssay(object) <- assay
 
-  # cluster niches assay
+  # cluster niche assay
   object <- ScaleData(object)
   results <- kmeans(
     x = t(object[[assay]]@scale.data),
     centers = niches.k,
     nstart = 30
   )
-  object$niches <- results[["cluster"]]
+  object[[cluster.name]] <- results[["cluster"]]
 
   return(object)
 }

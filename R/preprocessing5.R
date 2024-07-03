@@ -1089,6 +1089,7 @@ SCTransform.IterableMatrix <- function(
     variable.features.n = 3000,
     variable.features.rv.th = 1.3,
     vars.to.regress = NULL,
+    latent.data = NULL,
     do.scale = FALSE,
     do.center = TRUE,
     clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
@@ -1118,6 +1119,7 @@ SCTransform.IterableMatrix <- function(
                          variable.features.n = variable.features.n,
                          variable.features.rv.th = variable.features.rv.th,
                          vars.to.regress = vars.to.regress,
+                         latent.data = latent.data,
                          do.scale = do.scale,
                          do.center = do.center,
                          clip.range = clip.range,
@@ -1180,6 +1182,7 @@ SCTransform.StdAssay <- function(
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
+  latent.data = NULL,
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
@@ -1253,6 +1256,7 @@ SCTransform.StdAssay <- function(
                             variable.features.n = variable.features.n,
                             variable.features.rv.th = variable.features.rv.th,
                             vars.to.regress = vars.to.regress,
+                            latent.data = latent.data,
                             do.scale = do.scale,
                             do.center = do.center,
                             clip.range = clip.range,
@@ -1285,7 +1289,6 @@ SCTransform.StdAssay <- function(
       counts.x <- as.sparse(x = layer.data[, sample.int(n = ncol(x = layer.data), size =  min(ncells, ncol(x = layer.data)) )])
       min_var <- (median(counts.x@x)/5)^2
       }
-    res_clip_range <-  vst_out.reference$arguments$res_clip_range
 
     # Step 2: Use learned model to calculate residuals in chunks
     cells.vector <- 1:ncol(x = layer.data)
@@ -1308,35 +1311,35 @@ SCTransform.StdAssay <- function(
         if (verbose){
           message("Getting residuals for block ", i, "(of ", length(cells.grid), ") for ", dataset.names[[dataset.index]], " dataset")
         }
-        counts.vp <- as.sparse(x = layer.data[, vp])
+        counts.vp <- as.sparse(x = layer.data[, vp, drop=FALSE])
         cell.attr.object <- cell.attr.layer[colnames(x = counts.vp),, drop=FALSE]
         vst_out <- vst_out.reference
 
         vst_out$cell_attr <- cell.attr.object
-        vst_out$gene_attr <- vst_out$gene_attr[variable.features,]
+        vst_out$gene_attr <- vst_out$gene_attr[variable.features,,drop=FALSE]
         if (return.only.var.genes){
           new_residual <- get_residuals(
             vst_out = vst_out,
-            umi = counts.vp[variable.features,],
+            umi = counts.vp[variable.features,,drop=FALSE],
             residual_type = "pearson",
             min_variance = min_var,
-            res_clip_range = res_clip_range,
+            res_clip_range = clip.range,
             verbosity =  FALSE
           )
         } else {
           new_residual <- get_residuals(
             vst_out = vst_out,
-            umi = counts.vp[all_features,],
+            umi = counts.vp[all_features,,drop=FALSE],
             residual_type = "pearson",
             min_variance = min_var,
-            res_clip_range = res_clip_range,
+            res_clip_range = clip.range,
             verbosity =  FALSE
           )
         }
         vst_out$y <- new_residual
         corrected_counts[[i]] <- correct_counts(
           x = vst_out,
-          umi = counts.vp[all_features,],
+          umi = counts.vp[all_features,,drop=FALSE],
           verbosity = FALSE# as.numeric(x = verbose) * 2
         )
         residuals[[i]] <- new_residual
@@ -1345,15 +1348,15 @@ SCTransform.StdAssay <- function(
       new.residuals <- Reduce(cbind, residuals)
       corrected_counts <- Reduce(cbind, corrected_counts)
       cell_attrs <- Reduce(rbind, cell_attrs)
-      vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),]
+      vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),,drop=FALSE]
       SCTModel.list <- PrepVSTResults(vst.res = vst_out.reference, cell.names = all_cells)
       SCTModel.list <- list(model1 = SCTModel.list)
       # scale data here as do.center and do.scale are set to FALSE inside
       new.residuals <- ScaleData(
         new.residuals,
         features = NULL,
-        #vars.to.regress = vars.to.regress,
-        #latent.data = cell.attr[, vars.to.regress, drop = FALSE],
+        vars.to.regress = vars.to.regress,
+        latent.data = latent.data,
         model.use = 'linear',
         use.umi = FALSE,
         do.scale = do.scale,
@@ -1404,11 +1407,30 @@ SCTransform.StdAssay <- function(
         layer.counts.tmp <- as.sparse(x = layer.counts.tmp)
         vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
         vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
-        new_residual <- GetResidualsChunked(vst_out = vst_out, layer.counts = layer.counts.tmp,
-                                            residual_type = "pearson", min_variance = min_var, res_clip_range = res_clip_range,
-                                            verbose = FALSE)
+        new_residual <- GetResidualsChunked(
+          vst_out = vst_out, 
+          layer.counts = layer.counts.tmp,
+          residual_type = "pearson", 
+          min_variance = min_var, 
+          res_clip_range = clip.range,
+          verbose = FALSE
+        )
         old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
         merged_residual <- rbind(old_residual, new_residual)
+        merged_residual <- ScaleData(
+          merged_residual,
+          features = NULL,
+          vars.to.regress = vars.to.regress,
+          latent.data = latent.data,
+          model.use = 'linear',
+          use.umi = FALSE,
+          do.scale = do.scale,
+          do.center = do.center,
+          scale.max = Inf,
+          block.size = 750,
+          min.cells.to.block = 3000,
+          verbose = verbose
+        )
         sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
         VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
       }
@@ -1620,7 +1642,8 @@ FetchResiduals <- function(
 #'
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
-#
+#'
+#' @keywords internal
 FetchResidualSCTModel <- function(
   object,
   assay = "SCT",
@@ -1901,7 +1924,7 @@ GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_varian
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
 #'
-
+#' @keywords internal
 FetchResiduals_reference <- function(object,
                                      reference.SCT.model = NULL,
                                      features = NULL,

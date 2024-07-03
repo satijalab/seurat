@@ -498,12 +498,14 @@ GetResidual <- function(
 #' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
+#' @param bin.size Specifies the bin sizes to read in - defaults to c(16, 8)
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
+#' @param image \code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is 
+#' passed in it should be co-indexed with \code{`bin.size`}
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
-#' @param image Name of image to pull the coordinates from
 #'
 #' @return A \code{Seurat} object
 #'
@@ -522,58 +524,128 @@ GetResidual <- function(
 #' Load10X_Spatial(data.dir = data_dir)
 #' }
 #'
-Load10X_Spatial <- function(
+Load10X_Spatial <- function (
   data.dir,
-  filename = 'filtered_feature_bc_matrix.h5',
-  assay = 'Spatial',
-  slice = 'slice1',
+  filename = "filtered_feature_bc_matrix.h5",
+  assay = "Spatial",
+  slice = "slice1",
+  bin.size = NULL,
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
   ...
 ) {
+  # if more than one directory is passed in
   if (length(x = data.dir) > 1) {
-    warning("'Load10X_Spatial' accepts only one 'data.dir'",
-            immediate. = TRUE)
+    # party on with the first value
     data.dir <- data.dir[1]
+    # but also raise a warning
+    warning(
+      paste0(
+        "`data.dir` expects a single value but recieved multiple - ",
+        "continuing using the first: '",
+        data.dir,
+        "'."
+      ),
+      immediate. = TRUE,
+    )
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
-  if (to.upper) {
-    data <- imap(data, ~{
-      rownames(.x) <- toupper(x = rownames(.x))
-      .x
-    })
+  # if the specified directory does not exist
+  if (!file.exists(data.dir)) {
+    # raise an error
+    stop(paste0("No such file or directory: ", "'", data.dir, "'"))
   }
-  if (is.list(data) & "Antibody Capture" %in% names(data)) {
-    matrix_gex <- data$`Gene Expression`
-    matrix_protein <- data$`Antibody Capture`
-    object <- CreateSeuratObject(counts = matrix_gex, assay = assay)
-    object_protein <- CreateAssayObject(counts = matrix_protein)
-    object[["Protein"]] <- object_protein
-  }
-  else {
-    object <- CreateSeuratObject(counts = data, assay = assay)
-  }
-  if (is.null(x = image)) {
-    image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
-                           filter.matrix = filter.matrix)
-  } else {
-    if (!inherits(x = image, what = "VisiumV1"))
-      stop("Image must be an object of class 'VisiumV1'.")
-  }
-  image <- image[Cells(x = object)]
-  DefaultAssay(object = image) <- assay
-  object[[slice]] <- image
 
-  # if using the meta-data available for probes add to @misc slot
-  file_path <- file.path(data.dir, filename)
-  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
-  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
-    probe.metadata <- Read10X_probe_metadata(data.dir, filename)
-    Misc(object = object[['Spatial']], slot = "probe_metadata") <- probe.metadata
+  # if `bin.size` is not set but `data.dir` points to a folder with binned data
+  if (is.null(bin.size) & file.exists(paste0(data.dir, "/binned_outputs"))) {
+    # point `bin.size` to the "standard" set - i.e. everything in the default
+    # output except the 8 um binning because it's a memory hog
+    bin.size <- c(16, 8)
   }
+  # if `bin.size` is specified
+  if(!is.null(bin.size)) {
+    # convert `bin.size` to a character vector and pad values to three digits
+    bin.size.pretty <- paste0(sprintf("%03d", bin.size), "um")
+    # point `data.dirs` to the specified binnings
+    data.dirs <- paste0(
+      data.dir,
+      "/binned_outputs/",
+      "square_",
+      bin.size.pretty
+    )
+    # suffix assay/slice names with each bin size
+    assay.names <- paste0(assay, ".", bin.size.pretty)
+    slice.names <- paste0(slice, ".", bin.size.pretty)
+  } else {
+    # otherwise just hold onto the top-level directory
+    data.dirs <- data.dir
+    # and keep the assay/slice names unchanged
+    assay.names <- assay
+    slice.names <- slice
+  }
+
+  # read in counts matrices from specified h5 files
+  counts.paths <- lapply(data.dirs, file.path, filename)
+  counts.list <- lapply(counts.paths, Read10X_h5, ...)
+  # maybe convert Cell identifiers to uppercase
+  if (to.upper) {
+    rownames(counts) <- lapply(rownames(counts), toupper)
+  }
+
+  if (is.null(image)) {
+    # read in the corresponding images and coordinate mappings
+    image.list <- mapply(
+      Read10X_Image,
+      file.path(data.dirs, "spatial"),
+      assay = assay.names,
+      slice = slice.names,
+      MoreArgs = list(filter.matrix = filter.matrix)
+    )
+  } else {
+    # make sure any passed images are in a vector
+    image.list <- c(image)
+  }
+
+  # check that for each counts matrix there is a corresponding image
+  if (length(image.list) != length(counts.list)) {
+    stop(
+      paste0(
+        "The number of images does not match the number of counts matrices. ",
+        "Ensure each spatial dataset has a corresponding image."
+      )
+    )
+  }
+
+  # for each counts matrix, build a Seurat object
+  object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+  # associate each counts matrix with its corresponding image
+  object.list <- mapply(
+    function(
+      .object,
+      .image,
+      .assay,
+      .slice
+    ) {
+	    # align the image's identifiers with the object's
+	    .image <- .image[Cells(.object)]
+      # add the image to the corresponding Seurat instance
+      .object[[.slice]] <- .image
+      return (.object)
+    },
+    object.list,
+    image.list,
+    assay.names,
+    slice.names
+  )
+  # merge the Seurat instances - each assay should have unique Cell identifiers
+  object <- merge(
+    object.list[[1]],
+    y = object.list[-1]
+  )
+
   return(object)
 }
+
 
 #' Read10x Probe Metadata
 #'
@@ -585,6 +657,8 @@ Load10X_Spatial <- function(
 #' @return Returns a data.frame containing the probe metadata.
 #'
 #' @export
+#' @concept preprocessing
+#' 
 Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
@@ -1132,54 +1206,159 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' Load a 10X Genomics Visium Image
 #'
 #' @param image.dir Path to directory with 10X Genomics visium image data;
-#' should include files \code{tissue_lowres_iamge.png},
+#' should include files \code{tissue_lowres_image.png},
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
+#' @param image.name PNG file to read in
+#' @param assay Name of associated assay
+#' @param slice Name for the image, used to populate the instance's key 
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
-#' have been determined to be over tissue.
-#' @param ... Ignored for now
+#' have been determined to be over tissue
 #'
-#' @return A \code{\link{VisiumV1}} object
+#' @return A \code{\link{VisiumV2}} object
 #'
-#' @importFrom png readPNG
-#' @importFrom jsonlite fromJSON
-#'
-#' @seealso \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
+#' @seealso \code{\link{VisiumV2}} \code{\link{Load10X_Spatial}}
 #'
 #' @export
 #' @concept preprocessing
 #'
-Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
-  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
-  scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
-  tissue.positions.path <- Sys.glob(paths = file.path(image.dir, 'tissue_positions*'))
-  tissue.positions <- read.csv(
-    file = tissue.positions.path,
-    col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
-    header = ifelse(
-      test = basename(tissue.positions.path) == "tissue_positions.csv",
-      yes = TRUE,
-      no = FALSE
-    ),
-    as.is = TRUE,
-    row.names = 1
+Read10X_Image <- function(
+  image.dir,
+  image.name = "tissue_lowres_image.png",
+  assay = "Spatial",
+  slice = "slice1",
+  filter.matrix = TRUE
+) {
+  image <- png::readPNG(
+    source = file.path(
+      image.dir,
+      image.name
+    )
   )
-  if (filter.matrix) {
-    tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
-  }
-  unnormalized.radius <- scale.factors$fiducial_diameter_fullres * scale.factors$tissue_lowres_scalef
-  spot.radius <-  unnormalized.radius / max(dim(x = image))
-  return(new(
-    Class = 'VisiumV1',
+
+  # read in the scale factors
+  scale.factors <- Read10X_ScaleFactors(
+    filename = file.path(image.dir, "scalefactors_json.json")
+  )
+
+  # read in the tissue coordinates as a data.frame
+  coordinates <- Read10X_Coordinates(
+    filename = Sys.glob(file.path(image.dir, "*tissue_positions*")),
+    filter.matrix
+  )
+  # create an `sp` compatible `FOV` instance
+  fov <- CreateFOV(
+    coordinates[, c("imagerow", "imagecol")],
+    type = "centroids",
+    radius = scale.factors[["spot"]],
+    assay = assay,
+    key = Key(slice, quiet = TRUE)
+  )
+
+  # build the final `VisiumV2` - essentially just adding `image` and
+  # `scale.factors` to the object
+  visium.fov <- new(
+    Class = "VisiumV2",
+    boundaries = fov@boundaries,
+    molecules = fov@molecules,
+    assay = fov@assay,
+    key = fov@key,
     image = image,
-    scale.factors = scalefactors(
-      spot = scale.factors$spot_diameter_fullres,
-      fiducial = scale.factors$fiducial_diameter_fullres,
-      hires = scale.factors$tissue_hires_scalef,
-      scale.factors$tissue_lowres_scalef
-    ),
-    coordinates = tissue.positions,
-    spot.radius = spot.radius
-  ))
+    scale.factors = scale.factors
+  )
+
+  return(visium.fov)
+}
+
+#' Load 10X Genomics Visium Tissue Positions
+#'
+#' @param filename Path to a \code{tissue_positions_list.csv} file
+#' @param filter.matrix Filter spot/feature matrix to only include spots that
+#' have been determined to be over tissue
+#'
+#' @return A data.frame
+#'
+#' @export
+#' @concept preprocessing
+#'
+Read10X_Coordinates <- function(filename, filter.matrix) {
+  # output columns names
+  col.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
+  
+  # if the coordinate mappings are in a parquet file
+  if (tools::file_ext(filename) == "parquet") {
+    # `arrow` must be installed to read parquet files
+    if (!requireNamespace("arrow", quietly = TRUE)) {
+      stop("Please install arrow to read parquet files")
+    }
+    
+    # read in coordinates and conver the resulting tibble into a data.frame
+    coordinates <- as.data.frame(arrow::read_parquet(filename))
+    # normalize column names for consistency with other datatypes
+    input.col.names <- c(
+      "barcode", 
+      "in_tissue", 
+      "array_row", 
+      "array_col", 
+      "pxl_row_in_fullres", 
+      "pxl_col_in_fullres"
+    )
+    col.map <- stats::setNames(col.names, input.col.names)
+    colnames(coordinates) <- ifelse(
+      colnames(coordinates) %in% names(col.map), 
+      col.map[colnames(coordinates)], 
+      colnames(coordinates)
+    )
+
+    # set rownames to "barcodes" then drop the column
+    rownames(coordinates) <- coordinates[["barcodes"]]
+    coordinates[["barcodes"]] <- NULL
+
+  } else {
+    # the coordinate mappings must be in a CSV - read it in
+    coordinates <- read.csv(
+        file = filename,
+        col.names = col.names,
+        header = ifelse(
+          # assume files calles "tissue_positions.csv" have headers, otherwise
+          # assume they do not (i.e. "tissue_positions_list.csv")
+          test = basename(filename) == "tissue_positions.csv",
+          yes = TRUE,
+          no = FALSE
+        ),
+        as.is = TRUE,
+        row.names = 1
+      )
+  }
+
+  # the `tissue` column should contain a boolean indicating whether or not a
+  # spot sits on top of the the tissue sample - maybe filter spots that do not
+  if (filter.matrix) {
+    coordinates <- coordinates[which(coordinates$tissue == 1), , drop = FALSE]
+  }
+
+  return (coordinates)
+}
+
+#' Load 10X Genomics Visium Scale Factors
+#'
+#' @param filename Path to a \code{scalefactors_json.json} file
+#'
+#' @return A scalefactors object
+#'
+#' @export
+#' @concept preprocessing
+#'
+Read10X_ScaleFactors <- function(filename) {
+  raw.data <- jsonlite::fromJSON(file.path(filename))
+
+  scale.factors <- scalefactors(
+    spot = raw.data$spot_diameter_fullres,
+    fiducial = raw.data$fiducial_diameter_fullres,
+    hires = raw.data$tissue_hires_scalef,
+    lowres = raw.data$tissue_lowres_scalef
+  )
+
+  return (scale.factors)
 }
 
 #' Read and Load Akoya CODEX data
@@ -3136,6 +3315,7 @@ SampleUMI <- function(
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
 #' is set to NULL; default is 1.3. Only applied if residual.features is not set.
 #' @param vars.to.regress Variables to regress out in a second non-regularized linear
+#' @param latent.data Extra data to regress out, should be cells x latent data
 #' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
@@ -3180,6 +3360,7 @@ SCTransform.default <- function(
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
+  latent.data = NULL,
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = umi) / 30), sqrt(x = ncol(x = umi) / 30)),
@@ -3418,7 +3599,7 @@ SCTransform.default <- function(
     scale.data,
     features = NULL,
     vars.to.regress = vars.to.regress,
-    latent.data = cell.attr[, vars.to.regress, drop = FALSE],
+    latent.data = latent.data,
     model.use = 'linear',
     use.umi = FALSE,
     do.scale = do.scale,
@@ -3452,6 +3633,7 @@ SCTransform.Assay <- function(
     variable.features.n = 3000,
     variable.features.rv.th = 1.3,
     vars.to.regress = NULL,
+    latent.data = NULL,
     do.scale = FALSE,
     do.center = TRUE,
     clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
@@ -3480,6 +3662,7 @@ SCTransform.Assay <- function(
                          variable.features.n = variable.features.n,
                          variable.features.rv.th = variable.features.rv.th,
                          vars.to.regress = vars.to.regress,
+                         latent.data = latent.data,
                          do.scale = do.scale,
                          do.center = do.center,
                          clip.range = clip.range,
@@ -3558,6 +3741,12 @@ SCTransform.Seurat <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
+  if (any(vars.to.regress %in% colnames(x = object[[]]))) {
+    vars.to.regress.subset <- vars.to.regress[vars.to.regress %in% colnames(x = object[[]])]
+    latent.data <- object[[vars.to.regress.subset]]
+  } else {
+    latent.data <- NULL
+  }
   assay <- assay %||% DefaultAssay(object = object)
   if (assay == "SCT") {
     # if re-running SCTransform, use the RNA assay
@@ -3578,6 +3767,7 @@ SCTransform.Seurat <- function(
                             variable.features.n = variable.features.n,
                             variable.features.rv.th = variable.features.rv.th,
                             vars.to.regress = vars.to.regress,
+                            latent.data = latent.data,
                             do.scale = do.scale,
                             do.center = do.center,
                             clip.range = clip.range,

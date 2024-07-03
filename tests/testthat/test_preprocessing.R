@@ -397,28 +397,6 @@ test_that("SCTransform v1 works as expected", {
   expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-6)
 })
 
-test_that("SCTransform v2 works as expected", {
-  skip_on_cran()
-  skip_if_not_installed("glmGamPoi")
-
-  object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
-
-  expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5183, tolerance = 1e-2)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 58.65829, tolerance = 1e-6)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 13.75449, tolerance = 1e-6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 141)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 40)
-  expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
-  fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
-  expect_equal(fa["MS4A1", "detection_rate"], 0.15)
-  expect_equal(fa["MS4A1", "gmean"], 0.2027364, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
-})
-
 suppressWarnings(RNGversion(vstr = "3.5.0"))
 object <- suppressWarnings(SCTransform(object = object, vst.flavor = "v1", ncells = 80, verbose = FALSE, seed.use =  42))
 test_that("SCTransform ncells param works", {
@@ -471,6 +449,105 @@ test_that("SCTransform v2 works as expected", {
   expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
   expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
   expect_equal(fa["FCER2", "theta"], Inf)
+})
+
+test_that("SCTransform `clip.range` param works as expected", {
+  # make a copy of the testing data
+  test.data <- object
+  # override defaults for ease of testing
+  clip.min <- -0.1
+  clip.max <- 0.1
+
+  # for some reason, the clipping seems to be a little fuzzy at the upper end,
+  # since this is expected behaviour we'll need to accomodate the difference
+  clip.max.tolerance <- 0.1
+
+  test.result <- suppressWarnings(
+      SCTransform(
+      test.data,
+      clip.range = c(clip.min, clip.max),
+    )
+  )
+  scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
+  expect_true(min(scale.data) >= clip.min)
+  expect_true(max(scale.data) <= (clip.max + clip.max.tolerance))
+
+  # when `ncells` is less than the size of the dataset the residuals will get 
+  # re-clipped in batches, make sure this clipping is done correctly as well
+  test.result <- suppressWarnings(
+    SCTransform(
+      test.data,
+      clip.range = c(clip.min, clip.max),
+      ncells = 40
+    )
+  )
+  scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
+  expect_true(min(scale.data) >= clip.min)
+  expect_true(max(scale.data) <= (clip.max + clip.max.tolerance))
+})
+
+test_that("SCTransform `vars.to.regress` param works as expected", {
+  # make a copy of the testing data
+  test.data <- object
+  # add a fake mitochondrial gene to the counts matrix
+  counts <- LayerData(test.data, assay = "RNA", layer = "counts")
+  counts <- rbind(counts, 5)
+  rownames(counts)[nrow(counts)] <- "MT-TEST"
+  # use the fake feature to populate a new meta.data column
+  test.data[[ "percent.mt" ]] <- PercentageFeatureSet(
+    test.data,
+    pattern="^MT-"
+  )
+
+  # make sure that `ncells` is smaller than the datset being transformed 
+  # so tha the regression model is trained on a subset of the data - make sure 
+  # the regression is applied to the entire dataset
+  left <- suppressWarnings(
+      SCTransform(
+      test.data,
+      vars.to.regress = NULL,
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
+  )
+  right <- suppressWarnings(
+      SCTransform(
+      test.data,
+      vars.to.regress = "percent.mt",
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
+  )
+  expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
+
+  # if the `assay` points to an `Assay5` instance the regression is handled
+  # using separate logic
+  test.data[["RNAv5"]] <- CreateAssay5Object(
+    counts = LayerData(
+      test.data,
+      assay = "RNA",
+      layer = "counts"
+    )
+  )
+  left <- suppressWarnings(
+    SCTransform(
+      test.data,
+      assay = "RNAv5",
+      vars.to.regress = NULL,
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
+  )
+  right <- suppressWarnings(
+    SCTransform(
+      test.data,
+      assay = "RNAv5",
+      vars.to.regress = "percent.mt",
+      ncells = ncol(test.data) / 2,
+      verbose = FALSE
+    )
+  )
+  expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
 })
 
 test_that("SCTransform is equivalent for BPcells ", {

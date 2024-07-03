@@ -40,11 +40,7 @@ quantification level to read in}
 
 \item{assay}{Name to store expression matrix as}
 
-\item{...}{
-  Arguments passed on to \code{\link[=ReadAkoya]{ReadAkoya}}
-  \describe{
-    \item{\code{}}{}
-  }}
+\item{...}{Ignored}
 }
 \value{
 \code{ReadAkoya}: A list with some combination of the following values
