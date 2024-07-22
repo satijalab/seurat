@@ -1997,14 +1997,11 @@ ReadNanostring <- function(
     several.ok = TRUE
   )
   if (!is.null(metadata)) {
+    names <-colnames(read.delim(metadata.file, sep =","))
     metadata <- match.arg(
       arg = metadata,
-      choices = c(
-        "Area", "fov", "Mean.MembraneStain", "Mean.DAPI", "Mean.G",
-        "Mean.Y", "Mean.R", "Max.MembraneStain", "Max.DAPI", "Max.G",
-        "Max.Y", "Max.R"
-      ),
-      several.ok = TRUE
+      choices = names,
+      several.ok = TRUE  
     )
   }
 
