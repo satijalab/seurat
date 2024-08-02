@@ -981,7 +981,7 @@ FindTransferAnchors <- function(
       LayerData(object = combined.ob, layer = data.layer.name) <- layer.data # set layer data
     }
     colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
-    
+
     combined.ob[["pcaproject"]] <- combined.pca
     Loadings(object = combined.ob[["pcaproject"]], projected = FALSE) <- orig.loadings[, dims]
     Loadings(object = combined.ob[["pcaproject"]]) <- orig.loadings[, dims]
@@ -1901,6 +1901,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' @importFrom Matrix t
 #'
 #' @export
+#' @concept integration
 #'
 ProjectIntegration <- function(
   object,
@@ -3056,6 +3057,7 @@ SelectIntegrationFeatures <- function(
 #' @param ... Arguments passed on to \code{method}
 #'
 #' @export
+#' @concept integration
 #'
 SelectIntegrationFeatures5 <- function(
   object,
@@ -3088,6 +3090,7 @@ SelectIntegrationFeatures5 <- function(
 #' @param ... Arguments passed on to \code{method}
 #'
 #' @export
+#' @concept integration
 #'
 SelectSCTIntegrationFeatures <- function(
   object,
@@ -6506,6 +6509,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 #' @importFrom Matrix sparseMatrix
 #'
 #' @export
+#' @concept integration
 #'
 NNtoGraph <- function(
   nn.object,
@@ -6670,7 +6674,9 @@ FindAssayAnchor <- function(
 #'
 #' @importFrom MASS ginv
 #' @return Returns a object list in which each object has a bridge cell derived assay
+#'
 #' @export
+#' @concept integration
 #'
 BridgeCellsRepresentation <- function(object.list,
                                       bridge.object,
@@ -6822,7 +6828,8 @@ BridgeCellsRepresentation <- function(object.list,
 #' @return Returns an \code{\link{AnchorSet}} object that can be used as input to
 #' \code{\link{IntegrateEmbeddings}}.or \code{\link{MapQuery}}
 #'
-
+#' @keywords internal
+#'
 FindBridgeAnchor <- function(object.list,
                              bridge.object,
                              object.reduction,
@@ -7346,7 +7353,10 @@ SmoothLabels <- function(labels, clusters) {
 #' @param verbose Print progress and message
 #'
 #' @return Returns a query-only or query-reference combined seurat object
+#'
 #' @export
+#' @concept integration
+#'
 ProjectDimReduc <- function(query,
                             reference,
                             mode = c('pcaproject', 'lsiproject'),
@@ -7492,10 +7502,12 @@ ProjectDimReduc <- function(query,
 #' @param laplacian.reduction.dims Number of dimensions used for graph laplacian eigenspace (default is 50)
 #' @param verbose Print progress and message (default is TRUE)
 #'
-#' @export
 #' @return Returns a \code{BridgeReferenceSet} that can be used as input to
 #'  \code{\link{FindBridgeTransferAnchors}}.
 #' The parameters used are stored in the \code{BridgeReferenceSet} as well
+#'
+#' @export
+#' @concept integration
 #'
 PrepareBridgeReference <- function (
   reference,
@@ -7642,10 +7654,12 @@ PrepareBridgeReference <- function (
 #' }
 #' @param verbose Print messages and progress
 #'
-#' @export
 #' @return Returns an \code{AnchorSet} object that can be used as input to
 #' \code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}} and
 #' \code{\link{MapQuery}}.
+#'
+#' @export
+#' @concept integration
 #'
 FindBridgeTransferAnchors <- function(
   extended.reference,
@@ -7725,9 +7739,11 @@ FindBridgeTransferAnchors <- function(
 #' }
 #' }
 #'
-#' @export
 #' @return Returns an \code{AnchorSet} object that can be used as input to
 #' \code{\link{IntegrateEmbeddings}}.
+#'
+#' @export
+#' @concept integration
 #'
 FindBridgeIntegrationAnchors <- function(
   extended.reference,
@@ -7807,6 +7823,7 @@ FindBridgeIntegrationAnchors <- function(
 #' @importFrom rlang exec
 #' @return Returns a Seurat object with integrated dimensional reduction
 #' @export
+#' @concept integration
 #'
 FastRPCAIntegration <- function(
   object.list,
@@ -7912,6 +7929,7 @@ FastRPCAIntegration <- function(
 #' @importFrom Matrix t
 #'
 #' @export
+#' @concept integration
 #'
 UnSketchEmbeddings <- function(
   atom.data,

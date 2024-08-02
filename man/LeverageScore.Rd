@@ -31,6 +31,7 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 )
 
@@ -44,6 +45,7 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 )
 
@@ -60,6 +62,7 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 )
 }
@@ -87,6 +90,8 @@ defaults to 0.5.}
 
 \item{layer}{layer to use}
 
+\item{features}{A vector of feature names to use for calculating leverage score.}
+
 \item{assay}{assay to use}
 
 \item{var.name}{name of slot to store leverage scores}
@@ -104,3 +109,4 @@ Clarkson, K. L. & Woodruff, D. P.
 Low-rank approximation and regression in input sparsity time.
 JACM 63, 1–45 (2017). \url{https://dl.acm.org/doi/10.1145/3019134};
 }
+\concept{sketching}

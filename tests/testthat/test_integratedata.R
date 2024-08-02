@@ -77,7 +77,7 @@ context("IntegrateData")
 
 test_that("IntegrateData with two objects default work", {
   expect_error(IntegrateData(anchorset = anchors2))
-  int2 <- IntegrateData(anchorset = anchors2, k.weight = 50, verbose = FALSE)
+  int2 <- suppressWarnings(IntegrateData(anchorset = anchors2, k.weight = 50, verbose = FALSE))
   expect_true(all(Assays(int2) %in% c("integrated", "RNA")))
   expect_equal(Tool(int2), "Integration")
   expect_equal(dim(int2[["integrated"]]), c(133, 160))
@@ -91,7 +91,7 @@ test_that("IntegrateData with two objects default work", {
 
 test_that("IntegrateData with three objects default work", {
   expect_error(IntegrateData(anchorset = anchors3, k.weight = 50))
-  int3 <- IntegrateData(anchorset = anchors3, k.weight = 25, verbose = FALSE)
+  int3 <- suppressWarnings(IntegrateData(anchorset = anchors3, k.weight = 25, verbose = FALSE))
   expect_true(all(Assays(int3) %in% c("integrated", "RNA")))
   expect_equal(Tool(int3), "Integration")
   expect_equal(dim(int3[["integrated"]]), c(169, 200))

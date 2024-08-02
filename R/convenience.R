@@ -9,7 +9,7 @@ NULL
 
 #' @param fov Name to store FOV as
 #' @param assay Name to store expression matrix as
-#' @inheritDotParams ReadAkoya
+#' @param ... Ignored
 #'
 #' @return \code{LoadAkoya}: A \code{\link[SeuratObject]{Seurat}} object
 #'
@@ -327,7 +327,9 @@ SpatialDimPlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
-  stroke = 0.25,
+  image.scale = "lowres",
+  shape = 21,
+  stroke = NA,
   label.box = TRUE,
   interactive = FALSE,
   information = NULL
@@ -350,6 +352,8 @@ SpatialDimPlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     image.alpha = image.alpha,
+    image.scale = image.scale,
+    shape = shape,
     stroke = stroke,
     label.box = label.box,
     interactive = interactive,
@@ -376,7 +380,9 @@ SpatialFeaturePlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   image.alpha = 1,
-  stroke = 0.25,
+  image.scale = "lowres",
+  shape = 21,
+  stroke = NA,
   interactive = FALSE,
   information = NULL
 ) {
@@ -394,6 +400,8 @@ SpatialFeaturePlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     image.alpha = image.alpha,
+    image.scale = image.scale,
+    shape = shape,
     stroke = stroke,
     interactive = interactive,
     information = information

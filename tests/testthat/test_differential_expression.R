@@ -249,7 +249,17 @@ test_that("t test works", {
   expect_equal(rownames(x = results)[1], "TYMP")
 })
 
-results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "negbinom", verbose = FALSE, base = exp(1), pseudocount.use = 1))
+results <- suppressWarnings(
+  FindMarkers(
+    object = pbmc_small,
+    ident.1 = 0, ident.2 = 1,
+    test.use = "negbinom",
+    verbose = FALSE,
+    base = exp(1),
+    fc.slot = "counts",
+    pseudocount.use = 1
+  )
+)
 test_that("negbinom test works", {
   expect_equal(nrow(x = results), 204)
   expect_equal(results["CST3", "p_val"], 1.354443e-17, tolerance = 1e-22)
@@ -260,7 +270,18 @@ test_that("negbinom test works", {
   expect_equal(rownames(x = results)[1], "LYZ")
 })
 
-results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "poisson", verbose = FALSE, base = exp(1), pseudocount.use = 1))
+results <- suppressWarnings(
+  FindMarkers(
+    object = pbmc_small,
+    ident.1 = 0,
+    ident.2 = 1,
+    test.use = "poisson",
+    verbose = FALSE,
+    base = exp(1),
+    fc.slot = "counts",
+    pseudocount.use = 1
+  )
+)
 test_that("poisson test works", {
   expect_equal(nrow(x = results), 204)
   expect_equal(results["CST3", "p_val"], 3.792196e-78, tolerance = 1e-83)
@@ -409,7 +430,7 @@ query.list <- lapply(X = query.list, FUN = ScaleData, verbose = FALSE)
 query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
 
 anchors <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
-object <- suppressMessages(IntegrateData(anchorset = anchors,  k.weight = 25, verbose = FALSE))
+object <- suppressWarnings(suppressMessages(IntegrateData(anchorset = anchors,  k.weight = 25, verbose = FALSE)))
 object <- suppressMessages(ScaleData(object, verbose = FALSE))
 object <- suppressMessages(RunPCA(object, verbose = FALSE))
 object <- suppressMessages(FindNeighbors(object = object, verbose = FALSE))

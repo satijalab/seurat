@@ -4,6 +4,7 @@
 \alias{GetTissueCoordinates.SlideSeq}
 \alias{GetTissueCoordinates.STARmap}
 \alias{GetTissueCoordinates.VisiumV1}
+\alias{GetTissueCoordinates.VisiumV2}
 \title{Get Tissue Coordinates}
 \usage{
 \method{GetTissueCoordinates}{SlideSeq}(object, ...)
@@ -16,6 +17,8 @@
   cols = c("imagerow", "imagecol"),
   ...
 )
+
+\method{GetTissueCoordinates}{VisiumV2}(object, scale = NULL, ...)
 }
 \arguments{
 \item{object}{An object}

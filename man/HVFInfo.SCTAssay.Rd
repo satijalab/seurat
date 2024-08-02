@@ -29,3 +29,4 @@ HVFInfo(pbmc_small[["SCT"]], method = 'sct')[1:5, ]
 \seealso{
 \code{\link[SeuratObject]{HVFInfo}}
 }
+\concept{objects}

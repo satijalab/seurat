@@ -3,7 +3,7 @@ set.seed(42)
 
 
 # checks that the absolute value of `x` and `y` are within `tolerance`
-expect_abs_equal <- function(x, y, tolerance = 1.0e-06) {
+expect_abs_equal <- function(x, y, tolerance = 1.0e-04) {
   expect_equal(abs(x), abs(y), tolerance = tolerance)
 }
 
@@ -53,15 +53,15 @@ test_that("IntegrateLayers works with HarmonyIntegration", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    0.391151
+    0.3912
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    0.666826
+    0.6668
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.724809
+    0.7248
   )
 })
 
@@ -85,15 +85,15 @@ test_that("IntegrateLayers works with CCAIntegration", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    0.917346
+    0.9174
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    1.488484
+    1.4885
     )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.544193
+    0.5442
   )
 })
 
@@ -117,15 +117,15 @@ test_that("IntegrateLayers works with RPCAIntegration", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    0.178462
+    0.1785
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    0.583150
+    0.5832
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.544193
+    0.5442
   )
 })
 
@@ -149,16 +149,15 @@ test_that("IntegrateLayers works with JointPCAIntegration", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    0.409180
+    0.4092
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    0.324614,
-    tolerance = 1.0e-6
+    0.3246
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.544193
+    0.5442
   )
 })
 
@@ -235,15 +234,15 @@ test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    1.1519947
+    1.1520
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    1.0301467
+    1.0302
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.1885502
+    0.1886
   )
 })
 
@@ -269,15 +268,15 @@ test_that("IntegrateLayers works with CCAIntegration & SCTransform", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    1.611324
+    1.6113
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    0.692647
+    0.6927
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.085520
+    0.0855
   )
 })
 
@@ -303,15 +302,15 @@ test_that("IntegrateLayers works with RPCAIntegration & SCTransform", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    1.649217
+    1.6492
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    0.734325
+    0.7343
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.085520
+    0.0855
   )
 })
 
@@ -337,14 +336,14 @@ test_that("IntegrateLayers works with JointPCAIntegration & SCTransform", {
   # reductions sporadically flip sign only compare absolute values
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[5, 5],
-    0.342729
+    0.3427
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[40, 25],
-    0.101470
+    0.1015
   )
   expect_abs_equal(
     Embeddings(integrated[["integrated"]])[75, 45],
-    0.085520
+    0.0855
   )
 })

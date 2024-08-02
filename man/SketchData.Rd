@@ -15,6 +15,7 @@ SketchData(
   seed = 123L,
   cast = "dgCMatrix",
   verbose = TRUE,
+  features = NULL,
   ...
 )
 }
@@ -23,7 +24,9 @@ SketchData(
 
 \item{assay}{Assay name. Default is NULL, in which case the default assay of the object is used.}
 
-\item{ncells}{A positive integer indicating the number of cells to sample for the sketching. Default is 5000.}
+\item{ncells}{A positive integer or a named vector/list specifying the 
+number of cells to sample per layer. If a single integer is provided, the 
+same number of cells will be sampled from each layer. Default is 5000.}
 
 \item{sketched.assay}{Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.}
 
@@ -49,3 +52,4 @@ A Seurat object with the sketched data added as a new assay.
 This function uses sketching methods to downsample high-dimensional single-cell RNA expression data,
 which can help with scalability for large datasets.
 }
+\concept{sketching}

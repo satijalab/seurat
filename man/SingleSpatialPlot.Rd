@@ -9,10 +9,12 @@ SingleSpatialPlot(
   image,
   cols = NULL,
   image.alpha = 1,
+  image.scale = "lowres",
   pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
-  stroke = 0.25,
+  shape = 21,
+  stroke = NA,
   col.by = NULL,
   alpha.by = NULL,
   cells.highlight = NULL,
@@ -35,6 +37,9 @@ colors}
 \item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
 remove.}
 
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+order to matchthe plot with the specified `image` - defaults to "lowres"}
+
 \item{pt.alpha}{Adjust the opacity of the points if plotting a
 \code{SpatialDimPlot}}
 
@@ -42,6 +47,9 @@ remove.}
 to show entire background image.}
 
 \item{pt.size.factor}{Sets the size of the points relative to spot.radius}
+
+\item{shape}{Control the shape of the spots - same as the ggplot2 parameter. 
+The default is 21, which plots cirlces - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
 

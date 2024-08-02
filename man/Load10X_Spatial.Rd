@@ -9,6 +9,7 @@ Load10X_Spatial(
   filename = "filtered_feature_bc_matrix.h5",
   assay = "Spatial",
   slice = "slice1",
+  bin.size = NULL,
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
@@ -25,13 +26,16 @@ and the image data in a subdirectory called \code{spatial}}
 
 \item{slice}{Name for the stored image of the tissue slice}
 
+\item{bin.size}{Specifies the bin sizes to read in - defaults to c(16, 8)}
+
 \item{filter.matrix}{Only keep spots that have been determined to be over
 tissue}
 
 \item{to.upper}{Converts all feature names to upper case. Can be useful when
 analyses require comparisons between human and mouse gene names for example.}
 
-\item{image}{Name of image to pull the coordinates from}
+\item{image}{\code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is 
+passed in it should be co-indexed with \code{`bin.size`}}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }
