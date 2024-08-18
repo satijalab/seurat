@@ -2750,7 +2750,7 @@ RunSLSI.Assay <- function(
 #' @export
 #' @method RunSLSI Assay5
 #'
-RunSLSI.Assay5 <- function(
+RunSLSI.StdAssay <- function(
     object,
     assay = NULL,
     features = NULL,
