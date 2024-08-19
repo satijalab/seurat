@@ -1024,7 +1024,7 @@ DimPlot <- function(
 #'   \item \dQuote{all} (universal scaling): The plots for all features and
 #'     conditions are scaled to the maximum expression value for the feature
 #'     with the highest overall expression
-#'   \item \code{all} (no scaling): Each individual plot is scaled to the
+#'   \item \code{NULL} (no scaling): Each individual plot is scaled to the
 #'     maximum expression value of the feature in the condition provided to
 #'     \code{split.by}. Be aware setting \code{NULL} will result in color
 #'     scales that are not comparable between plots
