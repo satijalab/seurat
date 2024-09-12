@@ -4,7 +4,7 @@
 \alias{RunSLSI}
 \alias{RunSLSI.default}
 \alias{RunSLSI.Assay}
-\alias{RunSLSI.Assay5}
+\alias{RunSLSI.StdAssay}
 \alias{RunSLSI.Seurat}
 \title{Run Supervised Latent Semantic Indexing}
 \usage{
@@ -33,7 +33,7 @@ RunSLSI(object, ...)
   ...
 )
 
-\method{RunSLSI}{Assay5}(
+\method{RunSLSI}{StdAssay}(
   object,
   assay = NULL,
   features = NULL,
