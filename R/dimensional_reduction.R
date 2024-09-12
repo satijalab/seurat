@@ -2748,7 +2748,7 @@ RunSLSI.Assay <- function(
 #' @rdname RunSLSI
 #' @concept dimensional_reduction
 #' @export
-#' @method RunSLSI Assay5
+#' @method RunSLSI StdAssay
 #'
 RunSLSI.StdAssay <- function(
     object,
