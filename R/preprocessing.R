@@ -2575,7 +2575,7 @@ ReadXenium <- function(
       },
       stop("Unknown Xenium input type: ", otype)
     )
-  }, SIMPLIFY = FALSE, USE.NAMES = TRUE)
+  }, simplify = FALSE, USE.NAMES = TRUE)
   
   metadata <- file.path(data.dir, "experiment.xenium")
   if(file.exists(metadata) && requireNamespace("jsonlite", quietly = TRUE)) {
