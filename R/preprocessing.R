@@ -2376,12 +2376,18 @@ ReadXenium <- function(
           tempdir <- path.expand(tempdir())
           unzip(file.path(data.dir, "cells.zarr.zip"), exdir = tempdir)
           zattr <- jsonlite::read_json(file.path(tempdir, '.zattrs'))
+
+          # Segmentation method only available in datasets versioned 6.0+
+          if(zattr$major_version < 6) {
+            return(NULL)
+          }
+
           which_entry <- which(unlist(zattr$polygon_set_names) == 'cell')
           
-          indices <- stars::read_mdim(file.path(tempdir, 'polygon_sets', which_entry - 1, 'cell_index'))$cell_index + 1
+          indices <- stars::read_mdim(file.path(tempdir, "polygon_sets", which_entry - 1, "cell_index"))$cell_index + 1
           indices[is.na(indices)] <- 1
           
-          ids <- stars::read_mdim(file.path(tempdir, 'cell_id'))$cell_id
+          ids <- stars::read_mdim(file.path(tempdir, "cell_id"))$cell_id
           ids[is.na(ids)] <- 0
           
           ids <- paste0(
