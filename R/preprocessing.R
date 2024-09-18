@@ -2512,7 +2512,7 @@ ReadXenium <- function(
           if(!inherits(nucleus_boundaries_df, "try-error")) { break }
         }
         
-        if(!exists('cell_info') || inherits(cell_info, "try-error")) {
+        if(!exists('nucleus_boundaries_df') || inherits(nucleus_boundaries_df, "try-error")) {
           stop("Xenium outputs were incomplete: missing nucleus_boundaries")
         }
         
