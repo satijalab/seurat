@@ -2360,56 +2360,44 @@ ReadXenium <- function(
         matrix
       },
       'segmentation_method' = {
-        if(!requireNamespace("stars", quietly = TRUE) || !requireNamespace("jsonlite", quietly = TRUE) || !requireNamespace("gmp", quietly = TRUE)) {
-          warning("Reading segmentation_method requires the `stars`, `gmp` and `jsonlite` packages")
-          return(NULL)
+        pcents <- progressor()
+        pcents(
+          message = 'Loading cell metadata',
+          class = 'sticky',
+          amount = 0
+        )
+        
+        col.use <- c(
+          cell_id = 'cell',
+          segmentation_method = 'segmentation_method'
+        )
+        
+        for(option in Filter(function(x) x$req, list(
+          list(
+            filename = "cells.parquet",
+            fn = function(x) as.data.frame(arrow::read_parquet(x, col_select = names(col.use))),
+            req = has_arrow
+          ),
+          list(
+            filename = "cells.csv.gz",
+            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE, select = names(col.use)),
+            req = has_dt
+          ),
+          list(filename = "cells.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
+        ))) {
+          cell_info <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          if(!inherits(cell_info, "try-error")) { break }
         }
         
-        if(file.exists(file.path(data.dir, "cells.zarr.zip"))) {
-          pcents <- progressor()
-          pcents(
-            message = 'Loading cell metadata',
-            class = 'sticky',
-            amount = 0
-          )
-          
-          tempdir <- path.expand(tempdir())
-          unzip(file.path(data.dir, "cells.zarr.zip"), exdir = tempdir)
-          zattr <- jsonlite::read_json(file.path(tempdir, '.zattrs'))
-
-          # Segmentation method only available in datasets versioned 6.0+
-          if(zattr$major_version < 6) {
-            return(NULL)
-          }
-
-          which_entry <- which(unlist(zattr$polygon_set_names) == 'cell')
-          
-          indices <- stars::read_mdim(file.path(tempdir, "polygon_sets", which_entry - 1, "cell_index"))$cell_index + 1
-          indices[is.na(indices)] <- 1
-          
-          ids <- stars::read_mdim(file.path(tempdir, "cell_id"))$cell_id
-          ids[is.na(ids)] <- 0
-          
-          ids <- paste0(
-            gsub(' ', 'a', sprintf('%8s', sapply(
-              strsplit(as.character(gmp::as.bigz(ids[1,]), 16), ''),
-              function(id) {
-                rawToChar(as.raw(sapply(id, function(x) {
-                  as.numeric(charToRaw(x)) +
-                    ifelse(is.na(suppressWarnings(as.numeric(x))), 10, 49)
-                })))
-              }
-            ))), '-', ids[2,])
-          
-          method <- stars::read_mdim(file.path(tempdir, 'polygon_sets', which_entry - 1, 'method'))$method + 1
-          method[is.na(method)] <- 1
-          
-          segmentation_method <- unlist(zattr$segmentation_methods)[method]
-          
-          pcents(type = "finish")
-          data.frame(segmentation_method = segmentation_method, row.names = ids)
-        } else {
+        if(!exists('cell_info') || inherits(cell_info, "try-error")) {
           NULL
+        } else {
+          cell_info <- cell_info[, names(col.use)]
+          colnames(cell_info) <- col.use
+          
+          pcents(type = 'finish')
+          
+          data.frame(segmentation_method = cell_info$segmentation_method, row.names = cell_info$cell_id)
         }
       },
       'centroids' = {
