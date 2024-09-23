@@ -503,7 +503,7 @@ GetResidual <- function(
 #' tissue
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
-#' @param image \code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is 
+#' @param image \code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is
 #' passed in it should be co-indexed with \code{`bin.size`}
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
@@ -658,7 +658,7 @@ Load10X_Spatial <- function (
 #'
 #' @export
 #' @concept preprocessing
-#' 
+#'
 Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
@@ -1210,7 +1210,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
 #' @param image.name PNG file to read in
 #' @param assay Name of associated assay
-#' @param slice Name for the image, used to populate the instance's key 
+#' @param slice Name for the image, used to populate the instance's key
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue
 #'
@@ -1283,29 +1283,29 @@ Read10X_Image <- function(
 Read10X_Coordinates <- function(filename, filter.matrix) {
   # output columns names
   col.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
-  
+
   # if the coordinate mappings are in a parquet file
   if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
     if (!requireNamespace("arrow", quietly = TRUE)) {
       stop("Please install arrow to read parquet files")
     }
-    
+
     # read in coordinates and conver the resulting tibble into a data.frame
     coordinates <- as.data.frame(arrow::read_parquet(filename))
     # normalize column names for consistency with other datatypes
     input.col.names <- c(
-      "barcode", 
-      "in_tissue", 
-      "array_row", 
-      "array_col", 
-      "pxl_row_in_fullres", 
+      "barcode",
+      "in_tissue",
+      "array_row",
+      "array_col",
+      "pxl_row_in_fullres",
       "pxl_col_in_fullres"
     )
     col.map <- stats::setNames(col.names, input.col.names)
     colnames(coordinates) <- ifelse(
-      colnames(coordinates) %in% names(col.map), 
-      col.map[colnames(coordinates)], 
+      colnames(coordinates) %in% names(col.map),
+      col.map[colnames(coordinates)],
       colnames(coordinates)
     )
 
@@ -2337,13 +2337,25 @@ ReadXenium <- function(
   has_arrow <- requireNamespace("arrow", quietly = TRUE)
   has_hdf5r <- requireNamespace("hdf5r", quietly = TRUE)
 
+  binary_to_string <- function(arrow_binary) {
+    if(typeof(arrow_binary) == 'list') {
+      unlist(
+        lapply(
+          arrow_binary, function(x) rawToChar(as.raw(strtoi(x, 16L)))
+        )
+      )
+    } else {
+      arrow_binary
+    }
+  }
+
   data <- sapply(outs, function(otype) {
     switch(
       EXPR = otype,
       'matrix' = {
         pmtx <- progressor()
         pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
-        
+
         for(option in Filter(function(x) x$req, list(
           list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_hdf5r),
           list(filename = "cell_feature_matrix", fn = Read10X, req = TRUE)
@@ -2351,27 +2363,27 @@ ReadXenium <- function(
           matrix <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(matrix, "try-error")) { break }
         }
-        
+
         if(!exists('matrix') || inherits(matrix, "try-error")) {
           stop("Xenium outputs were incomplete: missing cell_feature_matrix")
         }
-        
+
         pmtx(type = "finish")
         matrix
       },
       'segmentation_method' = {
-        pcents <- progressor()
-        pcents(
+        psegs <- progressor()
+        psegs(
           message = 'Loading cell metadata',
           class = 'sticky',
           amount = 0
         )
-        
+
         col.use <- c(
           cell_id = 'cell',
           segmentation_method = 'segmentation_method'
         )
-        
+
         for(option in Filter(function(x) x$req, list(
           list(
             filename = "cells.parquet",
@@ -2385,19 +2397,22 @@ ReadXenium <- function(
           ),
           list(filename = "cells.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
         ))) {
-          cell_info <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
-          if(!inherits(cell_info, "try-error")) { break }
+          cell_seg <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          if(!inherits(cell_seg, "try-error")) { break }
         }
-        
-        if(!exists('cell_info') || inherits(cell_info, "try-error")) {
+
+        if(!exists('cell_seg') || inherits(cell_seg, "try-error") || length(intersect(names(col.use), colnames(cell_seg))) != 2) {
+          warning('cells did not contain a segmentation_method column. Skipping...')
           NULL
         } else {
-          cell_info <- cell_info[, names(col.use)]
-          colnames(cell_info) <- col.use
-          
-          pcents(type = 'finish')
-          
-          data.frame(segmentation_method = cell_info$segmentation_method, row.names = cell_info$cell_id)
+          cell_seg <- cell_seg[, names(col.use)]
+          colnames(cell_seg) <- col.use
+
+          cell_seg$cell <- binary_to_string(cell_seg$cell)
+
+          psegs(type = 'finish')
+
+          data.frame(segmentation_method = cell_seg$segmentation_method, row.names = cell_seg$cell)
         }
       },
       'centroids' = {
@@ -2407,13 +2422,13 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-        
+
         col.use <- c(
           x_centroid = letters[24 + flip.xy],
           y_centroid = letters[25 - flip.xy],
           cell_id = 'cell'
         )
-        
+
         for(option in Filter(function(x) x$req, list(
           list(
             filename = "cells.parquet",
@@ -2430,16 +2445,18 @@ ReadXenium <- function(
           cell_info <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(cell_info, "try-error")) { break }
         }
-        
+
         if(!exists('cell_info') || inherits(cell_info, "try-error")) {
           stop("Xenium outputs were incomplete: missing cells")
         }
-        
+
+        cell_info$cell_id <- binary_to_string(cell_info$cell_id)
+
         cell_info <- cell_info[, names(col.use)]
         colnames(cell_info) <- col.use
-        
+
         pcents(type = 'finish')
-        
+
         cell_info
       },
       'segmentations' = {
@@ -2449,7 +2466,7 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-        
+
         for(option in Filter(function(x) x$req, list(
           list(
             filename = "cell_boundaries.parquet",
@@ -2466,19 +2483,21 @@ ReadXenium <- function(
           cell_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(cell_boundaries_df, "try-error")) { break }
         }
-        
+
         if(!exists('cell_boundaries_df') || inherits(cell_boundaries_df, "try-error")) {
           stop("Xenium outputs were incomplete: missing cell_boundaries")
         }
-        
+
         colnames(cell_boundaries_df) <- c(
           'cell',
           letters[24 + flip.xy],
           letters[25 - flip.xy]
         )
-        
+
+        cell_boundaries_df$cell <- binary_to_string(cell_boundaries_df$cell)
+
         psegs(type = "finish")
-        
+
         cell_boundaries_df
       },
       'nucleus_segmentations' = {
@@ -2488,7 +2507,7 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-        
+
         for(option in Filter(function(x) x$req, list(
           list(
             filename = "nucleus_boundaries.parquet",
@@ -2505,19 +2524,20 @@ ReadXenium <- function(
           nucleus_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(nucleus_boundaries_df, "try-error")) { break }
         }
-        
+
         if(!exists('nucleus_boundaries_df') || inherits(nucleus_boundaries_df, "try-error")) {
           stop("Xenium outputs were incomplete: missing nucleus_boundaries")
         }
-        
+
         colnames(nucleus_boundaries_df) <- c(
           'cell',
           letters[24 + flip.xy],
           letters[25 - flip.xy]
         )
-        
+        nucleus_boundaries_df$cell <- binary_to_string(nucleus_boundaries_df$cell)
+
         psegs(type = "finish")
-        
+
         nucleus_boundaries_df
       },
       'microns' = {
@@ -2533,7 +2553,7 @@ ReadXenium <- function(
           y_location = letters[25-flip.xy],
           feature_name = 'gene'
         )
-        
+
         for(option in Filter(function(x) x$req, list(
           list(
             filename = "transcripts.parquet",
@@ -2550,27 +2570,29 @@ ReadXenium <- function(
           transcripts <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(transcripts, "try-error")) { break }
         }
-        
+
         if(!exists('transcripts') || inherits(transcripts, "try-error")) {
           hint <- ""
           if(file.exists(file.path(data.dir, "transcripts.parquet"))) {
-            hint <- " Xenium outputs no longer include `transcripts.csv.gz`. Instead, please install `arrow` to read transcripts.parquet"
+            hint <- ". Xenium outputs no longer include `transcripts.csv.gz`. Instead, please install `arrow` to read transcripts.parquet"
           }
-          
-          stop(paste0("Xenium outputs were incomplete: missing transcripts.", hint))
+
+          stop(paste0("Xenium outputs were incomplete: missing transcripts", hint))
         }
-        
+
         transcripts <- transcripts[, names(col.use)]
         colnames(transcripts) <- col.use
-        
+
+        transcripts$gene <- binary_to_string(transcripts$gene)
+
         pmicrons(type = 'finish')
-        
+
         transcripts
       },
       stop("Unknown Xenium input type: ", otype)
     )
   }, simplify = FALSE, USE.NAMES = TRUE)
-  
+
   metadata <- file.path(data.dir, "experiment.xenium")
   if(file.exists(metadata) && requireNamespace("jsonlite", quietly = TRUE)) {
     meta <- jsonlite::read_json(metadata)
