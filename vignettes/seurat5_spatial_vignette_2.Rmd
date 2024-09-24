@@ -216,7 +216,7 @@ ImageDimPlot(vizgen.obj, fov = "hippo", molecules = rownames(markers.14)[1:4], c
 
 # Human Lung: 10x Genomics Xenium In Situ
 
-This dataset is a preview of the Xenium multimodal cell segmentation solution using a development version of the assay user guide and analysis software. It uses the [Xenium Human Multi-Tissue and Cancer Panel](https://www.10xgenomics.com/support/in-situ-gene-expression/documentation/steps/panel-design/pre-designed-xenium-gene-expression-panels) (377 genes) which was pre-designed by 10x Genomics. In this vignette, we will demonstrate how to load Xenium data for analysis and visualization using Seurat and, in particular, how to parse and visualize cell metadata. Note that this vignette requires the use of some optional dependencies in Seurat, namely `stars`, `jsonlite` and `gmp` in order to read data from `.zarr` files.
+This dataset is a preview of the Xenium multimodal cell segmentation solution using a development version of the assay user guide and analysis software. It uses the [Xenium Human Multi-Tissue and Cancer Panel](https://www.10xgenomics.com/support/in-situ-gene-expression/documentation/steps/panel-design/pre-designed-xenium-gene-expression-panels) (377 genes) which was pre-designed by 10x Genomics. In this vignette, we will demonstrate how to load Xenium data for analysis and visualization using Seurat and, in particular, how to parse and visualize cell metadata.
 
 This uses the full Xenium output bundle available from the [FFPE Human Lung Cancer with Xenium Multimodal Cell Segmentation Preview Data](https://www.10xgenomics.com/datasets/preview-data-ffpe-human-lung-cancer-with-xenium-multimodal-cell-segmentation-1-standard) page, which can be downloaded as described below (note that this file is \~7 GB).
 
