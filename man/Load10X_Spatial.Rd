@@ -34,7 +34,7 @@ tissue}
 \item{to.upper}{Converts all feature names to upper case. Can be useful when
 analyses require comparisons between human and mouse gene names for example.}
 
-\item{image}{\code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is 
+\item{image}{\code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is
 passed in it should be co-indexed with \code{`bin.size`}}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}

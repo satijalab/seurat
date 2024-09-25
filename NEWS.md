@@ -1,6 +1,12 @@
 # Unreleased
 
 ## Changes
+- Surfaced more fine-grained control over what parts of a Xenium experiment are loaded in `LoadXenium`
+- Added ability to load Xenium nucleus segmentation masks
+- Updated `LoadXenium` to also read some run metadata (run start time, preservation method, panel used, organism, tissue type, instrument software version and stain kit used) into `misc` slot
+- Updated `ReadXenium` to load cell_feature_matrix.h5 when present in favor of the MEX format files
+- Added ability to read Xenium `segmentation_method` directly into `meta.data`
+- Updated `ReadXenium` to load .parquet files using `arrow` instead of .csv.gz files to support XOA 3.0
 - Fixed `LoadXenium` to accommodate datasets without "Blank Codeword" or "Unassigned Codeword" matrices
 - Fixed `ReadXenium` to properly parse multiple molecular outputs at once ([#8265](https://github.com/satijalab/seurat/issues/8265))
 - Fixed `RunPCA` to avoid converting `BPCells` matrices into dense matrices - significantly reduces the function's memory usage when running on `BPCells` matrices
