@@ -2669,7 +2669,12 @@ RunSLSI.default <- function(
   if (verbose) {
     message("Smoothing peaks matrix")
   }
-  object.smooth <- t(x = graph) %*% (t(x = object) %*% object) %*% graph
+  if (inherits(x = object, what = 'IterableMatrix')) {
+    t_object <- t(BPCells::transpose_storage_order(matrix = object))
+    object.smooth <- t(x = graph) %*% (t_object %*% object) %*% graph
+  } else {
+    object.smooth <- t(x = graph) %*% (t(x = object) %*% object) %*% graph
+  }
   if (verbose) {
     message("Performing eigendecomposition")
   }
@@ -2734,6 +2739,48 @@ RunSLSI.Assay <- function(
   )
   return(reduction.data)
 }
+
+
+#' @param features Features to compute SLSI on. If features=NULL, SLSI will be run
+#' using the variable features for the Assay5.
+#' @param layer Layer to run SLSI on
+#'
+#' @rdname RunSLSI
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSLSI StdAssay
+#'
+RunSLSI.StdAssay <- function(
+    object,
+    assay = NULL,
+    features = NULL,
+    n = 50,
+    reduction.key = "SLSI_",
+    graph = NULL,
+    layer = "data",
+    verbose = TRUE,
+    seed.use = 42,
+    ...) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  reduction.data <- RunSLSI(
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
+
 
 #' @param reduction.name dimensional reduction name
 #' @rdname RunSLSI
