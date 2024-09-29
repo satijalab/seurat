@@ -2397,12 +2397,12 @@ ReadXenium <- function(
           ),
           list(filename = "cells.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
         ))) {
-          cell_seg <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
+          cell_seg <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))), silent = TRUE)
           if(!inherits(cell_seg, "try-error")) { break }
         }
 
         if(!exists('cell_seg') || inherits(cell_seg, "try-error") || length(intersect(names(col.use), colnames(cell_seg))) != 2) {
-          warning('cells did not contain a segmentation_method column. Skipping...')
+          warning('cells did not contain a segmentation_method column. Skipping...', call. = FALSE, immediate. = TRUE)
           NULL
         } else {
           cell_seg <- cell_seg[, names(col.use)]
