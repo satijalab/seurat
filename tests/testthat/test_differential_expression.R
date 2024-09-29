@@ -101,6 +101,28 @@ test_that("setting pseudocount.use works", {
   expect_equal(results.sct[1, "avg_logFC"], -2.25392, tolerance = 1e-6)
 })
 
+test_object <- suppressWarnings(CreateSeuratObject(counts = t(x = data.frame(x = rep(x = 0.1, times = 10), y = rep(x = 1, times = 10), z = rep(x = 10, times = 10), row.names = 1:10))))
+Idents(object = test_object) <- colnames(x = test_object)
+
+results.different.size <- suppressWarnings(FoldChange(object = test_object, ident.1 = 1:5, ident.2 = 6:7, slot = "counts"))
+results.same.size <- suppressWarnings(FoldChange(object = test_object, ident.1 = 1:5, ident.2 = 6:10, slot = "counts"))
+test_that("different group size has no effect", {
+  expect_true(all(x = results.same.size[, "avg_log2FC"] == 0))
+  expect_true(all(x = results.different.size[, "avg_log2FC"] == 0))
+})
+
+
+results.01 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1))
+results.1 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1))
+test_that("test decresing pseudocount.use increases absolute log fold change", {
+  expect_equal(results.1[, 'p_val'], results.01[, 'p_val'], tolerance = 1e-6)
+  expect_equal(results.1[, 'pct.1'], results.01[, 'pct.1'], tolerance = 1e-6)
+  expect_equal(results.1[, 'pct.2'], results.01[, 'pct.2'], tolerance = 1e-6)
+  expect_equal(results.1[, 'p_val_adj'], results.01[, 'p_val_adj'], tolerance = 1e-6)
+
+  expect_true(all(x = abs(x = results.01[, "avg_logFC"]) >= abs(x = results.1[, "avg_logFC"])))
+})
+
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1, mean.fxn = rowMeans))
 results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1, mean.fxn = rowMeans))
 results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1, mean.fxn = rowMeans, vst.flaovr = "v1"))
