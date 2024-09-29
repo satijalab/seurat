@@ -622,7 +622,7 @@ FindMarkers.default <- function(
 #' @param fc.slot Slot used to calculate fold-change - will also affect the 
 #' default for \code{mean.fxn}, see below for more details. 
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
+#' calculating logFC. 1e-06 by default.
 #' @param norm.method Normalization method for fold change calculation when
 #' \code{slot} is \dQuote{\code{data}}
 #' @param mean.fxn Function to use for fold change or average difference calculation.
@@ -653,7 +653,7 @@ FindMarkers.Assay <- function(
   features = NULL,
   test.use = "wilcox",
   fc.slot = "data",
-  pseudocount.use = 1,
+  pseudocount.use = 1e-06,
   norm.method = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
@@ -712,7 +712,7 @@ FindMarkers.SCTAssay <- function(
   cells.2 = NULL,
   features = NULL,
   test.use = "wilcox",
-  pseudocount.use = 1,
+  pseudocount.use = 1e-06,
   slot = "data",
   fc.slot = "data",
   mean.fxn = NULL,
@@ -759,12 +759,12 @@ FindMarkers.SCTAssay <- function(
   data.use <-  GetAssayData(object = object, slot = data.slot)
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
-    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
+    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = fc.slot,
     "counts" = function(x) {
-      return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
+      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
     },
     "scale.data" = rowMeans,
     default.mean.fxn
@@ -1056,7 +1056,7 @@ FoldChange.Assay <- function(
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 1,
+  pseudocount.use = 1e-06,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
@@ -1066,13 +1066,11 @@ FoldChange.Assay <- function(
   data <- GetAssayData(object = object, slot = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
+    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
   scaledata.mean.fxn <- rowMeans
   counts.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
+    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
   }
   if (!is.null(x = norm.method)) {
     # For anything apart from log normalization set to rowMeans
@@ -1135,25 +1133,23 @@ FoldChange.SCTAssay <- function(
     cells.2,
     features = NULL,
     slot = "data",
-    pseudocount.use = 1,
+    pseudocount.use = 1e-06,
     fc.name = NULL,
     mean.fxn = NULL,
     base = 2,
     ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
+  pseudocount.use <- pseudocount.use %||% 1e-06
   data <- GetAssayData(object = object, slot = slot)
   default.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-    return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
+    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'data' = default.mean.fxn,
     'scale.data' = rowMeans,
     'counts' = function(x) {
-      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-      return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
+      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
     },
     default.mean.fxn
   )
@@ -1190,7 +1186,7 @@ FoldChange.DimReduc <- function(
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = 1e-06,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
@@ -1242,7 +1238,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = 1e-06,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,

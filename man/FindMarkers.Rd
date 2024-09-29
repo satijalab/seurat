@@ -42,7 +42,7 @@ FindMarkers(object, ...)
   features = NULL,
   test.use = "wilcox",
   fc.slot = "data",
-  pseudocount.use = 1,
+  pseudocount.use = 1e-06,
   norm.method = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
@@ -56,7 +56,7 @@ FindMarkers(object, ...)
   cells.2 = NULL,
   features = NULL,
   test.use = "wilcox",
-  pseudocount.use = 1,
+  pseudocount.use = 1e-06,
   slot = "data",
   fc.slot = "data",
   mean.fxn = NULL,
@@ -197,7 +197,7 @@ DE test. This can provide speedups but might require higher memory; default is F
 default for \code{mean.fxn}, see below for more details.}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
-calculating logFC. 1 by default.}
+calculating logFC. 1e-06 by default.}
 
 \item{norm.method}{Normalization method for fold change calculation when
 \code{slot} is \dQuote{\code{data}}}
