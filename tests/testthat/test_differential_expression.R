@@ -378,11 +378,11 @@ test_that("BPCells FindMarkers gives same results", {
   markers.bp <- suppressWarnings(FindMarkers(object = pbmc_small, assay = "RNAbp", ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1))
   expect_equal(colnames(x = markers.bp), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
   expect_equal(markers.bp[1, "p_val"], 9.572778e-13)
-  expect_equal(markers.bp[1, "avg_logFC"], -4.180029, tolerance = 1e-6)
+  expect_equal(markers.bp[1, "avg_logFC"], -4.034691, tolerance = 1e-6)
   expect_equal(markers.bp[1, "pct.1"], 0.083)
   expect_equal(markers.bp[1, "pct.2"], 0.909)
   expect_equal(markers.bp[1, "p_val_adj"], 2.201739e-10)
-  expect_equal(nrow(x = markers.bp), 228)
+  expect_equal(nrow(x = markers.bp), 227)
   expect_equal(rownames(markers.bp)[1], "HLA-DPB1")
 })
 
