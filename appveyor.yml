@@ -22,8 +22,8 @@ environment:
     PYTHON: "C:\\Python36-x64"
     RETICULATE_PYTHON: "C:\\Python36-x64"
     CRAN: "https://cloud.r-project.org"
-  R_LIBCURL_SSL_REVOKE_BEST_EFFORT: "TRUE"
-  CURL_SSL_BACKEND: "openssl"
+    R_LIBCURL_SSL_REVOKE_BEST_EFFORT: "TRUE"
+    CURL_SSL_BACKEND: "openssl"
 
 build_script:
   - env
