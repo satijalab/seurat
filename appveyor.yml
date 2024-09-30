@@ -26,7 +26,6 @@ environment:
     CURL_SSL_BACKEND: "openssl"
 
 build_script:
-  - env
   - travis-tool.sh install_deps
   - travis-tool.sh r_binary_install curl
   - travis-tool.sh bioc_install GenomeInfoDbData
