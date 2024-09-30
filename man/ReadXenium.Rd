@@ -5,13 +5,23 @@
 \alias{ReadXenium}
 \title{Read and Load 10x Genomics Xenium in-situ data}
 \usage{
-LoadXenium(data.dir, fov = "fov", assay = "Xenium")
+LoadXenium(
+  data.dir,
+  fov = "fov",
+  assay = "Xenium",
+  mols.qv.threshold = 20,
+  cell.centroids = TRUE,
+  molecule.coordinates = TRUE,
+  segmentations = NULL,
+  flip.xy = FALSE
+)
 
 ReadXenium(
   data.dir,
-  outs = c("matrix", "microns"),
+  outs = c("segmentation_method", "matrix", "microns"),
   type = "centroids",
-  mols.qv.threshold = 20
+  mols.qv.threshold = 20,
+  flip.xy = F
 )
 }
 \arguments{
@@ -22,10 +32,26 @@ default filenames}
 
 \item{assay}{Assay name}
 
+\item{mols.qv.threshold}{Remove transcript molecules with
+a QV less than this threshold. QV >= 20 is the standard threshold
+used to construct the cell x gene count matrix.}
+
+\item{cell.centroids}{Whether or not to load cell centroids}
+
+\item{molecule.coordinates}{Whether or not to load molecule pixel coordinates}
+
+\item{segmentations}{One of "cell", "nucleus" or NULL (to load either cell
+segmentations, nucleus segmentations or neither)}
+
+\item{flip.xy}{Whether or not to flip the x/y coordinates of the Xenium outputs
+to match what is displayed in Xenium Explorer, or fit on your screen better.}
+
 \item{outs}{Types of molecular outputs to read; choose one or more of:
 \itemize{
  \item \dQuote{matrix}: the counts matrix
  \item \dQuote{microns}: molecule coordinates
+ \item \dQuote{segmentation_method}: cell segmentation method (for runs which
+ use multi-modal segmentation)
 }}
 
 \item{type}{Type of cell spatial coordinate matrices to read; choose one
@@ -33,11 +59,8 @@ or more of:
 \itemize{
  \item \dQuote{centroids}: cell centroids in pixel coordinate space
  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
+ \item \dQuote{nucleus_segmentations}: nucleus segmentations in pixel coordinate space
 }}
-
-\item{mols.qv.threshold}{Remove transcript molecules with
-a QV less than this threshold. QV >= 20 is the standard threshold
-used to construct the cell x gene count matrix.}
 }
 \value{
 \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
