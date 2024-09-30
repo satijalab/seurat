@@ -27,7 +27,6 @@ environment:
 build_script:
   - travis-tool.sh install_deps
   - travis-tool.sh r_binary_install curl
-  - travis-tool.sh bioc_install TestTestTest
   - travis-tool.sh bioc_install GenomeInfoDbData
   - travis-tool.sh bioc_install DESeq2
   - travis-tool.sh bioc_install MAST
