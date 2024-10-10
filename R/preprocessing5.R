@@ -299,6 +299,12 @@ LogNormalize.IterableMatrix <- function(
     verbose = TRUE,
     ...
 ) {
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    scale.factor <- median(colSums(data))
+  }
+
   data <- BPCells::t(BPCells::t(data) / colSums(data))
   # Log normalization
   data <- log1p(data * scale.factor)
