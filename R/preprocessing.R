@@ -3120,6 +3120,12 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
   if (verbose) {
     cat("Performing relative-counts-normalization\n", file = stderr())
   }
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    scale.factor <- median(Matrix::colSums(data))
+  }
+
   norm.data <- data
   norm.data@x <- norm.data@x / rep.int(Matrix::colSums(norm.data), diff(norm.data@p)) * scale.factor
   return(norm.data)
