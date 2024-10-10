@@ -256,6 +256,17 @@ LogNormalize.default <- function(
   if (isTRUE(x = verbose)) {
     pb <- txtProgressBar(file = stderr(), style = 3)
   }
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    sums <- if (margin == 1L) {
+      rowSums(data)  # Sum of each row (gene) if margin is 1L
+    } else {
+      colSums(data)  # Sum of each column (cell) if margin is 2L
+    }
+    scale.factor = median(sums)
+  }
+
   for (i in seq_len(length.out = ncells)) {
     x <- if (margin == 1L) {
       data[i, ]
