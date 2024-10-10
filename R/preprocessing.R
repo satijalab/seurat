@@ -4336,6 +4336,12 @@ LogNormalize.V3Matrix <- function(
   if (verbose) {
     cat("Performing log-normalization\n", file = stderr())
   }
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    scale.factor <- median(Matrix::colSums(data))
+  }
+
   norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
   colnames(x = norm.data) <- colnames(x = data)
   rownames(x = norm.data) <- rownames(x = data)
