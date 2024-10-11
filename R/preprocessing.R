@@ -3124,7 +3124,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
   #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
   if (is.character(scale.factor) && scale.factor == "median") {
     if(verbose){
-      cat("Calculating column sums for median scale factor\n", file = stderr())
+      cat("Calculating median scale factor\n", file = stderr())
     }
     scale.factor <- median(Matrix::colSums(data))
   }
@@ -4349,7 +4349,7 @@ LogNormalize.V3Matrix <- function(
   #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
   if (is.character(scale.factor) && scale.factor == "median") {
     if(verbose){
-      cat("Calculating column sums for median scale factor\n", file = stderr())
+      cat("Calculating median scale factor\n", file = stderr())
     }
     scale.factor <- median(Matrix::colSums(data))
   }
