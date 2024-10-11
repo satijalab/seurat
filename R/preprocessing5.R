@@ -259,6 +259,9 @@ LogNormalize.default <- function(
 
   #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
   if (is.character(scale.factor) && scale.factor == "median") {
+    if(verbose){
+      cat("Calculating column sums for median scale factor\n", file = stderr())
+    }
     sums <- if (margin == 1L) {
       rowSums(data)  # Sum of each row (gene) if margin is 1L
     } else {
@@ -302,6 +305,9 @@ LogNormalize.IterableMatrix <- function(
 
   #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
   if (is.character(scale.factor) && scale.factor == "median") {
+    if(verbose){
+      cat("Calculating column sums for median scale factor\n", file = stderr())
+    }
     scale.factor <- median(colSums(data))
   }
 
