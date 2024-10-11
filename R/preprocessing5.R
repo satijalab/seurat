@@ -877,6 +877,32 @@ DISP <- function(
     p <- p + 1L
   }
   np <- length(x = p) - 1L
+
+  if (is.character(scale.factor) && scale.factor == "median" && isTRUE(x = verbose)) {
+    cat("Calculating column sums for median scale factor\n", file = stderr())
+    pb_median <- txtProgressBar(style = 3L, file = stderr())
+  }
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    col_sums <- numeric(np)
+    for (i in seq_len(length.out = np)) {
+      idx <- seq.int(from = p[i], to = p[i + 1] - 1L)
+      xidx <- slot(object = data, name = entryname)[idx]
+      col_sums[i] <- sum(xidx)
+
+      if (isTRUE(x = verbose)) {
+        setTxtProgressBar(pb_median, value = i / np)
+      }
+    }
+
+    if (isTRUE(x = verbose)) {
+      close(pb_median)
+    }
+
+    scale.factor <- median(col_sums)
+  }
+
   if (isTRUE(x = verbose)) {
     pb <- txtProgressBar(style = 3L, file = stderr())
   }
