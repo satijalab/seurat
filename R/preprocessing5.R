@@ -878,6 +878,7 @@ DISP <- function(
   }
   np <- length(x = p) - 1L
 
+  #adding a progress bar for median calculation is verbose is TRUE
   if (is.character(scale.factor) && scale.factor == "median" && isTRUE(x = verbose)) {
     cat("Calculating column sums for median scale factor\n", file = stderr())
     pb_median <- txtProgressBar(style = 3L, file = stderr())
