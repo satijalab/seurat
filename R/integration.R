@@ -1158,9 +1158,20 @@ FindTransferAnchors <- function(
     # Try processing list
     query.neighbors.list <- list()
     nn.idx2.list <- list()
+
+    query.layers <- Layers(query, search = 'data')
     for (layer in seq_along(query.layers)) {
-      layer_embeddings <- Embeddings(object = combined.ob[[reduction]])[colnames(x = query.layers[[layer]]), ]
+      cells2.i <- Cells(
+        x = query,
+        layer = query.layers[layer]
+      )
+      query.subset <- subset(
+        x = query,
+        cells = cells2.i
+      )
       
+      layer_embeddings <- Embeddings(object = combined.ob[[reduction]])[colnames(x = query.subset), ]
+
       # NNHelper() for current layer
       query.neighbors <- NNHelper(
         data = layer_embeddings,
@@ -1189,10 +1200,12 @@ FindTransferAnchors <- function(
     # Adding neighbors to list 
     query.neighbors.list[[layer]] <- query.neighbors.sub
     nn.idx2.list[[layer]] <- Index(object = query.neighbors.sub)
+    }
     
     precomputed.neighbors[["query.neighbors"]] <- query.neighbors.list
     nn.idx2 <- nn.idx2.list
-  }
+    }
+    
   if (!is.null(x = reference.neighbors)) {
     precomputed.neighbors[["ref.neighbors"]] <- reference[[reference.neighbors]]
   } else {
