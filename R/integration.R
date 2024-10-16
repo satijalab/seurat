@@ -1144,20 +1144,40 @@ FindTransferAnchors <- function(
   precomputed.neighbors <- list(ref.neighbors = NULL, query.neighbors = NULL)
   nn.idx1 <- NULL
   nn.idx2 <- NULL
+  
   # if computing the mapping score later, compute large enough query
   # neighborhood here to reuse
+  
+  # Enable multi-layer query preprocessing when mapping.score.k. 
   if (!is.null(x = mapping.score.k)) {
     if (verbose) {
       message("Finding query neighbors")
     }
     k.nn <- max(k.score, k.anchor)
-    query.neighbors <- NNHelper(
-      data = Embeddings(object = combined.ob[[reduction]])[colnames(x = query), ],
-      k = max(mapping.score.k, k.nn + 1),
-      method = nn.method,
-      n.trees = n.trees,
-      cache.index = TRUE
-    )
+    
+    # Try processing list
+    query.neighbors.list <- list()
+    nn.idx2.list <- list()
+    for (layer in seq_along(query.layers)) {
+      layer_embeddings <- Embeddings(object = combined.ob[[reduction]])[colnames(x = query.layers[[layer]]), ]
+      
+      # NNHelper() for current layer
+      query.neighbors <- NNHelper(
+        data = layer_embeddings,
+        k = max(mapping.score.k, k.nn + 1),
+        method = nn.method,
+        n.trees = n.trees,
+        cache.index = TRUE
+      )
+    
+    # query.neighbors <- NNHelper(
+    #   data = Embeddings(object = combined.ob[[reduction]])[colnames(x = query), ],
+    #   k = max(mapping.score.k, k.nn + 1),
+    #   method = nn.method,
+    #   n.trees = n.trees,
+    #   cache.index = TRUE
+    # )
+      
     query.neighbors.sub <- query.neighbors
     slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
       object = query.neighbors.sub,
@@ -1165,8 +1185,13 @@ FindTransferAnchors <- function(
     slot(object = query.neighbors.sub, name = "nn.dist") <- slot(
       object = query.neighbors.sub,
       name = "nn.dist")[, 1:(k.nn + 1)]
-    precomputed.neighbors[["query.neighbors"]] <- query.neighbors.sub
-    nn.idx2 <- Index(object = query.neighbors.sub)
+    
+    # Adding neighbors to list 
+    query.neighbors.list[[layer]] <- query.neighbors.sub
+    nn.idx2.list[[layer]] <- Index(object = query.neighbors.sub)
+    
+    precomputed.neighbors[["query.neighbors"]] <- query.neighbors.list
+    nn.idx2 <- nn.idx2.list
   }
   if (!is.null(x = reference.neighbors)) {
     precomputed.neighbors[["ref.neighbors"]] <- reference[[reference.neighbors]]
@@ -1182,6 +1207,7 @@ FindTransferAnchors <- function(
       )
   }
   nn.idx1 <- Index(object = precomputed.neighbors[["ref.neighbors"]])
+  
   anchors <- FindAnchors(
     object.pair = combined.ob,
     assay = c(reference.assay, reference.assay),
@@ -4069,6 +4095,8 @@ FindAnchors_v5 <- function(
   reference.layers <- Layers(object.pair[[ref.assay]], search = 'data')[1]
   query.layers <- setdiff(Layers(object.pair[[query.assay]], search = 'data'), reference.layers)
   anchor.list <- list()
+  
+  # Enable compatibility with multi-layer query 
   for (i in seq_along(query.layers)) {
     cells2.i <- Cells(
       x = object.pair[[query.assay]],
@@ -4079,13 +4107,22 @@ FindAnchors_v5 <- function(
       cells = c(cells1, cells2.i)
     )
     object.pair.i <- JoinLayers(object.pair.i)
+    
+    # Extract the neighbors for the current query layer from the neighbors list
+    query.neighbors.sub <- internal.neighbors[["query.neighbors"]][[i]]
+    nn.idx2.i <- nn.idx2[[i]]
+    
     anchor.list[[i]] <- FindAnchors_v3(
       object.pair = object.pair.i,
       assay = assay,
       slot = slot,
       cells1 = cells1,
       cells2 = cells2.i,
-      internal.neighbors = internal.neighbors,
+      # internal.neighbors = internal.neighbors,
+      internal.neighbors = list(
+        "ref.neighbors" = internal.neighbors[["ref.neighbors"]],
+        "query.neighbors" = query.neighbors.sub  # neighbors for current layer
+      ),
       reduction = reduction,
       reduction.2 = reduction.2,
       nn.reduction = nn.reduction,
@@ -4097,7 +4134,7 @@ FindAnchors_v5 <- function(
       nn.method = nn.method,
       n.trees = n.trees,
       nn.idx1 = nn.idx1,
-      nn.idx2 = nn.idx2,
+      nn.idx2 = nn.idx2.i, #select the layer specific nn.idx2
       eps = eps,
       projected = projected,
       verbose = verbose
