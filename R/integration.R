@@ -2698,14 +2698,26 @@ MappingScore.AnchorSet <- function(
   
   # Handle query layers 
   mapping_scores_list <- list()
+
   for (i in seq_along(query.neighbors.list)) {
     query.neighbors.i <- query.neighbors.list[[i]]  
-    query.cells.i <- query.cells[[i]]   
     
+    # query.cells.i <- query.cells[[i]]   
+    query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) # query cells in neighbors obj have suffix _query, strip to match
     query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
     
+    # subset anchors to query specific 
+    anchors_data <- slot(anchors, "anchors") 
+    anchors_data[, "cell1_name"] <- ref.cells[anchors_data[, "cell1"]]
+    anchors_data[, "cell2_name"] <- query.cells.i[anchors_data[, "cell2"]]
+    
+    anchors_subset <- anchors_data[anchors_data[, "cell2_name"] %in% query.cells.i, ]  
+    
+    anchors_subset[, "cell1"] <- anchors_data[, "cell1_name"]
+    anchors_subset[, "cell2"] <- anchors_data[, "cell2_name"]
+    
     mapping_scores_list[[i]] <- MappingScore(
-    anchors = slot(object = anchors, name = "anchors"),
+    anchors = slot(object = anchors_subset, name = "anchors"), # input subset of layer-specific anchors 
     combined.object = combined.object,
     query.neighbors = query.neighbors.i,
     ref.embeddings = ref.embeddings,
