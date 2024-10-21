@@ -2698,6 +2698,7 @@ MappingScore.AnchorSet <- function(
   
   # Handle query layers 
   mapping_scores_list <- list()
+  original_anchors_data <- slot(object = anchors, name = "anchors")
 
   for (i in seq_along(query.neighbors.list)) {
     query.neighbors.i <- query.neighbors.list[[i]]  
@@ -2705,19 +2706,23 @@ MappingScore.AnchorSet <- function(
     # query.cells.i <- query.cells[[i]]   
     query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) # query cells in neighbors obj have suffix _query, strip to match
     query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
-    
+
     # subset anchors to query specific 
-    anchors_data <- slot(anchors, "anchors") 
-    anchors_data[, "cell1_name"] <- ref.cells[anchors_data[, "cell1"]]
-    anchors_data[, "cell2_name"] <- query.cells.i[anchors_data[, "cell2"]]
+    anchors_data <- original_anchors_data 
+    anchors_data_df <- as.data.frame(anchors_data)
     
-    anchors_subset <- anchors_data[anchors_data[, "cell2_name"] %in% query.cells.i, ]  
+    # query.indices.i <- which(rownames(query.embeddings) %in% query.cells.i)
+    query_cell_names <- Cells(combined.object)[anchors_data_df$cell2]
+    query.indices.i <- which(query.cells.i %in% query_cell_names)
     
-    anchors_subset[, "cell1"] <- anchors_data[, "cell1_name"]
-    anchors_subset[, "cell2"] <- anchors_data[, "cell2_name"]
+    anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
+    
+    anchors_subset <- as.matrix(anchors_subset_df)
+    
+    slot(anchors, "anchors") <- anchors_subset
     
     mapping_scores_list[[i]] <- MappingScore(
-    anchors = slot(object = anchors_subset, name = "anchors"), # input subset of layer-specific anchors 
+    anchors = slot(object = anchors, name = "anchors"), # input subset of layer-specific anchors 
     combined.object = combined.object,
     query.neighbors = query.neighbors.i,
     ref.embeddings = ref.embeddings,
@@ -2732,7 +2737,9 @@ MappingScore.AnchorSet <- function(
     n.trees = n.trees,
     query.weights = query.weights,
     verbose = verbose
-  )}
+    )
+    slot(anchors, "anchors") <- original_anchors_data
+  }
   return(mapping_scores_list)
 }
 
