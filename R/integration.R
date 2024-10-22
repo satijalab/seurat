@@ -2711,12 +2711,9 @@ MappingScore.AnchorSet <- function(
     anchors_data <- original_anchors_data 
     anchors_data_df <- as.data.frame(anchors_data)
     
-    # query.indices.i <- which(rownames(query.embeddings) %in% query.cells.i)
-    query_cell_names <- Cells(combined.object)[anchors_data_df$cell2]
-    query.indices.i <- which(query.cells.i %in% query_cell_names)
+    query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2]) # indices of current query layer where query cells are in anchors, should < anchors obj 
     
     anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
-    
     anchors_subset <- as.matrix(anchors_subset_df)
     
     slot(anchors, "anchors") <- anchors_subset
