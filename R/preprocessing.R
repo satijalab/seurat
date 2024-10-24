@@ -445,9 +445,8 @@ GetResidual <- function(
     new.residuals <- lapply(
       X = sct.models,
       FUN = function(x) {
-        FetchResidualSCTModel(object = object,
-                              assay = assay,
-                              umi.assay = umi.assay,
+        FetchResidualSCTModel(object = object[[assay]],
+                              umi.object = object[[umi.assay]],
                               SCTModel = x,
                               new_features = features,
                               replace.value = replace.value,
