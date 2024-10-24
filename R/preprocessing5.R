@@ -1610,6 +1610,156 @@ FetchResiduals.Seurat <- function(
   return(new.scale[features, ])
 }
 
+
+#' Calculate pearson residuals of features not in the scale.data
+#'
+#' This function calls sctransform::get_residuals.
+#'
+#' @param object A seurat object
+#' @param features Name of features to add into the scale.data
+#' @param umi.object ...
+#' @param layer Name (prefix) of the layer to pull counts from
+#' @param clip.range Numeric of length two specifying the min and max values the
+#' Pearson residual will be clipped to
+#' @param reference.SCT.model reference.SCT.model If a reference SCT model should be used
+#' for calculating the residuals. When set to not NULL, ignores the `SCTModel`
+#' paramater.
+#' @param replace.value Recalculate residuals for all features, even if they are
+#' already present. Useful if you want to change the clip.range.
+#' @param na.rm For features where there is no feature model stored, return NA
+#' for residual value in scale.data when na.rm = FALSE. When na.rm is TRUE, only
+#' return residuals for features with a model stored for all cells.
+#' @param verbose Whether to print messages and progress bars
+#'
+#' @return Returns a Seurat object containing Pearson residuals of added
+#' features in its scale.data
+#'
+#' @importFrom sctransform get_residuals
+#' @importFrom matrixStats rowAnyNAs
+#'
+#' @export
+#' @concept preprocessing
+#'
+#' @seealso \code{\link[sctransform]{get_residuals}}
+FetchResiduals.SCTAssay <- function(
+  object,
+  umi.object,
+  features,
+  layer = "counts",
+  clip.range = NULL,
+  reference.SCT.model = NULL,
+  replace.value = FALSE,
+  na.rm = TRUE,
+  verbose = TRUE) {
+  
+  sct.models <- levels(x = object)
+  if (length(sct.models) == 1) {
+    sct.models <- list(sct.models)
+  }
+  if (length(x = sct.models) == 0) {
+    warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
+    return(object)
+  }
+  possible.features <- Reduce(f = union, x = lapply(X = sct.models, FUN = function(x) {
+    rownames(x = SCTResults(object = object, slot = "feature.attributes", model = x))
+  }))
+  bad.features <- setdiff(x = features, y = possible.features)
+  if (length(x = bad.features) > 0) {
+    warning("The following requested features are not present in any models: ",
+            paste(bad.features, collapse = ", "),
+            call. = FALSE
+    )
+    features <- intersect(x = features, y = possible.features)
+  }
+  features.orig <- features
+  if (na.rm) {
+    # only compute residuals when feature model info is present in all
+    features <- names(x = which(x = table(unlist(x = lapply(
+      X = sct.models,
+      FUN = function(x) {
+        rownames(x = SCTResults(object = object, slot = "feature.attributes", model = x))
+      }
+    ))) == length(x = sct.models)))
+    if (length(x = features) == 0) {
+      return(object)
+    }
+  }
+
+  features <- intersect(x = features.orig, y = features)
+  if (length(features) < 1){
+    warning("The following requested features are not present in all the models: ",
+            paste(features.orig, collapse = ", "),
+            call. = FALSE
+    )
+    return(NULL)
+  }
+
+  # Get all (count) layers
+  layers <- Layers(object = umi.object, search = layer)
+
+  # iterate over layer running sct model for each of the object names
+  new.residuals <- list()
+  total_cells <- 0
+  all_cells <- c()
+  if (!is.null(x = reference.SCT.model)) {
+    if (inherits(x = reference.SCT.model, what = "SCTModel")) {
+      reference.SCT.model <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+    }
+    if (is.list(x = reference.SCT.model) & inherits(x = reference.SCT.model[[1]], what = "SCTModel")) {
+      stop("reference.SCT.model must be one SCTModel rather than a list of SCTModel")
+    }
+    if (reference.SCT.model$model_str != "y ~ log_umi") {
+      stop("reference.SCT.model must be derived using default SCT regression formula, `y ~ log_umi`")
+    }
+  }
+  for (i in seq_along(along.with = layers)) {
+    l <- layers[i]
+    sct_model <- sct.models[[i]]
+    # these cells belong to this layer
+    layer_cells <- Cells(x = umi.object, layer = l)
+    all_cells <- c(all_cells, layer_cells)
+    total_cells <- total_cells + length(layer_cells)
+    # calculate residual using this model and these cells
+    new.residuals[[i]] <- FetchResidualSCTModel(
+      object = object,
+      umi.object = umi.object,
+      layer = l,
+      layer.cells = layer_cells,
+      SCTModel = sct_model,
+      reference.SCT.model = reference.SCT.model,
+      new_features = features,
+      replace.value = replace.value,
+      clip.range = clip.range,
+      verbose = verbose
+    )
+  }
+
+  existing.data <- GetAssayData(object, slot = "scale.data")
+  all.features <- union(x = rownames(x = existing.data), y = features)
+  new.scale <- matrix(
+    data = NA,
+    nrow = length(x = all.features),
+    ncol = total_cells,
+    dimnames = list(all.features, all_cells)
+  )
+  common_cells <- intersect(colnames(new.scale), colnames(existing.data))
+  if (nrow(x = existing.data) > 0) {
+    new.scale[rownames(x = existing.data), common_cells] <- existing.data[, common_cells]
+  }
+  if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
+    new.residuals <- new.residuals[[1]]
+  } else {
+    new.residuals <- Reduce(cbind, new.residuals)
+  }
+  new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
+
+  if (na.rm) {
+    new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
+  }
+
+  return(new.scale[features, ])
+}
+
 #' Calculate pearson residuals of features not in the scale.data
 #' This function is the secondary function under FetchResiduals
 #'
