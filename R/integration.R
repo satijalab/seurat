@@ -2702,8 +2702,6 @@ MappingScore.AnchorSet <- function(
 
   for (i in seq_along(query.neighbors.list)) {
     query.neighbors.i <- query.neighbors.list[[i]]  
-    
-    # query.cells.i <- query.cells[[i]]   
     query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) # query cells in neighbors obj have suffix _query, strip to match
     query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
 
