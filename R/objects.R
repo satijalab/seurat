@@ -2350,8 +2350,14 @@ merge.SCTAssay <- function(
         if (inherits(x = assays[[assay]], what = "SCTAssay")) {
           parent.environ <- sys.frame(which = parent.call[1])
           seurat.object <- parent.environ$objects[[assay]]
-          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features,
+          residuals <- suppressWarnings(expr = FetchResiduals(object = seurat.object, features = all.features,
                                                                assay = parent.environ$assay, verbose = FALSE))
+          seurat.object <- SetAssayData(
+            object = seurat.object,
+            assay = "SCT",
+            slot = "scale.data",
+            new.data = residuals
+          )                                                                
           return(seurat.object[[parent.environ$assay]])
         }
         return(assays[[assay]])
