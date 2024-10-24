@@ -2322,6 +2322,7 @@ merge.SCTAssay <- function(
   add.cell.ids = NULL,
   merge.data = TRUE,
   na.rm = TRUE,
+  fill.missing.residuals = NULL,
   ...
 ) {
   assays <- c(x, y)
@@ -2331,8 +2332,11 @@ merge.SCTAssay <- function(
   ))) {
     return(merge(x = as(x, "Assay5"), y, ...))
   }
+
   parent.call <- grep(pattern = "merge.Seurat", x = sys.calls())
-  if (length(x = parent.call) > 0) {
+  fill.missing.residuals <- fill.missing.residuals %||% (length(x = parent.call) > 0)
+  
+  if (fill.missing.residuals) {
     # Try and fill in missing residuals if called in the context of merge.Seurat
     all.features <- unique(
       x = unlist(
