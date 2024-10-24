@@ -1478,7 +1478,7 @@ SCTransform.StdAssay <- function(
 #' @concept preprocessing
 #'
 #' @seealso \code{\link[sctransform]{get_residuals}}
-FetchResiduals <- function(
+FetchResiduals.Seurat <- function(
   object,
   features,
   assay = NULL,
