@@ -4197,7 +4197,7 @@ FindSpatiallyVariableFeatures.default <- function(
 #'
 FindSpatiallyVariableFeatures.Assay <- function(
   object,
-  slot = "scale.data",
+  layer = "scale.data",
   spatial.location,
   selection.method = c('markvariogram', 'moransi'),
   features = NULL,
@@ -4209,11 +4209,13 @@ FindSpatiallyVariableFeatures.Assay <- function(
   ...
 ) {
   features <- features %||% rownames(x = object)
+  cells <- spatial.location$cell
   if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
     features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
     features <- features[! features %in% features.computed]
   }
-  data <- GetAssayData(object = object, slot = slot)
+  data <- LayerData(object = object, layer = layer)
+  data <- data[, cells]
   data <- as.matrix(x = data[features, ])
   data <- data[RowVar(x = data) > 0, ]
   if (nrow(x = data) != 0) {
@@ -4277,12 +4279,12 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   assay <- assay %||% DefaultAssay(object = object)
   features <- features %||% rownames(x = object[[assay]])
   image <- image %||% DefaultImage(object = object)
-  tc <- GetTissueCoordinates(object = object[[image]])
+  tc <- GetTissueCoordinates(object = object[[image]], which = "centroids")
   # check if markvariogram has been run on necessary features
   # only run for new ones
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
-    slot = slot,
+    layer = slot,
     features = features,
     spatial.location = tc,
     selection.method = selection.method,
