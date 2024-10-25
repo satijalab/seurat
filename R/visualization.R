@@ -2553,7 +2553,7 @@ ImageDimPlot <- function(
   idx <- 1L
   for (group in group.by) {
     for (i in seq_along(along.with = pdata)) {
-      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '_'))[1L]
+      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '_'))[1L] # This line is causing a bug when FOV names have underscores, since mdata[[img]] will not be correctly passed in. Need docuemntation.
       p <- SingleImagePlot(
         data = pdata[[i]],
         col.by = pdata[[i]] %!NA% group,
