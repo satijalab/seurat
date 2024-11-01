@@ -6321,6 +6321,7 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
               ncol(x = reductions), " and continuing.", immediate. = TRUE, call. = FALSE)
       ModifyParam(param = 'dims.to.integrate', value = 1:ncol(x = reductions))
     }
+    ModifyParam(param = 'dims.to.integrate', value = dims.to.integrate)
   }
   if (!is.null(x = weight.reduction)) {
     if (inherits(x = weight.reduction, what = "character")) {
