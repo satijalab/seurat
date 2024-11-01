@@ -1694,7 +1694,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
         object = reference.integrated[[new.reduction.name.safe]]
       ))),
       assay = intdr.assay,
-      loadings = Loadings(object = reductions),
+      loadings = Loadings(object = reductions)[,dims.to.integrate],
       key = paste0(new.reduction.name.safe, "_")
     )
     DefaultAssay(object = reference.integrated) <- int.assay
