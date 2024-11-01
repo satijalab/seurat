@@ -95,6 +95,23 @@ test_that("IntegrateLayers works with CCAIntegration", {
     Embeddings(integrated[["integrated"]])[75, 45],
     0.5442
   )
+  
+  integrated_sub <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:10
+    )
+  )
+  # check that dims.to.integrate is not being overwritten
+  expect_equal(ncol(integrated_sub[["integrated"]]), 10)
 })
 
 test_that("IntegrateLayers works with RPCAIntegration", {
@@ -127,6 +144,23 @@ test_that("IntegrateLayers works with RPCAIntegration", {
     Embeddings(integrated[["integrated"]])[75, 45],
     0.5442
   )
+  
+  integrated_sub <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = RPCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:10
+    )
+  )
+  # check that dims.to.integrate is not being overwritten
+  expect_equal(ncol(integrated_sub[["integrated"]]), 10)
 })
 
 test_that("IntegrateLayers works with JointPCAIntegration", {
@@ -159,6 +193,23 @@ test_that("IntegrateLayers works with JointPCAIntegration", {
     Embeddings(integrated[["integrated"]])[75, 45],
     0.5442
   )
+  
+  integrated_sub <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = JointPCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:10
+    )
+  )
+  # check that dims.to.integrate is not being overwritten
+  expect_equal(ncol(integrated_sub[["integrated"]]), 10)
 })
 
 test_that("IntegrateLayers fails when expected", {
