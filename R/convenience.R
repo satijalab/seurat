@@ -301,7 +301,7 @@ PCHeatmap <- function(object, ...) {
 #' @export
 #'
 PCAPlot <- function(object, ...) {
-  return(SpecificDimPlot(object = object, ...))
+  return(SpecificDimPlot(object = object, ..., .reduction = "pca"))
 }
 
 #' @rdname SpatialPlot
@@ -413,7 +413,7 @@ SpatialFeaturePlot <- function(
 #' @export
 #'
 TSNEPlot <- function(object, ...) {
-  return(SpecificDimPlot(object = object, ...))
+  return(SpecificDimPlot(object = object, ..., .reduction = "tsne"))
 }
 
 #' @rdname DimPlot
@@ -421,7 +421,7 @@ TSNEPlot <- function(object, ...) {
 #' @export
 #'
 UMAPPlot <- function(object, ...) {
-  return(SpecificDimPlot(object = object, ...))
+  return(SpecificDimPlot(object = object, ..., reduction = "umap"))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -438,26 +438,50 @@ UMAPPlot <- function(object, ...) {
 
 # @rdname DimPlot
 #
-SpecificDimPlot <- function(object, ...) {
-  funs <- sys.calls()
-  name <- as.character(x = funs[[length(x = funs) - 1]])[1]
-  name <- tolower(x = gsub(pattern = 'Plot', replacement = '', x = name))
-  args <- list('object' = object)
-  args <- c(args, list(...))
-  reduc <- grep(
-    pattern = name,
-    x = names(x = object),
-    value = TRUE,
-    ignore.case = TRUE
+SpecificDimPlot <- function(object, ..., .reduction) {
+  dots <- list(...)
+  stopifnot(
+    rlang::is_scalar_character(x = .reduction),
+    !rlang::is_na(x = .reduction),
+    `SpecificDimPlot: .reduction can't be empty` = nzchar(x = .reduction)
   )
-  reduc <- grep(pattern = DefaultAssay(object = object), x = reduc, value = TRUE)
-  args$reduction <- ifelse(test = length(x = reduc) == 1, yes = reduc, no = name)
-  tryCatch(
-    expr = return(do.call(what = 'DimPlot', args = args)),
-    error = function(e) {
-      stop(e)
+  if ("reduction" %in% names(x = dots)) {
+    warning(
+      "SpecificDimPlot: Ignoring supplied `reduction` argument in favor of '",
+      .reduction,
+      "'. Use DimPlot to choose any reduction."
+    )
+  }
+  reductions <- Reductions(object = object)
+  if (!.reduction %in% reductions) {
+    # If the requested reduction is not available but others pass grep,
+    # use the first one with a warning
+    reductions <- grep(
+      pattern = .reduction,
+      x = reductions,
+      ignore.case = TRUE,
+      value = TRUE
+    )
+    if (length(x = reductions) > 0) {
+      warning(
+        "SpecificDimPlot: '",
+	.reduction,
+	"' not found in this object's reductions. Using '",
+	.reduction <- reductions[1],
+	"' instead. Use DimPlot to choose any reduction."
+      )
+    } else {
+      stop(
+        "Could not find '",
+	.reduction,
+	"' in this object's reductions. Use DimPlot to choose any reduction."
+      )
     }
-  )
+  }
+  dots$reduction <- .reduction
+  args <- c(list(object = object), dots)
+  
+  return(do.call(what = "DimPlot", args = args))
 }
 
 #' Read output from Parse Biosciences
