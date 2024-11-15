@@ -276,7 +276,7 @@ PCASigGenes <- function(
 #' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
-#' # Vizualize top projected genes in heatmap
+#' # Visualize top projected genes in heatmap
 #' DimHeatmap(object = pbmc_small, reduction = "pca", dims = 1, balanced = TRUE)
 #'
 ProjectDim <- function(
