@@ -421,7 +421,7 @@ TSNEPlot <- function(object, ...) {
 #' @export
 #'
 UMAPPlot <- function(object, ...) {
-  return(SpecificDimPlot(object = object, ..., reduction = "umap"))
+  return(SpecificDimPlot(object = object, ..., .reduction = "umap"))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
