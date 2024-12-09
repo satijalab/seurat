@@ -31,8 +31,20 @@ jobs:
       - name: Install Dependencies
         run: installDeps.r -s
       
+      # A significant number of `Seurat`'s tests are skipped during CRAN checks
+      # so we'll run the tests separately. 
+      - name: Run Tests
+        run: testthat::test_local()
+        shell: Rscript {0}
+        continue-on-error: true
+      
       # Run CRAN checks, if any ERRORs or WARNINGs are raised the check fails.
-      - name: Run Checks
-        run: rcmdcheck::rcmdcheck(args = "--as-cran", error_on="warning")
+      # Avoid re-running tests redundantly. 
+      - name: Run CRAN Checks (no tests)
+        run: |
+          rcmdcheck::rcmdcheck(
+            args = c("--as-cran", "--no-tests"), 
+            error_on="warning"
+          )
         shell: Rscript {0}
         continue-on-error: true
