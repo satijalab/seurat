@@ -120,6 +120,7 @@ Suggests:
     ape,
     arrow,
     BPCells,
+    glmGamPoi,
     rsvd,
     testthat,
     hdf5r,
