@@ -29,6 +29,7 @@ Authors@R: c(
   person(given = "Shiwei", family = "Zheng", email = "szheng@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6682-6743")),
   person("Satija Lab and Collaborators", role = "fnd")
   )
+License: MIT + file LICENSE
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-universe.dev
@@ -90,32 +91,6 @@ Imports:
     tools,
     utils,
     uwot (>= 0.1.10)
-LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
-License: MIT + file LICENSE
-LazyData: true
-Collate:
-    'RcppExports.R'
-    'reexports.R'
-    'generics.R'
-    'clustering.R'
-    'visualization.R'
-    'convenience.R'
-    'data.R'
-    'differential_expression.R'
-    'dimensional_reduction.R'
-    'integration.R'
-    'zzz.R'
-    'integration5.R'
-    'mixscape.R'
-    'objects.R'
-    'preprocessing.R'
-    'preprocessing5.R'
-    'roxygen.R'
-    'sketching.R'
-    'tree.R'
-    'utilities.R'
-RoxygenNote: 7.3.2
-Encoding: UTF-8
 Suggests:
     ape,
     arrow,
@@ -149,3 +124,28 @@ Suggests:
     SummarizedExperiment,
     testthat,
     VGAM
+LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Collate:
+    'RcppExports.R'
+    'reexports.R'
+    'generics.R'
+    'clustering.R'
+    'visualization.R'
+    'convenience.R'
+    'data.R'
+    'differential_expression.R'
+    'dimensional_reduction.R'
+    'integration.R'
+    'zzz.R'
+    'integration5.R'
+    'mixscape.R'
+    'objects.R'
+    'preprocessing.R'
+    'preprocessing5.R'
+    'roxygen.R'
+    'sketching.R'
+    'tree.R'
+    'utilities.R'
