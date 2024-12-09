@@ -147,4 +147,5 @@ Suggests:
     R.utils,
     presto,
     DelayedArray,
-    harmony
+    harmony,
+    sf (>= 1.0.0)
