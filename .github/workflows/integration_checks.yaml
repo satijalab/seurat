@@ -28,9 +28,8 @@ jobs:
       
       # Install the package and all its dependencies using scripts from 
       # `littler`, see https://eddelbuettel.github.io/littler/ for details. 
-      # `Seurat` is listed under "Enhances" so it also needs to be installed. 
       - name: Install Dependencies
-        run: installDeps.r -s && install.r Seurat
+        run: installDeps.r -s
       
       # Run CRAN checks, if any ERRORs or WARNINGs are raised the check fails.
       - name: Run Checks
