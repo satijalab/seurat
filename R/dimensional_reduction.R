@@ -2770,7 +2770,6 @@ RunSLSI.StdAssay <- function(
   reduction.data <- RunSLSI(
     object = data.use,
     assay = assay,
-    npcs = npcs,
     reduction.key = reduction.key,
     graph = graph,
     verbose = verbose,
