@@ -31,6 +31,8 @@ NULL
 #' @param seed A positive integer for the seed of the random number generator. Default is 123.
 #' @param cast The type to cast the resulting assay to. Default is 'dgCMatrix'.
 #' @param verbose Print progress and diagnostic messages
+#' @param features A character vector of feature names to include in the
+#' sketched assay.
 #' @param ... Arguments passed to other methods
 #'
 #' @return A Seurat object with the sketched data added as a new assay.
