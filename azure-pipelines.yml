@@ -1,0 +1,59 @@
+# Inspired by Jim Hester's Azure Pipelines tests
+# https://github.com/jimhester/azuretest
+
+trigger:
+- master
+- develop
+
+pr:
+- master
+- develop
+- release/*
+
+jobs:
+  - job: 'Build_all_vignettes'
+    timeoutInMinutes: 4320
+    pool: Pool2
+    variables:
+      R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
+    container: satijalab/seurat-pkgdown:develop
+    steps:
+      - script: |
+            set -e
+            echo "R_LIBS =" "$(Rscript -e "cat(Sys.getenv('R_LIBS_USER')[3])")" > .Renviron
+            Rscript --default-packages=stats,graphics,grDevices,utils,datasets,base,methods -e "install.packages('.', type = 'source', repos = NULL, dependencies = FALSE, lib = Sys.getenv('R_LIBS_USER'))"
+            mv /data/* data/
+            mkdir output
+            mkdir output/images
+            mkdir output/timings
+            Rscript -e "pkgdown::init_site()"
+            Rscript -e "pkgdown::build_article('pbmc3k_tutorial')"
+            ls vignettes/*.Rmd | xargs -n1 basename | grep -v 'pbmc3k_tutorial.Rmd' | cut -f 1 -d '.' | parallel -j4 "Rscript -e 'pkgdown::build_article(\"{}\")'"
+            Rscript -e "pkgdown::build_site(lazy = TRUE)"
+            cp vignettes/assets/* docs/articles/assets/
+        displayName: 'Build pkgdown site'
+      - script: |
+            find ./docs/ -name '*.png' -print0 | xargs -0 -P8 -L1 pngquant --ext .png --force --speed 1
+            html-minifier --input-dir ./docs/ --output-dir ./docs/ --file-ext html --collapse-whitespace --remove-comments --remove-optional-tags --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true 
+        displayName: 'Minify'
+      - task: CopyFiles@2
+        inputs:
+          sourceFolder: '$(Build.SourcesDirectory)'
+          contents: '**/docs/**'
+          TargetFolder: '$(Build.ArtifactStagingDirectory)/docs'
+      - task: CopyFiles@2
+        inputs:
+          sourceFolder: '$(Build.SourcesDirectory)'
+          contents: '**/output/timings/**'
+          TargetFolder: '$(Build.ArtifactStagingDirectory)/timings'
+      - task: PublishBuildArtifacts@1
+        inputs:
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)/docs/docs/'
+          artifactName: docs
+      - task: PublishBuildArtifacts@1
+        inputs:
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)/timings/output/timings/'
+          artifactName: timings
+      - script: |
+          netlify deploy --prod --dir '$(Build.ArtifactStagingDirectory)/docs/docs/' --site '$(site_id)' --auth '$(auth_token)'
+        displayName: 'Netlify Preview Deploy'
