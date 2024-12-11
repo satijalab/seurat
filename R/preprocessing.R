@@ -642,6 +642,133 @@ Load10X_Spatial <- function (
 
   return(object)
 }
+#' Add 10X Cell Types to a Seurat Object
+#'
+#' This function reads cell type annotations from a CSV file and adds them to the metadata of a Seurat object.
+#' If the cell type file does not exist, the original Seurat object is returned unchanged.
+#'
+#' @param data.dir A string specifying the directory containing the "cell_types" folder with the "cell_types.csv" file.
+#' @param object A Seurat object to which the cell type annotations will be added.
+#'
+#' @return A Seurat object with updated metadata including cell type annotations if the file is found.
+#'
+#' @details
+#' The function searches for a CSV file named "cell_types.csv" in the "cell_types" subdirectory within `data.dir`.
+#' The CSV file should contain at least a "barcode" column that matches the cell barcodes in the Seurat object.
+#' Additional columns in the CSV file will be merged into the Seurat object's metadata.
+#'
+#' @importFrom utils read.csv
+#' @importFrom tibble rownames_to_column column_to_rownames
+#' @importFrom base file.path file.exists merge
+#'
+#' @examples
+#' \dontrun{
+#' # Specify the data directory containing the "cell_types" folder
+#' data.dir <- "/path/to/data"
+#'
+#' # Create a Seurat object (example)
+#' seurat_obj <- CreateSeuratObject(counts = some_counts_matrix)
+#'
+#' # Add cell type annotations to the Seurat object
+#' seurat_obj <- Add_10X_CellTypes(data.dir, seurat_obj)
+#' }
+
+Add_10X_CellTypes <- function(data.dir, object) {
+  cell_types_path <- file.path(data.dir, "cell_types", "cell_types.csv")
+  if (file.exists(cell_types_path)) {
+    cell.types <- read.csv(cell_types_path)
+    object@meta.data <- dplyr::left_join(tibble::rownames_to_column(object@meta.data, "barcode"),
+                                         cell.types, by = "barcode") %>%
+      tibble::column_to_rownames("barcode")
+    return(object)
+  } else {
+    return(object)
+  }
+}
+
+#' Load a 10x Genomics Single Cell Experiment into a \code{Seurat} object
+#'
+#' @inheritParams Read10X
+#' @inheritParams SeuratObject::CreateSeuratObject
+#' @param data.dir Directory containing the H5 file specified by \code{filename}
+#' and the image data in a subdirectory called \code{spatial}
+#' @param filename Name of H5 file containing the feature barcode matrix
+#' @param to.upper Converts all feature names to upper case. This can provide an
+#' approximate conversion of mouse to human gene names which can be useful in an
+#' explorative analysis. For cross-species comparisons, orthologous genes should
+#' be identified across species and used instead.
+#' @param ... Arguments passed to \code{\link{Read10X_h5}}
+#'
+#' @return A \code{Seurat} object
+#'
+#'
+#' @export
+#' @concept preprocessing
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
+#' Load10X(data.dir = data_dir)
+#' }
+#'
+Load10X <- function(data.dir, filename = "filtered_feature_bc_matrix.h5",
+                    assay = "RNA", to.upper = FALSE, ...) {
+
+  if (length(data.dir) > 1) {
+    stop("`data.dir` expects a single directory path but received multiple values.")
+  }
+  if (!file.exists(data.dir)) {
+    stop(paste0("No such file or directory: '", data.dir, "'"))
+  }
+
+
+  filename <- list.files(data.dir, filename, full.names = FALSE, recursive = FALSE)
+  counts.path <- file.path(data.dir, filename)
+  if (!file.exists(counts.path)) {
+    stop(paste0("File not found: '", counts.path, "'"))
+  }
+
+  counts <- Read10X_h5(counts.path, ...)
+
+  if (to.upper) {
+    counts <- imap(counts, ~{
+      rownames(.x) <- toupper(rownames(.x))
+      .x
+    })
+  }
+
+  if (is.list(counts)) {
+    seurat.list <- lapply(names(counts), function(name) {
+      CreateSeuratObject(
+        counts = counts[[name]],
+        assay = name,
+        project = name
+      )
+    })
+
+    for (i in 1:seq_along(seurat.list)) {
+      if (Assays(seurat.list[[i]]) %in% c("Gene Expression", "RNA")) {
+        seurat.list[[i]] <- Add_10X_CellTypes(data.dir, seurat.list[[i]])
+      }
+    }
+
+    merged.object <- merge(
+      x = seurat.list[[1]],
+      y = seurat.list[-1],
+      add.cell.ids = names(counts),
+      merge.data = FALSE
+    )
+    return(merged.object)
+
+  } else {
+    object <- CreateSeuratObject(counts, assay = assay)
+    if (Assays(object)  %in%  c("Gene Expression", "RNA")) {
+      object <- Add_10X_CellTypes(data.dir, object)
+    }
+    return(object)
+  }
+}
 
 
 #' Read10x Probe Metadata
