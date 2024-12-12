@@ -677,9 +677,14 @@ Add_10X_CellTypes <- function(data.dir, object) {
   cell_types_path <- file.path(data.dir, "cell_types", "cell_types.csv")
   if (file.exists(cell_types_path)) {
     cell.types <- read.csv(cell_types_path)
-    object@meta.data <- dplyr::left_join(tibble::rownames_to_column(object@meta.data, "barcode"),
-                                         cell.types, by = "barcode") %>%
-      tibble::column_to_rownames("barcode")
+    meta_data_with_barcodes <- tibble::rownames_to_column(object@meta.data, "barcode")
+    merged_meta_data <- merge(
+      x = meta_data_with_barcodes,
+      y = cell.types,
+      by = "barcode",
+      all.x = TRUE
+    )
+    object@meta.data <- tibble::column_to_rownames(merged_meta_data, "barcode")
     return(object)
   } else {
     return(object)
@@ -689,9 +694,9 @@ Add_10X_CellTypes <- function(data.dir, object) {
 #' Load a 10x Genomics Single Cell Experiment into a \code{Seurat} object
 #'
 #' @inheritParams Read10X
-#' @inheritParams SeuratObject::CreateSeuratObject
+#' @inheritParams SeuratObject::CreateSeuratObject If multiome 10x data the
+#' assay param will not be used. The names of each assay contained in the matrix are used.
 #' @param data.dir Directory containing the H5 file specified by \code{filename}
-#' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param to.upper Converts all feature names to upper case. This can provide an
 #' approximate conversion of mouse to human gene names which can be useful in an
@@ -719,14 +724,14 @@ Load10X <- function(data.dir, filename = "filtered_feature_bc_matrix.h5",
     stop("`data.dir` expects a single directory path but received multiple values.")
   }
   if (!file.exists(data.dir)) {
-    stop(paste0("No such file or directory: '", data.dir, "'"))
+    stop("No such file or directory: '", data.dir, "'")
   }
 
 
   filename <- list.files(data.dir, filename, full.names = FALSE, recursive = FALSE)
   counts.path <- file.path(data.dir, filename)
   if (!file.exists(counts.path)) {
-    stop(paste0("File not found: '", counts.path, "'"))
+    stop("File not found: '", counts.path, "'")
   }
 
   counts <- Read10X_h5(counts.path, ...)
@@ -747,7 +752,7 @@ Load10X <- function(data.dir, filename = "filtered_feature_bc_matrix.h5",
       )
     })
 
-    for (i in 1:seq_along(seurat.list)) {
+    for (i in seq_along(seurat.list)) {
       if (Assays(seurat.list[[i]]) %in% c("Gene Expression", "RNA")) {
         seurat.list[[i]] <- Add_10X_CellTypes(data.dir, seurat.list[[i]])
       }
