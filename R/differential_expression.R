@@ -46,6 +46,7 @@ FindAllMarkers <- function(
   object,
   assay = NULL,
   features = NULL,
+  group.by = NULL,
   logfc.threshold = 0.1,
   test.use = 'wilcox',
   slot = 'data',
@@ -75,6 +76,9 @@ FindAllMarkers <- function(
     return.thresh <- 0.7
   }
   if (is.null(x = node)) {
+    if (!is.null(x = group.by)) {
+      Idents(object = object) <- group.by
+      }
     idents.all <- sort(x = unique(x = Idents(object = object)))
   } else {
     if (!PackageCheck('ape', error = FALSE)) {
