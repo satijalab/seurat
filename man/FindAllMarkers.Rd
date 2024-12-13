@@ -9,6 +9,7 @@ FindAllMarkers(
   object,
   assay = NULL,
   features = NULL,
+  group.by = NULL,
   logfc.threshold = 0.1,
   test.use = "wilcox",
   slot = "data",
@@ -36,6 +37,9 @@ FindAllMarkers(
 \item{assay}{Assay to use in differential expression testing}
 
 \item{features}{Genes to test. Default is to use all genes}
+
+\item{group.by}{Regroup cells into a different identity class prior to 
+performing differential expression (see example); \code{"ident"} to use Idents}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.1

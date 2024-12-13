@@ -231,7 +231,7 @@ use all other cells for comparison; if an object of class \code{phylo} or
 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for}
 
 \item{group.by}{Regroup cells into a different identity class prior to 
-performing differential expression (see example)}
+performing differential expression (see example); \code{"ident"} to use Idents}
 
 \item{subset.ident}{Subset a particular identity class prior to regrouping. 
 Only relevant if group.by is set (see example)}
