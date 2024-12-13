@@ -1,5 +1,7 @@
 name: Integration Checks
 
+# Because `develop` is a protected branch this workflow is triggered when a PR 
+# is opened/updated and again when it is merged.
 on:
   push:
     branches: 
@@ -11,5 +13,38 @@ on:
 jobs:
   check-package:
     runs-on: ubuntu-latest
+    
+    # Use the `satijalab/seurat-ci` Docker image as the runner environment. 
+    # This image is pre-configured with everything required for running
+    # integration checks, for more details, see
+    # https://hub.docker.com/repository/docker/satijalab/seurat-ci/general.
+    container:
+      image: satijalab/seurat-ci:latest
+
     steps:
-      - run: echo "This is a placeholder workflow."
+      # Pull the latest changes from the repository down to the runner.
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      # Install the package and all its dependencies using scripts from 
+      # `littler`, see https://eddelbuettel.github.io/littler/ for details. 
+      - name: Install Dependencies
+        run: installDeps.r -s
+      
+      # Run CRAN checks, if any ERRORs or WARNINGs are raised the check fails.
+      # Certain tests are skipped when running as CRAN—skip all tests so they
+      # can be run together in a subsequent step.
+      - name: Run CRAN Checks (no tests)
+        run: |
+          rcmdcheck::rcmdcheck(
+            args = c("--as-cran", "--no-tests"), 
+            error_on="warning"
+          )
+        shell: Rscript {0}
+            
+      # Because tests weren't included in CRAN checks, run them here.
+      - name: Run Tests
+        # Run this step even if the previous one failed.
+        if: always()
+        run: testthat::test_local()
+        shell: Rscript {0}
