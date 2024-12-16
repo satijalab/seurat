@@ -43,6 +43,9 @@ Default is 'LeverageScore'.}
 
 \item{verbose}{Print progress and diagnostic messages}
 
+\item{features}{A character vector of feature names to include in the
+sketched assay.}
+
 \item{...}{Arguments passed to other methods}
 }
 \value{
