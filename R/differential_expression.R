@@ -926,7 +926,7 @@ FindMarkers.Seurat <- function(
   reduction = NULL,
   ...
 ) {
-  if (!is.null(x = group.by) && group.by != "ident") {
+  if (!is.null(x = group.by) && !identical(x = group.by, y = "ident")) {
     if (!is.null(x = subset.ident)) {
       object <- subset(x = object, idents = subset.ident)
     }
