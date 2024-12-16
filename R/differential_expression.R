@@ -76,7 +76,7 @@ FindAllMarkers <- function(
     return.thresh <- 0.7
   }
   if (is.null(x = node)) {
-    if (!is.null(x = group.by) && group.by != "ident") {
+    if (!is.null(x = group.by) && !identical(x = group.by, y = "ident")) {
       if (length(x = group.by) == 1 && ! group.by %in% colnames(x = object@meta.data)) {
         stop("'", group.by, "' not found in object metadata")
       }
