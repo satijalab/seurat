@@ -132,6 +132,31 @@ test_that("Read10X_Image works as expected", {
     )
     # the size of the two images should be different
     expect_false(all(dim(image.hires) == dim(image.lowres)))
+
+    # `VisiumV1` image
+    image.v1 <- Read10X_Image(
+      path.to.image,
+      image.name = "tissue_lowres_image.png",
+      image.type = "VisiumV1"
+    )
+    coordinates <- GetTissueCoordinates(image.v1, scale = "lowres")
+    spot.radius <- Radius(image.v1, scale = "lowres")
+    scale.factors <- ScaleFactors(image.v1)
+    # check that the scale factors were read in as expected
+    expect_true(identical(scale.factors, scale.factors.expected))
+    # check that `coordinates` contains values scaled for the low resolution PNG
+    # also make sure that it has the expected column names
+    coordinates.expected.v1 <- coordinates.expected
+    colnames(coordinates.expected.v1) <- c("imagerow", "imagecol")
+    expect_equal(
+      coordinates[, c("imagerow", "imagecol")] / scale.factors[["lowres"]],
+      coordinates.expected.v1
+    )
+    # check that the spot size is similarly scaled
+    expect_equal(
+      (spot.radius / scale.factors[["lowres"]] * max(dim(image.lowres))),
+      scale.factors.expected[["spot"]],
+    )
   }
 })
 
