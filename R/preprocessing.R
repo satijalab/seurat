@@ -510,7 +510,6 @@ GetResidual <- function(
 #' @return A \code{Seurat} object
 #'
 #' @importFrom png readPNG
-#' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
 #'
 #' @export
