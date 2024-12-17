@@ -512,7 +512,6 @@ GetResidual <- function(
 #' @importFrom png readPNG
 #' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
-#' @importFrom purrr imap
 #'
 #' @export
 #' @concept preprocessing
