@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Updated `RunUMAP` to support `umap-learn` version >= 0.5.0 ([#9559](https://github.com/satijalab/seurat/pull/9559))
 - Surfaced more fine-grained control over what parts of a Xenium experiment are loaded in `LoadXenium`
 - Added ability to load Xenium nucleus segmentation masks
 - Updated `LoadXenium` to also read some run metadata (run start time, preservation method, panel used, organism, tissue type, instrument software version and stain kit used) into `misc` slot
@@ -238,6 +239,7 @@
 - Add `rlsi` option for `FindIntegrationAnchors()`
 
 ## Changes
+- 
 - Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
 ([#4205](https://github.com/satijalab/seurat/issues/4205))
 - Preserve multiple assays when converting from `SingleCellExperiment` to `SeuratObject` class
