@@ -773,6 +773,28 @@ FindTransferAnchors <- function(
 ) {
   op <- options(Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
+  
+  # Check if ref has multiple SCT models
+  if (length(Layers(reference, search = "data")) > 1) {
+    if (verbose) {
+      message("Reference has multiple SCT models across layers. Merging layers and recomputing a single SCT model.")
+    }
+    # Combine across layers
+    combined_data <- do.call(cbind, lapply(Layers(reference, search = "data"), function(layer) {
+      LayerData(reference[[reference.assay]], layer = layer)
+    }))
+    combined_features <- unique(unlist(lapply(Layers(reference, search = "data"), function(layer) {
+      rownames(LayerData(reference[[reference.assay]], layer = layer))
+    })))
+    reference_combined <- CreateSeuratObject(counts = combined_data, assay = reference.assay)
+    # Run SCT on combined ref 
+    reference_combined <- SCTransform(reference_combined, assay = reference.assay, features = combined_features, verbose = verbose)
+    
+    # Set as single model 
+    reference <- reference_combined
+    reference.assay <- "SCT" 
+  }
+  
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
