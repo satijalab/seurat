@@ -10,7 +10,7 @@ NULL
 #'
 #' Randomly permutes a subset of data, and calculates projected PCA scores for
 #' these 'random' genes. Then compares the PCA scores for the 'random' genes
-#' with the observed PCA scores to determine statistical signifance. End result
+#' with the observed PCA scores to determine statistical significance. End result
 #' is a p-value for each gene's association with each principal component.
 #'
 #' @param object Seurat object
@@ -276,7 +276,7 @@ PCASigGenes <- function(
 #' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
-#' # Vizualize top projected genes in heatmap
+#' # Visualize top projected genes in heatmap
 #' DimHeatmap(object = pbmc_small, reduction = "pca", dims = 1, balanced = TRUE)
 #'
 ProjectDim <- function(
@@ -1693,8 +1693,8 @@ RunUMAP.Neighbor <- function(
 #' be selected based on the size of the input dataset (200 for large datasets, 500 for small).
 #' @param learning.rate The initial learning rate for the embedding optimization.
 #' @param min.dist This controls how tightly the embedding is allowed compress points together.
-#' Larger values ensure embedded points are moreevenly distributed, while smaller values allow the
-#' algorithm to optimise more accurately with regard to local structure. Sensible values are in
+#' Larger values ensure embedded points are more evenly distributed, while smaller values allow the
+#' algorithm to optimize more accurately with regard to local structure. Sensible values are in
 #' the range 0.001 to 0.5.
 #' @param spread The effective scale of embedded points. In combination with min.dist this
 #' determines how clustered/clumped the embedded points are.
@@ -1721,7 +1721,7 @@ RunUMAP.Neighbor <- function(
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
-#' @param angular.rp.forest Whether to use an angular random projection forest to initialise the
+#' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
 #' approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that
 #' use an angular style distance such as cosine, correlation etc. In the case of those metrics
 #' angular forests will be chosen automatically.

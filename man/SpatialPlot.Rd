@@ -105,7 +105,7 @@ default, ggplot2 assigns colors}
 \item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
 remove.}
 
-\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in
 order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{crop}{Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
@@ -166,7 +166,7 @@ themeing will not work when plotting multiple features/groupings}
 min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 alpha value for each plot.}
 
-\item{shape}{Control the shape of the spots - same as the ggplot2 parameter. 
+\item{shape}{Control the shape of the spots - same as the ggplot2 parameter.
 The default is 21, which plots circles - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}

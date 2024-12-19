@@ -6,8 +6,8 @@
 \alias{VisiumV2}
 \title{The VisiumV2 class}
 \description{
-The VisiumV2 class represents spatial information from the 10X Genomics 
-Visium HD platform - it can also accomodate data from the standard 
+The VisiumV2 class represents spatial information from the 10X Genomics
+Visium HD platform - it can also accomodate data from the standard
 Visium platform
 }
 \section{Slots}{

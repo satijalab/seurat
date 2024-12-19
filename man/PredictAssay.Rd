@@ -21,7 +21,7 @@ PredictAssay(
 \arguments{
 \item{object}{The object used to calculate knn}
 
-\item{nn.idx}{k near neighbour indices. A cells x k matrix.}
+\item{nn.idx}{k near neighbor indices. A cells x k matrix.}
 
 \item{assay}{Assay used for prediction}
 

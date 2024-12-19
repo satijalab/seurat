@@ -147,8 +147,8 @@ be selected based on the size of the input dataset (200 for large datasets, 500 
 \item{learning.rate}{The initial learning rate for the embedding optimization.}
 
 \item{min.dist}{This controls how tightly the embedding is allowed compress points together.
-Larger values ensure embedded points are moreevenly distributed, while smaller values allow the
-algorithm to optimise more accurately with regard to local structure. Sensible values are in
+Larger values ensure embedded points are more evenly distributed, while smaller values allow the
+algorithm to optimize more accurately with regard to local structure. Sensible values are in
 the range 0.001 to 0.5.}
 
 \item{spread}{The effective scale of embedded points. In combination with min.dist this
@@ -188,7 +188,7 @@ NULL will not set a seed}
 \item{metric.kwds}{A dictionary of arguments to pass on to the metric, such as the p value for
 Minkowski distance. If NULL then no arguments are passed on.}
 
-\item{angular.rp.forest}{Whether to use an angular random projection forest to initialise the
+\item{angular.rp.forest}{Whether to use an angular random projection forest to initialize the
 approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that
 use an angular style distance such as cosine, correlation etc. In the case of those metrics
 angular forests will be chosen automatically.}

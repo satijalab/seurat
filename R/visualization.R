@@ -581,7 +581,7 @@ RidgePlot <- function(
 #' @param pt.size Point size for points
 #' @param alpha Alpha value for points
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
@@ -798,7 +798,7 @@ ColorDimSplit <- function(
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.
@@ -1015,7 +1015,7 @@ DimPlot <- function(
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
 #' \itemize{
 #'   \item \dQuote{feature} (default; by row/feature scaling): The plots for
@@ -1024,7 +1024,7 @@ DimPlot <- function(
 #'   \item \dQuote{all} (universal scaling): The plots for all features and
 #'     conditions are scaled to the maximum expression value for the feature
 #'     with the highest overall expression
-#'   \item \code{all} (no scaling): Each individual plot is scaled to the
+#'   \item \code{NULL} (no scaling): Each individual plot is scaled to the
 #'     maximum expression value of the feature in the condition provided to
 #'     \code{split.by}. Be aware setting \code{NULL} will result in color
 #'     scales that are not comparable between plots
@@ -1970,7 +1970,7 @@ CellScatter <- function(
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
@@ -3633,9 +3633,9 @@ ISpatialDimPlot <- function(
           coords.hover <- hovered[1, colnames(coords)[1:2]] / scale.factor
           group.hover <- hovered[1, group.by]
           sprintf(
-            "Cell: %s, Group: %s, Coordinates: (%.2f, %.2f)", 
-            cell.hover, 
-            group.hover, 
+            "Cell: %s, Group: %s, Coordinates: (%.2f, %.2f)",
+            cell.hover,
+            group.hover,
             coords.hover[[1]],
             coords.hover[[2]]
           )
@@ -3867,7 +3867,7 @@ ISpatialFeaturePlot <- function(
 #' default, ggplot2 assigns colors
 #' @param image.alpha Adjust the opacity of the background images. Set to 0 to
 #' remove.
-#' @param image.scale Choose the scale factor ("lowres"/"hires") to apply in 
+#' @param image.scale Choose the scale factor ("lowres"/"hires") to apply in
 #' order to matchthe plot with the specified `image` - defaults to "lowres"
 #' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 #' entire background image.
@@ -3911,8 +3911,8 @@ ISpatialFeaturePlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
 #' alpha value for each plot.
-#' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
-#' The default is 21, which plots circles - use 22 to plot squares. 
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter.
+#' The default is 21, which plots circles - use 22 to plot squares.
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -4374,7 +4374,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' see \code{\link{FetchData}} for more details
 #' @param cluster.idents Whether to order identities by hierarchical clusters
 #' based on given features, default is FALSE
@@ -8979,7 +8979,7 @@ SingleRasterMap <- function(
 #' colors
 #' @param image.alpha Adjust the opacity of the background images. Set to 0 to
 #' remove.
-#' @param image.scale Choose the scale factor ("lowres"/"hires") to apply in 
+#' @param image.scale Choose the scale factor ("lowres"/"hires") to apply in
 #' order to matchthe plot with the specified `image` - defaults to "lowres"
 #' @param pt.alpha Adjust the opacity of the points if plotting a
 #' \code{SpatialDimPlot}
@@ -8987,8 +8987,8 @@ SingleRasterMap <- function(
 #' to show entire background image.
 #' @param pt.size.factor Sets the size of the points relative to spot.radius
 #' @param stroke Control the width of the border around the spots
-#' @param shape Control the shape of the spots - same as the ggplot2 parameter. 
-#' The default is 21, which plots cirlces - use 22 to plot squares. 
+#' @param shape Control the shape of the spots - same as the ggplot2 parameter.
+#' The default is 21, which plots cirlces - use 22 to plot squares.
 #' @param col.by Mapping variable for the point color
 #' @param alpha.by Mapping variable for the point alpha value
 #' @param cells.highlight A list of character or numeric vectors of cells to

@@ -118,7 +118,7 @@ nearest neighbor search}
 \item{annoy.metric}{Distance metric for annoy. Options include: euclidean,
 cosine, manhattan, and hamming}
 
-\item{nn.eps}{Error bound when performing nearest neighbor seach using RANN;
+\item{nn.eps}{Error bound when performing nearest neighbor search using RANN;
 default of 0.0 implies exact nearest neighbor search}
 
 \item{verbose}{Whether or not to print output to the console}

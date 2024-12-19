@@ -330,10 +330,10 @@ VisiumV1 <- setClass(
 
 #' The VisiumV2 class
 #'
-#' The VisiumV2 class represents spatial information from the 10X Genomics 
-#' Visium HD platform - it can also accomodate data from the standard 
+#' The VisiumV2 class represents spatial information from the 10X Genomics
+#' Visium HD platform - it can also accomodate data from the standard
 #' Visium platform
-#' 
+#'
 #' @slot image A three-dimensional array with PNG image data, see
 #' \code{\link[png]{readPNG}} for more details
 #' @slot scale.factors An object of class \code{\link{scalefactors}}; see
@@ -1176,7 +1176,7 @@ as.Seurat.SingleCellExperiment <- function(
   CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop(
-      "Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object.",
+      "Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object.",
       "\nhttps://bioconductor.org/packages/SingleCellExperiment/",
       call. = FALSE
     )
@@ -1319,7 +1319,7 @@ as.Seurat.SingleCellExperiment <- function(
 as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
-    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object")
   }
   assay <- assay %||% Assays(object = x)
   if (!all(assay %in% Assays(object = x))) {
@@ -1603,7 +1603,7 @@ GetImage.VisiumV1 <- function(
   ...
 ) {
   mode <- match.arg(arg = mode)
-  
+
   image <- slot(object = object, name = 'image')
 
   image <- switch(
@@ -1793,8 +1793,8 @@ Radius.STARmap <- function(object, ...) {
 }
 
 #'
-#' @param scale A factor to scale the radius by; one of: "hires", 
-#' "lowres", or \code{NULL} for the unscaled value.  
+#' @param scale A factor to scale the radius by; one of: "hires",
+#' "lowres", or \code{NULL} for the unscaled value.
 #'
 #' @rdname Radius
 #' @concept objects
