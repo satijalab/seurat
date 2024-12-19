@@ -1672,9 +1672,22 @@ RunLeiden <- function(
   initial.membership = NULL,
   node.sizes = NULL,
   resolution.parameter = 1,
-  random.seed = 0,
+  random.seed = 1,
   n.iter = 10
 ) {
+  # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
+  # greater than 0 (or NULL) but the default value for `FindClusters` is 0. 
+  # If `random.seed` is 0 or less, throw a warning and reset the value to 1. 
+   if (!is.null(random.seed) && random.seed <= 0) {
+    warning(
+      paste0(
+        "`random.seed` must be greater than 0 for leiden clustering, ",
+        "resetting `random.seed` to 1."
+      )
+    )
+    random.seed <- 1
+  }
+
   # The `method` parameter was deprecated after switching from the `leiden`
   # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
   # _requires_ an `igraph` input, so the parameter no longer makes sense. The
