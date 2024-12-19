@@ -14,7 +14,7 @@ FindClusters(object, ...)
   initial.membership = NULL,
   node.sizes = NULL,
   resolution = 0.8,
-  method = "matrix",
+  method = deprecated(),
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -34,7 +34,7 @@ FindClusters(object, ...)
   initial.membership = NULL,
   node.sizes = NULL,
   resolution = 0.8,
-  method = "matrix",
+  method = NULL,
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -53,17 +53,20 @@ FindClusters(object, ...)
 
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 
-\item{initial.membership, node.sizes}{Parameters to pass to the Python leidenalg function.}
+\item{initial.membership}{Passed to the `initial_membership` parameter
+of `leidenbase::leiden_find_partition`.}
+
+\item{node.sizes}{Passed to the `node_sizes` parameter of
+`leidenbase::leiden_find_partition`.}
 
 \item{resolution}{Value of the resolution parameter, use a value above
 (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
 
-\item{method}{Method for running leiden (defaults to matrix which is fast for small datasets).
-Enable method = "igraph" to avoid casting large data to a dense matrix.}
+\item{method}{DEPRECATED.}
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.}
+algorithm; 4 = Leiden algorithm).}
 
 \item{n.start}{Number of random starts.}
 
