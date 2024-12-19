@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Added `stroke.size` parameter to `DimPlot` ([#8180](https://github.com/satijalab/seurat/pull/8180))
 - Updated `RunLeiden` to use the `leidenbase` package instead of `leiden`; deprecated the `method` parameter for `RunLeiden` and `FindClusters`; updated `RunLeiden` to reset `random.seed` to 1 if the value is 0 or less ([#6792](https://github.com/satijalab/seurat/pull/6792))
 - Updated `RunUMAP` to support `umap-learn` version >= 0.5.0 ([#9559](https://github.com/satijalab/seurat/pull/9559))
 - Surfaced more fine-grained control over what parts of a Xenium experiment are loaded in `LoadXenium`
