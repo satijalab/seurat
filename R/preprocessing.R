@@ -4036,7 +4036,7 @@ SubsetByBarcodeInflections <- function(object) {
 #'   \item \dQuote{\code{mean.var.plot}} (mvp): First, uses a function to
 #'     calculate average expression (mean.function) and dispersion
 #'     (dispersion.function) for each feature. Next, divides features into
-#'     \code{num.bin} (deafult 20) bins based on their average expression,
+#'     \code{num.bin} (default 20) bins based on their average expression,
 #'     and calculates z-scores for dispersion within each bin. The purpose of
 #'     this is to identify variable features while controlling for the
 #'     strong relationship between variability and average expression
