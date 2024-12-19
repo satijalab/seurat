@@ -1675,12 +1675,6 @@ RunLeiden <- function(
   random.seed = 0,
   n.iter = 10
 ) {
-  if (!py_module_available(module = 'leidenalg')) {
-    stop(
-      "Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).",
-      call. = FALSE
-    )
-  }
   switch(
     EXPR = method,
     "matrix" = {
