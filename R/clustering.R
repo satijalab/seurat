@@ -190,7 +190,7 @@ FindSubCluster <- function(
 #' embeddings from dimensional reductions.
 #'
 #' @param object The object used to calculate knn
-#' @param nn.idx k near neighbour indices. A cells x k matrix.
+#' @param nn.idx k near neighbor indices. A cells x k matrix.
 #' @param assay Assay used for prediction
 #' @param reduction Cell embedding of the reduction used for prediction
 #' @param dims Number of dimensions of cell embedding
@@ -522,7 +522,7 @@ FindClusters.Seurat <- function(
 #' cosine, manhattan, and hamming
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
-#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' @param nn.eps Error bound when performing nearest neighbor search using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
 #' @param l2.norm Take L2Norm of the data
@@ -868,7 +868,7 @@ FindNeighbors.Seurat <- function(
 # @param n.trees More trees gives higher precision when querying
 # @param k Number of neighbors
 # @param search.k During the query it will inspect up to search_k nodes which
-# gives you a run-time tradeoff between better accuracy and speed.
+# gives you a run-time trade off between better accuracy and speed.
 # @param include.distance Include the corresponding distances
 # @param index optional index object, will be recomputed if not provided
 #
@@ -928,7 +928,7 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # @param query A set of data to be queried against the index
 # @param k Number of neighbors
 # @param search.k During the query it will inspect up to search_k nodes which
-# gives you a run-time tradeoff between better accuracy and speed.
+# gives you a run-time trade off between better accuracy and speed.
 # @param include.distance Include the corresponding distances in the result
 #
 # @return A list with 'nn.idx' (for each element in 'query', the index of the
