@@ -275,14 +275,16 @@ PredictAssay <- function(
 #' @importFrom future nbrOfWorkers
 #'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
-#' @param initial.membership,node.sizes Parameters to pass to the Python leidenalg function.
+#' @param initial.membership Passed to the `initial_membership` parameter
+#' of `leidenbase::leiden_find_partition`.
+#' @param node.sizes Passed to the `node_sizes` parameter of
+#' `leidenbase::leiden_find_partition`.
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-#' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
-#' @param method Method for running leiden (defaults to matrix which is fast for small datasets).
-#' Enable method = "igraph" to avoid casting large data to a dense matrix.
+#' algorithm; 4 = Leiden algorithm).
+#' @param method DEPRECATED.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -303,7 +305,7 @@ FindClusters.default <- function(
   initial.membership = NULL,
   node.sizes = NULL,
   resolution = 0.8,
-  method = "matrix",
+  method = deprecated(),
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -315,6 +317,14 @@ FindClusters.default <- function(
   ...
 ) {
   CheckDots(...)
+  # The `method` parameter is for `RunLeiden` but was deprecated, see
+  # function for more details.
+  if (is_present(method)) {
+    deprecate_soft(
+      when = "5.2.0",
+      what = "FindClusters(method)"
+    )
+  }
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
@@ -344,7 +354,6 @@ FindClusters.default <- function(
         } else if (algorithm == 4) {
           ids <- RunLeiden(
             object = object,
-            method = method,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
             node.sizes = node.sizes,
@@ -418,7 +427,7 @@ FindClusters.Seurat <- function(
   initial.membership = NULL,
   node.sizes = NULL,
   resolution = 0.8,
-  method = "matrix",
+  method = deprecated(),
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -430,6 +439,15 @@ FindClusters.Seurat <- function(
   ...
 ) {
   CheckDots(...)
+  # Since we're throwing a soft deprecation warning, it needs to be duplicated
+  # for each implementation of the `FindClusters` generic, see
+  # `FindCluster.default` for more details.
+  if (is_present(method)) {
+    deprecate_soft(
+      when = "5.2.0",
+      what = "FindClusters(method)"
+    )
+  }
   graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
   if (!graph.name %in% names(x = object)) {
     stop("Provided graph.name not present in Seurat object")
@@ -443,7 +461,6 @@ FindClusters.Seurat <- function(
     initial.membership = initial.membership,
     node.sizes = node.sizes,
     resolution = resolution,
-    method = method,
     algorithm = algorithm,
     n.start = n.start,
     n.iter = n.iter,
