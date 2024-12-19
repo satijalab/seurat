@@ -275,14 +275,16 @@ PredictAssay <- function(
 #' @importFrom future nbrOfWorkers
 #'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
-#' @param initial.membership,node.sizes Parameters to pass to the Python leidenalg function.
+#' @param initial.membership Passed to the `initial_membership` parameter
+#' of `leidenbase::leiden_find_partition`.
+#' @param node.sizes Passed to the `node_sizes` parameter of
+#' `leidenbase::leiden_find_partition`.
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-#' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
-#' @param method Method for running leiden (defaults to matrix which is fast for small datasets).
-#' Enable method = "igraph" to avoid casting large data to a dense matrix.
+#' algorithm; 4 = Leiden algorithm).
+#' @param method DEPRECATED.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -303,7 +305,7 @@ FindClusters.default <- function(
   initial.membership = NULL,
   node.sizes = NULL,
   resolution = 0.8,
-  method = "matrix",
+  method = deprecated(),
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -315,6 +317,14 @@ FindClusters.default <- function(
   ...
 ) {
   CheckDots(...)
+  # The `method` parameter is for `RunLeiden` but was deprecated, see
+  # function for more details.
+  if (is_present(method)) {
+    deprecate_soft(
+      when = "5.2.0",
+      what = "FindClusters(method)"
+    )
+  }
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
@@ -344,7 +354,6 @@ FindClusters.default <- function(
         } else if (algorithm == 4) {
           ids <- RunLeiden(
             object = object,
-            method = method,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
             node.sizes = node.sizes,
@@ -418,7 +427,8 @@ FindClusters.Seurat <- function(
   initial.membership = NULL,
   node.sizes = NULL,
   resolution = 0.8,
-  method = "matrix",
+  # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
+  method = NULL,
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -430,6 +440,15 @@ FindClusters.Seurat <- function(
   ...
 ) {
   CheckDots(...)
+  # Since we're throwing a soft deprecation warning, it needs to be duplicated
+  # for each implementation of the `FindClusters` generic, see
+  # `FindCluster.default` for more details.
+  if (!is.null(method)) {
+    deprecate_soft(
+      when = "5.2.0",
+      what = "FindClusters(method)"
+    )
+  }
   graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
   if (!graph.name %in% names(x = object)) {
     stop("Provided graph.name not present in Seurat object")
@@ -443,7 +462,6 @@ FindClusters.Seurat <- function(
     initial.membership = initial.membership,
     node.sizes = node.sizes,
     resolution = resolution,
-    method = method,
     algorithm = algorithm,
     n.start = n.start,
     n.iter = n.iter,
@@ -1629,38 +1647,35 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
   return(n.ob)
 }
 
-# Run Leiden clustering algorithm
-#
-# Implements the Leiden clustering algorithm in R using reticulate
-# to run the Python version. Requires the python "leidenalg" and "igraph" modules
-# to be installed. Returns a vector of partition indices.
-#
-# @param adj_mat An adjacency matrix or SNN matrix
-# @param partition.type Type of partition to use for Leiden algorithm.
-# Defaults to RBConfigurationVertexPartition. Options include: ModularityVertexPartition,
-# RBERVertexPartition, CPMVertexPartition, MutableVertexPartition,
-# SignificanceVertexPartition, SurpriseVertexPartition (see the Leiden python
-# module documentation for more details)
-# @param initial.membership,node.sizes Parameters to pass to the Python leidenalg function.
-# @param resolution.parameter A parameter controlling the coarseness of the clusters
-# for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
-# partition types that accept a resolution parameter)
-# @param random.seed Seed of the random number generator
-# @param n.iter Maximal number of iterations per random start
-#
-# @keywords graph network igraph mvtnorm simulation
-#
-#' @importFrom leiden leiden
-#' @importFrom reticulate py_module_available
+#' Run Leiden clustering algorithm
+#'
+#' Returns a vector of partition indices.
+#'
+#' @param object An adjacency matrix or adjacency list. 
+#' @param method DEPRECATED.
+#' @param partition.type Type of partition to use for Leiden algorithm.
+#' Defaults to "RBConfigurationVertexPartition", see 
+#' https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.
+#' @param initial.membership Passed to the `initial_membership` parameter
+#' of `leidenbase::leiden_find_partition`.
+#' @param node.sizes Passed to the `node_sizes` parameter of
+#' `leidenbase::leiden_find_partition`.
+#' @param resolution.parameter A parameter controlling the coarseness of the clusters
+#' for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
+#' partition types that accept a resolution parameter)
+#' @param random.seed Seed of the random number generator, must be greater than 0.
+#' @param n.iter Maximal number of iterations per random start
+#'
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
-#
-# @author Tom Kelly
-#
-# @export
-#
+#'
+#' @export
+#' 
+#' @rdname RunLeiden
+#' @concept clustering
+#' 
 RunLeiden <- function(
   object,
-  method = c("matrix", "igraph"),
+  method = deprecated(),
   partition.type = c(
     'RBConfigurationVertexPartition',
     'ModularityVertexPartition',
@@ -1673,50 +1688,69 @@ RunLeiden <- function(
   initial.membership = NULL,
   node.sizes = NULL,
   resolution.parameter = 1,
-  random.seed = 0,
+  random.seed = 1,
   n.iter = 10
 ) {
-  if (!py_module_available(module = 'leidenalg')) {
+  # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
+  # greater than 0 (or NULL) but the default value for `FindClusters` is 0. 
+  # If `random.seed` is 0 or less, throw a warning and reset the value to 1. 
+   if (!is.null(random.seed) && random.seed <= 0) {
+    warning(
+      paste0(
+        "`random.seed` must be greater than 0 for leiden clustering, ",
+        "resetting `random.seed` to 1."
+      )
+    )
+    random.seed <- 1
+  }
+
+  # The `method` parameter was deprecated after switching from the `leiden`
+  # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
+  # _requires_ an `igraph` input, so the parameter no longer makes sense. The
+  # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
+  # really matter. 
+  if (is_present(method)) {
+    deprecate_soft(
+      when = "5.2.0",
+      what = "RunLeiden(method)"
+    )
+  }
+  
+  # Convert `object` into an `igraph`.
+  # If `object` is already an `igraph` no conversion is necessary.
+  if (inherits(object, what = "igraph")) { 
+    input <- object
+  # Otherwise, if `object` is a list, assume it is an adjacency list...
+  } else if (inherits(object, what = "list")) {
+    # And convert it to an `igraph` with the appropriate method. 
+    input <- graph_from_adj_list(object)
+  # Or, if `object` is a matrix...
+  } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
+    # Make sure the matrix is sparse.
+    if (inherits(object, what = "Graph")) {
+      object <- as.sparse(object)
+    }
+    # And then convert it to an graph.
+    input <- graph_from_adjacency_matrix(object, weighted = TRUE)
+  # Throw an error if `object` is of an unknown type. 
+  } else {
     stop(
-      "Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).",
+      "Method for Leiden not found for class", class(object),
       call. = FALSE
     )
   }
-  switch(
-    EXPR = method,
-    "matrix" = {
-      input <- as(object = object, Class = "matrix")
-    },
-    "igraph" = {
-      input <- if (inherits(x = object, what = 'list')) {
-        graph_from_adj_list(adjlist = object)
-      } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', 'Matrix'))) {
-        if (inherits(x = object, what = 'Graph')) {
-          object <- as.sparse(x = object)
-        }
-        graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
-      } else if (inherits(x = object, what = 'igraph')) {
-        object
-      } else {
-        stop(
-          "Method for Leiden not found for class", class(x = object),
-          call. = FALSE
-        )
-      }
-    },
-    stop("Method for Leiden must be either 'matrix' or igraph'")
-  )
-  #run leiden from CRAN package (calls python with reticulate)
-  partition <- leiden(
-    object = input,
+
+  # Run clustering with `leidenbase`.
+  partition <- leidenbase::leiden_find_partition(
+    input,
     partition_type = partition.type,
     initial_membership = initial.membership,
-    weights = NULL,
+    edge_weights = NULL,
     node_sizes = node.sizes,
     resolution_parameter = resolution.parameter,
     seed = random.seed,
-    n_iterations = n.iter
-  )
+    num_iter = n.iter
+  )$membership
   return(partition)
 }
 

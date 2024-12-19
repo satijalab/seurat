@@ -27,7 +27,7 @@ FindSubCluster(
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.}
+algorithm; 4 = Leiden algorithm).}
 }
 \value{
 return a object with sub cluster labels in the sub-cluster.name variable
