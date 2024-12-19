@@ -581,7 +581,7 @@ RidgePlot <- function(
 #' @param pt.size Point size for points
 #' @param alpha Alpha value for points
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
@@ -798,7 +798,7 @@ ColorDimSplit <- function(
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.
@@ -1015,7 +1015,7 @@ DimPlot <- function(
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
 #' \itemize{
 #'   \item \dQuote{feature} (default; by row/feature scaling): The plots for
@@ -1970,7 +1970,7 @@ CellScatter <- function(
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
@@ -4374,7 +4374,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
-#'  to split by cell identity'
+#' to split by cell identity
 #' see \code{\link{FetchData}} for more details
 #' @param cluster.idents Whether to order identities by hierarchical clusters
 #' based on given features, default is FALSE
