@@ -368,10 +368,14 @@ test_that("BPCells FindMarkers gives same results", {
 # -------------------------------------------------------------------------------
 
 test_that("FindAllMarkers works as expected", {
+  pbmc_copy <- pbmc_small
+  Idents(pbmc_copy) <- "orig.ident"
+
   results <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 1)))
   results.clr <- suppressMessages(suppressWarnings(FindAllMarkers(object = clr.obj, pseudocount.use = 1)))
   results.sct <- suppressMessages(suppressWarnings(FindAllMarkers(object = sct.obj, pseudocount.use = 1, vst.flavor = "v1")))
   results.pseudo <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 0.1)))
+  results.gb <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_copy, pseudocount.use = 1, group.by = "RNA_snn_res.1")))
 
   expect_equal(colnames(x = results), c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
   expect_equal(results[1, "p_val"], 9.572778e-13, tolerance = 1e-18)
@@ -408,6 +412,10 @@ test_that("FindAllMarkers works as expected", {
   expect_equal(results.pseudo[1, "p_val_adj"], 2.201739e-10, tolerance = 1e-15)
   expect_equal(nrow(x = results.pseudo), 222)
   expect_equal(rownames(results.pseudo)[1], "HLA-DPB1")
+
+  # Setting `group.by` the group by parameter is equivalent
+  # to setting the object's `Idents` before running `FindAllMarkers`.
+  expect_equal(results.gb, results)
 })
 
 
