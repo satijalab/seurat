@@ -1707,7 +1707,7 @@ RunLeiden <- function(
   )
   # run clustering with leidenbase
   partition <- leidenbase::leiden_find_partition(
-    object = input,
+    input,
     partition_type = partition.type,
     initial_membership = initial.membership,
     edge_weights = NULL,
