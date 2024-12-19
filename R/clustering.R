@@ -1659,7 +1659,7 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #
 RunLeiden <- function(
   object,
-  method = c("matrix", "igraph"),
+  method = deprecated(),
   partition.type = c(
     'RBConfigurationVertexPartition',
     'ModularityVertexPartition',
@@ -1675,30 +1675,35 @@ RunLeiden <- function(
   random.seed = 0,
   n.iter = 10
 ) {
-  switch(
-    EXPR = method,
-    "matrix" = {
-      input <- as(object = object, Class = "matrix")
-    },
-    "igraph" = {
-      input <- if (inherits(x = object, what = 'list')) {
-        graph_from_adj_list(adjlist = object)
-      } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', 'Matrix'))) {
-        if (inherits(x = object, what = 'Graph')) {
-          object <- as.sparse(x = object)
-        }
-        graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
-      } else if (inherits(x = object, what = 'igraph')) {
-        object
-      } else {
-        stop(
-          "Method for Leiden not found for class", class(x = object),
-          call. = FALSE
-        )
-      }
-    },
-    stop("Method for Leiden must be either 'matrix' or igraph'")
-  )
+  # The `method` parameter was deprecated after switching from the `leiden`
+  # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
+  # _requires_ an `igraph` input, so the parameter no longer makes sense. The
+  # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
+  # really matter. 
+  if (is_present(method)) {
+    deprecate_soft(
+      when = "5.2.0",
+      what = "RunLeiden(method)"
+    )
+  }
+  
+  # Convert `object` into an `igraph`.
+  input <- if (inherits(x = object, what = 'list')) {
+    graph_from_adj_list(adjlist = object)
+  } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', 'Matrix'))) {
+    if (inherits(x = object, what = 'Graph')) {
+      object <- as.sparse(x = object)
+    }
+    graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
+  } else if (inherits(x = object, what = 'igraph')) {
+    object
+  } else {
+    stop(
+      "Method for Leiden not found for class", class(x = object),
+      call. = FALSE
+    )
+  }
+
   # run clustering with leidenbase
   partition <- leidenbase::leiden_find_partition(
     input,
