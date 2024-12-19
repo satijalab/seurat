@@ -7484,7 +7484,7 @@ ProjectDimReduc <- function(query,
 #' @param bridge.query.assay Assay name for bridge used for query mapping. ATAC by default
 #' @param supervised.reduction Type of supervised dimensional reduction to be performed
 #' for integrating the bridge and query.
-#' #' Options are:
+#' Options are:
 #' \itemize{
 #'    \item{slsi: Perform supervised LSI as the dimensional reduction for
 #'    the bridge-query integration}
@@ -7810,7 +7810,7 @@ FindBridgeIntegrationAnchors <- function(
 #'
 #' This is a convenience wrapper function around the following three functions
 #' that are often run together when perform integration.
-#' #' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
+#' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
 #' \code{\link{IntegrateEmbeddings}}.
 #'
 #' @inheritParams FindIntegrationAnchors
