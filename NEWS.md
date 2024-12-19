@@ -14,6 +14,8 @@
 - Fixed `RunPCA` to avoid converting `BPCells` matrices into dense matrices - significantly reduces the function's memory usage when running on `BPCells` matrices
 - Added `features` parameter to `LeverageScore` and `SketchData`
 - Updated `SketchData`'s `ncells` parameter to accept integer vector
+- Updated `JackStraw` to support `BPCells` matrices
+- Updated `RunPCA` to use the `BPCells`-provided SVD solver on `BPCells` matrices
 
 # Seurat 5.1.0 (2024-05-08)
 
