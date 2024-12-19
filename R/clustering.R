@@ -1701,23 +1701,30 @@ RunLeiden <- function(
   }
   
   # Convert `object` into an `igraph`.
-  input <- if (inherits(x = object, what = 'list')) {
-    graph_from_adj_list(adjlist = object)
-  } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', 'Matrix'))) {
-    if (inherits(x = object, what = 'Graph')) {
-      object <- as.sparse(x = object)
+  # If `object` is already an `igraph` no conversion is necessary.
+  if (inherits(object, what = "igraph")) { 
+    input <- object
+  # Otherwise, if `object` is a list, assume it is an adjacency list...
+  } else if (inherits(object, what = "list")) {
+    # And convert it to an `igraph` with the appropriate method. 
+    input <- graph_from_adj_list(object)
+  # Or, if `object` is a matrix...
+  } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
+    # Make sure the matrix is sparse.
+    if (inherits(object, what = "Graph")) {
+      object <- as.sparse(object)
     }
-    graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
-  } else if (inherits(x = object, what = 'igraph')) {
-    object
+    # And then convert it to an graph.
+    input <- graph_from_adjacency_matrix(object, weighted = TRUE)
+  # Throw an error if `object` is of an unknown type. 
   } else {
     stop(
-      "Method for Leiden not found for class", class(x = object),
+      "Method for Leiden not found for class", class(object),
       call. = FALSE
     )
   }
 
-  # run clustering with leidenbase
+  # Run clustering with `leidenbase`.
   partition <- leidenbase::leiden_find_partition(
     input,
     partition_type = partition.type,
