@@ -87,6 +87,14 @@ FindAllMarkers <- function(
     if (!PackageCheck('ape', error = FALSE)) {
       stop(cluster.ape, call. = FALSE)
     }
+    if (!is.null(group.by)) {
+      warning(
+        paste0(
+          "The `group.by` parameter for `FindAllMarkers` ",
+          "is ignored when `node` is set."
+        )
+      )
+    }
     tree <- Tool(object = object, slot = 'BuildClusterTree')
     if (is.null(x = tree)) {
       stop("Please run 'BuildClusterTree' before finding markers on nodes")
