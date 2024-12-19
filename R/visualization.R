@@ -814,8 +814,8 @@ ColorDimSplit <- function(
 #' @param label.box Whether to put a box around the label text (geom_text vs
 #' geom_label)
 #' @param alpha Alpha value for plotting (default is 1)
-#' @param stroke.size Adjust stroke (outline) size of points
 #' @param repel Repel labels
+#' @param stroke.size Adjust stroke (outline) size of points
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
 #' pass a vector instead of a list. If set, colors selected cells to the color(s)
