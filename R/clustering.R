@@ -427,7 +427,8 @@ FindClusters.Seurat <- function(
   initial.membership = NULL,
   node.sizes = NULL,
   resolution = 0.8,
-  method = deprecated(),
+  # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
+  method = NULL,
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -442,7 +443,7 @@ FindClusters.Seurat <- function(
   # Since we're throwing a soft deprecation warning, it needs to be duplicated
   # for each implementation of the `FindClusters` generic, see
   # `FindCluster.default` for more details.
-  if (is_present(method)) {
+  if (!is.null(method)) {
     deprecate_soft(
       when = "5.2.0",
       what = "FindClusters(method)"
