@@ -1629,34 +1629,32 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
   return(n.ob)
 }
 
-# Run Leiden clustering algorithm
-#
-# Implements the Leiden clustering algorithm in R using reticulate
-# to run the Python version. Requires the python "leidenalg" and "igraph" modules
-# to be installed. Returns a vector of partition indices.
-#
-# @param adj_mat An adjacency matrix or SNN matrix
-# @param partition.type Type of partition to use for Leiden algorithm.
-# Defaults to RBConfigurationVertexPartition. Options include: ModularityVertexPartition,
-# RBERVertexPartition, CPMVertexPartition, MutableVertexPartition,
-# SignificanceVertexPartition, SurpriseVertexPartition (see the Leiden python
-# module documentation for more details)
-# @param initial.membership,node.sizes Parameters to pass to the Python leidenalg function.
-# @param resolution.parameter A parameter controlling the coarseness of the clusters
-# for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
-# partition types that accept a resolution parameter)
-# @param random.seed Seed of the random number generator
-# @param n.iter Maximal number of iterations per random start
-#
-# @keywords graph network igraph mvtnorm simulation
-#
-#' @importFrom reticulate py_module_available
+#' Run Leiden clustering algorithm
+#'
+#' Returns a vector of partition indices.
+#'
+#' @param object An adjacency matrix or adjacency list. 
+#' @param method DEPRECATED.
+#' @param partition.type Type of partition to use for Leiden algorithm.
+#' Defaults to "RBConfigurationVertexPartition", see 
+#' https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.
+#' @param initial.membership Passed to the `initial_membership` parameter
+#' of `leidenbase::leiden_find_partition`.
+#' @param node.sizes Passed to the `node_sizes` parameter of
+#' `leidenbase::leiden_find_partition`.
+#' @param resolution.parameter A parameter controlling the coarseness of the clusters
+#' for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
+#' partition types that accept a resolution parameter)
+#' @param random.seed Seed of the random number generator, must be greater than 0.
+#' @param n.iter Maximal number of iterations per random start
+#'
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
-#
-# @author Tom Kelly
-#
-# @export
-#
+#'
+#' @export
+#' 
+#' @rdname RunLeiden
+#' @concept clustering
+#' 
 RunLeiden <- function(
   object,
   method = deprecated(),
