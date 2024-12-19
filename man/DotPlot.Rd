@@ -54,7 +54,7 @@ gene will have no dot drawn.}
 \item{group.by}{Factor to group the cells by}
 
 \item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
- to split by cell identity'
+to split by cell identity
 see \code{\link{FetchData}} for more details}
 
 \item{cluster.idents}{Whether to order identities by hierarchical clusters

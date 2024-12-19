@@ -42,7 +42,7 @@ or SCT}
 
 \item{supervised.reduction}{Type of supervised dimensional reduction to be performed
 for integrating the bridge and query.
-#' Options are:
+Options are:
 \itemize{
    \item{slsi: Perform supervised LSI as the dimensional reduction for
    the bridge-query integration}

@@ -38,7 +38,7 @@ See \code{\link{DiscretePalette}} for details.}
     \item{\code{group.by}}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
     \item{\code{split.by}}{A factor in object metadata to split the plot by, pass 'ident'
-to split by cell identity'}
+to split by cell identity}
     \item{\code{shape.by}}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.}
