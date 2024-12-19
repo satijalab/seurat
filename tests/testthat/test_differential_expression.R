@@ -366,12 +366,13 @@ test_that("BPCells FindMarkers gives same results", {
 
 # Tests for FindAllMarkers
 # -------------------------------------------------------------------------------
-results <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small,pseudocount.use=1)))
-results.clr <- suppressMessages(suppressWarnings(FindAllMarkers(object = clr.obj, pseudocount.use=1)))
-results.sct <- suppressMessages(suppressWarnings(FindAllMarkers(object = sct.obj, pseudocount.use=1, vst.flavor = "v1")))
-results.pseudo <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 0.1)))
 
 test_that("FindAllMarkers works as expected", {
+  results <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 1)))
+  results.clr <- suppressMessages(suppressWarnings(FindAllMarkers(object = clr.obj, pseudocount.use = 1)))
+  results.sct <- suppressMessages(suppressWarnings(FindAllMarkers(object = sct.obj, pseudocount.use = 1, vst.flavor = "v1")))
+  results.pseudo <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 0.1)))
+
   expect_equal(colnames(x = results), c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
   expect_equal(results[1, "p_val"], 9.572778e-13, tolerance = 1e-18)
   expect_equal(results[1, "avg_log2FC"], -6.030507, tolerance = 1e-6)
