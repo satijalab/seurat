@@ -55,6 +55,7 @@ useful for crowded plots if points of interest are being buried. (default is FAL
 geom_label)}
     \item{\code{alpha}}{Alpha value for plotting (default is 1)}
     \item{\code{repel}}{Repel labels}
+    \item{\code{stroke.size}}{Adjust stroke (outline) size of points}
     \item{\code{cells.highlight}}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply
 pass a vector instead of a list. If set, colors selected cells to the color(s)
