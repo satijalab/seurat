@@ -129,7 +129,7 @@ DefaultAssay(cbmc) <- 'RNA'
 # Note that the following command is an alternative but returns the same result
 cbmc <- NormalizeData(cbmc, normalization.method = 'CLR', margin = 2, assay = 'ADT')
 
-# Now, we will visualize CD14 levels for RNA and protein
+# Now, we will visualize CD19 levels for RNA and protein
 # By setting the default assay, we can visualize one or the other
 DefaultAssay(cbmc) <- 'ADT'
 p1 <- FeaturePlot(cbmc, "CD19",cols = c("lightgrey","darkgreen")) + ggtitle("CD19 protein")
