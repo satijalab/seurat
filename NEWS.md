@@ -1,6 +1,8 @@
 # Unreleased
 
 ## Changes
+- Added `group.by` parameter to `FindAllMarkers`, allowing users to regroup their data using a non-default identity class prior to performing differential expression ([#9550](https://github.com/satijalab/seurat/pull/9550))
+#' performing differential expression (see example); \code{"ident"} to use Idents
 - Added `image.type` parameter to `Read10X_Image` enabling `VisiumV1` instances to be populated instead of instances of the default `VisiumV2` class ([#9556](https://github.com/satijalab/seurat/pull/9556))
 - Fixed `IntegrateLayers` to respect the `dims.to.integrate` parameter.
 - Added `stroke.size` parameter to `DimPlot` ([#8180](https://github.com/satijalab/seurat/pull/8180))
