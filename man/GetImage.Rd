@@ -4,6 +4,7 @@
 \alias{GetImage.SlideSeq}
 \alias{GetImage.STARmap}
 \alias{GetImage.VisiumV1}
+\alias{GetImage.VisiumV2}
 \title{Get Image Data}
 \usage{
 \method{GetImage}{SlideSeq}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
@@ -11,6 +12,8 @@
 \method{GetImage}{STARmap}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 
 \method{GetImage}{VisiumV1}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
+
+\method{GetImage}{VisiumV2}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 }
 \arguments{
 \item{object}{An object}
