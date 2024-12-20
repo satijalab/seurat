@@ -33,9 +33,9 @@ FindTransferAnchors(
 )
 }
 \arguments{
-\item{reference}{\code{\link{Seurat}} object to use as the reference}
+\item{reference}{\code{\link[SeuratObject]{Seurat}} object to use as the reference}
 
-\item{query}{\code{\link{Seurat}} object to use as the query}
+\item{query}{\code{\link[SeuratObject]{Seurat}} object to use as the query}
 
 \item{normalization.method}{Name of normalization method used: LogNormalize
 or SCT.}
@@ -109,7 +109,7 @@ annoy}
 nearest neighbor search}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from
-\code{\link{RANN}} or \code{\link{RcppAnnoy}})}
+\code{\link[RANN]{RANN}} or \code{\link[RcppAnnoy]{RcppAnnoy}})}
 
 \item{approx.pca}{Use truncated singular value decomposition to approximate
 PCA}

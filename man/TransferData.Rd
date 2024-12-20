@@ -53,7 +53,7 @@ anchors. Options are:
    \item{lsiproject: Use the projected LSI used for anchor building}
    \item{pca: Use an internal PCA on the query only}
    \item{cca: Use the CCA used for anchor building}
-   \item{custom DimReduc: User provided \code{\link{DimReduc}} object
+   \item{custom DimReduc: User provided \code{\[SeuratObject]{DimReduc}} object
    computed on the query cells}
 }}
 
@@ -69,7 +69,7 @@ weighting.}
 \item{sd.weight}{Controls the bandwidth of the Gaussian kernel for weighting}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from
-\code{\link{RANN}})}
+\code{\link[RANN]{RANN}})}
 
 \item{n.trees}{More trees gives higher precision when using annoy approximate
 nearest neighbor search}

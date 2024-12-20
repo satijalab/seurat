@@ -7,7 +7,7 @@
 TopNeighbors(object, cell, n = 5)
 }
 \arguments{
-\item{object}{\code{\link{Neighbor}} object}
+\item{object}{\code{\link[SeuratObject]{Neighbor}} object}
 
 \item{cell}{Cell of interest}
 
