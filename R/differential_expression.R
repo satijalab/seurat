@@ -46,6 +46,7 @@ FindAllMarkers <- function(
   object,
   assay = NULL,
   features = NULL,
+  group.by = NULL,
   logfc.threshold = 0.1,
   test.use = 'wilcox',
   slot = 'data',
@@ -75,10 +76,24 @@ FindAllMarkers <- function(
     return.thresh <- 0.7
   }
   if (is.null(x = node)) {
+    if (!is.null(x = group.by) && !identical(x = group.by, y = "ident")) {
+      if (length(x = group.by) == 1 && ! group.by %in% colnames(x = object@meta.data)) {
+        stop("'", group.by, "' not found in object metadata")
+      }
+      Idents(object = object) <- group.by
+    }
     idents.all <- sort(x = unique(x = Idents(object = object)))
   } else {
     if (!PackageCheck('ape', error = FALSE)) {
       stop(cluster.ape, call. = FALSE)
+    }
+    if (!is.null(group.by)) {
+      warning(
+        paste0(
+          "The `group.by` parameter for `FindAllMarkers` ",
+          "is ignored when `node` is set."
+        )
+      )
     }
     tree <- Tool(object = object, slot = 'BuildClusterTree')
     if (is.null(x = tree)) {
@@ -896,7 +911,7 @@ FindMarkers.DimReduc <- function(
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
 #' @param group.by Regroup cells into a different identity class prior to 
-#' performing differential expression (see example)
+#' performing differential expression (see example); \code{"ident"} to use Idents
 #' @param subset.ident Subset a particular identity class prior to regrouping. 
 #' Only relevant if group.by is set (see example)
 #' @param assay Assay to use in differential expression testing
@@ -919,9 +934,12 @@ FindMarkers.Seurat <- function(
   reduction = NULL,
   ...
 ) {
-  if (!is.null(x = group.by)) {
+  if (!is.null(x = group.by) && !identical(x = group.by, y = "ident")) {
     if (!is.null(x = subset.ident)) {
       object <- subset(x = object, idents = subset.ident)
+    }
+    if (length(x = group.by) == 1 && ! group.by %in% colnames(x = object@meta.data)) {
+      stop("'", group.by, "' not found in object metadata")
     }
     Idents(object = object) <- group.by
   }
