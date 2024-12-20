@@ -1630,6 +1630,14 @@ GetImage.VisiumV1 <- function(
   return(image)
 }
 
+
+#'
+#' @rdname GetImage
+#' @concept objects
+#' @concept spatial
+#' @method GetImage VisiumV2
+#' @export
+#'
 GetImage.VisiumV2 <- GetImage.VisiumV1
 
 #' Get Tissue Coordinates
