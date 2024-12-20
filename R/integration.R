@@ -6319,7 +6319,7 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
       warning("Max dims.to.integrate is larger than the number of dimensions in ",
               "the provided reduction. Setting dims.to.integrate to 1:",
               ncol(x = reductions), " and continuing.", immediate. = TRUE, call. = FALSE)
-      ModifyParam(param = 'dims.to.integrate', value = 1:ncol(x = reductions))
+      dims.to.integrate <- 1:ncol(x = reductions)
     }
     ModifyParam(param = 'dims.to.integrate', value = dims.to.integrate)
   }
