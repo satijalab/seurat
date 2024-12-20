@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Added `image.type` parameter to `Read10X_Image` enabling `VisiumV1` instances to be populated instead of instances of the default `VisiumV2` class ([#9556](https://github.com/satijalab/seurat/pull/9556))
 - Fixed `IntegrateLayers` to respect the `dims.to.integrate` parameter.
 - Added `stroke.size` parameter to `DimPlot` ([#8180](https://github.com/satijalab/seurat/pull/8180))
 - Updated `RunLeiden` to use the `leidenbase` package instead of `leiden`; deprecated the `method` parameter for `RunLeiden` and `FindClusters`; updated `RunLeiden` to reset `random.seed` to 1 if the value is 0 or less ([#6792](https://github.com/satijalab/seurat/pull/6792))
