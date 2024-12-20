@@ -600,7 +600,7 @@ RunSLSI <- function(object, ...) {
 #' @references Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ.
 #' Supervised principal component analysis: Visualization, classification and
 #' regression on subspaces and submanifolds.
-#' Pattern Recognition. 2011 Jul 1;44(7):1357-71. \url{https://www.sciencedirect.com/science/article/pii/S0031320310005819?casa_token=AZMFg5OtPnAAAAAA:_Udu7GJ7G2ed1-XSmr-3IGSISUwcHfMpNtCj-qacXH5SBC4nwzVid36GXI3r8XG8dK5WOQui};
+#' Pattern Recognition. 2011 Jul 1;44(7):1357-71. \url{doi:10.1016/j.patcog.2010.12.015};
 #' @export
 #'
 #' @rdname RunSPCA
