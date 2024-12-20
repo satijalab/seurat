@@ -95,6 +95,43 @@ test_that("IntegrateLayers works with CCAIntegration", {
     Embeddings(integrated[["integrated"]])[75, 45],
     0.5442
   )
+
+  integrated_sub <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:10
+    )
+  )
+  # check that the integrated reduction has the specified number of
+  # `dims.to.integrate`
+  expect_equal(ncol(integrated_sub[["integrated"]]), 10)
+
+  integrated_overflow <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:100
+    )
+  )
+  # check that the integrated reduction is the same as you'd get if you
+  # didn't specify `dims.to.integrate` (i.e. the same size as the initial
+  # reduction)
+  expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
 })
 
 test_that("IntegrateLayers works with RPCAIntegration", {
@@ -127,6 +164,44 @@ test_that("IntegrateLayers works with RPCAIntegration", {
     Embeddings(integrated[["integrated"]])[75, 45],
     0.5442
   )
+
+  # check that the integrated reduction has the specified number of
+  # `dims.to.integrate`
+  integrated_sub <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = RPCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:10
+    )
+  )
+  # check that dims.to.integrate is not being overwritten
+  expect_equal(ncol(integrated_sub[["integrated"]]), 10)
+
+  integrated_overflow <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = RPCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:100
+    )
+  )
+  # check that the integrated reduction is the same as you'd get if you
+  # didn't specify `dims.to.integrate` (i.e. the same size as the initial
+  # reduction)
+  expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
 })
 
 test_that("IntegrateLayers works with JointPCAIntegration", {
@@ -159,6 +234,43 @@ test_that("IntegrateLayers works with JointPCAIntegration", {
     Embeddings(integrated[["integrated"]])[75, 45],
     0.5442
   )
+  # check that the integrated reduction has the specified number of
+  # `dims.to.integrate`
+  integrated_sub <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = JointPCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:10
+    )
+  )
+  # check that dims.to.integrate is not being overwritten
+  expect_equal(ncol(integrated_sub[["integrated"]]), 10)
+
+  integrated_overflow <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = JointPCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      # since `k.weight` must be less than the number of samples in the
+      # smallest layer being integrated, it must be set to accommodate the
+      # small dataset used for testing
+      k.weight = 10,
+      dims.to.integrate = 1:100
+    )
+  )
+  # check that the integrated reduction is the same as you'd get if you
+  # didn't specify `dims.to.integrate` (i.e. the same size as the initial
+  # reduction)
+  expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
 })
 
 test_that("IntegrateLayers fails when expected", {

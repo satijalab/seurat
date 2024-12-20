@@ -1694,7 +1694,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
         object = reference.integrated[[new.reduction.name.safe]]
       ))),
       assay = intdr.assay,
-      loadings = Loadings(object = reductions),
+      loadings = Loadings(object = reductions)[,dims.to.integrate],
       key = paste0(new.reduction.name.safe, "_")
     )
     DefaultAssay(object = reference.integrated) <- int.assay
@@ -6319,8 +6319,9 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
       warning("Max dims.to.integrate is larger than the number of dimensions in ",
               "the provided reduction. Setting dims.to.integrate to 1:",
               ncol(x = reductions), " and continuing.", immediate. = TRUE, call. = FALSE)
+      dims.to.integrate <- 1:ncol(x = reductions)
     }
-    ModifyParam(param = 'dims.to.integrate', value = 1:ncol(x = reductions))
+    ModifyParam(param = 'dims.to.integrate', value = dims.to.integrate)
   }
   if (!is.null(x = weight.reduction)) {
     if (inherits(x = weight.reduction, what = "character")) {
