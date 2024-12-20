@@ -634,8 +634,8 @@ ReciprocalProject <- function(
 #'   these scores to dampen outlier effects and rescale to range between 0-1.}
 #' }
 #'
-#' @param reference \code{\link{Seurat}} object to use as the reference
-#' @param query \code{\link{Seurat}} object to use as the query
+#' @param reference \code{\link[SeuratObject]{Seurat}} object to use as the reference
+#' @param query \code{\link[SeuratObject]{Seurat}} object to use as the query
 #' @param reference.assay Name of the Assay to use from reference
 #' @param reference.neighbors Name of the Neighbor to use from the reference.
 #' Optionally enables reuse of precomputed neighbors.
@@ -689,7 +689,7 @@ ReciprocalProject <- function(
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
 #' @param eps Error bound on the neighbor finding algorithm (from
-#' \code{\link{RANN}} or \code{\link{RcppAnnoy}})
+#' \code{\link[RANN]{RANN}} or \code{\link[RcppAnnoy]{RcppAnnoy}})
 #' @param approx.pca Use truncated singular value decomposition to approximate
 #' PCA
 #' @param mapping.score.k Compute and store nearest k query neighbors in the
@@ -1334,8 +1334,8 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #'    all objects to be integrated}
 #'    \item{A vector of strings, specifying the name of a dimension reduction to
 #'    use for each object to be integrated}
-#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
-#'    use for each object in the integration}
+#'    \item{A vector of \code{\link[SeuratObject]{DimReduc}} objects, 
+#'    specifying the object to use for each object in the integration}
 #'    \item{NULL, in which case a new PCA will be calculated and used to
 #'    calculate anchor weights}
 #' }
@@ -1364,11 +1364,11 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' @param preserve.order Do not reorder objects based on size for each pairwise
 #' integration.
 #' @param eps Error bound on the neighbor finding algorithm (from
-#' \code{\link{RANN}})
+#' \code{\link[RANN]{RANN}})
 #' @param verbose Print progress bars and output
 #'
-#' @return Returns a \code{\link{Seurat}} object with a new integrated
-#' \code{\link{Assay}}. If \code{normalization.method = "LogNormalize"}, the
+#' @return Returns a \code{\link[SeuratObject]{Seurat}} object with a new integrated
+#' \code{\link[SeuratObject]{Assay}}. If \code{normalization.method = "LogNormalize"}, the
 #' integrated data is returned to the \code{data} slot and can be treated as
 #' log-normalized, corrected data. If \code{normalization.method = "SCT"}, the
 #' integrated data is returned to the \code{scale.data} slot and can be treated
@@ -2756,10 +2756,10 @@ MixingMetric <- function(
 #'   anchor.features for efficiency in downstream processing. }
 #' }
 #'
-#' @param object.list A list of \code{\link{Seurat}} objects to prepare for integration
-#' @param assay The name of the \code{\link{Assay}} to use for integration. This can be a
+#' @param object.list A list of \code{\link[SeuratObject]{Seurat}} objects to prepare for integration
+#' @param assay The name of the \code{\link[SeuratObject]{Assay}} to use for integration. This can be a
 #' single name if all the assays to be integrated have the same name, or a character vector
-#' containing the name of each \code{\link{Assay}} in each object to be integrated. The
+#' containing the name of each \code{\link[SeuratObject]{Assay}} in each object to be integrated. The
 #' specified assays must have been normalized using \code{\link{SCTransform}}.
 #' If NULL (default), the current default assay for each object is used.
 #' @param anchor.features Can be either:
@@ -2773,7 +2773,7 @@ MixingMetric <- function(
 #' the Pearson residual will be clipped to
 #' @param verbose Display output/messages
 #'
-#' @return A list of \code{\link{Seurat}} objects with the appropriate \code{scale.data} slots
+#' @return A list of \code{\link[SeuratObject]{Seurat}} objects with the appropriate \code{scale.data} slots
 #' containing only the required \code{anchor.features}.
 #'
 #' @importFrom pbapply pblapply
@@ -3219,7 +3219,7 @@ SelectSCTIntegrationFeatures <- function(
 #'    \item{lsiproject: Use the projected LSI used for anchor building}
 #'    \item{pca: Use an internal PCA on the query only}
 #'    \item{cca: Use the CCA used for anchor building}
-#'    \item{custom DimReduc: User provided \code{\link{DimReduc}} object
+#'    \item{custom DimReduc: User provided \code{\[SeuratObject]{DimReduc}} object
 #'    computed on the query cells}
 #' }
 #' @param l2.norm Perform L2 normalization on the cell embeddings after
@@ -3230,7 +3230,7 @@ SelectSCTIntegrationFeatures <- function(
 #' @param k.weight Number of neighbors to consider when weighting anchors
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 #' @param eps Error bound on the neighbor finding algorithm (from
-#' \code{\link{RANN}})
+#' \code{\link[RANN]{RANN}})
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
 #' @param verbose Print progress bars and output
@@ -4599,7 +4599,7 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 # @param preserve.order Do not reorder objects based on size for each pairwise integration.
-# @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
+# @param eps Error bound on the neighbor finding algorithm (from \code{\link[RANN]{RANN}})
 # @param verbose Print progress bars and output
 #
 # @return Returns an integrated matrix
@@ -4742,7 +4742,7 @@ NNtoMatrix <- function(idx, distance, k) {
 # @param preserve.order Do not reorder objects based on size for each pairwise
 # integration.
 # @param eps Error bound on the neighbor finding algorithm (from
-# \code{\link{RANN}})
+# \code{\link[RANN]{RANN}})
 # @param verbose Print progress bars and output
 #
 # @return Returns a Seurat object with a new integrated Assay
@@ -5497,7 +5497,7 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 # @param sample.tree Specify the order of integration. If NULL, will compute automatically.
-# @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
+# @param eps Error bound on the neighbor finding algorithm (from \code{\link[RANN]{RANN}})
 # @param verbose Print progress bars and output
 #
 RunIntegration <- function(

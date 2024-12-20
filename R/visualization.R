@@ -6320,9 +6320,9 @@ WhiteBackground <- function(...) {
 #' Prepare Coordinates for Spatial Plots
 #'
 #' @inheritParams SeuratObject::GetTissueCoordinates
-#' @param model A \code{\linkS4class{Segmentation}},
-#' \code{\linkS4class{Centroids}},
-#' or \code{\linkS4class{Molecules}} object
+#' @param model A \code{\link[SeuratObject:Segmentation-class]{Segmentation}},
+#' \code{\link[SeuratObject:Centroids-class]{Centroids}},
+#' or \code{\link[SeuratObject:Molecules-class]{Molecules}} object
 #' @param data Extra data to be used for annotating the cell segmentations; the
 #' easiest way to pass data is a one-column
 #' \code{\link[base:data.frame]{data frame}} with the values to color by and

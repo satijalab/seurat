@@ -156,13 +156,13 @@ FindMarkers <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return This function can either return a \code{\link{Neighbor}} object
-#' with the KNN information or a list of \code{\link{Graph}} objects with
+#' @return This function can either return a \code{\link[SeuratObject]{Neighbor}} object
+#' with the KNN information or a list of \code{\link[SeuratObject]{Graph}} objects with
 #' the KNN and SNN depending on the settings of \code{return.neighbor} and
-#' \code{compute.SNN}. When running on a \code{\link{Seurat}} object, this
-#' returns the \code{\link{Seurat}} object with the Graphs or Neighbor objects
+#' \code{compute.SNN}. When running on a \code{\link[SeuratObject]{Seurat}} object, this
+#' returns the \code{\link[SeuratObject]{Seurat}} object with the Graphs or Neighbor objects
 #' stored in their respective slots. Names of the Graph or Neighbor object can
-#' be found with \code{\link{Graphs}} or \code{\link{Neighbors}}.
+#' be found with \code{\link[SeuratObject]{Graphs}} or \code{\link[SeuratObject]{Neighbors}}.
 #'
 #' @examples
 #' data("pbmc_small")
@@ -277,7 +277,7 @@ GetAssay <- function(object, ...) {
 #' @param reductions Name of reductions to be integrated. For a
 #' TransferAnchorSet, this should be the name of a reduction present in the
 #' anchorset object (for example, "pcaproject"). For an IntegrationAnchorSet,
-#' this should be a \code{\link{DimReduc}} object containing all cells present
+#' this should be a \code{\link[SeuratObject]{DimReduc}} object containing all cells present
 #' in the anchorset object.
 #' @param dims.to.integrate Number of dimensions to return integrated values for
 #' @param weight.reduction Dimension reduction to use when calculating anchor
@@ -287,7 +287,7 @@ GetAssay <- function(object, ...) {
 #'    all objects to be integrated}
 #'    \item{A vector of strings, specifying the name of a dimension reduction to
 #'    use for each object to be integrated}
-#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+#'    \item{A vector of \code{\link[SeuratObject]{DimReduc}} objects, specifying the object to
 #'    use for each object in the integration}
 #'    \item{NULL, in which case the full corrected space is used for computing
 #'    anchor weights.}
@@ -470,7 +470,7 @@ PseudobulkExpression <- function(object, ...) {
 #'
 #' @return Returns a combined Seurat object with the CCA results stored.
 #'
-#' @seealso \code{\link{merge.Seurat}}
+#' @seealso \code{\link[SeuratObject]{merge.Seurat}}
 #'
 #' @examples
 #' \dontrun{

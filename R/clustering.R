@@ -508,7 +508,7 @@ FindClusters.Seurat <- function(
 #' distance matrix; note, for objects of class \code{dist}, this parameter will
 #' be set automatically
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param return.neighbor Return result as \code{\link{Neighbor}} object. Not
+#' @param return.neighbor Return result as \code{\link[SeuratObject]{Neighbor}} object. Not
 #' used with distance matrix input.
 #' @param compute.SNN also compute the shared nearest neighbor graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
