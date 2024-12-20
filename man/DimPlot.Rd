@@ -27,6 +27,7 @@ DimPlot(
   label.box = FALSE,
   repel = FALSE,
   alpha = 1,
+  stroke.size = NULL,
   cells.highlight = NULL,
   cols.highlight = "#DE2D26",
   sizes.highlight = 1,
@@ -90,6 +91,8 @@ geom_label)}
 \item{repel}{Repel labels}
 
 \item{alpha}{Alpha value for plotting (default is 1)}
+
+\item{stroke.size}{Adjust stroke (outline) size of points}
 
 \item{cells.highlight}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply

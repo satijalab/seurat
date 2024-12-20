@@ -815,6 +815,7 @@ ColorDimSplit <- function(
 #' geom_label)
 #' @param alpha Alpha value for plotting (default is 1)
 #' @param repel Repel labels
+#' @param stroke.size Adjust stroke (outline) size of points
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
 #' pass a vector instead of a list. If set, colors selected cells to the color(s)
@@ -875,6 +876,7 @@ DimPlot <- function(
   label.box = FALSE,
   repel = FALSE,
   alpha = 1,
+  stroke.size = NULL,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
@@ -941,6 +943,7 @@ DimPlot <- function(
         shape.by = shape.by,
         order = order,
         alpha = alpha,
+        stroke.size = stroke.size,
         label = FALSE,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
@@ -8182,6 +8185,7 @@ SingleCorPlot <- function(
 #' allowing for both different colors and different shapes on cells.
 #' @param alpha Alpha value for plotting (default is 1)
 #' @param alpha.by Mapping variable for the point alpha value
+#' @param stroke.size Adjust stroke (outline) size of points
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
@@ -8224,6 +8228,7 @@ SingleDimPlot <- function(
   shape.by = NULL,
   alpha = 1,
   alpha.by = NULL,
+  stroke.size = NULL,
   order = NULL,
   label = FALSE,
   repel = FALSE,
@@ -8241,6 +8246,10 @@ SingleDimPlot <- function(
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
+
+  if (is.null(x = stroke.size)) {
+    stroke.size <- 0.600075815011372
+  }
 
   if (!is.null(x = cells.highlight) && pt.size != AutoPointSize(data = data, raster = raster) && sizes.highlight != pt.size && isTRUE(x = raster)) {
     warning("When `raster = TRUE` highlighted and non-highlighted cells must be the same size. Plot will use the value provided to 'sizes.highlight'.")
@@ -8352,7 +8361,8 @@ SingleDimPlot <- function(
         alpha = alpha.by
       ),
       size = pt.size,
-      alpha = alpha
+      alpha = alpha,
+      stroke = stroke.size
     )
   }
   plot <- plot +
