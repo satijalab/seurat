@@ -850,7 +850,7 @@ LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
 #' @export
 #' @concept preprocessing
 #'
-#' @references \url{https://doi.org/10.1038/s41592-019-0433-8}
+#' @references \doi{10.1038/s41592-019-0433-8}
 #'
 #' @examples
 #' \dontrun{
