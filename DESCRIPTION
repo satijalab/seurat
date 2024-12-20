@@ -68,7 +68,6 @@ Imports:
     plotly (>= 4.9.0),
     png,
     progressr,
-    purrr,
     RANN,
     RColorBrewer,
     Rcpp (>= 1.0.7),
