@@ -1147,19 +1147,18 @@ FindTransferAnchors <- function(
   
   # if computing the mapping score later, compute large enough query
   # neighborhood here to reuse
+  # when mapping.score.k is set, neighbors are pre-computed
   
-  # Enable multi-layer query preprocessing when mapping.score.k. 
   if (!is.null(x = mapping.score.k)) {
     if (verbose) {
       message("Finding query neighbors")
     }
     k.nn <- max(k.score, k.anchor)
     
-    # Try processing list
-    query.neighbors.list <- list()
-    nn.idx2.list <- list()
-
+    # Enable processing query.neighbors as a list for multi-layered query objects
     query.layers <- Layers(query, search = 'data')
+    query.neighbors.list <- vector("list", length(query.layers))
+    nn.idx2.list <- vector("list", length(query.layers))
     for (layer in seq_along(query.layers)) {
       cells2.i <- Cells(
         x = query,
@@ -1171,8 +1170,9 @@ FindTransferAnchors <- function(
       )
       
       layer_embeddings <- Embeddings(object = combined.ob[[reduction]])[colnames(x = query.subset), ]
-
-      # NNHelper() for current layer
+      
+      # query.neighbors is a neighbors object that maps query cell indices to 
+      # its k nearest neighbors. This will be computed per each query layer. 
       query.neighbors <- NNHelper(
         data = layer_embeddings,
         k = max(mapping.score.k, k.nn + 1),
@@ -1180,24 +1180,24 @@ FindTransferAnchors <- function(
         n.trees = n.trees,
         cache.index = TRUE
       )
-    
-    query.neighbors.sub <- query.neighbors
-    slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
-      object = query.neighbors.sub,
-      name = "nn.idx")[, 1:(k.nn + 1)]
-    slot(object = query.neighbors.sub, name = "nn.dist") <- slot(
-      object = query.neighbors.sub,
-      name = "nn.dist")[, 1:(k.nn + 1)]
-    
-    # Adding neighbors to list 
-    query.neighbors.list[[layer]] <- query.neighbors.sub
-    nn.idx2.list[[layer]] <- Index(object = query.neighbors.sub)
+      
+      query.neighbors.sub <- query.neighbors
+      slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
+        object = query.neighbors.sub,
+        name = "nn.idx")[, 1:(k.nn + 1)]
+      slot(object = query.neighbors.sub, name = "nn.dist") <- slot(
+        object = query.neighbors.sub,
+        name = "nn.dist")[, 1:(k.nn + 1)]
+      
+      # Adding neighbors to list 
+      query.neighbors.list[[layer]] <- query.neighbors.sub
+      nn.idx2.list[[layer]] <- Index(object = query.neighbors.sub)
     }
     
     precomputed.neighbors[["query.neighbors"]] <- query.neighbors.list
     nn.idx2 <- nn.idx2.list
-    }
-    
+  }
+  
   if (!is.null(x = reference.neighbors)) {
     precomputed.neighbors[["ref.neighbors"]] <- reference[[reference.neighbors]]
   } else {
@@ -1205,11 +1205,11 @@ FindTransferAnchors <- function(
       data = Embeddings(combined.ob[[reduction]])[
         colnames(x = reference),
         1:length(x = dims)
-        ],
+      ],
       k = max(k.score, k.anchor) + 1,
       method = nn.method,
       cache.index = TRUE
-      )
+    )
   }
   nn.idx1 <- Index(object = precomputed.neighbors[["ref.neighbors"]])
   
