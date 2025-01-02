@@ -2675,7 +2675,6 @@ MappingScore.AnchorSet <- function(
     x = combined.object[["pcaproject.l2"]],
     cells = ref.cells
   ))
-  # query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
   query.neighbors.list <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
   
   # reduce size of anchorset combined object
