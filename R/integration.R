@@ -4149,7 +4149,6 @@ FindAnchors_v5 <- function(
       slot = slot,
       cells1 = cells1,
       cells2 = cells2.i,
-      # internal.neighbors = internal.neighbors,
       internal.neighbors = list(
         "ref.neighbors" = internal.neighbors[["ref.neighbors"]],
         "query.neighbors" = query.neighbors.sub  # neighbors for current layer
