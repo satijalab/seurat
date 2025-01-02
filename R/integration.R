@@ -1263,7 +1263,8 @@ FindTransferAnchors <- function(
   )
   if (!is.null(x = precomputed.neighbors[["query.neighbors"]])) {
     slot(object = anchor.set, name = "neighbors") <- list(
-      query.neighbors = query.neighbors.list) # return list of neighbors in anchor.set object 
+      # return list of neighbors in anchor.set object 
+      query.neighbors = query.neighbors.list) 
   }
   return(anchor.set)
 }
@@ -2726,7 +2727,7 @@ MappingScore.AnchorSet <- function(
     )
     slot(anchors, "anchors") <- original_anchors_data
   }
-  return(mapping_scores_list)
+  return(unlist(mapping_scores_list)) #flatten returned mapping scores
 }
 
 #' Calculates a mixing metric
