@@ -1181,14 +1181,6 @@ FindTransferAnchors <- function(
         cache.index = TRUE
       )
     
-    # query.neighbors <- NNHelper(
-    #   data = Embeddings(object = combined.ob[[reduction]])[colnames(x = query), ],
-    #   k = max(mapping.score.k, k.nn + 1),
-    #   method = nn.method,
-    #   n.trees = n.trees,
-    #   cache.index = TRUE
-    # )
-      
     query.neighbors.sub <- query.neighbors
     slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
       object = query.neighbors.sub,
