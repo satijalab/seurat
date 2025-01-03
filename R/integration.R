@@ -2688,45 +2688,90 @@ MappingScore.AnchorSet <- function(
     combined.object[[i]] <- NULL
   }
   
-  # Handle query layers 
-  mapping_scores_list <- list()
-  original_anchors_data <- slot(object = anchors, name = "anchors")
-
-  for (i in seq_along(query.neighbors.list)) {
-    query.neighbors.i <- query.neighbors.list[[i]]  
-    query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) # query cells in neighbors obj have suffix _query, strip to match
-    query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
-
-    # subset anchors to query specific 
-    anchors_data <- original_anchors_data 
-    anchors_data_df <- as.data.frame(anchors_data)
-    
-    query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2]) # indices of current query layer where query cells are in anchors, should < anchors obj 
-    
-    anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
-    anchors_subset <- as.matrix(anchors_subset_df)
-    
-    slot(anchors, "anchors") <- anchors_subset
-    
-    mapping_scores_list[[i]] <- MappingScore(
-    anchors = slot(object = anchors, name = "anchors"), # input subset of layer-specific anchors 
-    combined.object = combined.object,
-    query.neighbors = query.neighbors.i,
-    ref.embeddings = ref.embeddings,
-    query.embeddings = query.embeddings.i,
-    kanchors = kanchors,
-    ndim = ndim,
-    ksmooth = ksmooth,
-    ksnn = ksnn,
-    snn.prune = snn.prune,
-    subtract.first.nn = subtract.first.nn,
-    nn.method = nn.method,
-    n.trees = n.trees,
-    query.weights = query.weights,
-    verbose = verbose
-    )
-    slot(anchors, "anchors") <- original_anchors_data
-  }
+  mapping_scores_list <- lapply(
+    X   = seq_along(query.neighbors.list),
+    FUN = function(i) {
+      query.neighbors.i <- query.neighbors.list[[i]]  
+      # query cells in neighbors obj have suffix "_query", remove this
+      query.cells.i <- gsub(
+        pattern = "_query$", 
+        replacement = "", 
+        x = Cells(query.neighbors.i)
+      )
+      query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
+      
+      # subset anchors to query-specific
+      anchors_data_df <- as.data.frame(original_anchors_data)
+      
+      # indices of current query layer where query cells are in anchors
+      query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2])
+      anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
+      anchors_subset <- as.matrix(anchors_subset_df)
+      
+      # temporarily replace anchors slot with subset for this layer
+      slot(anchors, "anchors") <- anchors_subset
+      
+      score <- MappingScore(
+        anchors = slot(object = anchors, name = "anchors"), #layer-specific anchors
+        combined.object = combined.object,
+        query.neighbors = query.neighbors.i,
+        ref.embeddings = ref.embeddings,
+        query.embeddings = query.embeddings.i,
+        kanchors = kanchors,
+        ndim = ndim,
+        ksmooth = ksmooth,
+        ksnn = ksnn,
+        snn.prune = snn.prune,
+        subtract.first.nn = subtract.first.nn,
+        nn.method = nn.method,
+        n.trees = n.trees,
+        query.weights = query.weights,
+        verbose = verbose
+        )
+      slot(anchors, "anchors") <- original_anchors_data
+      return(score)
+    }
+  )
+      
+  # # Handle query layers 
+  # mapping_scores_list <- list()
+  # original_anchors_data <- slot(object = anchors, name = "anchors")
+  # 
+  # for (i in seq_along(query.neighbors.list)) {
+  #   query.neighbors.i <- query.neighbors.list[[i]]  
+  #   query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) # query cells in neighbors obj have suffix _query, strip to match
+  #   query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
+  # 
+  #   # subset anchors to query specific 
+  #   anchors_data <- original_anchors_data 
+  #   anchors_data_df <- as.data.frame(anchors_data)
+  #   
+  #   query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2]) # indices of current query layer where query cells are in anchors, should < anchors obj 
+  #   
+  #   anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
+  #   anchors_subset <- as.matrix(anchors_subset_df)
+  #   
+  #   slot(anchors, "anchors") <- anchors_subset
+  #   
+  #   mapping_scores_list[[i]] <- MappingScore(
+  #   anchors = slot(object = anchors, name = "anchors"), # input subset of layer-specific anchors 
+  #   combined.object = combined.object,
+  #   query.neighbors = query.neighbors.i,
+  #   ref.embeddings = ref.embeddings,
+  #   query.embeddings = query.embeddings.i,
+  #   kanchors = kanchors,
+  #   ndim = ndim,
+  #   ksmooth = ksmooth,
+  #   ksnn = ksnn,
+  #   snn.prune = snn.prune,
+  #   subtract.first.nn = subtract.first.nn,
+  #   nn.method = nn.method,
+  #   n.trees = n.trees,
+  #   query.weights = query.weights,
+  #   verbose = verbose
+  #   )
+  #   slot(anchors, "anchors") <- original_anchors_data
+  # }
   return(unlist(mapping_scores_list)) #flatten returned mapping scores
 }
 
