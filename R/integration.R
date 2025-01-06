@@ -774,27 +774,6 @@ FindTransferAnchors <- function(
   op <- options(Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
   
-  # Check if ref has multiple SCT models
-  if (length(Layers(reference, search = "data")) > 1) {
-    if (verbose) {
-      message("Reference has multiple SCT models across layers. Merging layers and recomputing a single SCT model.")
-    }
-    # Combine across layers
-    combined_data <- do.call(cbind, lapply(Layers(reference, search = "data"), function(layer) {
-      LayerData(reference[[reference.assay]], layer = layer)
-    }))
-    combined_features <- unique(unlist(lapply(Layers(reference, search = "data"), function(layer) {
-      rownames(LayerData(reference[[reference.assay]], layer = layer))
-    })))
-    reference_combined <- CreateSeuratObject(counts = combined_data, assay = reference.assay)
-    # Run SCT on combined ref 
-    reference_combined <- SCTransform(reference_combined, assay = reference.assay, features = combined_features, verbose = verbose)
-    
-    # Set as single model 
-    reference <- reference_combined
-    reference.assay <- "SCT" 
-  }
-  
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
@@ -823,6 +802,28 @@ FindTransferAnchors <- function(
     mapping.score.k = mapping.score.k,
     verbose = verbose
   )
+  
+  # Select one SCT model if multiple detected in the reference
+  model_list <- ref[["SCT"]]@SCTModel.list
+  if (length(x = model_list) > 1) {
+    model_cell_counts <- sapply(
+      X = model_list,
+      FUN = function(model) {
+        length(x = Cells(x = model))
+      }
+    )
+    best_model_index <- which.max(model_cell_counts)
+    chosen_model <- model_list[[best_model_index]]
+    ref[["SCT"]] <- CreateSCTAssayObject(
+      data = GetAssayData(object = ref[["SCT"]], slot = "data"),
+      scale.data = GetAssayData(object = ref[["SCT"]], slot = "scale.data"),
+      SCTModel.list = chosen_model
+    )
+    message("Selected the SCT model fitted on the most cells.")
+  } else {
+    message("Only one SCT model detected; no need to select.")
+  }
+  
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
   reduction.2 <- character()
   feature.mean <- NULL
@@ -6052,9 +6053,12 @@ ValidateParams_FindTransferAnchors <- function(
     ModifyParam(param = "k.filter", value = NA)
     reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
-      stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
-           " reference sct models. Please provide a reference assay with a ",
-           " single reference sct model.", call. = FALSE)
+      # Enable compatibility with integrated reference with mutliple SCT models
+      print("Given reference assay has multiple sct models, 
+            selecting model with most cells for finding transfer anchors")
+      # stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
+      #      " reference sct models. Please provide a reference assay with a ",
+      #      " single reference sct model.", call. = FALSE)
     } else if (reference.model.num == 0) {
       if (IsSCT(query[[query.assay]])) {
         stop("Given reference assay (", reference.assay,
