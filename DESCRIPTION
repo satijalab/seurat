@@ -31,7 +31,7 @@ Authors@R: c(
 License: MIT + file LICENSE
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-universe.dev, https://cran.r-universe.dev
+Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-universe.dev
 Depends:
     R (>= 4.0.0),
     methods,
