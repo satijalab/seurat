@@ -1158,6 +1158,8 @@ FindTransferAnchors <- function(
     # Enable processing query.neighbors as a list for multi-layered query objects
     query.layers <- Layers(query, search = 'data')
     query.neighbors.list <- vector("list", length(query.layers))
+    query.neighbors.sub.list <- vector("list", length(query.layers))
+    
     nn.idx2.list <- vector("list", length(query.layers))
     for (layer in seq_along(query.layers)) {
       cells2.i <- Cells(
@@ -1190,11 +1192,13 @@ FindTransferAnchors <- function(
         name = "nn.dist")[, 1:(k.nn + 1)]
       
       # Adding neighbors to list 
-      query.neighbors.list[[layer]] <- query.neighbors.sub
+      query.neighbors.list[[layer]] <- query.neighbors
+      query.neighbors.sub.list[[layer]] <- query.neighbors.sub
+      
       nn.idx2.list[[layer]] <- Index(object = query.neighbors.sub)
     }
     
-    precomputed.neighbors[["query.neighbors"]] <- query.neighbors.list
+    precomputed.neighbors[["query.neighbors"]] <- query.neighbors.sub.list
     nn.idx2 <- nn.idx2.list
   }
   
