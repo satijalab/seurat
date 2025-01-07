@@ -744,7 +744,8 @@ ReciprocalProject <- function(
 #' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
 #'
-FindTransferAnchors <- function(
+
+ <- function(
   reference,
   query,
   normalization.method = "LogNormalize",
@@ -6056,8 +6057,7 @@ ValidateParams_FindTransferAnchors <- function(
     reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
       # Enable compatibility with integrated reference with mutliple SCT models
-      print("Given reference assay has multiple sct models, 
-            selecting model with most cells for finding transfer anchors")
+      print("Given reference assay has multiple sct models, selecting model with most cells for finding transfer anchors")
       # stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
       #      " reference sct models. Please provide a reference assay with a ",
       #      " single reference sct model.", call. = FALSE)
