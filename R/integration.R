@@ -745,7 +745,7 @@ ReciprocalProject <- function(
 #' }
 #'
 
- <- function(
+FindTransferAnchors <- function(
   reference,
   query,
   normalization.method = "LogNormalize",
