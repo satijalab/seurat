@@ -188,7 +188,7 @@ IntegrationData <- setClass(
 #' @slot arguments other information used in SCTransform
 #' @slot median_umi Median UMI (or scale factor) used to calculate corrected counts
 #'
-#' @seealso \code{\link{Assay}}
+#' @seealso \code{\link[SeuratObject]{Assay}}
 #'
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
@@ -215,12 +215,12 @@ SCTModel <- setClass(
 
 #' The SCTAssay Class
 #'
-#' The SCTAssay object contains all the information found in an \code{\link{Assay}}
+#' The SCTAssay object contains all the information found in an \code{\link[SeuratObject]{Assay}}
 #' object, with extra information from the results of \code{\link{SCTransform}}
 #'
 #' @slot SCTModel.list A list containing SCT models
 #'
-#' @seealso \code{\link{Assay}}
+#' @seealso \code{\link[SeuratObject]{Assay}}
 #'
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
@@ -330,10 +330,10 @@ VisiumV1 <- setClass(
 
 #' The VisiumV2 class
 #'
-#' The VisiumV2 class represents spatial information from the 10X Genomics 
-#' Visium HD platform - it can also accomodate data from the standard 
+#' The VisiumV2 class represents spatial information from the 10X Genomics
+#' Visium HD platform - it can also accomodate data from the standard
 #' Visium platform
-#' 
+#'
 #' @slot image A three-dimensional array with PNG image data, see
 #' \code{\link[png]{readPNG}} for more details
 #' @slot scale.factors An object of class \code{\link{scalefactors}}; see
@@ -601,13 +601,13 @@ DietSeurat <- function(
       }
       for (lyr in layers.rm) {
         suppressWarnings(object <- tryCatch(expr = {
-          object[[assay]][[lyr]] <- NULL
+          object[[assay]][lyr] <- NULL
           object
         }, error = function(e) {
           if (lyr == "data"){
-            object[[assay]][[lyr]] <- sparseMatrix(i = 1, j = 1, x = 1,
-                         dims = dim(object[[assay]][[lyr]]),
-                         dimnames = dimnames(object[[assay]][[lyr]]))
+            object[[assay]][lyr] <- sparseMatrix(i = 1, j = 1, x = 1,
+                         dims = dim(object[[assay]][lyr]),
+                         dimnames = dimnames(object[[assay]][lyr]))
           } else{
             slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
           }
@@ -904,7 +904,7 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #'
 #' Return a vector of cell names of the nearest n cells.
 #'
-#' @param object \code{\link{Neighbor}} object
+#' @param object \code{\link[SeuratObject]{Neighbor}} object
 #' @param cell Cell of interest
 #' @param n Number of neighbors to return
 #'
@@ -1176,7 +1176,7 @@ as.Seurat.SingleCellExperiment <- function(
   CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop(
-      "Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object.",
+      "Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object.",
       "\nhttps://bioconductor.org/packages/SingleCellExperiment/",
       call. = FALSE
     )
@@ -1319,7 +1319,7 @@ as.Seurat.SingleCellExperiment <- function(
 as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
-    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object")
   }
   assay <- assay %||% Assays(object = x)
   if (!all(assay %in% Assays(object = x))) {
@@ -1603,7 +1603,7 @@ GetImage.VisiumV1 <- function(
   ...
 ) {
   mode <- match.arg(arg = mode)
-  
+
   image <- slot(object = object, name = 'image')
 
   image <- switch(
@@ -1630,6 +1630,14 @@ GetImage.VisiumV1 <- function(
   return(image)
 }
 
+
+#'
+#' @rdname GetImage
+#' @concept objects
+#' @concept spatial
+#' @method GetImage VisiumV2
+#' @export
+#'
 GetImage.VisiumV2 <- GetImage.VisiumV1
 
 #' Get Tissue Coordinates
@@ -1793,8 +1801,8 @@ Radius.STARmap <- function(object, ...) {
 }
 
 #'
-#' @param scale A factor to scale the radius by; one of: "hires", 
-#' "lowres", or \code{NULL} for the unscaled value.  
+#' @param scale A factor to scale the radius by; one of: "hires",
+#' "lowres", or \code{NULL} for the unscaled value.
 #'
 #' @rdname Radius
 #' @concept objects

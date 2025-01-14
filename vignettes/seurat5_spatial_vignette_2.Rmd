@@ -6,7 +6,8 @@ output:
     df_print: kable
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
-***
+
+------------------------------------------------------------------------
 
 ```{r setup, include=FALSE}
 all_times <- list()  # store the time for each chunk
@@ -37,9 +38,9 @@ In this vignette, we introduce a Seurat extension to analyze new types of spatia
 
 We update the Seurat infrastructure to enable the analysis, visualization, and exploration of these exciting datasets. In this vignette, we focus on three datasets produced by different multiplexed imaging technologies, each of which is publicly available. We will be adding support for additional imaging-based technologies in the coming months.
 
-* Vizgen MERSCOPE (Mouse Brain)
-* Nanostring CosMx Spatial Molecular Imager (FFPE Human Lung)
-* Akoya CODEX (Human Lymph Node)
+-   Vizgen MERSCOPE (Mouse Brain)
+-   Nanostring CosMx Spatial Molecular Imager (FFPE Human Lung)
+-   Akoya CODEX (Human Lymph Node)
 
 First, we load the packages necessary for this vignette.
 
@@ -54,11 +55,11 @@ library(ggplot2)
 
 This dataset was produced using the Vizgen MERSCOPE system, which utilizes the MERFISH technology. The total dataset is available for [public download](https://info.vizgen.com/mouse-brain-data), and contains nine samples (three full coronal slices of the mouse brain, with three biological replicates per slice). The gene panel consists of 483 gene targets, representing known anonical cell type markers, nonsensory G-Protein coupled receptors (GPCRs), and Receptor Tyrosine Kinases (RTKs). In this vignette, we analyze one of the samples - slice 2, replicate 1. The median number of transcripts detected in each cell is 206.
 
-First, we read in the dataset and create a Seurat object. 
+First, we read in the dataset and create a Seurat object.
 
-We use the `LoadVizgen()` function, which we have written to read in the output  of the Vizgen analysis pipeline. The resulting Seurat object contains the following information:
+We use the `LoadVizgen()` function, which we have written to read in the output of the Vizgen analysis pipeline. The resulting Seurat object contains the following information:
 
-* A count matrix, indicating the number of observed molecules for each of the 483 transcripts in each cell. This matrix is analogous to a count matrix in scRNA-seq, and is stored by default in the RNA assay of the Seurat object
+-   A count matrix, indicating the number of observed molecules for each of the 483 transcripts in each cell. This matrix is analogous to a count matrix in scRNA-seq, and is stored by default in the RNA assay of the Seurat object
 
 ```{r, message=FALSE, warning=FALSE}
 # Loading segmentations is a slow process and multi processing with the future pacakge is recommended
@@ -68,32 +69,42 @@ vizgen.obj <- LoadVizgen(data.dir = "/brahms/hartmana/vignette_data/vizgen/s2r1/
 The next pieces of information are specific to imaging assays, and is stored in the images slot of the resulting Seurat object:
 
 <details>
-  <summary>**Cell Centroids: The spatial coordinates marking the centroid for each cell being profiled**</summary>
+
+<summary>**Cell Centroids: The spatial coordinates marking the centroid for each cell being profiled**</summary>
 
 ```{r}
 # Get the center position of each centroid. There is one row per cell in this dataframe.
 head(GetTissueCoordinates(vizgen.obj[["s2r1"]][["centroids"]]))
 ```
+
 </details>
+
 <details>
-  <summary>**Cell Segmentation Boundaries: The spatial coordinates that describe the polygon segmentation of each single cell**</summary>
+
+<summary>**Cell Segmentation Boundaries: The spatial coordinates that describe the polygon segmentation of each single cell**</summary>
 
 ```{r}
 # Get the coordinates for each segmentation vertice. Each cell will have a variable number of vertices describing its shape.
 head(GetTissueCoordinates(vizgen.obj[["s2r1"]][["segmentation"]]))
 ```
+
 </details>
+
 <details>
-  <summary>**Molecule positions: The spatial coordinates for each individual molecule that was detected during the multiplexed smFISH experiment.**</summary>
+
+<summary>**Molecule positions: The spatial coordinates for each individual molecule that was detected during the multiplexed smFISH experiment.**</summary>
 
 ```{r}
 # Fetch molecules positions for Chrm1
 head(FetchData(vizgen.obj[["s2r1"]][["molecules"]], vars="Chrm1"))
 ```
+
 </details>
+
 \
 
 ## Preprocessing and unsupervised analysis
+
 We start by performing a standard unsupervised clustering analysis, essentially first treating the dataset as an scRNA-seq experiment. We use SCTransform-based normalization, though we slightly modify the default clipping parameters to mitigate the effect of outliers that we occasionally observe in smFISH experiments. After normalization, we can run dimensional reduction and clustering.
 
 ```{r analysis, results='hide'}
@@ -117,18 +128,20 @@ ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "polychrome", axes = TRUE)
 You can also customize multiple aspect of the plot, including the color scheme, cell border widths, and size (see below).
 
 <details>
-  <summary>**Customizing spatial plots in Seurat**</summary>
+
+<summary>**Customizing spatial plots in Seurat**</summary>
 
 The `ImageDimPlot()` and `ImageFeaturePlot()` functions have a few parameters which you can customize individual visualizations. These include:
 
-* alpha: Ranges from 0 to 1. Sets the transparency of within-cell coloring.
-* size: determines the size of points representing cells, if centroids are being plotted
-* cols: Sets the color scheme for the internal shading of each cell. Examples settings are `polychrome`, `glasbey`, `Paired`, `Set3`, and `parade`. Default is the ggplot2 color palette
-* shuffle.cols: In some cases the selection of `cols` is more effective when the same colors are assigned to different clusters. Set `shuffle.cols = TRUE` to randomly shuffle the colors in the palette.
-* border.size: Sets the width of the cell segmentation borders. By default, segmentations are plotted with a border size of 0.3 and centroids are plotted without border.
-* border.color: Sets the color of the cell segmentation borders
-* dark.background: Sets a black background color (TRUE by default)
-* axes: Display
+-   alpha: Ranges from 0 to 1. Sets the transparency of within-cell coloring.
+-   size: determines the size of points representing cells, if centroids are being plotted
+-   cols: Sets the color scheme for the internal shading of each cell. Examples settings are `polychrome`, `glasbey`, `Paired`, `Set3`, and `parade`. Default is the ggplot2 color palette
+-   shuffle.cols: In some cases the selection of `cols` is more effective when the same colors are assigned to different clusters. Set `shuffle.cols = TRUE` to randomly shuffle the colors in the palette.
+-   border.size: Sets the width of the cell segmentation borders. By default, segmentations are plotted with a border size of 0.3 and centroids are plotted without border.
+-   border.color: Sets the color of the cell segmentation borders
+-   dark.background: Sets a black background color (TRUE by default)
+-   axes: Display
+
 </details>
 
 Since it can be difficult to visualize the spatial localization patterns of an individual cluster when viewing them all together, we can highlight all cells that belong to a particular cluster:
@@ -139,7 +152,7 @@ p2 <- ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "red", cells = WhichCells(vi
 p1 + p2
 ```
 
-We can find markers of individual clusters and visualize their spatial expression pattern. We can color cells based on their quantified expression of an individual gene, using `ImageFeaturePlot()`, which is analagous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. Since MERFISH images individual molecules, we can also visualize the location of individual *molecules*. 
+We can find markers of individual clusters and visualize their spatial expression pattern. We can color cells based on their quantified expression of an individual gene, using `ImageFeaturePlot()`, which is analagous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. Since MERFISH images individual molecules, we can also visualize the location of individual *molecules*.
 
 ```{r, fig.height=7, fig.width=12}
 p1 <- ImageFeaturePlot(vizgen.obj, features = "Slc17a7")
@@ -160,7 +173,7 @@ p1 + p2
 
 The updated Seurat spatial framework has the option to treat cells as individual points, or also to visualize cell boundaries (segmentations). By default, Seurat ignores cell segmentations and treats each cell as a point ('centroids'). This speeds up plotting, especially when looking at large areas, where cell boundaries are too small to visualize.
 
-We can zoom into a region of tissue, creating a new field of view. For example, we can zoom into a region that contains the hippocampus. Once zoomed-in, we can set `DefaultBoundary()` to show cell segmentations. You can also 'simplify' the cell segmentations, reducing the number of edges in each polygon to  speed up plotting.
+We can zoom into a region of tissue, creating a new field of view. For example, we can zoom into a region that contains the hippocampus. Once zoomed-in, we can set `DefaultBoundary()` to show cell segmentations. You can also 'simplify' the cell segmentations, reducing the number of edges in each polygon to speed up plotting.
 
 ```{r, fig.height=5, fig.width=14}
 # create a Crop
@@ -187,17 +200,104 @@ p1 + p2 + p3
 ```
 
 <details>
-  <summary>**What is the tol parameter?**</summary>
 
-The tol parameter determines how simplified the resulting segmentations are. A higher value of tol will reduce the number of vertices more drastically which will speed up plotting, but some segmentation detail will be lost. See https://rgeos.r-forge.r-project.org/reference/topo-unary-gSimplify.html for examples using different values for tol.
+<summary>**What is the tol parameter?**</summary>
+
+The tol parameter determines how simplified the resulting segmentations are. A higher value of tol will reduce the number of vertices more drastically which will speed up plotting, but some segmentation detail will be lost. See <https://rgeos.r-forge.r-project.org/reference/topo-unary-gSimplify.html> for examples using different values for tol.
 
 </details>
 
 We can visualize individual molecules plotted at higher resolution after zooming-in
+
 ```{r, fig.height=8, fig.width=8}
 # Since there is nothing behind the segmentations, alpha will slightly mute colors
 ImageDimPlot(vizgen.obj, fov = "hippo", molecules = rownames(markers.14)[1:4], cols = "polychrome", mols.size = 1, alpha = 0.5, mols.cols = c("red", "blue", "yellow", "green"))
 ```
+
+# Human Lung: 10x Genomics Xenium In Situ
+
+This dataset is a preview of the Xenium multimodal cell segmentation solution using a development version of the assay user guide and analysis software. It uses the [Xenium Human Multi-Tissue and Cancer Panel](https://www.10xgenomics.com/support/in-situ-gene-expression/documentation/steps/panel-design/pre-designed-xenium-gene-expression-panels) (377 genes) which was pre-designed by 10x Genomics. In this vignette, we will demonstrate how to load Xenium data for analysis and visualization using Seurat and, in particular, how to parse and visualize cell metadata.
+
+This uses the full Xenium output bundle available from the [FFPE Human Lung Cancer with Xenium Multimodal Cell Segmentation Preview Data](https://www.10xgenomics.com/datasets/preview-data-ffpe-human-lung-cancer-with-xenium-multimodal-cell-segmentation-1-standard) page, which can be downloaded as described below (note that this file is \~7 GB).
+
+```{bash, eval=FALSE}
+wget https://cf.10xgenomics.com/samples/xenium/2.0.0/Xenium_V1_humanLung_Cancer_FFPE/Xenium_V1_humanLung_Cancer_FFPE_outs.zip
+unzip Xenium_V1_humanLung_Cancer_FFPE_outs.zip
+```
+
+We will first load in the dataset and create the Seurat object. We will flip the x/y coordinates for more convenient plotting. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. Installing `arrow` will permit you to load the data from Parquet files, which is much more efficient than from csv.
+
+By default, the subcellular coordinates of each Q20 transcript will be loaded, as well as the cell centroids, which can commonly take up more than 1 GB of RAM.
+
+```{r, results='hide'}
+path <- "/brahms/hartmana/vignette_data/Xenium_V1_humanLung_Cancer_FFPE_outs"
+# Load the Xenium data, including cell segmentations
+xenium.obj <- LoadXenium(path, fov = "fov", segmentations = "cell", flip.xy = T)
+# remove cells with 0 counts
+xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
+```
+
+This dataset uses Xenium multimodal segmentation, which involves custom deep learning models trained on Xenium In Situ data. After nuclei segmentation with DAPI, the algorithm uses three methods to segment cells. The segmentation results for each cell are prioritized in this order:
+
+1.  **Cell boundary stain:** This is the most reliable method. Antibodies target epithelial markers (CD45) and immune markers (pan-lymphocyte: ATP1A1, E-Cadherin). It can split nuclei and define cells missing a nucleus. Nuclei that overlap with anucleate cells are assigned to the cell
+
+2.  **Expansion from the nucleus to the cell interior stain edge:** This method requires both segmented nuclei and the interior stain (18S rRNA marker)
+
+3.  **Nuclear expansion:** For cases where cells that do not have boundary or interior stains, segment cells with a nuclear (DAPI) expansion distance of 5 µm or until another cell boundary is encountered
+
+We can directly visualize cells which were segmented according to each method.
+
+```{r}
+ImageDimPlot(xenium.obj, fov = "fov", dark.background = F, group.by = "segmentation_method", cols = c('#ffabc3', '#a9a900', '#a9ceff'))
+```
+
+It is also possible to load and visualize the unsupervised cluster annotations computed by the Xenium Onboard Analysis pipeline, which are stored in the `analysis` folder of an output bundle.
+
+```{r}
+where <- tempdir()
+untar(file.path(data.dir, 'analysis.tar.gz'), exdir = where)
+
+graph_clusters <- read.csv(file.path(where, 'analysis', 'clustering', 'gene_expression_graphclust', 'clusters.csv'), row.names = 'Barcode')
+
+# Store the graph-based clusters in the metadata
+xenium.obj <- AddMetaData(xenium.obj, graph_clusters)
+
+ImageDimPlot(xenium.obj, fov = "fov", dark.background = F, group.by = "Cluster")
+```
+
+Differential expression results from Xenium Onboard Analysis can also be loaded in a similar fashion.
+
+```{r}
+diff_exp <- read.csv(file.path(where, 'analysis', 'diffexp', 'gene_expression_graphclust', 'differential_expression.csv'))
+
+diff_exp <- melt(diff_exp, id.vars = c("Feature.ID", "Feature.Name"))
+
+colnames(diff_exp)[1:2] <- c('ensembl_id', 'gene_name')
+diff_exp$cluster <- unlist(lapply(strsplit(as.character(diff_exp$variable), '.', fixed = T), '[[', 2))
+diff_exp$measure <- factor(gsub('Cluster\\.\\d+\\.', '', as.character(diff_exp$variable)), c('Mean.Counts', 'Log2.fold.change', 'Adjusted.p.value'), c('mean_count', 'log2_fc', 'p_adj'))
+diff_exp$variable <- NULL
+
+diff_exp <- dcast(diff_exp, ensembl_id + gene_name + cluster ~ measure)
+
+significant_de <- subset(diff_exp, p_adj <= 0.05)
+significant_de <- significant_de[order(significant_de$mean_count, decreasing = T), ]
+significant_de[!duplicated(significant_de$cluster), ]
+```
+
+We will zoom in to visualize cell segmentations and expression of a select few marker genes.
+
+```{r}
+cropped.coords <- Crop(xenium.obj[["fov"]], x = c(6700, 7400), y = c(1500, 2000), coords = "plot")
+xenium.obj[["zoom"]] <- cropped.coords
+# visualize cropped area with cell segmentations & selected molecules
+DefaultBoundary(xenium.obj[["zoom"]]) <- "segmentation"
+ImageDimPlot(xenium.obj, fov = "zoom", group.by = "Cluster",
+             axes = TRUE, border.color = "white", border.size = 0.1,
+             cols = "polychrome", coord.fixed = FALSE,
+             molecules = c("SNTN", "MALL", "MS4A1", "IL7R", "CYP2B6"), nmols = 10000, mols.cols = RColorBrewer::brewer.pal(5, "Set3"), alpha = 0.4)
+```
+
+Lots of valuable data is output directly in each run, allowing for rapid interrogation of the biology. In the following vignette, we will see how we can use standard Seurat workflows to do more involved secondary analysis on Xenium data.
 
 # Mouse Brain: 10x Genomics Xenium In Situ
 
@@ -210,12 +310,12 @@ wget https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Co
 unzip Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
 ```
 
-First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
+First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute (you can improve this by installing `arrow` and `hdf5r`).
 
 ```{r load.xenium, results='hide'}
 path <- "/brahms/hartmana/vignette_data/xenium_tiny_subset"
 # Load the Xenium data
-xenium.obj <- LoadXenium(path, fov = "fov")
+xenium.obj <- LoadXenium(path, fov = "fov", segmentations = "cell")
 # remove cells with 0 counts
 xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
 ```
@@ -223,11 +323,13 @@ xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
 Spatial information is loaded into slots of the Seurat object, labelled by the name of "field of view" (FOV) being loaded. Initially all the data is loaded into the FOV named `fov`. Later, we will make a cropped FOV that zooms into a region of interest.
 
 Standard QC plots provided by Seurat are available via the `Xenium` assay. Here are violin plots of genes per cell (`nFeature_Xenium`) and transcript counts per cell (`nCount_Xenium`)
+
 ```{r vlnplot.xenium}
 VlnPlot(xenium.obj, features = c("nFeature_Xenium", "nCount_Xenium"), ncol = 2, pt.size = 0)
 ```
 
 Next, we plot the positions of the pan-inhibitory neuron marker Gad1, inhibitory neuron sub-type markers Pvalb, and Sst, and astrocyte marker Gfap on the tissue using `ImageDimPlot()`.
+
 ```{r p2.xenium, fig.width=10, fig.height=8}
 ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
 ```
@@ -238,11 +340,13 @@ ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 5, width =
 ```
 
 Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of it's count distribution to improve contrast.
+
 ```{r mat.xenium, message=FALSE, warning=FALSE, fig.width=12, fig.height=12}
 ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
 ```
 
 We can zoom in on a chosen area with the `Crop()` function. Once zoomed-in, we can visualize cell segmentation boundaries along with individual molecules.
+
 ```{r cropping.xenium, message=FALSE, warning=FALSE, fig.width=10, fig.height=8}
 cropped.coords <- Crop(xenium.obj[["fov"]], x = c(1200, 2900), y = c(3750, 4550), coords = "plot")
 xenium.obj[["zoom"]] <- cropped.coords
@@ -255,6 +359,7 @@ ImageDimPlot(xenium.obj, fov = "zoom",
 ```
 
 Next, we use SCTransform for normalization followed by standard dimensionality reduction and clustering. This step takes about 5 minutes from start to finish.
+
 ```{r unsupervised.xenium, results='hide'}
 xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
 xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
@@ -264,22 +369,24 @@ xenium.obj <- FindClusters(xenium.obj, resolution = 0.3)
 ```
 
 We can then visualize the results of the clustering by coloring each cell according to its cluster either in UMAP space with `DimPlot()` or overlaid on the image with `ImageDimPlot()`.
+
 ```{r umap.xenium, fig.width=10, fig.height=7}
 DimPlot(xenium.obj)
 ```
 
 We can visualize the expression level of the markers we looked at earlier on the UMAP coordinates.
+
 ```{r features.xenium, fig.width=8, fig.height=10}
 FeaturePlot(xenium.obj, features = c("Cux2", "Bcl11b", "Foxp2", "Gad1", "Sst", "Gfap"))
 ```
 
 We can now use `ImageDimPlot()` to color the cell positions colored by the cluster labels determined in the previous step.
+
 ```{r clusters.xenium, fig.width=13, fig.height=13}
 ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
 ```
 
-Using the positional information of each cell, we compute spatial niches.
-We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex. The Allen Brain reference can be installed [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1).
+Using the positional information of each cell, we compute spatial niches. We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex. The Allen Brain reference can be installed [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1).
 
 Below, we use Slc17a7 expression to help determine the cortical region.
 
@@ -355,7 +462,7 @@ keep.cells <- Cells(xenium.obj)[!is.na(xenium.obj$predicted.celltype)]
 xenium.obj <- subset(xenium.obj, cells = keep.cells)
 ```
 
-While the previous analyses consider each cell independently, spatial data enables cells to be defined not just by their neighborhood, but also by their broader spatial context. In Seurat v5, we introduce support for 'niche' analysis of spatial data, which demarcates regions of tissue ('niches'), each of which is defined by a different composition of spatially adjacent cell types. Inspired by methods in [Goltsev et al, Cell 2018](https://www.sciencedirect.com/science/article/pii/S0092867418309048) and [He et al, NBT 2022](https://www.nature.com/articles/s41587-022-01483-z), we consider the 'local neighborhood' for each cell - consisting of its `k.neighbor` spatially closest neighbors, and count the occurrences of each cell type present in this neighborhood. We then use k-means clustering to group cells that have similar neighborhoods together, into spatial niches. 
+While the previous analyses consider each cell independently, spatial data enables cells to be defined not just by their neighborhood, but also by their broader spatial context. In Seurat v5, we introduce support for 'niche' analysis of spatial data, which demarcates regions of tissue ('niches'), each of which is defined by a different composition of spatially adjacent cell types. Inspired by methods in [Goltsev et al, Cell 2018](https://www.sciencedirect.com/science/article/pii/S0092867418309048) and [He et al, NBT 2022](https://www.nature.com/articles/s41587-022-01483-z), we consider the 'local neighborhood' for each cell - consisting of its `k.neighbor` spatially closest neighbors, and count the occurrences of each cell type present in this neighborhood. We then use k-means clustering to group cells that have similar neighborhoods together, into spatial niches.
 
 We call the `BuildNicheAssay` function from within Seurat to construct a new assay called `niche` containing the cell type composition spatially neighboring each cell. A metadata column called `niches` is also returned, which contains cluster assignments based on the niche assay.
 
@@ -402,11 +509,11 @@ table(xenium.obj$predicted.celltype, xenium.obj$niches)
 
 # Human Lung: Nanostring CosMx Spatial Molecular Imager
 
-This dataset was produced using Nanostring CosMx Spatial Molecular Imager (SMI). The CosMX SMI performs multiplexed single molecule profiling, can profile both RNA and protein targets, and can be applied directly to FFPE tissues. The dataset represents 8 FFPE samples taken from 5 non-small-cell lung cancer (NSCLC) tissues, and is available for [public download](https://www.nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/). The gene panel consists of 960 transcripts. 
+This dataset was produced using Nanostring CosMx Spatial Molecular Imager (SMI). The CosMX SMI performs multiplexed single molecule profiling, can profile both RNA and protein targets, and can be applied directly to FFPE tissues. The dataset represents 8 FFPE samples taken from 5 non-small-cell lung cancer (NSCLC) tissues, and is available for [public download](https://www.nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/). The gene panel consists of 960 transcripts.
 
-In this vignette, we load one of 8 samples (lung 5, replicate 1). We use the `LoadNanostring()` function, which parses the outputs available on the public download site. Note that the coordinates for the cell boundaries were provided by Nanostring by request, and are available for download [here](https://www.dropbox.com/s/hl3peavrx92bluy/Lung5_Rep1-polygons.csv?dl=0). 
+In this vignette, we load one of 8 samples (lung 5, replicate 1). We use the `LoadNanostring()` function, which parses the outputs available on the public download site. Note that the coordinates for the cell boundaries were provided by Nanostring by request, and are available for download [here](https://www.dropbox.com/s/hl3peavrx92bluy/Lung5_Rep1-polygons.csv?dl=0).
 
-For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung%20v1) reference version 1.0.0.  You can download the precomputed results [here](https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process.
+For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung%20v1) reference version 1.0.0. You can download the precomputed results [here](https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process.
 
 ```{r load}
 nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/vignette_data/nanostring/lung5_rep1", fov="lung5.rep1")
@@ -427,7 +534,7 @@ nano.obj <- SCTransform(nano.obj, assay = "Nanostring", clip.range = c(-10, 10),
 head(slot(object = nano.obj, name = "meta.data")[2:5])
 ```
 
-We can visualize the Nanostring cells and annotations, projected onto the reference-defined UMAP. Note that for this NSCLC sample, tumor samples are annotated as 'basal', which is the closest cell type match in the healthy reference. 
+We can visualize the Nanostring cells and annotations, projected onto the reference-defined UMAP. Note that for this NSCLC sample, tumor samples are annotated as 'basal', which is the closest cell type match in the healthy reference.
 
 ```{r, fig.width=9, fig.height=4}
 DimPlot(nano.obj)
@@ -491,8 +598,7 @@ ImageDimPlot(nano.obj, fov = "zoom1", cols = "polychrome", alpha = 0.3, molecule
 
 This dataset was produced using Akoya CODEX system. The CODEX system performs multiplexed spatially-resolved protein profiling, iteratively visualizing antibody-binding events. The dataset here represents a tissue section from a human lymph node, and was generated by the University of Florida as part of the Human Biomolecular Atlas Program (HuBMAP). More information about the sample and experiment is available [here](https://portal.hubmapconsortium.org/browse/dataset/c95d9373d698faf60a66ffdc27499fe1). The protein panel in this dataset consists of 28 markers, and protein intensities were quantified as part of the Akoya processor pipeline, which outputs a CSV file providing the intensity of each marker in each cell, as well as the cell coordinates. The file is available for public download via Globus [here](https://app.globus.org/file-manager?origin_id=af603d86-eab9-4eec-bb1d-9d26556741bb&origin_path=%2Fc95d9373d698faf60a66ffdc27499fe1%2Fdrv_CX_20-008_lymphnode_n10_reg001%2Fprocessed_2020-12-2320-008LNn10r001%2Fsegm%2Fsegm-1%2Ffcs%2Fcompensated%2F).
 
-
-First, we load in the data of a HuBMAP dataset using the `LoadAkoya()` function in Seurat: 
+First, we load in the data of a HuBMAP dataset using the `LoadAkoya()` function in Seurat:
 
 ```{r}
 codex.obj <- LoadAkoya(
@@ -524,7 +630,7 @@ DimPlot(codex.obj, label = TRUE, label.box = TRUE) + NoLegend()
 ImageDimPlot(codex.obj, cols = "parade")
 ```
 
-The expression patters of individual markers clearly denote different cell types and spatial structures, including Lyve1 (lymphatic endothelial cells), CD34 (blood endothelial cells), and CD21 (B cells). As expected, endothelial cells group together into vessels, and B cells are key components of specialized microstructures known as germinal zones. You can read more about protein markers in this dataset, as well as cellular networks in human lynmphatic tissues, in this  [preprint](https://www.biorxiv.org/content/10.1101/2021.10.20.465151v1.full).
+The expression patters of individual markers clearly denote different cell types and spatial structures, including Lyve1 (lymphatic endothelial cells), CD34 (blood endothelial cells), and CD21 (B cells). As expected, endothelial cells group together into vessels, and B cells are key components of specialized microstructures known as germinal zones. You can read more about protein markers in this dataset, as well as cellular networks in human lynmphatic tissues, in this [preprint](https://www.biorxiv.org/content/10.1101/2021.10.20.465151v1.full).
 
 ```{r, fig.width=9, fig.height=8}
 p1 <- ImageFeaturePlot(codex.obj, fov = "HBM754.WKLP.262", features = c("CD34", "CD21", "Lyve1"), min.cutoff = "q10", max.cutoff = "q90")
@@ -535,10 +641,13 @@ p1 + p2
 Each of these datasets represents an opportunity to learn organizing principles that govern the spatial localization of different cell types. Stay tuned for future updates to Seurat enabling further exploration and characterization of the relationship between spatial position and molecular state.
 
 <details>
-  <summary>**Session Info**</summary>
+
+<summary>**Session Info**</summary>
+
 ```{r}
 sessionInfo()
 ```
+
 </details>
 
 ```{r save.times, include=FALSE}

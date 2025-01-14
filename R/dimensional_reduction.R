@@ -10,7 +10,7 @@ NULL
 #'
 #' Randomly permutes a subset of data, and calculates projected PCA scores for
 #' these 'random' genes. Then compares the PCA scores for the 'random' genes
-#' with the observed PCA scores to determine statistical signifance. End result
+#' with the observed PCA scores to determine statistical significance. End result
 #' is a p-value for each gene's association with each principal component.
 #'
 #' @param object Seurat object
@@ -276,7 +276,7 @@ PCASigGenes <- function(
 #' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
-#' # Vizualize top projected genes in heatmap
+#' # Visualize top projected genes in heatmap
 #' DimHeatmap(object = pbmc_small, reduction = "pca", dims = 1, balanced = TRUE)
 #'
 ProjectDim <- function(
@@ -865,19 +865,22 @@ RunPCA.default <- function(
   }
  if (inherits(x = object, what = 'matrix')) {
    RowVar.function <- RowVar
+   svd.function <- irlba
  } else if (inherits(x = object, what = 'dgCMatrix')) {
    RowVar.function <- RowVarSparse
+   svd.function <- irlba
  } else if (inherits(x = object, what = 'IterableMatrix')) {
    RowVar.function <- function(x) {
      return(BPCells::matrix_stats(
        matrix = x,
        row_stats = 'variance'
      )$row_stats['variance',])
-     }
+    }
+    svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
  }
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = npcs, ...)
+    pca.results <- svd.function(A = object, nv = npcs, ...)
     total.variance <- sum(RowVar.function(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
@@ -891,7 +894,7 @@ RunPCA.default <- function(
     total.variance <- sum(RowVar.function(x = object))
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
-      pca.results <- irlba(A = t(x = object), nv = npcs, ...)
+      pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
       if (weight.by.var) {
@@ -1370,7 +1373,7 @@ RunUMAP.default <- function(
       umap_import <- import(module = "umap", delay_load = TRUE)
       sklearn <- import("sklearn", delay_load = TRUE)
       if (densmap &&
-          numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) <
+          numeric_version(x = umap_import$`__version__`) <
           numeric_version(x = "0.5.0")) {
         stop("densmap is only supported by versions >= 0.5.0 of umap-learn. Upgrade umap-learn (e.g. pip install --upgrade umap-learn).")
       }
@@ -1394,7 +1397,7 @@ RunUMAP.default <- function(
         angular_rp_forest = angular.rp.forest,
         verbose = verbose
       )
-      if (numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) >=
+      if (numeric_version(x = umap_import$`__version__`) >=
           numeric_version(x = "0.5.0")) {
         umap.args <- c(umap.args, list(
           densmap = densmap,
@@ -1613,7 +1616,7 @@ RunUMAP.Graph <- function(
     metric_kwds = metric.kwds,
     verbose = verbose
   )
-  if (numeric_version(x = umap$pkg_resources$get_distribution("umap-learn")$version) >=
+  if (numeric_version(x = umap$`__version__`) >=
       numeric_version(x = "0.5.0")) {
     umap.args <- c(umap.args, list(
       densmap = densmap,
@@ -1690,8 +1693,8 @@ RunUMAP.Neighbor <- function(
 #' be selected based on the size of the input dataset (200 for large datasets, 500 for small).
 #' @param learning.rate The initial learning rate for the embedding optimization.
 #' @param min.dist This controls how tightly the embedding is allowed compress points together.
-#' Larger values ensure embedded points are moreevenly distributed, while smaller values allow the
-#' algorithm to optimise more accurately with regard to local structure. Sensible values are in
+#' Larger values ensure embedded points are more evenly distributed, while smaller values allow the
+#' algorithm to optimize more accurately with regard to local structure. Sensible values are in
 #' the range 0.001 to 0.5.
 #' @param spread The effective scale of embedded points. In combination with min.dist this
 #' determines how clustered/clumped the embedded points are.
@@ -1718,7 +1721,7 @@ RunUMAP.Neighbor <- function(
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
-#' @param angular.rp.forest Whether to use an angular random projection forest to initialise the
+#' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
 #' approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that
 #' use an angular style distance such as cosine, correlation etc. In the case of those metrics
 #' angular forests will be chosen automatically.
@@ -2335,7 +2338,7 @@ JackRandom <- function(
     rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
   }
   data.mod <- scaled.data
-  data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
+  data.mod[rand.genes, ] <- MatrixRowShuffle(x = as.matrix(scaled.data[rand.genes, ]))
   temp.object <- RunPCA(
     object = data.mod,
     assay = "temp",
@@ -2432,7 +2435,11 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
-  features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+  if (is(data.use, "IterableMatrix")) {
+    features.var <- BPCells::matrix_stats(matrix=data.use, row_stats="variance")$row_stats["variance",]
+  } else {
+    features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+  }
   features.keep <- features[features.var > 0]
   if (!length(x = features.keep)) {
     stop("None of the requested features have any variance", call. = FALSE)
@@ -2665,7 +2672,12 @@ RunSLSI.default <- function(
   if (verbose) {
     message("Smoothing peaks matrix")
   }
-  object.smooth <- t(x = graph) %*% (t(x = object) %*% object) %*% graph
+  if (inherits(x = object, what = 'IterableMatrix')) {
+    t_object <- t(BPCells::transpose_storage_order(matrix = object))
+    object.smooth <- t(x = graph) %*% (t_object %*% object) %*% graph
+  } else {
+    object.smooth <- t(x = graph) %*% (t(x = object) %*% object) %*% graph
+  }
   if (verbose) {
     message("Performing eigendecomposition")
   }
@@ -2730,6 +2742,47 @@ RunSLSI.Assay <- function(
   )
   return(reduction.data)
 }
+
+
+#' @param features Features to compute SLSI on. If features=NULL, SLSI will be run
+#' using the variable features for the Assay5.
+#' @param layer Layer to run SLSI on
+#'
+#' @rdname RunSLSI
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSLSI StdAssay
+#'
+RunSLSI.StdAssay <- function(
+    object,
+    assay = NULL,
+    features = NULL,
+    n = 50,
+    reduction.key = "SLSI_",
+    graph = NULL,
+    layer = "data",
+    verbose = TRUE,
+    seed.use = 42,
+    ...) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  reduction.data <- RunSLSI(
+    object = data.use,
+    assay = assay,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
+
 
 #' @param reduction.name dimensional reduction name
 #' @rdname RunSLSI

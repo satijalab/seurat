@@ -47,8 +47,8 @@ weights. This can be one of:
 all objects to be integrated}
 \item{A vector of strings, specifying the name of a dimension reduction to
 use for each object to be integrated}
-\item{A vector of \code{\link{DimReduc}} objects, specifying the object to
-use for each object in the integration}
+\item{A vector of \code{\link[SeuratObject]{DimReduc}} objects,
+specifying the object to use for each object in the integration}
 \item{NULL, in which case a new PCA will be calculated and used to
 calculate anchor weights}
 }
@@ -80,13 +80,13 @@ If NULL, the sample tree will be computed automatically.}
 integration.}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from
-\code{\link{RANN}})}
+\code{\link[RANN]{RANN}})}
 
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns a \code{\link{Seurat}} object with a new integrated
-\code{\link{Assay}}. If \code{normalization.method = "LogNormalize"}, the
+Returns a \code{\link[SeuratObject]{Seurat}} object with a new integrated
+\code{\link[SeuratObject]{Assay}}. If \code{normalization.method = "LogNormalize"}, the
 integrated data is returned to the \code{data} slot and can be treated as
 log-normalized, corrected data. If \code{normalization.method = "SCT"}, the
 integrated data is returned to the \code{scale.data} slot and can be treated

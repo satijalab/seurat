@@ -1,3 +1,22 @@
+# Seurat 5.2.0 (2024-12-20)
+
+## Changes
+- Added `group.by` parameter to `FindAllMarkers`, allowing users to regroup their data using a non-default identity class prior to performing differential expression ([#9550](https://github.com/satijalab/seurat/pull/9550))
+- Added `image.type` parameter to `Read10X_Image` enabling `VisiumV1` instances to be populated instead of instances of the default `VisiumV2` class ([#9556](https://github.com/satijalab/seurat/pull/9556))
+- Fixed `IntegrateLayers` to respect the `dims.to.integrate` parameter
+- Added `stroke.size` parameter to `DimPlot` ([#8180](https://github.com/satijalab/seurat/pull/8180))
+- Updated `RunLeiden` to use the `leidenbase` package instead of `leiden`; deprecated the `method` parameter for `RunLeiden` and `FindClusters`; updated `RunLeiden` to reset `random.seed` to 1 if the value is 0 or less ([#6792](https://github.com/satijalab/seurat/pull/6792))
+- Updated `RunPCA` to use the `BPCells`-provided SVD solver on `BPCells` matrices; updated `JackStraw` to support `BPCells` matrices ([#8271](https://github.com/satijalab/seurat/pull/8271))
+- Fixed `RunPCA` to avoid converting `BPCells` matrices into dense matrices - significantly reduces the function's memory usage when running on `BPCells` matrices ([#8966](https://github.com/satijalab/seurat/pull/8966))
+- Updated `RunSLSI` to support `BPCells` matrices
+- Updated `RunUMAP` to support `umap-learn` version >= 0.5.0 ([#9559](https://github.com/satijalab/seurat/pull/9559))
+- Updated `LoadXenium` and `ReadXenium` to accommodate the output from `XOA` v3.0; updated `LoadXenium` to provide more fine-grained control over the datatypes parsed in, including nucleus segmentation masks, segmentation methods, and other experimental metadata; updated `ReadXenium` to load cell_feature_matrix.h5 when present in favor of the MEX format files; updated `ReadXenium` to load .parquet files using `arrow` instead of .csv.gz files to support XOA 3.0 ([#8604](https://github.com/satijalab/seurat/pull/8605))
+- Fixed `LoadXenium` to accommodate datasets without "Blank Codeword" or "Unassigned Codeword" matrices([#9135](https://github.com/satijalab/seurat/pull/9135))
+- Fixed `ReadXenium` to properly parse multiple molecular outputs at once ([#8265](https://github.com/satijalab/seurat/issues/8265))
+- Added `features` parameter to `LeverageScore` and `SketchData`
+- Updated `SketchData`'s `ncells` parameter to accept integer vector
+
+
 # Seurat 5.1.0 (2024-05-08)
 
 ## Changes
@@ -222,6 +241,7 @@
 - Add `rlsi` option for `FindIntegrationAnchors()`
 
 ## Changes
+- 
 - Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
 ([#4205](https://github.com/satijalab/seurat/issues/4205))
 - Preserve multiple assays when converting from `SingleCellExperiment` to `SeuratObject` class

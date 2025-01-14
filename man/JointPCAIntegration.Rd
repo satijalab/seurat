@@ -33,7 +33,7 @@ JointPCAIntegration(
 
 \item{layers}{Names of layers in \code{assay}}
 
-\item{orig}{A \link[SeuratObject:DimReduc]{dimensional reduction} to correct}
+\item{orig}{A \link[SeuratObject]{DimReduc} to correct}
 
 \item{new.reduction}{Name of new integrated dimensional reduction}
 
@@ -61,7 +61,7 @@ weights. This can be one of:
    all objects to be integrated}
    \item{A vector of strings, specifying the name of a dimension reduction to
    use for each object to be integrated}
-   \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+   \item{A vector of \code{\link[SeuratObject]{DimReduc}} objects, specifying the object to
    use for each object in the integration}
    \item{NULL, in which case the full corrected space is used for computing
    anchor weights.}

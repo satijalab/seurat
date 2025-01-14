@@ -15,9 +15,9 @@
 \method{fortify}{Segmentation}(model, data, ...)
 }
 \arguments{
-\item{model}{A \code{\linkS4class{Segmentation}},
-\code{\linkS4class{Centroids}},
-or \code{\linkS4class{Molecules}} object}
+\item{model}{A \code{\link[SeuratObject:Segmentation-class]{Segmentation}},
+\code{\link[SeuratObject:Centroids-class]{Centroids}},
+or \code{\link[SeuratObject:Molecules-class]{Molecules}} object}
 
 \item{data}{Extra data to be used for annotating the cell segmentations; the
 easiest way to pass data is a one-column

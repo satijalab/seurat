@@ -27,7 +27,7 @@
 The SCTModel object is a model and parameters storage from SCTransform.
 It can be used to calculate Pearson residuals for new genes.
 
-The SCTAssay object contains all the information found in an \code{\link{Assay}}
+The SCTAssay object contains all the information found in an \code{\link[SeuratObject]{Assay}}
 object, with extra information from the results of \code{\link{SCTransform}}
 }
 \section{Slots}{
@@ -93,8 +93,8 @@ levels(pbmc_small[['SCT']])
 
 }
 \seealso{
-\code{\link{Assay}}
+\code{\link[SeuratObject]{Assay}}
 
-\code{\link{Assay}}
+\code{\link[SeuratObject]{Assay}}
 }
 \concept{objects}

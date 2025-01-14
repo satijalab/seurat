@@ -20,7 +20,9 @@ NULL
 #'
 #' @param object A Seurat object.
 #' @param assay Assay name. Default is NULL, in which case the default assay of the object is used.
-#' @param ncells A positive integer indicating the number of cells to sample for the sketching. Default is 5000.
+#' @param ncells A positive integer or a named vector/list specifying the 
+#' number of cells to sample per layer. If a single integer is provided, the 
+#' same number of cells will be sampled from each layer. Default is 5000.
 #' @param sketched.assay Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.
 #' @param method  Sketching method to use. Can be 'LeverageScore' or 'Uniform'.
 #'               Default is 'LeverageScore'.
@@ -29,6 +31,8 @@ NULL
 #' @param seed A positive integer for the seed of the random number generator. Default is 123.
 #' @param cast The type to cast the resulting assay to. Default is 'dgCMatrix'.
 #' @param verbose Print progress and diagnostic messages
+#' @param features A character vector of feature names to include in the
+#' sketched assay.
 #' @param ... Arguments passed to other methods
 #'
 #' @return A Seurat object with the sketched data added as a new assay.
@@ -49,6 +53,7 @@ SketchData <- function(
   seed = 123L,
   cast = 'dgCMatrix',
   verbose = TRUE,
+  features = NULL,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
@@ -78,6 +83,7 @@ SketchData <- function(
       over.write = over.write,
       seed = seed,
       verbose = FALSE,
+      features = features,
       ...
     )
   } else if (method == 'Uniform') {
@@ -87,32 +93,47 @@ SketchData <- function(
     object[[var.name]] <- 1
   }
   leverage.score <- object[[var.name]]
-  layers.data <- Layers(object = object[[assay]], search = 'data')
-  cells <- lapply(
-    X = seq_along(along.with = layers.data),
-    FUN = function(i, seed) {
-      set.seed(seed = seed)
-      lcells <- Cells(x = object[[assay]], layer = layers.data[i])
-      if (length(x = lcells) < ncells) {
-        return(lcells)
+  layer.names <- Layers(object = object[[assay]], search = 'data')
+  if (length(ncells) == 1) {
+    ncells <- rep(ncells, length(layer.names))
+  }
+  if (is.null(names(ncells))) {
+    names(ncells) <- layer.names
+  }
+  # align index of `ncells` with `layer.names`
+  ncells <- ncells[layer.names]
+  cells <- mapply(
+    function(
+    layer.name,
+    ncells.layer
+    ) {
+      if (!is.null(seed)) {
+        set.seed(seed)
       }
-      return(sample(
-        x = lcells,
-        size = ncells,
-        prob = leverage.score[lcells,]
-      ))
+      cells.layer <- Cells(object[[assay]], layer = layer.name)
+      if (length(cells.layer) < ncells.layer) {
+        cells.to.keep <- cells.layer
+      } else {
+        cells.to.keep <- sample(
+          x = cells.layer,
+          size = ncells.layer,
+          prob = leverage.score[cells.layer,]
+        )
+      }
+      return (cells.to.keep)
     },
-    seed = seed
+    layer.names,
+    ncells
   )
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
     cells = unlist(cells),
     layers = Layers(object = object[[assay]], search = c('counts', 'data'))
   ))
-  for (lyr in layers.data) {
+  for (layer.name in layer.names) {
     try(
-      expr = VariableFeatures(object = sketched, method = "sketch", layer = lyr) <-
-        VariableFeatures(object = object[[assay]], layer = lyr),
+      expr = VariableFeatures(object = sketched, method = "sketch", layer = layer.name) <-
+        VariableFeatures(object = object[[assay]], layer = layer.name),
       silent = TRUE
     )
   }
@@ -479,6 +500,7 @@ LeverageScore.default <- function(
 #'            defaults to 0.5.
 #' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and diagnostic messages
+#' @param features A vector of feature names to use for calculating leverage score. 
 #'
 #' @importFrom SeuratObject EmptyDF
 #'
@@ -498,6 +520,7 @@ LeverageScore.StdAssay <- function(
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 ) {
   layer <- unique(x = layer) %||% DefaultLayer(object = object)
@@ -513,15 +536,21 @@ LeverageScore.StdAssay <- function(
     if (isTRUE(x = verbose)) {
       message("Running LeverageScore for layer ", l)
     }
+    features.use <- features %||% tryCatch({
+      VariableFeatures(
+        object = object,
+        method = vf.method,
+        layer = l
+      )
+    }, error = function(e) {
+      stop("Unable to get variable features from layer `", l, "`. Try providing `features` argument instead.")
+    })
+    
     scores[Cells(x = object, layer = l), 1] <- LeverageScore(
       object = LayerData(
         object = object,
         layer = l,
-        features = VariableFeatures(
-          object = object,
-          method = vf.method,
-          layer = l
-        ),
+        features = features.use,
         fast = TRUE
       ),
       nsketch = nsketch,
@@ -572,6 +601,7 @@ LeverageScore.Seurat <- function(
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  features = NULL,
   ...
 ) {
   if (!over.write) {
@@ -586,10 +616,11 @@ LeverageScore.Seurat <- function(
     ndims = ndims,
     method = method,
     vf.method = vf.method,
-    layer = layer,
+    layer = 'data',
     eps = eps,
     seed = seed,
     verbose = verbose,
+    features = features,
     ...
   )
   names(x = scores) <- var.name

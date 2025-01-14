@@ -64,7 +64,7 @@ Returns a Seurat object with integrated dimensional reduction
 \description{
 This is a convenience wrapper function around the following three functions
 that are often run together when perform integration.
-#' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
+\code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
 \code{\link{IntegrateEmbeddings}}.
 }
 \concept{integration}

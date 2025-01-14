@@ -42,6 +42,6 @@ object <- MULTIseqDemux(object)
 
 }
 \references{
-\url{https://www.biorxiv.org/content/10.1101/387241v1}
+\doi{10.1038/s41592-019-0433-8}
 }
 \concept{preprocessing}

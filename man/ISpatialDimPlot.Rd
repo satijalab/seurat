@@ -17,7 +17,7 @@ ISpatialDimPlot(
 
 \item{image}{Name of the image to use in the plot}
 
-\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in 
+\item{image.scale}{Choose the scale factor ("lowres"/"hires") to apply in
 order to matchthe plot with the specified `image` - defaults to "lowres"}
 
 \item{group.by}{Name of meta.data column to group the data by}

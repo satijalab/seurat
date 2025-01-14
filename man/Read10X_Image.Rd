@@ -9,7 +9,8 @@ Read10X_Image(
   image.name = "tissue_lowres_image.png",
   assay = "Spatial",
   slice = "slice1",
-  filter.matrix = TRUE
+  filter.matrix = TRUE,
+  image.type = "VisiumV2"
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ should include files \code{tissue_lowres_image.png},
 
 \item{filter.matrix}{Filter spot/feature matrix to only include spots that
 have been determined to be over tissue}
+
+\item{image.type}{Image type to return, one of: "VisiumV1" or "VisiumV2"}
 }
 \value{
 A \code{\link{VisiumV2}} object

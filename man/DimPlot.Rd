@@ -27,6 +27,7 @@ DimPlot(
   label.box = FALSE,
   repel = FALSE,
   alpha = 1,
+  stroke.size = NULL,
   cells.highlight = NULL,
   cols.highlight = "#DE2D26",
   sizes.highlight = 1,
@@ -63,7 +64,7 @@ See \code{\link{DiscretePalette}} for details.}
 (for example, orig.ident); pass 'ident' to group by identity class}
 
 \item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
-to split by cell identity'}
+to split by cell identity}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
@@ -90,6 +91,8 @@ geom_label)}
 \item{repel}{Repel labels}
 
 \item{alpha}{Alpha value for plotting (default is 1)}
+
+\item{stroke.size}{Adjust stroke (outline) size of points}
 
 \item{cells.highlight}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply

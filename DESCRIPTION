@@ -1,6 +1,5 @@
 Package: Seurat
-Version: 5.1.0
-Date: 2024-05-08
+Version: 5.2.0
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 Authors@R: c(
@@ -29,6 +28,7 @@ Authors@R: c(
   person(given = "Shiwei", family = "Zheng", email = "szheng@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6682-6743")),
   person("Satija Lab and Collaborators", role = "fnd")
   )
+License: MIT + file LICENSE
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-universe.dev
@@ -56,7 +56,7 @@ Imports:
     irlba,
     jsonlite,
     KernSmooth,
-    leiden (>= 0.3.1),
+    leidenbase,
     lifecycle,
     lmtest,
     MASS,
@@ -68,7 +68,6 @@ Imports:
     plotly (>= 4.9.0),
     png,
     progressr,
-    purrr,
     RANN,
     RColorBrewer,
     Rcpp (>= 1.0.7),
@@ -90,9 +89,44 @@ Imports:
     tools,
     utils,
     uwot (>= 0.1.10)
+Suggests:
+    ape,
+    arrow,
+    Biobase,
+    BiocGenerics,
+    BPCells,
+    data.table,
+    DESeq2,
+    DelayedArray,
+    enrichR,
+    GenomicRanges,
+    GenomeInfoDb,
+    glmGamPoi,
+    ggrastr,
+    harmony,
+    hdf5r,
+    IRanges,
+    limma,
+    MAST,
+    metap,
+    mixtools,
+    monocle,
+    presto,
+    rsvd,
+    R.utils,
+    Rfast2,
+    rtracklayer,
+    S4Vectors,
+    sf (>= 1.0.0),
+    SingleCellExperiment,
+    SummarizedExperiment,
+    testthat,
+    VGAM
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
-License: MIT + file LICENSE
+BuildManual: true
+Encoding: UTF-8
 LazyData: true
+RoxygenNote: 7.3.2
 Collate:
     'RcppExports.R'
     'reexports.R'
@@ -114,36 +148,3 @@ Collate:
     'sketching.R'
     'tree.R'
     'utilities.R'
-RoxygenNote: 7.3.1
-Encoding: UTF-8
-Suggests:
-    ape,
-    arrow,
-    BPCells,
-    rsvd,
-    testthat,
-    hdf5r,
-    S4Vectors,
-    SummarizedExperiment,
-    SingleCellExperiment,
-    MAST,
-    DESeq2,
-    BiocGenerics,
-    GenomicRanges,
-    GenomeInfoDb,
-    IRanges,
-    rtracklayer,
-    Rfast2,
-    monocle,
-    Biobase,
-    VGAM,
-    limma,
-    metap,
-    enrichR,
-    mixtools,
-    ggrastr,
-    data.table,
-    R.utils,
-    presto,
-    DelayedArray,
-    harmony

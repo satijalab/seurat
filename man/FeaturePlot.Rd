@@ -81,7 +81,7 @@ may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
 \item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
-to split by cell identity'}
+to split by cell identity}
 
 \item{keep.scale}{How to handle the color scale across multiple plots. Options are:
 \itemize{
@@ -91,7 +91,7 @@ to split by cell identity'}
   \item \dQuote{all} (universal scaling): The plots for all features and
     conditions are scaled to the maximum expression value for the feature
     with the highest overall expression
-  \item \code{all} (no scaling): Each individual plot is scaled to the
+  \item \code{NULL} (no scaling): Each individual plot is scaled to the
     maximum expression value of the feature in the condition provided to
     \code{split.by}. Be aware setting \code{NULL} will result in color
     scales that are not comparable between plots

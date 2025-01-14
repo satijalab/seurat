@@ -4,6 +4,7 @@
 \alias{RunSLSI}
 \alias{RunSLSI.default}
 \alias{RunSLSI.Assay}
+\alias{RunSLSI.StdAssay}
 \alias{RunSLSI.Seurat}
 \title{Run Supervised Latent Semantic Indexing}
 \usage{
@@ -27,6 +28,19 @@ RunSLSI(object, ...)
   n = 50,
   reduction.key = "SLSI_",
   graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+)
+
+\method{RunSLSI}{StdAssay}(
+  object,
+  assay = NULL,
+  features = NULL,
+  n = 50,
+  reduction.key = "SLSI_",
+  graph = NULL,
+  layer = "data",
   verbose = TRUE,
   seed.use = 42,
   ...
@@ -63,8 +77,10 @@ the number for the dimension names}
 
 \item{seed.use}{Set a random seed. Setting NULL will not set a seed.}
 
-\item{features}{Features to compute SLSI on. If NULL, SLSI will be run
-using the variable features for the Assay.}
+\item{features}{Features to compute SLSI on. If features=NULL, SLSI will be run
+using the variable features for the Assay5.}
+
+\item{layer}{Layer to run SLSI on}
 
 \item{reduction.name}{dimensional reduction name}
 }

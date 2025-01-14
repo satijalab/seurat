@@ -13,11 +13,11 @@ PrepSCTIntegration(
 )
 }
 \arguments{
-\item{object.list}{A list of \code{\link{Seurat}} objects to prepare for integration}
+\item{object.list}{A list of \code{\link[SeuratObject]{Seurat}} objects to prepare for integration}
 
-\item{assay}{The name of the \code{\link{Assay}} to use for integration. This can be a
+\item{assay}{The name of the \code{\link[SeuratObject]{Assay}} to use for integration. This can be a
 single name if all the assays to be integrated have the same name, or a character vector
-containing the name of each \code{\link{Assay}} in each object to be integrated. The
+containing the name of each \code{\link[SeuratObject]{Assay}} in each object to be integrated. The
 specified assays must have been normalized using \code{\link{SCTransform}}.
 If NULL (default), the current default assay for each object is used.}
 
@@ -35,7 +35,7 @@ the Pearson residual will be clipped to}
 \item{verbose}{Display output/messages}
 }
 \value{
-A list of \code{\link{Seurat}} objects with the appropriate \code{scale.data} slots
+A list of \code{\link[SeuratObject]{Seurat}} objects with the appropriate \code{scale.data} slots
 containing only the required \code{anchor.features}.
 }
 \description{
