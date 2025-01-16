@@ -6494,6 +6494,9 @@ BlendExpression <- function(data) {
     X = data,
     MARGIN = 2,
     FUN = function(x) {
+      if (min(x) == max(x)) {
+        return(rep(0, length(x)))
+      }
       return(round(x = 9 * (x - min(x)) / (max(x) - min(x))))
     }
   ))
