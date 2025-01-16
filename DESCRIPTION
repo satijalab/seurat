@@ -82,6 +82,8 @@ Imports:
     scattermore (>= 1.2),
     sctransform (>= 0.4.1),
     shiny,
+    spam,
+    spam64,
     spatstat.explore,
     spatstat.geom,
     stats,
