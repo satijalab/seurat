@@ -97,6 +97,21 @@ test_that("Relative count normalization returns expected values", {
   expect_equal(rc.counts[2, 1], 14285.71, tolerance = 1e-6)
 })
 
+denseMatrix <- as.matrix(pbmc.test)  # Matrix to test LogNormalize.V3Matrix and RelativeCounts methods
+test_that("LogNormalize.V3Matrix computes median scale factor correctly", {
+  expectedMedian <- median(colSums(denseMatrix))
+  resultFromExpectedMedian <- LogNormalize.V3Matrix(data = denseMatrix, scale.factor = expectedMedian, margin = 2L, verbose = FALSE)
+  resultFromScaleFactorSetToMedian <- LogNormalize.V3Matrix(data = denseMatrix, scale.factor = "median", margin = 2L, verbose = FALSE)
+  expect_equal(as.matrix(resultFromExpectedMedian), as.matrix(resultFromScaleFactorSetToMedian), tolerance = 1e-6)
+})
+
+test_that("RelativeCounts computes median scale factor correctly", {
+  expectedMedian <- median(colSums(denseMatrix))
+  resultFromExpectedMedian <- RelativeCounts(data = denseMatrix, scale.factor = expectedMedian, verbose = FALSE)
+  resultFromScaleFactorSetToMedian <- RelativeCounts(data = denseMatrix, scale.factor = "median", verbose = FALSE)
+  expect_equal(as.matrix(resultFromExpectedMedian), as.matrix(resultFromScaleFactorSetToMedian), tolerance = 1e-6)
+})
+
 # Tests for v5 NormalizeData
 # --------------------------------------------------------------------------------
 context("v5 NormalizeData")
@@ -174,6 +189,44 @@ test_that("LogNormalize normalizes properly for BPCells", {
     tolerance = 1e-6
   )
 })
+
+test_that("LogNormalize.IterableMatrix computes median scale factor correctly", {
+  skip_on_cran()
+  library(Matrix)
+  skip_if_not_installed("BPCells")
+  library(BPCells)
+  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+  expectedMedian <- median(colSums(mat_bpcells))
+  resultFromExpectedMedian <- LogNormalize.IterableMatrix(data = mat_bpcells, scale.factor = expectedMedian, margin = 2L, verbose = FALSE)
+  resultFromScaleFactorSetToMedian <- LogNormalize.IterableMatrix(data = mat_bpcells, scale.factor = "median", margin = 2L, verbose = FALSE)
+  expect_equal(as.matrix(resultFromExpectedMedian), as.matrix(resultFromScaleFactorSetToMedian), tolerance = 1e-6)
+})
+
+denseMatrix <- as.matrix(pbmc.test)  # Matrix to test LogNormalize.default when scale.factor is set to "median"
+test_that("LogNormalize.default computes median scale factor correctly for both margin values", {
+  expectedMedianForMargin1L <- median(rowSums(denseMatrix))
+  expectedMedianForMargin2L <- median(colSums(denseMatrix))
+  
+  resultFromExpectedMedianForMargin1L <- LogNormalize.default(data = denseMatrix, scale.factor = expectedMedianForMargin1L, margin = 1L, verbose = FALSE)
+  resultFromExpectedMedianForMargin2L <- LogNormalize.default(data = denseMatrix, scale.factor = expectedMedianForMargin2L, margin = 2L, verbose = FALSE)
+  
+  resultsFromScaleFactorSetToMedianForMargin1L <- LogNormalize.default(data = denseMatrix, scale.factor = "median", margin = 1L, verbose = FALSE)#if the normalization is across rows (genes)
+  resultsFromScaleFactorSetToMedianForMargin2L <- LogNormalize.default(data = denseMatrix, scale.factor = "median", margin = 2L, verbose = FALSE)#if the normalization is across columns (cells)
+  
+  expect_equal(as.matrix(resultFromExpectedMedianForMargin1L), as.matrix(resultsFromScaleFactorSetToMedianForMargin1L), tolerance = 1e-6)
+  expect_equal(as.matrix(resultFromExpectedMedianForMargin2L), as.matrix(resultsFromScaleFactorSetToMedianForMargin2L), tolerance = 1e-6)
+})
+
+theSparseMatrix <- as.sparse(denseMatrix) # Sparse Matrix to test .SparseNormalize computes median scale factor correctly
+test_that("LogNormalize.default computes median scale factor correctly for both margin values", {
+  expectedMedian <- median(colSums(theSparseMatrix))
+  
+  resultFromExpectedMedian <- .SparseNormalize(data = theSparseMatrix, scale.factor = expectedMedian, verbose = FALSE)
+  resultsFromScaleFactorSetToMedian <- .SparseNormalize(data = theSparseMatrix, scale.factor = "median", verbose = FALSE)
+  
+  expect_equal(resultFromExpectedMedian, resultsFromScaleFactorSetToMedian, tolerance = 1e-6)
+})
+
 
 # Tests for ScaleData
 # --------------------------------------------------------------------------------

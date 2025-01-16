@@ -256,6 +256,20 @@ LogNormalize.default <- function(
   if (isTRUE(x = verbose)) {
     pb <- txtProgressBar(file = stderr(), style = 3)
   }
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    if(verbose){
+      cat("Calculating median scale factor\n", file = stderr())
+    }
+    sums <- if (margin == 1L) {
+      rowSums(data)  # Sum of each row (gene) if margin is 1L
+    } else {
+      colSums(data)  # Sum of each column (cell) if margin is 2L
+    }
+    scale.factor = median(sums)
+  }
+
   for (i in seq_len(length.out = ncells)) {
     x <- if (margin == 1L) {
       data[i, ]
@@ -288,6 +302,15 @@ LogNormalize.IterableMatrix <- function(
     verbose = TRUE,
     ...
 ) {
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    if(verbose){
+      cat("Calculating median scale factor\n", file = stderr())
+    }
+    scale.factor <- median(colSums(data))
+  }
+
   data <- BPCells::t(BPCells::t(data) / colSums(data))
   # Log normalization
   data <- log1p(data * scale.factor)
@@ -860,6 +883,33 @@ DISP <- function(
     p <- p + 1L
   }
   np <- length(x = p) - 1L
+
+  #adding a progress bar for median calculation is verbose is TRUE
+  if (is.character(scale.factor) && scale.factor == "median" && isTRUE(x = verbose)) {
+    cat("Calculating median scale factor\n", file = stderr())
+    pb_median <- txtProgressBar(style = 3L, file = stderr())
+  }
+
+  #setting scale.factor to be the median of counts across all columns if scale.factor is the string "median"
+  if (is.character(scale.factor) && scale.factor == "median") {
+    col_sums <- numeric(np)
+    for (i in seq_len(length.out = np)) {
+      idx <- seq.int(from = p[i], to = p[i + 1] - 1L)
+      xidx <- slot(object = data, name = entryname)[idx]
+      col_sums[i] <- sum(xidx)
+
+      if (isTRUE(x = verbose)) {
+        setTxtProgressBar(pb_median, value = i / np)
+      }
+    }
+
+    if (isTRUE(x = verbose)) {
+      close(pb_median)
+    }
+
+    scale.factor <- median(col_sums)
+  }
+
   if (isTRUE(x = verbose)) {
     pb <- txtProgressBar(style = 3L, file = stderr())
   }
