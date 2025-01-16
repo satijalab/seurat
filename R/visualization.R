@@ -4700,7 +4700,8 @@ GroupCorrelationPlot <- function(
   cor = "nCount_RNA_cor"
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  data <- object[[assay]][c(feature.group, cor)]
+  try(data <- object[[assay]]@meta.data[, c(feature.group, cor)], silent=T)
+  try(data <- object[[assay]]@meta.features[, c(feature.group, cor)], silent=T)
   data <- data[complete.cases(data), ]
   colnames(x = data) <- c('grp', 'cor')
   data$grp <- as.character(data$grp)
