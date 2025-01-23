@@ -14,6 +14,7 @@
 - Updated `RunPCA` to use the `BPCells`-provided SVD solver on `BPCells` matrices; updated `JackStraw` to support `BPCells` matrices ([#8271](https://github.com/satijalab/seurat/pull/8271))
 - Fixed `RunPCA` to avoid converting `BPCells` matrices into dense matrices - significantly reduces the function's memory usage when running on `BPCells` matrices ([#8966](https://github.com/satijalab/seurat/pull/8966))
 - Updated `RunSLSI` to support `BPCells` matrices
+- Fixed `DietSeurat` so that the `layers` parameter is respected ([#8197](https://github.com/satijalab/seurat/pull/8197))
 - Updated `RunUMAP` to support `umap-learn` version >= 0.5.0 ([#9559](https://github.com/satijalab/seurat/pull/9559))
 - Updated `LoadXenium` and `ReadXenium` to accommodate the output from `XOA` v3.0; updated `LoadXenium` to provide more fine-grained control over the datatypes parsed in, including nucleus segmentation masks, segmentation methods, and other experimental metadata; updated `ReadXenium` to load cell_feature_matrix.h5 when present in favor of the MEX format files; updated `ReadXenium` to load .parquet files using `arrow` instead of .csv.gz files to support XOA 3.0 ([#8604](https://github.com/satijalab/seurat/pull/8605))
 - Fixed `LoadXenium` to accommodate datasets without "Blank Codeword" or "Unassigned Codeword" matrices([#9135](https://github.com/satijalab/seurat/pull/9135))
