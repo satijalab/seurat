@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 5.2.1 (2025-01-23)
 
 ## Changes
 - Fixed `test_find_clusters.R` to accommodate variability in label assignments given by `FindClusters` across different systems ([#9641](https://github.com/satijalab/seurat/pull/9641))
