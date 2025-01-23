@@ -188,7 +188,7 @@ IntegrationData <- setClass(
 #' @slot arguments other information used in SCTransform
 #' @slot median_umi Median UMI (or scale factor) used to calculate corrected counts
 #'
-#' @seealso \code{\link{Assay}}
+#' @seealso \code{\link[SeuratObject]{Assay}}
 #'
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
@@ -215,12 +215,12 @@ SCTModel <- setClass(
 
 #' The SCTAssay Class
 #'
-#' The SCTAssay object contains all the information found in an \code{\link{Assay}}
+#' The SCTAssay object contains all the information found in an \code{\link[SeuratObject]{Assay}}
 #' object, with extra information from the results of \code{\link{SCTransform}}
 #'
 #' @slot SCTModel.list A list containing SCT models
 #'
-#' @seealso \code{\link{Assay}}
+#' @seealso \code{\link[SeuratObject]{Assay}}
 #'
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
@@ -904,7 +904,7 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #'
 #' Return a vector of cell names of the nearest n cells.
 #'
-#' @param object \code{\link{Neighbor}} object
+#' @param object \code{\link[SeuratObject]{Neighbor}} object
 #' @param cell Cell of interest
 #' @param n Number of neighbors to return
 #'

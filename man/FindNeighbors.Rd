@@ -98,7 +98,7 @@ be set automatically}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
-\item{return.neighbor}{Return result as \code{\link{Neighbor}} object. Not
+\item{return.neighbor}{Return result as \code{\link[SeuratObject]{Neighbor}} object. Not
 used with distance matrix input.}
 
 \item{compute.SNN}{also compute the shared nearest neighbor graph}
@@ -152,13 +152,13 @@ neighbor (NN) graph, and the second element used to store the SNN graph. If
 only one name is supplied, only the NN graph is stored.}
 }
 \value{
-This function can either return a \code{\link{Neighbor}} object
-with the KNN information or a list of \code{\link{Graph}} objects with
+This function can either return a \code{\link[SeuratObject]{Neighbor}} object
+with the KNN information or a list of \code{\link[SeuratObject]{Graph}} objects with
 the KNN and SNN depending on the settings of \code{return.neighbor} and
-\code{compute.SNN}. When running on a \code{\link{Seurat}} object, this
-returns the \code{\link{Seurat}} object with the Graphs or Neighbor objects
+\code{compute.SNN}. When running on a \code{\link[SeuratObject]{Seurat}} object, this
+returns the \code{\link[SeuratObject]{Seurat}} object with the Graphs or Neighbor objects
 stored in their respective slots. Names of the Graph or Neighbor object can
-be found with \code{\link{Graphs}} or \code{\link{Neighbors}}.
+be found with \code{\link[SeuratObject]{Graphs}} or \code{\link[SeuratObject]{Neighbors}}.
 }
 \description{
 Computes the \code{k.param} nearest neighbors for a given dataset. Can also

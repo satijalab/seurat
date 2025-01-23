@@ -288,7 +288,7 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @param object A \code{Seurat} object
 #' @param assay Name of \code{Assay} in the \code{Seurat} object
 #' @param layers Names of layers in \code{assay}
-#' @param orig A \link[SeuratObject:DimReduc]{dimensional reduction} to correct
+#' @param orig A \link[SeuratObject]{DimReduc} to correct
 #' @param new.reduction Name of new integrated dimensional reduction
 #' @param reference A reference \code{Seurat} object
 #' @param features A vector of features to use for integration
