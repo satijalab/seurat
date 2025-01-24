@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-<!-- Briefly describe your problem and what output you expect. If you have a question, please use the analysis question template instead. -->
+<!-- Briefly describe the bug and what output you expect. If you have a question, please see the community discussion board: https://github.com/satijalab/seurat/discussions -->
 
 <!-- Before posting an issue, ensure that the bug is reproducible by re-running the code that produced the issue in a new R session.-->
 

@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Analysis question
+    url: https://github.com/satijalab/seurat/discussions
+    about: If you have a question about how to use Seurat, please see our community discussion board.
