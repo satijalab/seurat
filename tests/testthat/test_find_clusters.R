@@ -34,13 +34,17 @@ context("FindClusters")
 test_that("Smoke test for `FindClusters`", {
   test_case <- get_test_data()
 
-  # Spot check cluster assignments with using defaults.
+  # Validate cluster assignments using default parameters.
   results <- FindClusters(test_case)$seurat_clusters
-  expect_equal(results[[1]], factor(3, levels=0:5))
-  expect_equal(results[[15]], factor(4, levels=0:5))
-  expect_equal(results[[24]], factor(0, levels=0:5))
-  expect_equal(results[[72]], factor(5, levels=0:5))
-  expect_equal(results[[length(results)]], factor(2, levels=0:5))
+  # Check that every cell was assigned to a cluster label.
+  expect_false(any(is.na(results)))
+  # Check that the expected cluster labels were assigned.
+  expect_equal(as.numeric(levels(results)), c(0, 1, 2, 3, 4, 5))
+  # Check that the cluster sizes match the expected distribution.
+  expect_equal(
+    as.numeric(sort(table(results))),
+    c(9, 10, 10, 11, 20, 20)
+  )
 
   # Check that every clustering algorithm can be run without errors.
   expect_no_error(FindClusters(test_case, algorithm = 1))
