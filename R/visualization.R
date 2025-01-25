@@ -4634,8 +4634,9 @@ DotPlot <- function(
 #' Jackstraw
 #'
 #' @param object Seurat object
-#' @param ndims Number of dimensions to plot standard deviation for
-#' @param reduction Reduction technique to plot standard deviation for
+#' @param ndims Number of dimensions to plot 
+#' @param reduction Reduction technique to plot (default is 'pca')
+#' @param plot_type Type of plot to generate. Options are 'stdev' or 'variance'
 #'
 #' @return A ggplot object
 #'
@@ -4648,7 +4649,10 @@ DotPlot <- function(
 #' data("pbmc_small")
 #' ElbowPlot(object = pbmc_small)
 #'
-ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
+ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stdev", "variance")) {
+  # Ensure plot_type is either "stdev" or "variance"
+  plot_type <- match.arg(plot_type)
+
   data.use <- Stdev(object = object, reduction = reduction)
   if (length(x = data.use) == 0) {
     stop(paste("No standard deviation info stored for", reduction))
@@ -4657,20 +4661,33 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
     warning("The object only has information for ", length(x = data.use), " reductions")
     ndims <- length(x = data.use)
   }
-  stdev <- 'Standard Deviation'
-  plot <- ggplot(data = data.frame(dims = 1:ndims, stdev = data.use[1:ndims])) +
-    geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
+  
+  if (plot_type == "variance") {
+    # Calculate variance explained
+    variance_explained <- data.use^2 / sum(data.use^2) * 100
+    y_label <- "Percentage of Variance Explained"
+    y_data <- variance_explained[1:ndims]
+  } else {
+    # Standard deviation
+    y_label <- "Standard Deviation"
+    y_data <- data.use[1:ndims]
+  }
+  
+  plot <- ggplot(data = data.frame(dims = 1:ndims, y_data = y_data)) +
+    geom_point(mapping = aes_string(x = 'dims', y = 'y_data')) +
     labs(
       x = gsub(
         pattern = '_$',
         replacement = '',
         x = Key(object = object[[reduction]])
       ),
-      y = stdev
+      y = y_label
     ) +
     theme_cowplot()
+  
   return(plot)
 }
+
 
 #' Boxplot of correlation of a variable (e.g. number of UMIs) with expression
 #' data
