@@ -388,3 +388,38 @@ test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
   expect_equal(anchors@neighbors, list())
 })
 
+# Added test for multi-layer query - NEED TO PICK A VIABLE DATASET 
+pbmc_small <- suppressWarnings(UpdateSeuratObject(pbmc_small))
+ref <- pbmc_small
+query <- CreateSeuratObject(
+  counts = as.sparse(
+    GetAssayData(
+      object = pbmc_small[['RNA']],
+      layer = "counts") + rpois(n = ncol(pbmc_small),
+                                lambda = 1
+      )
+  )
+)
+
+multilayer_query <- query
+multilayer_query$dummy_group <- ifelse(
+  test = as.numeric(factor(Cells(multilayer_query))) %% 2 == 0,
+  yes = "Even",
+  no  = "Odd"
+)
+multilayer_query[["RNA"]] <- split(x = multilayer_query[["RNA"]], f = multilayer_query$dummy_group)
+multilayer_query <- NormalizeData(multilayer_query)
+
+reference <- NormalizeData(ref)
+reference <- FindVariableFeatures(reference)
+reference <- ScaleData(reference)
+reference <- RunPCA(reference)
+
+test_that("FindTransferAnchors handles multi-layer queries", {
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+    mapping.score.k = 100
+  )
+})
