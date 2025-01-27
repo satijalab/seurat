@@ -883,25 +883,27 @@ FindTransferAnchors <- function(
     new.names = paste0(Cells(x = reference), "_", "reference")
   )
   
-  # Select one SCT model if multiple detected in the reference
-  model_list <- reference[["SCT"]]@SCTModel.list
-  if (length(x = model_list) > 1) {
-    model_cell_counts <- sapply(
-      X = model_list,
-      FUN = function(model) {
-        length(x = Cells(x = model))
-      }
-    )
-    best_model_index <- which.max(model_cell_counts)
-    chosen_model <- model_list[[best_model_index]]
-    reference[["SCT"]] <- CreateSCTAssayObject(
-      data = GetAssayData(object = reference[["SCT"]], slot = "data"),
-      scale.data = GetAssayData(object = reference[["SCT"]], slot = "scale.data"),
-      SCTModel.list = chosen_model
-    )
-    message("Selected the SCT model fitted on the most cells.")
-  } else {
-    message("Only one SCT model detected; no need to select.")
+  # Select one SCT model based on max num of cells if multiple detected in the ref
+  if (normalization.method == "SCT"){
+    model_list <- reference[["SCT"]]@SCTModel.list
+    if (length(x = model_list) > 1) {
+      model_cell_counts <- sapply(
+        X = model_list,
+        FUN = function(model) {
+          length(x = Cells(x = model))
+        }
+      )
+      best_model_index <- which.max(model_cell_counts)
+      chosen_model <- model_list[[best_model_index]]
+      reference[["SCT"]] <- CreateSCTAssayObject(
+        data = GetAssayData(object = reference[["SCT"]], slot = "data"),
+        scale.data = GetAssayData(object = reference[["SCT"]], slot = "scale.data"),
+        SCTModel.list = chosen_model
+      )
+      message("Selected the SCT model fitted on the most cells.")
+    } else {
+      message("Only one SCT model detected; no need to select.")
+    }
   }
   
   # Perform PCA projection
@@ -6051,6 +6053,23 @@ ValidateParams_FindTransferAnchors <- function(
     recompute.residuals <- FALSE
     ModifyParam(param = "recompute.residuals", value = recompute.residuals)
   }
+  
+  # Added check for preventing SCT and RNA assay mixing 
+  if (normalization.method == "SCT") {
+    if (IsSCT(assay = reference[[reference.assay]]) && !IsSCT(assay = query[[query.assay]])) {
+      stop(
+        "Reference assay is SCT, but query assay is RNA. ",
+        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
+      )
+    }
+    if (!IsSCT(assay = reference[[reference.assay]]) && IsSCT(assay = query[[query.assay]])) {
+      stop(
+        "Reference assay is RNA, but query assay is SCT. ",
+        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
+      )
+    }
+  }
+  
   if (recompute.residuals) {
     # recompute.residuals only happens in ProjectCellEmbeddings, so k.filter set to NA.
     ModifyParam(param = "k.filter", value = NA)
