@@ -415,11 +415,20 @@ reference <- FindVariableFeatures(reference)
 reference <- ScaleData(reference)
 reference <- RunPCA(reference)
 
+anchors <- FindTransferAnchors(
+  reference = reference,
+  query = multilayer_query,
+  reference.reduction = "pca",
+  mapping.score.k = 10
+)
+
 test_that("FindTransferAnchors handles multi-layer queries", {
   anchors <- FindTransferAnchors(
     reference = reference,
     query = multilayer_query,
     reference.reduction = "pca",
-    mapping.score.k = 100
+    mapping.score.k = 10
   )
+  co <- anchors@object.list[[1]]
+  expect_equal(dim(co), c(220, 160))
 })

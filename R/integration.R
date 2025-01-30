@@ -2699,14 +2699,16 @@ MappingScore.AnchorSet <- function(
   
   for (i in seq_along(query.neighbors.list)) {
     query.neighbors.i <- query.neighbors.list[[i]]  
-    query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) # query cells in neighbors obj have suffix _query, strip to match
+    # query cells in neighbors obj have suffix _query, strip to match
+    query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) 
     query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
     
     # subset anchors to query specific 
     anchors_data <- original_anchors_data 
     anchors_data_df <- as.data.frame(anchors_data)
     
-    query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2]) # indices of current query layer where query cells are in anchors, should < anchors obj 
+    # indices of current query layer where query cells are in anchors, should < anchors obj 
+    query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2]) 
     
     anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
     anchors_subset <- as.matrix(anchors_subset_df)
@@ -2714,7 +2716,8 @@ MappingScore.AnchorSet <- function(
     slot(anchors, "anchors") <- anchors_subset
     
     mapping_scores_list[[i]] <- MappingScore(
-      anchors = slot(object = anchors, name = "anchors"), # input subset of layer-specific anchors 
+      # input subset of layer-specific anchors
+      anchors = slot(object = anchors, name = "anchors"), 
       combined.object = combined.object,
       query.neighbors = query.neighbors.i,
       ref.embeddings = ref.embeddings,
