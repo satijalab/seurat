@@ -388,9 +388,14 @@ test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
   expect_equal(anchors@neighbors, list())
 })
 
-# Added test for multi-layer query - NEED TO PICK A VIABLE DATASET 
+# Added test for multi-layer query 
 pbmc_small <- suppressWarnings(UpdateSeuratObject(pbmc_small))
 ref <- pbmc_small
+reference <- NormalizeData(ref)
+reference <- FindVariableFeatures(reference)
+reference <- ScaleData(reference)
+reference <- RunPCA(reference)
+
 query <- CreateSeuratObject(
   counts = as.sparse(
     GetAssayData(
@@ -400,7 +405,6 @@ query <- CreateSeuratObject(
       )
   )
 )
-
 multilayer_query <- query
 multilayer_query$dummy_group <- ifelse(
   test = as.numeric(factor(Cells(multilayer_query))) %% 2 == 0,
@@ -410,25 +414,93 @@ multilayer_query$dummy_group <- ifelse(
 multilayer_query[["RNA"]] <- split(x = multilayer_query[["RNA"]], f = multilayer_query$dummy_group)
 multilayer_query <- NormalizeData(multilayer_query)
 
-reference <- NormalizeData(ref)
-reference <- FindVariableFeatures(reference)
-reference <- ScaleData(reference)
-reference <- RunPCA(reference)
-
-anchors <- FindTransferAnchors(
-  reference = reference,
-  query = multilayer_query,
-  reference.reduction = "pca",
-  mapping.score.k = 10
-)
-
-test_that("FindTransferAnchors handles multi-layer queries", {
+test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k is set", {
   anchors <- FindTransferAnchors(
     reference = reference,
     query = multilayer_query,
     reference.reduction = "pca",
-    mapping.score.k = 10
+    mapping.score.k = 30
   )
   co <- anchors@object.list[[1]]
-  expect_equal(dim(co), c(220, 160))
+  expect_equal(dim(co), c(230, 160))
+  expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
+  expect_equal(GetAssayData(co[["RNA"]], layer ="data")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
+  expect_equal(dim(co[['pcaproject']]), c(160, 30))
+  expect_equal(dim(co[['pcaproject.l2']]), c(160, 30))
+  ref.cells <- paste0(Cells(ref), "_reference")
+  query.cells <- paste0(Cells(multilayer_query), "_query")
+  expect_equal(anchors@reference.cells, ref.cells)
+  expect_equal(anchors@query.cells, query.cells)
+  expect_equal(anchors@reference.objects, logical())
+  anchor.mat <- anchors@anchors
+  expect_true("query.neighbors" %in% names(anchors@neighbors))
+  query_layers <- multilayer_query@assays$RNA@layers
+  expect_equal(length(anchors@neighbors$query.neighbors), length(query_layers)/2)
 })
+
+test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k is NOT set", {
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+  )
+  co <- anchors@object.list[[1]]
+  expect_equal(dim(co), c(230, 160))
+  expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
+  expect_equal(GetAssayData(co[["RNA"]], layer ="data")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
+  expect_equal(dim(co[['pcaproject']]), c(160, 30))
+  expect_equal(dim(co[['pcaproject.l2']]), c(160, 30))
+  ref.cells <- paste0(Cells(ref), "_reference")
+  query.cells <- paste0(Cells(multilayer_query), "_query")
+  expect_equal(anchors@reference.cells, ref.cells)
+  expect_equal(anchors@query.cells, query.cells)
+  expect_equal(anchors@reference.objects, logical())
+  anchor.mat <- anchors@anchors
+  expect_false("query.neighbors" %in% names(anchors@neighbors))
+})
+
+# Tests for MappingScore
+# ------------------------------------------------------------------------------
+# context("MappingScore")
+# 
+# anchors <- FindTransferAnchors(
+#   reference = reference,
+#   query = multilayer_query,
+#   reference.reduction = "pca",
+#   mapping.score.k = 10
+# )
+# mappingscores <- MappingScore(anchors, 
+#                               ndim=30, 
+#                               kweight = 10,
+#                               kanchors = 100,
+#                               ksmooth = 100,
+#                               ksnn = 20)
+# 
+# # compute mapping score with precomputed neighbors (for both split and single layer queries)
+# test_that("MappingScore", {
+#   anchors <- FindTransferAnchors(
+#     reference = reference,
+#     query = multilayer_query,
+#     reference.reduction = "pca",
+#     mapping.score.k = 30
+#   )
+#   mappingscores <- MappingScore(transfer_anchors, ndim=30)
+#   co <- anchors@object.list[[1]]
+#   expect_equal(dim(co), c(230, 160))
+#   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
+#   expect_equal(GetAssayData(co[["RNA"]], layer ="data")[1, 3], 0)
+#   expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
+#   expect_equal(dim(co[['pcaproject']]), c(160, 30))
+#   expect_equal(dim(co[['pcaproject.l2']]), c(160, 30))
+#   ref.cells <- paste0(Cells(ref), "_reference")
+#   query.cells <- paste0(Cells(multilayer_query), "_query")
+#   expect_equal(anchors@reference.cells, ref.cells)
+#   expect_equal(anchors@query.cells, query.cells)
+#   expect_equal(anchors@reference.objects, logical())
+#   anchor.mat <- anchors@anchors
+#   expect_true("query.neighbors" %in% names(anchors@neighbors))
+#   query_layers <- multilayer_query@assays$RNA@layers
+#   expect_equal(length(anchors@neighbors$query.neighbors), length(query_layers)/2)
+# })
