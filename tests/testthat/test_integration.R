@@ -462,45 +462,21 @@ test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k 
 })
 
 # Tests for MappingScore
-# ------------------------------------------------------------------------------
-# context("MappingScore")
-# 
-# anchors <- FindTransferAnchors(
-#   reference = reference,
-#   query = multilayer_query,
-#   reference.reduction = "pca",
-#   mapping.score.k = 10
-# )
-# mappingscores <- MappingScore(anchors, 
-#                               ndim=30, 
-#                               kweight = 10,
-#                               kanchors = 100,
-#                               ksmooth = 100,
-#                               ksnn = 20)
-# 
-# # compute mapping score with precomputed neighbors (for both split and single layer queries)
-# test_that("MappingScore", {
-#   anchors <- FindTransferAnchors(
-#     reference = reference,
-#     query = multilayer_query,
-#     reference.reduction = "pca",
-#     mapping.score.k = 30
-#   )
-#   mappingscores <- MappingScore(transfer_anchors, ndim=30)
-#   co <- anchors@object.list[[1]]
-#   expect_equal(dim(co), c(230, 160))
-#   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
-#   expect_equal(GetAssayData(co[["RNA"]], layer ="data")[1, 3], 0)
-#   expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
-#   expect_equal(dim(co[['pcaproject']]), c(160, 30))
-#   expect_equal(dim(co[['pcaproject.l2']]), c(160, 30))
-#   ref.cells <- paste0(Cells(ref), "_reference")
-#   query.cells <- paste0(Cells(multilayer_query), "_query")
-#   expect_equal(anchors@reference.cells, ref.cells)
-#   expect_equal(anchors@query.cells, query.cells)
-#   expect_equal(anchors@reference.objects, logical())
-#   anchor.mat <- anchors@anchors
-#   expect_true("query.neighbors" %in% names(anchors@neighbors))
-#   query_layers <- multilayer_query@assays$RNA@layers
-#   expect_equal(length(anchors@neighbors$query.neighbors), length(query_layers)/2)
-# })
+context("MappingScore")
+
+# Test whether having precomputed neighbors change mapping score for split query
+anchors <- FindTransferAnchors(
+  reference = reference,
+  query = multilayer_query,
+  reference.reduction = "pca",
+  mapping.score.k = 10
+)
+
+anchors_wo_mpsc <- FindTransferAnchors(
+  reference = reference,
+  query = multilayer_query,
+  reference.reduction = "pca"
+)
+
+# MappingScore here does not work well because num(cells) is too low
+mappingscores <- MappingScore(anchors,ndim=30, k.weight = 5)
