@@ -700,7 +700,8 @@ VlnPlot <- function(
     fill.by = fill.by,
     flip = flip,
     add.noise = add.noise,
-    raster = raster
+    raster = raster,
+    raster.dpi = raster.dpi
   ))
 }
 
@@ -6729,7 +6730,8 @@ ExIPlot <- function(
   fill.by = NULL,
   flip = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 ) {
   if (is_present(arg = slot)) {
     layer <- layer %||% slot
@@ -6839,7 +6841,8 @@ ExIPlot <- function(
         alpha = alpha,
         log = log,
         add.noise = add.noise,
-        raster = raster
+        raster = raster,
+        raster.dpi = raster.dpi
       ))
     }
   )
