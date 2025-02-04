@@ -590,6 +590,8 @@ RidgePlot <- function(
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 # default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 # number of points exceed 100,000.
+#' @param raster.dpi the dpi for raster layer, default is 300.
+#' See \code{\link[ggrastr]{rasterize}} for more info.
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -628,7 +630,8 @@ VlnPlot <- function(
   fill.by = 'feature',
   flip = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = 300
 ) {
   if (is_present(arg = slot)) {
     deprecate_soft(
@@ -8411,6 +8414,8 @@ SingleDimPlot <- function(
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
+#' @param raster.dpi the dpi for raster layer, default is 300.
+#' See \code{\link[ggrastr]{rasterize}} for more info.
 #'
 #' @return A ggplot-based Expression-by-Identity plot
 #'
@@ -8439,7 +8444,8 @@ SingleExIPlot <- function(
   seed.use = 42,
   log = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 ) {
    if (!is.null(x = raster) && isTRUE(x = raster)){
     if (!PackageCheck('ggrastr', error = FALSE)) {
@@ -8519,7 +8525,7 @@ SingleExIPlot <- function(
       )
       if (is.null(x = split)) {
         if (isTRUE(x = raster)) {
-          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE))
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE), dpi = raster.dpi)
         } else {
           jitter <- geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
         }
@@ -8530,7 +8536,7 @@ SingleExIPlot <- function(
             size = pt.size,
             alpha = alpha,
             show.legend = FALSE
-          ))
+          ), dpi = raster.dpi)
         } else {
           jitter <- geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
