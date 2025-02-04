@@ -1228,11 +1228,23 @@ SCTransform.StdAssay <- function(
       )
     }
   )
+  
   assay_out <- merge(
     output_list[[1]], 
-    output_list[-1], 
-    fill.missing.residuals = TRUE
+    output_list[-1]
   )
+
+  residuals <- suppressWarnings(
+    FetchResiduals(
+      object = assay_out, 
+      umi.object = object,
+      features = Features(object),
+      verbose = FALSE
+    )
+  )
+  
+  LayerData(object, layer = "scale.data") <- residuals
+
   return (assay_out)
 }
 
