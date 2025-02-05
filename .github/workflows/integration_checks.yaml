@@ -1,16 +1,14 @@
 name: Integration Checks
 
-# Because `develop` is a protected branch this workflow is triggered when a PR 
+# Because `main` is a protected branch this workflow is triggered when a PR 
 # is opened/updated and again when it is merged.
 on:
   push:
-    branches: 
-    - develop
-    - master
+    branches:
+    - main 
   pull_request:
     branches: 
-    - develop
-    - master
+    - main
 
 jobs:
   check-package:
