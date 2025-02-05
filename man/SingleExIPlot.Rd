@@ -18,7 +18,8 @@ SingleExIPlot(
   seed.use = 42,
   log = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 )
 }
 \arguments{
@@ -52,6 +53,9 @@ expression of the attribute being potted}
 \item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.
 default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 number of points exceed 100,000.}
+
+\item{raster.dpi}{the dpi for raster layer, default is 300.
+See \code{\link[ggrastr]{rasterize}} for more info.}
 }
 \value{
 A ggplot-based Expression-by-Identity plot
