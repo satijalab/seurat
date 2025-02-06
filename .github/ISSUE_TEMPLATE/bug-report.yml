@@ -1,0 +1,53 @@
+name: Bug Report
+description: Create a report to help improve Seurat
+title: "BUG: <insert-descriptive-title>"
+labels: [bug]
+
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for taking the time to file a bug report.
+  - type: markdown
+    attributes:
+        value: Before continuing, please check the issue tracker to see if the bug has already been reported. Also check the [changelog](https://github.com/satijalab/seurat/blob/main/NEWS.md) in case the issue has already been fixed in the development version of `Seurat`.
+  - type: textarea
+    attributes:
+      label: Issue Description
+      description: |
+        Please provide a clear, concise description of the issue. What did you 
+        expect to happen? What actually happened? Please be as specific as 
+        possible.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproducing Code Example
+      description: |
+        Please provide a minimal reproducible example demonstrating the issue 
+        using `pbmc_small` or one of the datasets available via 
+        [`SeuratData`](https://github.com/satijalab/seurat-data). The script 
+        should not depend on any files or variables specific to your local environment.
+      render: R
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Error Message
+      description: If any, please paste the *full* error message here.
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Additional Comments
+      description: |
+        Please include any additional information that maybe relevant.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Session Info
+      description: Please paste the output of `sessionInfo()` here.
+      render: shell
+    validations:
+      required: true
