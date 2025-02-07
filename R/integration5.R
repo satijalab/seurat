@@ -97,10 +97,16 @@ HarmonyIntegration <- function(
   epsilon.harmony = 1e-04,
   verbose = TRUE,
   ...
-) {
+) {  
 
-  if (!exists(".harmony_warning_shown", envir = .GlobalEnv)) {
-  
+  show_harmony_warning <- function(params_ignored) {
+  inform(
+    message = paste("The following parameters are being ignored for HarmonyIntegration:\n", 
+                    paste(params_ignored, collapse = ", ")),
+    .frequency = "once"
+  )
+}
+
   params_ignored <- c(
     "features",
     "do_pca",
@@ -113,15 +119,7 @@ HarmonyIntegration <- function(
     "epsilon.harmony"
   )
 
-  warning_message <- paste(
-    "The following parameters are being ignored as HarmonyMatrix has been deprecated:",
-    paste(params_ignored, collapse = ", ")
-  )
-
-  warning(warning_message, call. = FALSE)
-
-  assign(".harmony_warning_shown", TRUE, envir = .GlobalEnv)
-}
+  show_harmony_warning(params_ignored)
 
   check_installed(
     pkg = "harmony",
