@@ -2133,6 +2133,20 @@ ScaleFactors.SlideSeq <- function(object, ...) {
 }
 
 #' @rdname ScaleFactors
+#' @method ScaleFactors STARmap
+#' @export
+#' @concept spatial
+#'
+ScaleFactors.STARmap <- function(object, ...) {
+  # The concept of image scale factors comes from the 10x Visium platform. 
+  # Although STARmap has no equivalent, we still want to provide the generic
+  # so that the all of our concrete `SpatialImage` classes implement the same
+  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # to 1.
+  return(scalefactors())
+}
+
+#' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
 #' @export
 #' @concept spatial
