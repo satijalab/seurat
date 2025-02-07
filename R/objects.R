@@ -254,7 +254,7 @@ SCTAssay <- setClass(
 #' @concept spatial
 #' @export
 #'
-scalefactors <- function(spot, fiducial, hires, lowres) {
+scalefactors <- function(spot = 1, fiducial = 1, hires = 1, lowres = 1) {
   object <- list(
     spot = spot,
     fiducial = fiducial,
