@@ -98,6 +98,32 @@ HarmonyIntegration <- function(
   verbose = TRUE,
   ...
 ) {
+
+  if (!exists(".harmony_warning_shown", envir = .GlobalEnv)) {
+  
+  params_ignored <- c(
+    "features",
+    "do_pca",
+    "npcs",
+    "tau",
+    "block.size",
+    "max.iter.harmony",
+    "max.iter.cluster",
+    "epsilon.cluster",
+    "epsilon.harmony"
+  )
+
+  warning_message <- paste(
+    "The following parameters are being dropped as HarmonyMatrix is deprecated:",
+    paste(params_ignored, collapse = ", ")
+  )
+
+  warning(warning_message, call. = FALSE)
+
+  # Mark that the warning has been shown
+  assign(".harmony_warning_shown", TRUE, envir = .GlobalEnv)
+}
+
   check_installed(
     pkg = "harmony",
     reason = "for running integration with Harmony"
