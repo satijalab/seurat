@@ -2329,6 +2329,9 @@ merge.SCTAssay <- function(
     X = assays,
     FUN = function(assay.i) inherits(x = assay.i, what = "Assay5")
   ))) {
+    warn(
+      message = "Attempting to merge an SCTAssay with Assay5, converting to Assay5"
+    )
     return(merge(x = as(x, "Assay5"), y, ...))
   }
   parent.call <- grep(pattern = "merge.Seurat", x = sys.calls())
@@ -2357,7 +2360,7 @@ merge.SCTAssay <- function(
             assay = parent.environ$assay,
             slot = "scale.data",
             new.data = residuals
-          )                                                                
+          )
           return(seurat.object[[parent.environ$assay]])
         }
         return(assays[[assay]])
