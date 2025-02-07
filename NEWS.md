@@ -1,3 +1,8 @@
+# Unreleased
+
+## Changes
+- Fixed `GroupCorrelation` and `GroupCorrelationPlot` to be compatible with `SeuratObject` >= 5.0.0 ([#9625](https://github.com/satijalab/seurat/pull/9625))
+
 # Seurat 5.2.1 (2025-01-23)
 
 ## Changes
