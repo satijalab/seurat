@@ -1171,11 +1171,26 @@ PercentageFeatureSet <- function(
   assay = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  if (!is.null(x = features) && !is.null(x = pattern)) {
-    warn(message = "Both pattern and features provided. Pattern is being ignored.")
+  if (!is.null(x = features))  {
+    if (!is.null(x = pattern)) {
+      warning("Both pattern and features provided. Pattern is being ignored.")
+    }
+
+    available_features <- Features(object[[assay]])
+    missing_features <- setdiff(features, available_features)
+    if (length(missing_features) > 0) {
+      warning(
+        paste(
+          "The following features are not found in the",
+          paste0("'", assay, "'"),
+          "assay:",
+          paste(paste0("'", missing_features, "'"), collapse = ", ")
+        )
+      )
+    }
   }
   percent.featureset <- list()
-  layers <- Layers(object = object, search = "counts")
+  layers <- Layers(object = object, assay = assay, search = "counts")
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
     features.layer <- features %||% grep(
@@ -1185,6 +1200,7 @@ PercentageFeatureSet <- function(
     layer.data <- LayerData(object = object,
                             assay = assay,
                             layer = layer)
+    features.layer <- intersect(features.layer, rownames(layer.data))
     layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
     layer.perc <- layer.sums / object[[]][colnames(layer.data), paste0("nCount_", assay)] * 100
     percent.featureset[[i]] <- layer.perc
