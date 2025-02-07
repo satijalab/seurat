@@ -1229,21 +1229,57 @@ SCTransform.StdAssay <- function(
     }
   )
   
-  assay_out <- merge(
-    output_list[[1]], 
-    output_list[-1]
-  )
-
+  if (length(output_list) > 1) {
+    assay_out <- merge(
+      output_list[[1]], 
+      output_list[-1]
+    )
+  } else {
+    assay_out <- output_list[[1]]
+  }
+  
+  if (return.only.var.genes) {
+    var_features_union <- Reduce(
+      union,
+      lapply(
+        output_list,
+        function(output) {
+          return(VariableFeatures(output))
+        }
+      )
+    )
+    all_features_intersect <- Reduce(
+      intersect,
+      lapply(
+        output_list,
+        function(output) {
+          return(rownames(output))
+        }
+      )
+    )
+    scale_data_features <- intersect(all_features_intersect, var_features_union)
+  } else {
+    scale_data_features <- Reduce(
+      union,
+      lapply(
+        output_list,
+        function(output) {
+          return(rownames(output))
+        }
+      )
+    )
+  }
+  
   residuals <- suppressWarnings(
     FetchResiduals(
       object = assay_out, 
       umi.object = object,
-      features = Features(object),
+      features = scale_data_features,
       verbose = FALSE
     )
   )
-  
-  LayerData(object, layer = "scale.data") <- residuals
+  LayerData(assay_out, layer = "scale.data") <- residuals
+  VariableFeatures(assay_out) <- VariableFeatures(assay_out, use.var.features = FALSE, nfeatures = 3000)
 
   return (assay_out)
 }
