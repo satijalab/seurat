@@ -114,7 +114,7 @@ HarmonyIntegration <- function(
   )
 
   warning_message <- paste(
-    "The following parameters are being dropped as HarmonyMatrix is deprecated:",
+    "The following parameters are being dropped as HarmonyMatrix has been deprecated:",
     paste(params_ignored, collapse = ", ")
   )
 
