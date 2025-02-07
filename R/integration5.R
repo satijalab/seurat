@@ -120,7 +120,6 @@ HarmonyIntegration <- function(
 
   warning(warning_message, call. = FALSE)
 
-  # Mark that the warning has been shown
   assign(".harmony_warning_shown", TRUE, envir = .GlobalEnv)
 }
 
@@ -133,16 +132,7 @@ HarmonyIntegration <- function(
   } else if (!inherits(x = orig, what = 'DimReduc')) {
     abort(message = "'orig' must be a dimensional reduction")
   }
-  # # Run joint PCA
-  # features <- features %||% Features(x = object, layer = scale.layer)
-  # pca <- RunPCA(
-  #   object = object,
-  #   assay = assay,
-  #   features = features,
-  #   layer = scale.layer,
-  #   npcs = npcs,
-  #   verbose = verbose
-  # )
+
   #create grouping variables
   groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
   # Run Harmony
@@ -150,18 +140,10 @@ HarmonyIntegration <- function(
     data_mat = Embeddings(object = orig),
     meta_data = groups,
     vars_use = 'group',
-    #do_pca = FALSE,
-    #npcs = 0L,
     theta = theta,
     lambda = lambda,
     sigma = sigma,
     nclust = nclust,
-    #tau = tau,
-    #block.size = block.size,
-    #max.iter.harmony = max.iter.harmony,
-    #max.iter.cluster = max.iter.cluster,
-    #epsilon.cluster = epsilon.cluster,
-    #epsilon.harmony = epsilon.harmony,
     return_object = FALSE,
     verbose = verbose
   )
@@ -170,7 +152,6 @@ HarmonyIntegration <- function(
   dr <- suppressWarnings(expr = CreateDimReducObject(
     embeddings = harmony.embed,
     key = key,
-    # assay = assay
     assay = DefaultAssay(object = orig)
   ))
   output.list <- list(dr)
