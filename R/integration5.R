@@ -120,22 +120,22 @@ HarmonyIntegration <- function(
   #create grouping variables
   groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
   # Run Harmony
-  harmony.embed <- harmony::HarmonyMatrix(
+  harmony.embed <- harmony::RunHarmony(
     data_mat = Embeddings(object = orig),
     meta_data = groups,
     vars_use = 'group',
-    do_pca = FALSE,
-    npcs = 0L,
+    #do_pca = FALSE,
+    #npcs = 0L,
     theta = theta,
     lambda = lambda,
     sigma = sigma,
     nclust = nclust,
-    tau = tau,
-    block.size = block.size,
-    max.iter.harmony = max.iter.harmony,
-    max.iter.cluster = max.iter.cluster,
-    epsilon.cluster = epsilon.cluster,
-    epsilon.harmony = epsilon.harmony,
+    #tau = tau,
+    #block.size = block.size,
+    #max.iter.harmony = max.iter.harmony,
+    #max.iter.cluster = max.iter.cluster,
+    #epsilon.cluster = epsilon.cluster,
+    #epsilon.harmony = epsilon.harmony,
     return_object = FALSE,
     verbose = verbose
   )
