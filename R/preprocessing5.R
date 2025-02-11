@@ -1368,7 +1368,7 @@ FetchResiduals.SCTAssay <- function(
   }
   if (length(x = sct.models) == 0) {
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
-    return(object)
+    return(LayerData(object, layer = "scale.data"))
   }
   possible.features <- Reduce(f = union, x = lapply(X = sct.models, FUN = function(x) {
     rownames(x = SCTResults(object = object, slot = "feature.attributes", model = x))
@@ -1391,7 +1391,7 @@ FetchResiduals.SCTAssay <- function(
       }
     ))) == length(x = sct.models)))
     if (length(x = features) == 0) {
-      return(object)
+      return(LayerData(object, layer = "scale.data"))
     }
   }
 
@@ -1401,7 +1401,7 @@ FetchResiduals.SCTAssay <- function(
             paste(features.orig, collapse = ", "),
             call. = FALSE
     )
-    return(NULL)
+    return(LayerData(object, layer = "scale.data"))
   }
 
   # Get all (count) layers
