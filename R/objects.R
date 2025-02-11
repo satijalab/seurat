@@ -2354,7 +2354,7 @@ merge.SCTAssay <- function(
                                                                assay = parent.environ$assay, verbose = FALSE))
           seurat.object <- SetAssayData(
             object = seurat.object,
-            assay = "SCT",
+            assay = parent.environ$assay,
             slot = "scale.data",
             new.data = residuals
           )                                                                
