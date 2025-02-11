@@ -1302,7 +1302,7 @@ FetchResiduals.Seurat <- function(
   }
 
   if (!umi.assay %in% Assays(object) || is.null(Layers(object[[umi.assay]], search = layer))) {
-    return(object)
+    return(LayerData(object[[assay]], layer = "scale.data"))
   }
 
   residuals <- FetchResiduals(
