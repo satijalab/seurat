@@ -405,6 +405,9 @@ LeverageScore.default <- function(
   ncells <- ncol(x = object)
   if (ncells < nsketch * 1.5) {
     nv <- ifelse(nrow(x = object) < 50, nrow(x = object) - 1, 50)
+    if (inherits(x = object, what = 'IterableMatrix')) {
+      object <- as.sparse(x = object)
+    }
     Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
