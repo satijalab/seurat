@@ -833,6 +833,7 @@ ColorDimSplit <- function(
 #' @param raster Convert points to raster format, default is \code{NULL} which
 #' automatically rasterizes if plotting more than 100,000 cells
 #' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
+#' @param label.size.cutoff Clusters that have a cell number below this cutoff are not labeled or shown in legend (replaced with ' ' label)
 #' Default is c(512, 512).
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -884,7 +885,8 @@ DimPlot <- function(
   ncol = NULL,
   combine = TRUE,
   raster = NULL,
-  raster.dpi = c(512, 512)
+  raster.dpi = c(512, 512),
+  label.size.cutoff = 0
 ) {
   if (!is_integerish(x = dims, n = 2L, finite = TRUE) || !all(dims > 0L)) {
     abort(message = "'dims' must be a two-length integer vector")
@@ -902,6 +904,21 @@ DimPlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
+  
+  if (label & (label.size.cutoff > 0)) {
+    labels <- FetchData(object,group.by)
+    for(i in 1:length(group.by)) {
+      grouping_var <- group.by[i]
+      label_table <- table(labels[,grouping_var])
+      invalid_labels <- names(which(label_table<label.size.cutoff))
+      labels[,i] <- as.character(labels[,i])
+      labels[which(labels[,grouping_var]%in%invalid_labels),grouping_var] <- ' '
+      colnames(labels)[i] <- paste0(colnames(labels)[i],"_filtered")
+    }
+    object <- AddMetaData(object,labels)
+    group.by <- colnames(labels)
+  }
+  
   data <- FetchData(
     object = object,
     vars = c(dims, group.by),
