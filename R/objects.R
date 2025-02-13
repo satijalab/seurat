@@ -2325,6 +2325,7 @@ merge.SCTAssay <- function(
   ...
 ) {
   assays <- c(x, y)
+  # check if any assays are Assay5, and then use merge.Assay5 if so
   if (any(sapply(
     X = assays,
     FUN = function(assay.i) inherits(x = assay.i, what = "Assay5")
@@ -2367,6 +2368,8 @@ merge.SCTAssay <- function(
       })
     }
   }
+  # this check takes place after backfilling of residuals so that for a v3 assay,
+  # we avoid dropping features as much as possible.
   sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
   if (any(!sct.check)) {
     warning("Attempting to merge an SCTAssay with another Assay type \n",
