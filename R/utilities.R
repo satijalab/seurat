@@ -1476,26 +1476,28 @@ PseudobulkExpression.Seurat <- function(
     group.by <- colnames(x = data)[which(num.levels > 1)]
     data <- data[, which(num.levels > 1), drop = F]
   }
-  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
-  #check if column names are numeric
-  col.names <- colnames(category.matrix)
-  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
-    col.names <- ifelse(
-      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
-      paste0("g", col.names),
-      col.names
-    )
-    colnames(category.matrix) <- col.names
-    inform(
-      message = paste0("First group.by variable `", group.by[1],
-      "` starts with a number, appending `g` to ensure valid variable names"),
-      .frequency = "regularly",
-      .frequency_id = "PseudobulkExpression"
-    )
-  }
-
   data.return <- list()
   for (i in 1:length(x = assays)) {
+    data_sub <- data[intersect(rownames(data),Cells(object[[assays[i]]])),,drop=FALSE]
+    category.matrix <- CreateCategoryMatrix(labels = data_sub, method = method)
+    #check if column names are numeric
+    col.names <- colnames(category.matrix)
+    if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+      col.names <- ifelse(
+        !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+        paste0("g", col.names),
+        col.names
+      )
+      colnames(category.matrix) <- col.names
+      inform(
+        message = paste0("First group.by variable `", group.by[1],
+        "` starts with a number, appending `g` to ensure valid variable names"),
+        .frequency = "regularly",
+        .frequency_id = "PseudobulkExpression"
+      )
+    }
+
+
     data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
