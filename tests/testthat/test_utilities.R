@@ -147,7 +147,7 @@ test_that("AverageExpression with return.seurat", {
   expect_equal(unname(as.matrix(LayerData(avg.scale[["RNA"]], layer = "scale.data"))), unname(as.matrix(avg.scale.mat)))
 })
 
-test.dat <- LayerData(object = object, layer = "data")
+test.dat <- LayerData(object = object, layer = "data")[, 1:10]
 rownames(x = test.dat) <- paste0("test-", rownames(x = test.dat))
 suppressWarnings(object[["TEST"]] <- CreateAssayObject(data = test.dat))
 
