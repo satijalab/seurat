@@ -1046,7 +1046,7 @@ GeneSymbolThesarus <- function(
 GroupCorrelation <- function(
   object,
   assay = NULL,
-  slot = "scale.data",
+  layer = "scale.data",
   var = NULL,
   group.assay = NULL,
   min.cells = 5,
@@ -1062,7 +1062,7 @@ GroupCorrelation <- function(
     min.cells = min.cells,
     ngroups = ngroups
   )
-  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- as.matrix(x = LayerData(object = object[[assay]], layer = slot))
   data <- data[rowMeans(x = data) != 0, ]
   grp.cors <- apply(
     X = data,
