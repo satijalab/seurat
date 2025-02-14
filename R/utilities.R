@@ -1046,6 +1046,7 @@ GeneSymbolThesarus <- function(
 GroupCorrelation <- function(
   object,
   assay = NULL,
+  slot = deprecated(),
   layer = "scale.data",
   var = NULL,
   group.assay = NULL,
@@ -1053,6 +1054,16 @@ GroupCorrelation <- function(
   ngroups = 6,
   do.plot = TRUE
 ) {
+
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.0',
+      what = 'GroupCorrelation(slot = )',
+      with = 'GroupCorrelation(layer = )'
+    )
+    layer <- slot
+  }
+
   assay <- assay %||% DefaultAssay(object = object)
   group.assay <- group.assay %||% assay
   var <- var %||% paste0("nCount_", group.assay)
