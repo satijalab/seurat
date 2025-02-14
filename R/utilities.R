@@ -174,7 +174,7 @@ AddAzimuthScores <- function(object, filename) {
 #' head(x = pbmc_small[])
 #' }
 #'
-AddModuleScore <- function(
+AddModuleScore.Seurat <- function(
   object,
   features,
   pool = NULL,

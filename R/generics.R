@@ -6,6 +6,28 @@ NULL
 # Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Calculate module scores for feature expression programs in single cells
+#'
+#' Calculate the average expression levels of each program (cluster) on single
+#' cell level, subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the
+#' control features are randomly selected from each bin.
+#'
+#' @param object An object 
+#' @param ... Arguments passed to other methods
+#'
+#' @return Returns a Seurat object with module scores added to object meta data;
+#' each module is stored as \code{name#} for each module program present in
+#' \code{features}
+#'
+#' @references Tirosh et al, Science (2016)
+#'
+#' @export
+#' @concept utilities
+#'
+AddModuleScore <- function(object, ...) {
+  UseMethod(generic = 'AddModuleScore', object = object)
+}
 
 #' Add info to anchor matrix
 #'
