@@ -47,3 +47,16 @@ test_that("merge.SCTAssay works for multi-layer objects",  {
   m2 <- merge(pbmc_small_sct, m1)
   expect_equal(length(m2[['SCT']]@SCTModel.list), 3)
 })
+
+
+# Tests for VariableFeatures.SCTAssay
+# ------------------------------------------------------------------------------
+
+test_that("VariableFeatures can return more or less features than originally called",  {
+  pbmc_small_sct <- SCTransform(pbmc_small_sct,
+                                variable.features.n = 50)
+  #expect_equal(VariableFeatures(pbmc_small_sct, nfeatures = 100), 100)
+  expect_equal(length(VariableFeatures(pbmc_small_sct, nfeatures = 10)), 10)
+  }
+)
+
