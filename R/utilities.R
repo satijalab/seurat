@@ -221,6 +221,61 @@ AddModuleScore.Seurat <- function(
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
+#' @method AddModuleScore StdAssay
+#' @concept utilities
+#'
+AddModuleScore.StdAssay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  layer_names <- Layers(object, search = slot)
+  input_list <- lapply(
+    layer_names,
+    function(layer_name) {
+      layer_data <- LayerData(object, layer = layer_name)
+      layer_object <- CreateAssayObject(layer_data)
+      return (layer_object)
+    }
+  )
+  output_list <- lapply(
+    input_list,
+    function(input) {
+      AddModuleScore(object = input,
+                     features = features,
+                     kmeans.obj = kmeans.obj,
+                     pool = pool,
+                     nbin = nbin,
+                     ctrl = ctrl,
+                     k = k,
+                     name = name,
+                     seed = seed,
+                     search = search,
+                     slot = slot,
+                     ...)
+    }
+  )
+  features.scores.use <- do.call(rbind,output_list)
+  return(features.scores.use)
+}
+
+#' @rdname AddModuleScore
+#'
+#' @importFrom ggplot2 cut_number
+#' @importFrom Matrix rowMeans colMeans
+#'
+#' @references Tirosh et al, Science (2016)
+#'
+#' @export
 #' @method AddModuleScore Assay
 #' @concept utilities
 #'
