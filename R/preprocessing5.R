@@ -1279,7 +1279,8 @@ SCTransform.StdAssay <- function(
     )
   )
   LayerData(assay_out, layer = "scale.data") <- residuals
-  VariableFeatures(assay_out) <- VariableFeatures(assay_out, use.var.features = FALSE, nfeatures = 3000)
+  VariableFeatures(assay_out) <- VariableFeatures(assay_out, use.var.features = FALSE, 
+                                                  nfeatures = variable.features.n)
 
   return (assay_out)
 }
