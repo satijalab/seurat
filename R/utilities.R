@@ -1173,7 +1173,12 @@ PercentageFeatureSet <- function(
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = features))  {
     if (!is.null(x = pattern)) {
-      warning("Both pattern and features provided. Pattern is being ignored.")
+      warning(
+        paste(
+          "Both `features` and `pattern` were provided;",
+          "`pattern` will be ignored."
+        )
+      )
     }
 
     available_features <- Features(object[[assay]])
