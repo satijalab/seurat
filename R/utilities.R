@@ -143,6 +143,7 @@ AddAzimuthScores <- function(object, filename) {
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
+#' @method AddModuleScore Seurat
 #' @concept utilities
 #'
 #' @examples
@@ -220,6 +221,7 @@ AddModuleScore.Seurat <- function(
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
+#' @method AddModuleScore Assay
 #' @concept utilities
 #'
 AddModuleScore.Assay <- function(
