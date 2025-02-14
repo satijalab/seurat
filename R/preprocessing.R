@@ -1263,8 +1263,8 @@ Read10X_Image <- function(
       image = image
     )
 
-    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the 
-    # `spot.radius` slot and instead calculates the value on the fly, but we 
+    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the
+    # `spot.radius` slot and instead calculates the value on the fly, but we
     # can populate the static slot in case it's depended on.
     visium.v1@spot.radius <- Radius(visium.v1)
 
@@ -3518,10 +3518,30 @@ SampleUMI <- function(
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/satijalab/sctransform.
 #' Use this function as an alternative to the NormalizeData,
-#' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-#' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
-#' scale.data being pearson residuals; sctransform::vst intermediate results are saved
-#' in misc slot of new assay.
+#' FindVariableFeatures, ScaleData workflow.
+#' \itemize{
+#'  \item Results are saved in a new assay
+#' (named SCT by default) with pearson residuals saved in \code{scale.data}.
+#'  \item Corrected counts are saved in \code{counts} (representing if each cell had
+#' uniform sequencing depth),
+#'  \item \code{data} contains log1p(corrected counts);
+#'  \item sctransform::vst intermediate results are saved in \code{misc} slot of new assay.
+#' }
+#' In the case that multiple \code{counts} layers are present (i.e. after running \code{split}), SCTransform is run separately
+#' for each counts layer.
+#' \itemize{
+#'  \item To obtain a consensus set of variable features across layers,
+#' each feature is ranked by how frequently it is classified as variable across
+#' layers. Ties are broken using the median ranks of features across layers.
+#' \item \code{scale.data} is then populated by calculating residuals for the consensus
+#' feature set using the appropriate model for each layer. In some cases
+#' (such as if each feature is not present across all layers), \code{VariableFeatures}
+#'  and the features present in \code{scale.data} may differ by a small amount.
+#'  \item The resulting \code{SCTAssay} contains one \code{counts}, \code{data},
+#'  and \code{scale.data} layer, but uses the appropriate model for each cell based on
+#'  the input counts layers.
+#'  }
+#
 #'
 #' @param object UMI counts matrix
 #' @param cell.attr A metadata with cell attributes

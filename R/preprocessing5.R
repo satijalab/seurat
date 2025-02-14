@@ -1169,9 +1169,6 @@ CreateSCTAssay <- function(vst.out,  do.correct.umi, residual.type, clip.range){
 #' LayerData LayerData<- as.sparse
 #'
 #' @method SCTransform StdAssay
-#' @return In the multi-layer case, this returns an assay with residuals calculated
-#' using a separate model for each layer (counts and data are then derived from this,
-#' as described above). `VariableFeatures`
 #' @export
 #'
 SCTransform.StdAssay <- function(
