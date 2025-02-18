@@ -254,7 +254,7 @@ SCTAssay <- setClass(
 #' @concept spatial
 #' @export
 #'
-scalefactors <- function(spot, fiducial, hires, lowres) {
+scalefactors <- function(spot = 1, fiducial = 1, hires = 1, lowres = 1) {
   object <- list(
     spot = spot,
     fiducial = fiducial,
@@ -2116,6 +2116,34 @@ VariableFeatures.SCTAssay <- function(
     names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
   )
   return(features)
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors SlideSeq
+#' @export
+#' @concept spatial
+#'
+ScaleFactors.SlideSeq <- function(object, ...) {
+  # The concept of image scale factors comes from the 10x Visium platform. 
+  # Although SlideSeq has no equivalent, we still want to provide the generic
+  # so that the all of our concrete `SpatialImage` classes implement the same
+  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # to 1.
+  return(scalefactors())
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors STARmap
+#' @export
+#' @concept spatial
+#'
+ScaleFactors.STARmap <- function(object, ...) {
+  # The concept of image scale factors comes from the 10x Visium platform. 
+  # Although STARmap has no equivalent, we still want to provide the generic
+  # so that the all of our concrete `SpatialImage` classes implement the same
+  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # to 1.
+  return(scalefactors())
 }
 
 #' @rdname ScaleFactors
