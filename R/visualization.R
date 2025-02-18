@@ -2443,6 +2443,9 @@ ImageDimPlot <- function(
   if (!length(x = fov)) {
     stop("No compatible spatial coordinates present")
   }
+  if (grepl("~",fov)){
+    stop("Cannot use '~' in FOV name")
+  }
   # Identify boundaries to use
   boundaries <- boundaries %||% sapply(
     X = fov,
@@ -2479,15 +2482,15 @@ ImageDimPlot <- function(
       return(if (isTRUE(x = overlap[i])) {
         fov[i]
       } else {
-        paste(fov[i], boundaries[[i]], sep = '_')
+        paste(fov[i], boundaries[[i]], sep = '~')
       })
     }
   ))
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
   for (i in names(x = pdata)) {
-    ul <- unlist(x = strsplit(x = i, split = '_'))
-    img <- paste(ul[1:length(ul)-1], collapse = '_')
+    ul <- unlist(x = strsplit(x = i, split = '~'))
+    img <- paste(ul[1:length(ul)-1], collapse = '~')
     # Apply overlap
     lyr <- ul[length(ul)]
     if (is.na(x = lyr)) {
@@ -2560,7 +2563,7 @@ ImageDimPlot <- function(
   idx <- 1L
   for (group in group.by) {
     for (i in seq_along(along.with = pdata)) {
-      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '_'))[1L]
+      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '~'))[1L]
       p <- SingleImagePlot(
         data = pdata[[i]],
         col.by = pdata[[i]] %!NA% group,
@@ -2694,6 +2697,9 @@ ImageFeaturePlot <- function(
   )
   if (!length(x = fov)) {
     stop("No compatible spatial coordinates present")
+  }
+  if (grepl("~",fov)){
+    stop("Cannot use '~' in FOV name")
   }
   # Identify boundaries to use
   boundaries <- boundaries %||% sapply(
@@ -2884,19 +2890,19 @@ ImageFeaturePlot <- function(
       return(if (isTRUE(x = overlap[i])) {
         fov[i]
       } else {
-        paste(fov[i], boundaries[[i]], sep = '_')
+        paste(fov[i], boundaries[[i]], sep = '~')
       })
     }
   ))
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
   for (i in names(x = pdata)) {
-    ul <- unlist(x = strsplit(x = i, split = '_'))
+    ul <- unlist(x = strsplit(x = i, split = '~'))
     # img <- paste(ul[1:length(ul)-1], collapse = '_')
     # Apply overlap
     # lyr <- ul[length(ul)]
     if(length(ul) > 1) {
-         img <- paste(ul[1:length(ul)-1], collapse = '_')
+         img <- paste(ul[1:length(ul)-1], collapse = '~')
          lyr <- ul[length(ul)]
     } else if (length(ul) == 1) {
          img <- ul[1]
@@ -3014,7 +3020,7 @@ ImageFeaturePlot <- function(
     }
     for (j in seq_along(along.with = pdata)) {
       key <- names(x = pdata)[j]
-      img <- unlist(x = strsplit(x = key, split = '_'))[1L]
+      img <- unlist(x = strsplit(x = key, split = '~'))[1L]
       plots[[ident]][[key]] <- vector(
         mode = 'list',
         length = length(x = features) + ifelse(
