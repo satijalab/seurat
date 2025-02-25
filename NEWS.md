@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Fixed `PercentageFeatureSet` so that the `assay` parameter is always respected; fixed `PercentageFeatureSet` to raise a warning if any `features` are absent in the specified `assay` instead of throwing an error ([#9686](https://github.com/satijalab/seurat/pull/9686))
 - Fixed `GroupCorrelation` and `GroupCorrelationPlot` to be compatible with `SeuratObject` >= 5.0.0 ([#9625](https://github.com/satijalab/seurat/pull/9625))
 
 # Seurat 5.2.1 (2025-01-23)
