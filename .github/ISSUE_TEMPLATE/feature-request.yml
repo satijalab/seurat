@@ -1,0 +1,31 @@
+name: Feature Request
+description: Suggest new feature for Seurat
+title: "Feature Request: <insert-descriptive-title>"
+labels: [enhancement]
+
+body:
+  - type: textarea
+    attributes:
+      label: Motivation
+      description: |
+        Please explain your motivation for the request. Why would the feature 
+        be useful? Is your feature request related to a problem? If so, please 
+        describe it.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Feature Description
+      description: |
+        Describe the feature. Please be as specific as possible.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Alternatives
+      description: |
+        Please describe any alternatives you've considered. If applicable, 
+        include workarounds or existing features that partially address your 
+        request.
+    validations:
+      required: false

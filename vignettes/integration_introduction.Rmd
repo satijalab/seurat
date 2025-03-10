@@ -65,7 +65,7 @@ InstallData('ifnb')
 
 The object contains data from human PBMC from two conditions, interferon-stimulated and control cells (stored in the `stim` column in the object metadata). We will aim to integrate the two conditions together, so that we can jointly identify cell subpopulations across datasets, and then explore how each group differs across conditions
 
-In previous versions of Seurat, we would require the data to be represented as two different Seurat objects. In Seurat v5, we keep all the data in one object, but simply split it into multiple 'layers'. To learn more about layers, check out our [Seurat object interaction vignette](https://satijalab.org/seurat/articles/interaction_vignette).
+In previous versions of Seurat, we would require the data to be represented as two different Seurat objects. In Seurat v5, we keep all the data in one object, but simply split it into multiple 'layers'. To learn more about layers, check out our [Seurat object interaction vignette](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html#load-data-from-multiple-h5ad-files).
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
