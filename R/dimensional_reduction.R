@@ -1511,6 +1511,51 @@ RunUMAP.default <- function(
         )
       }
     },
+    'uwot2' = {
+      if (is.list(x = object)) {
+        umap2(
+          X = NULL,
+          nn_method = object,
+          n_threads = nbrOfWorkers(),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
+        )
+      } else {
+        umap2(
+          X = object,
+          n_threads = nbrOfWorkers(),
+          n_neighbors = as.integer(x = n.neighbors),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
+        )
+      }
+    },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   if (return.model) {
