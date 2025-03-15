@@ -1456,14 +1456,6 @@ RunUMAP.default <- function(
       }
     },
     'uwot-predict' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
-      }
       if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
         stop(
           "If running projection UMAP, please pass a DimReduc object with the model stored to reduction.model.",
