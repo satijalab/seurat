@@ -463,7 +463,7 @@ LeverageScore.default <- function(
   if (!inherits(x = sa, what = 'dgCMatrix')) {
     sa <- as(object = sa, Class = 'dgCMatrix')
   }
-  qr.sa <- base::qr(x = sa)
+  qr.sa <- Matrix::qrR(x = sa)
   R <- if (inherits(x = qr.sa, what = 'sparseQR')) {
     qrR(qr = qr.sa)
   } else {
