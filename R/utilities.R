@@ -1314,7 +1314,7 @@ PercentageFeatureSet <- function(
 #' @param object Seurat object
 #' @param method Whether to 'average' (default) or 'aggregate' expression levels
 #' @param assay  The name of the passed assay - used primarily for warning/error messages
-#' @param category.matrix A matrix defining groupings for pseudobulk expression 
+#' @param category.matrix A matrix defining groupings for pseudobulk expression
 #' calculations; each column represents an identity class, and each row a sample
 #' @param features Features to analyze. Default is all features in the assay
 #' @param layer Layer(s) to user; if multiple are given, assumed to follow
@@ -1460,10 +1460,10 @@ PseudobulkExpression.StdAssay <- function(
 
 #' @param assays Which assays to use. Default is all assays
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, "ident", "replicate", 
+#' @param group.by Categories for grouping (e.g, "ident", "replicate",
 #' "celltype"); "ident" by default
 #' @param add.ident (Deprecated) See group.by
-#' @param method The method used for calculating pseudobulk expression; one of: 
+#' @param method The method used for calculating pseudobulk expression; one of:
 #' "average" or "aggregate"
 #' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
 #' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
@@ -1636,6 +1636,8 @@ PseudobulkExpression.Seurat <- function(
         ) <- NormalizeData(
           as.matrix(x = data.return[[1]]),
           normalization.method = normalization.method,
+          scale.factor = scale.factor,
+          margin = margin,
           verbose = verbose
         )
       }
@@ -3051,7 +3053,7 @@ BuildNicheAssay <- function(
   )
   rownames(cell.type.mtx) <- cells
   colnames(cell.type.mtx) <- groups
-  # populate the binary matrix 
+  # populate the binary matrix
   cells.idx <- seq_along(cells)
   group.idx <- match(group.labels, groups)
   cell.type.mtx[cbind(cells.idx, group.idx)] <- 1
