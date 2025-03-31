@@ -11,7 +11,7 @@ HarmonyIntegration(
   scale.layer = "scale.data",
   new.reduction = "harmony",
   layers = NULL,
-  npcs = 50L,
+  npcs = NULL,
   key = "harmony_",
   theta = NULL,
   lambda = NULL,
@@ -22,7 +22,7 @@ HarmonyIntegration(
   max.iter.harmony = 10L,
   max.iter.cluster = 20L,
   epsilon.cluster = 1e-05,
-  epsilon.harmony = 1e-04,
+  epsilon.harmony = 0.01,
   verbose = TRUE,
   ...
 )
