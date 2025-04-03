@@ -28,7 +28,8 @@ VlnPlot(
   fill.by = "feature",
   flip = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = 300
 )
 }
 \arguments{
@@ -84,6 +85,9 @@ ggplot object. If \code{FALSE}, return a list of ggplot}
 \item{add.noise}{determine if adding a small noise for plotting}
 
 \item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.}
+
+\item{raster.dpi}{the dpi for raster layer, default is 300.
+See \code{\link[ggrastr]{rasterize}} for more info.}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if
