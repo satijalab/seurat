@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Updated `HarmonyIntegration` to call `harmony::RunHarmony` in favor of the deprecated `harmony::HarmonyMatrix` ([#9789](https://github.com/satijalab/seurat/pull/9789)) 
 - Added `raster.dpi` parameter to `VlnPlot` ([#9665](https://github.com/satijalab/seurat/pull/9665))
 - Fixed `SpatialDimPlot(..., interactive = TRUE)` to support `SlideSeq` and `STARmap` input types; added `ScaleFactors.SlideSeq` & `ScaleFactors.STARmap` generics ([#9691](https://github.com/satijalab/seurat/pull/9691))
 - Fixed `PercentageFeatureSet` so that the `assay` parameter is always respected; fixed `PercentageFeatureSet` to raise a warning if any `features` are absent in the specified `assay` instead of throwing an error ([#9686](https://github.com/satijalab/seurat/pull/9686))
