@@ -652,7 +652,7 @@ DietSeurat <- function(
     cells.keep[[assay]] <- colnames(x = object[[assay]] )
   }
   cells.keep <- intersect(colnames(x = object), unlist(cells.keep))
-  if (length(cells.keep) <- ncol(x = object)) {
+  if (length(cells.keep) < ncol(x = object)) {
     object <- subset(object, cells = cells.keep)
   }
   return(object)
