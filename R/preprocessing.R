@@ -12,6 +12,25 @@ globalVariables(
   package = 'Seurat',
   add = TRUE
 )
+#' read a MatrixMarket file using data.table::fread which is much faster than Matrix:readMM
+#'
+#' @param filename Path to MatrixMarket file
+#'
+#' @return Returns a sparse matrix in coordinate format
+#'
+#' @author Giulio Genovese, \email{giulio.genovese@gmail.com}
+#''
+readMM_fast <- function(file) {
+  has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
+  if (has_dt) {
+    dt <- data.table::fread(file, header = TRUE, skip = 1, colClasses = c("integer", "integer", "numeric"), quote = "", data.table = FALSE)
+    data <- new("dgTMatrix", i = dt[,1] - 1L, j = dt[,2] - 1L, x = dt[,3], Dim = as.integer(c(names(dt)[1], names(dt)[2])))
+  } else {
+    data <- Matrix::readMM(file)
+  }
+  return(data)
+}
+
 #' Calculate the Barcode Distribution Inflection
 #'
 #' This function calculates an adaptive inflection point ("knee") of the barcode distribution
@@ -814,7 +833,7 @@ LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
   coordinates.file <- coordinates.file[1]
 
   # load counts matrix and create seurat object
-  mtx <- readMM(mtx.file)
+  mtx <- readMM_fast(mtx.file)
   mtx <- as.sparse(mtx)
   barcodes <- read.csv(barcodes.file, header = FALSE)
   genes <- read.csv(genes.file, header = FALSE)
@@ -1011,7 +1030,7 @@ Read10X <- function(
     if (!file.exists(matrix.loc)) {
       stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
-    data <- readMM(file = matrix.loc)
+    data <- readMM_fast(file = matrix.loc)
     if (has_dt) {
       cell.barcodes <- as.data.frame(data.table::fread(barcode.loc, header = FALSE))
     } else {
@@ -1881,7 +1900,7 @@ ReadMtx <- function(
   if (unique.features) {
     feature.names <- make.unique(names = feature.names)
   }
-  data <- readMM(file = all.files[['expression matrix']])
+  data <- readMM_fast(file = all.files[['expression matrix']])
   if (mtx.transpose) {
     data <- t(x = data)
   }
