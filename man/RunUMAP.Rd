@@ -124,8 +124,8 @@ if running UMAP on a Graph}
 
 \item{umap.method}{UMAP implementation to run. Can be
 \describe{
-  \item{\code{uwot}:}{Runs umap via the uwot R package}
-  \item{\code{uwot-learn}:}{Runs umap via the uwot R package and return the learned umap model}
+  \item{\code{uwot}:}{Runs umap via the uwot R package (\code{uwot::umap})}
+  \item{\code{uwot2}:}{Runs umap2 via the uwot R package (\code{uwot::umap2})}
   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 }}
 
