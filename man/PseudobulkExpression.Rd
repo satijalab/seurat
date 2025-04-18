@@ -55,7 +55,7 @@ PseudobulkExpression(object, ...)
 
 \item{assay}{The name of the passed assay - used primarily for warning/error messages}
 
-\item{category.matrix}{A matrix defining groupings for pseudobulk expression 
+\item{category.matrix}{A matrix defining groupings for pseudobulk expression
 calculations; each column represents an identity class, and each row a sample}
 
 \item{features}{Features to analyze. Default is all features in the assay}
@@ -71,12 +71,12 @@ the order of 'assays' (if specified) or object's assays}
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is FALSE}
 
-\item{group.by}{Categories for grouping (e.g, "ident", "replicate", 
+\item{group.by}{Categories for grouping (e.g, "ident", "replicate",
 "celltype"); "ident" by default}
 
 \item{add.ident}{(Deprecated) See group.by}
 
-\item{method}{The method used for calculating pseudobulk expression; one of: 
+\item{method}{The method used for calculating pseudobulk expression; one of:
 "average" or "aggregate"}
 
 \item{normalization.method}{Method for normalization, see \code{\link{NormalizeData}}}
