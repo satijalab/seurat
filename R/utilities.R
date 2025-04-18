@@ -1238,7 +1238,6 @@ PercentageFeatureSet <- function(
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
 #' @rdname PseudobulkExpression
-#' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #' @concept utilities
 #'
