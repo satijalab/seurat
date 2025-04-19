@@ -390,19 +390,18 @@ test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
 
 # Added test for multi-layer query 
 pbmc_small <- suppressWarnings(UpdateSeuratObject(pbmc_small))
-ref <- pbmc_small
-reference <- NormalizeData(ref)
-reference <- FindVariableFeatures(reference)
-reference <- ScaleData(reference)
-reference <- RunPCA(reference)
+reference <- pbmc_small
+reference <- NormalizeData(reference, verbose = FALSE)
+reference <- FindVariableFeatures(reference, verbose = FALSE)
+reference <- ScaleData(reference, verbose = FALSE)
+reference <- suppressWarnings(RunPCA(reference, npcs = 30, verbose = FALSE))
 
 query <- CreateSeuratObject(
   counts = as.sparse(
     GetAssayData(
       object = pbmc_small[['RNA']],
-      layer = "counts") + rpois(n = ncol(pbmc_small),
-                                lambda = 1
-      )
+      layer = "counts"
+    ) + rpois(n = ncol(pbmc_small), lambda = 1)
   )
 )
 multilayer_query <- query
@@ -412,7 +411,7 @@ multilayer_query$dummy_group <- ifelse(
   no  = "Odd"
 )
 multilayer_query[["RNA"]] <- split(x = multilayer_query[["RNA"]], f = multilayer_query$dummy_group)
-multilayer_query <- NormalizeData(multilayer_query)
+multilayer_query <- NormalizeData(multilayer_query, verbose = FALSE)
 
 test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k is set", {
   anchors <- FindTransferAnchors(
@@ -464,19 +463,36 @@ test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k 
 # Tests for MappingScore
 context("MappingScore")
 
-# Test whether having precomputed neighbors change mapping score for split query
-anchors <- FindTransferAnchors(
-  reference = reference,
-  query = multilayer_query,
-  reference.reduction = "pca",
-  mapping.score.k = 10
-)
+test_that("MappingScore works as expected", {
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+    mapping.score.k = 10
+  )
+  scores <- MappingScore(
+    anchors, 
+    ndim = 30, 
+    ksmooth = 10,
+    ksnn = 5,
+    kanchor = 10
+  )
+  expect_setequal(names(scores), Cells(multilayer_query))
+  expect_equal(scores[[42]], 0.5455384, tolerance = 1e-6)
 
-anchors_wo_mpsc <- FindTransferAnchors(
-  reference = reference,
-  query = multilayer_query,
-  reference.reduction = "pca"
-)
-
-# MappingScore here does not work well because num(cells) is too low
-mappingscores <- MappingScore(anchors,ndim=30, k.weight = 5)
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+  )
+  scores <- MappingScore(
+    anchors, 
+    ndim = 30, 
+    ksmooth = 10,
+    ksnn = 5,
+    kanchor = 10
+  )
+  
+  expect_setequal(names(scores), Cells(multilayer_query))
+  expect_equal(scores[[42]], 0.9908003, tolerance = 1e-6)
+})
