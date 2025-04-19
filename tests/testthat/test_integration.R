@@ -464,19 +464,21 @@ test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k 
 # Tests for MappingScore
 context("MappingScore")
 
-# Test whether having precomputed neighbors change mapping score for split query
-anchors <- FindTransferAnchors(
-  reference = reference,
-  query = multilayer_query,
-  reference.reduction = "pca",
-  mapping.score.k = 10
-)
+test_that("MappingScore works as expected", {
+  # Test whether having precomputed neighbors change mapping score for split query
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+    mapping.score.k = 10
+  )
 
-anchors_wo_mpsc <- FindTransferAnchors(
-  reference = reference,
-  query = multilayer_query,
-  reference.reduction = "pca"
-)
+  anchors_wo_mpsc <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca"
+  )
 
-# MappingScore here does not work well because num(cells) is too low
-mappingscores <- MappingScore(anchors,ndim=30, k.weight = 5)
+  # MappingScore here does not work well because num(cells) is too low
+  mappingscores <- MappingScore(anchors,ndim=30, k.weight = 5)
+})
