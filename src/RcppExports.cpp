@@ -402,7 +402,7 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP isnull(void *);
+RcppExport SEXP isnull(SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
