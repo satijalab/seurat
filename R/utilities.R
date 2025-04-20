@@ -137,14 +137,12 @@ AddAzimuthScores <- function(object, filename) {
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
-#' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
-#' @method AddModuleScore Seurat
 #' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Seurat
 #'
 #' @examples
 #' \dontrun{
@@ -213,16 +211,12 @@ AddModuleScore.Seurat <- function(
   return(object)
 }
 
-#' @rdname AddModuleScore
-#'
-#' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
-#' @references Tirosh et al, Science (2016)
-#'
 #' @export
-#' @method AddModuleScore StdAssay
 #' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
+#' 
+#' @references Tirosh et al, Science (2016)
 #'
 AddModuleScore.StdAssay <- function(
     object,
@@ -268,17 +262,16 @@ AddModuleScore.StdAssay <- function(
   return(features.scores.use)
 }
 
+#' 
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#' when \code{k = TRUE}; ignored if \code{k = FALSE}.
+#' @export
+#' @concept utilities
 #' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
 #'
 #' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
-#' @references Tirosh et al, Science (2016)
-#'
-#' @export
-#' @method AddModuleScore Assay
-#' @concept utilities
-#'
+#' 
 AddModuleScore.Assay <- function(
     object,
     features,
