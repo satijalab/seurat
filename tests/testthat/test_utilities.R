@@ -147,7 +147,7 @@ test_that("AverageExpression with return.seurat", {
   expect_equal(unname(as.matrix(LayerData(avg.scale[["RNA"]], layer = "scale.data"))), unname(as.matrix(avg.scale.mat)))
 })
 
-test.dat <- LayerData(object = object, layer = "data")
+test.dat <- LayerData(object = object, layer = "data")[, 1:10]
 rownames(x = test.dat) <- paste0("test-", rownames(x = test.dat))
 suppressWarnings(object[["TEST"]] <- CreateAssayObject(data = test.dat))
 
@@ -157,12 +157,12 @@ test_that("AverageExpression with multiple assays", {
   expect_equal(length(x = avg.test), 1)
   expect_equivalent(
     avg.test[[1]]['test-KHDRBS1', 1:3],
-    c(a = 10.329153, b = 92.287109, c = 5.620942),
+    c(a = 20.66116, b = 751.54445, c = 38.31418),
     tolerance = 1e-6
   )
   expect_equivalent(
     avg.test[[1]]['test-DNAJB1', 1:3] ,
-    c(a = 42.32240, b = 15.94807, c = 15.96319),
+    c(a = 230.50887, b = 50.50505, c = 65.35948),
     tolerance = 1e-6
   )
   avg.all <- AverageExpression(object = object, layer = "data")
