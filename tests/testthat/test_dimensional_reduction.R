@@ -126,16 +126,26 @@ test_that("`RunPCA` returns total variance", {
 
 context("RunICA")
 
-test_that("`RunICA` works as expected", {
-  # Generate a list of inputs that should all produce equivalent outputs.
+test_that("`RunPCA` works as expected", {
   counts <- get_random_counts()
   input_v3 <- get_test_data(counts, assay_version = "v3")
   input_v5 <- get_test_data(counts, assay_version = "v5")
   inputs <- c(input_v3, input_v5)
 
-  # Check that `RunICA` returns equivalent results for every input in `inputs`.
+  # If `BPCells` is installed, add `IterableMatrix` inputs to the set of 
+  # equivalent inputs.
+  if (requireNamespace("BPCells", quietly = TRUE)) {
+    counts_bpcells <- t(as(t(counts), Class = "IterableMatrix"))
+    input_bpcells <- get_test_data(counts_bpcells, assay_version = "v5")
+    inputs <- c(inputs, input_bpcells)
+  }
+
+  # Check that `RunPCA` returns equivalent results for every input in `inputs`.
   test_dimensional_reduction(
     inputs = inputs,
-    method = RunICA
+    method = RunPCA, 
+    # Reduce number of PCs from the default of 20 to avoid warning from 
+    # `irlba` caused by the small size of dataset being used.
+    npcs = 10
   )
 })
