@@ -42,6 +42,59 @@ get_test_data <- function(
   return(test_data)
 }
 
+#' Checks that the specified dimensional reduction `method` returns equivalent
+#' results for each test case in `inputs`.
+test_dimensional_reduction <- function(inputs, method, ...) {
+  # Avoid replying on default reduction names.
+  reduction_name = "test_reduction"
+
+  # Run `method` on each test case in `inputs`.
+  outputs <- lapply(
+    inputs,
+    # Use all features from the input for each dimensional reduction.
+    \(input, ...) method(input, features = rownames(input), ...),
+    reduction.name = reduction_name,
+    verbose = FALSE,
+    ...
+  )
+
+  # Fetch the embeddings for each dimensional reduction in `outputs`.
+  embeddings_all <- lapply(
+    outputs,
+    Embeddings,
+    reduction = reduction_name
+  )
+  embeddings_1 <- embeddings_all[[1]]
+  # Check that the first set of embeddings has the expected row names.
+  expect_true(all.equal(colnames(inputs[[1]]), rownames(embeddings_1)))
+  # Check that all of the embeddings are equivalent.
+  for (embeddings_i in embeddings_all[-1]) {
+    expect_equivalent(
+      abs(embeddings_1), 
+      abs(embeddings_i), 
+      tolerance = 1e-4
+    )
+  }
+
+  # Fetch the feature loadings for each dimensional reduction in `outputs`.
+  loadings_all <- lapply(
+    outputs,
+    Loadings,
+    reduction = reduction_name
+  )
+  loadings_1 <- loadings_all[[1]]
+  # Check that the first set of feature loadings has the expected row names.
+  expect_true(all.equal(rownames(inputs[[1]]), rownames(loadings_1)))
+  # Check that all of the feature loadings are equivalent.
+  for (loadings_i in loadings_all[-1]) {
+    expect_equivalent(
+      abs(loadings_1), 
+      abs(loadings_i), 
+      tolerance = 1e-4
+    )
+  }
+}
+
 context("RunPCA")
 
 test_that("`RunPCA` returns total variance", {
@@ -68,5 +121,21 @@ test_that("`RunPCA` returns total variance", {
   expect_equivalent(
     expected_total_variance,
     slot(object = pca_result[["pca"]], name = "misc")$total.variance,
+  )
+})
+
+context("RunICA")
+
+test_that("`RunICA` works as expected", {
+  # Generate a list of inputs that should all produce equivalent outputs.
+  counts <- get_random_counts()
+  input_v3 <- get_test_data(counts, assay_version = "v3")
+  input_v5 <- get_test_data(counts, assay_version = "v5")
+  inputs <- c(input_v3, input_v5)
+
+  # Check that `RunICA` returns equivalent results for every input in `inputs`.
+  test_dimensional_reduction(
+    inputs = inputs,
+    method = RunICA
   )
 })
