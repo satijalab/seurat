@@ -291,3 +291,33 @@ test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
     LayerData(left, layer = "scale.data")
   )
 })
+
+test_that("AddModuleScore works in the multi-layer case", {
+  cd_features <- list(c('CD79B','CD79A','CD3D','CD2','CD3E','CD7',
+                        'CD14','CD68','CD247'))
+  object1 <- AddModuleScore(object = object,
+                            features = cd_features,
+                            ctrl = 5,
+                            name = 'CD_Features')
+  
+  split_object <- SplitObject(object, split.by = 'a')
+  split_object1 <- AddModuleScore(object = split_object[[1]],
+                                  features = cd_features,
+                                  ctrl = 5,
+                                  name = 'CD_Features')
+  
+  object2 <- split(object, f = object$a)
+  object2 <- AddModuleScore(object = object2,
+                            features = cd_features,
+                            ctrl = 5,
+                            name = 'CD_Features')
+  
+  expect_equal(
+    object2$CD_Features1[object2$a=='a'],
+    split_object1$CD_Features1
+  )
+  
+  expect_false(
+    all(object1$CD_Features1 == object2$CD_Features1)
+  )
+})

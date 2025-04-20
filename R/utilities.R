@@ -137,13 +137,12 @@ AddAzimuthScores <- function(object, filename) {
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
-#' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
 #' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Seurat
 #'
 #' @examples
 #' \dontrun{
@@ -174,7 +173,7 @@ AddAzimuthScores <- function(object, filename) {
 #' head(x = pbmc_small[])
 #' }
 #'
-AddModuleScore <- function(
+AddModuleScore.Seurat <- function(
   object,
   features,
   pool = NULL,
@@ -194,13 +193,106 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
+  features.scores.use <- AddModuleScore(object = object[[assay]],
+                                        features = features,
+                                        kmeans.obj = object@kmeans.obj,
+                                        pool = pool,
+                                        nbin = nbin,
+                                        ctrl = ctrl,
+                                        k = k,
+                                        name = name,
+                                        seed = seed,
+                                        search = search,
+                                        slot = slot,
+                                        ...)
+  object[[colnames(x = features.scores.use)]] <- features.scores.use
+  CheckGC()
+  DefaultAssay(object = object) <- assay.old
+  return(object)
+}
+
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
+#' 
+#' @references Tirosh et al, Science (2016)
+#'
+AddModuleScore.StdAssay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  layer_names <- Layers(object, search = slot)
+  input_list <- lapply(
+    layer_names,
+    function(layer_name) {
+      layer_data <- LayerData(object, layer = layer_name)
+      layer_object <- CreateAssayObject(layer_data)
+      return (layer_object)
+    }
+  )
+  output_list <- lapply(
+    input_list,
+    function(input) {
+      AddModuleScore(object = input,
+                     features = features,
+                     kmeans.obj = kmeans.obj,
+                     pool = pool,
+                     nbin = nbin,
+                     ctrl = ctrl,
+                     k = k,
+                     name = name,
+                     seed = seed,
+                     search = search,
+                     slot = slot,
+                     ...)
+    }
+  )
+  features.scores.use <- do.call(rbind,output_list)
+  return(features.scores.use)
+}
+
+#' 
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#' when \code{k = TRUE}; ignored if \code{k = FALSE}.
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
+#'
+#' @importFrom ggplot2 cut_number
+#' 
+AddModuleScore.Assay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  assay.data <- GetAssayData(object = object, slot = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
     features <- list()
-    for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
-      features[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
+    for (i in as.numeric(x = names(x = table(kmeans.obj[[1]]$cluster)))) {
+      features[[i]] <- names(x = which(x = kmeans.obj[[1]]$cluster == i))
     }
     cluster.length <- length(x = features)
   } else {
@@ -320,10 +412,7 @@ AddModuleScore <- function(
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
-  object[[colnames(x = features.scores.use)]] <- features.scores.use
-  CheckGC()
-  DefaultAssay(object = object) <- assay.old
-  return(object)
+  return(features.scores.use)
 }
 
 #' Aggregated feature expression by identity class
