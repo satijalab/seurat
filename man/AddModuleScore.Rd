@@ -2,11 +2,27 @@
 % Please edit documentation in R/generics.R, R/utilities.R
 \name{AddModuleScore}
 \alias{AddModuleScore}
+\alias{AddModuleScore.Seurat}
 \alias{AddModuleScore.StdAssay}
 \alias{AddModuleScore.Assay}
 \title{Calculate module scores for feature expression programs in single cells}
 \usage{
 AddModuleScore(object, ...)
+
+\method{AddModuleScore}{Seurat}(
+  object,
+  features,
+  pool = NULL,
+  nbin = 24,
+  ctrl = 100,
+  k = FALSE,
+  assay = NULL,
+  name = "Cluster",
+  seed = 1,
+  search = FALSE,
+  slot = "data",
+  ...
+)
 
 \method{AddModuleScore}{StdAssay}(
   object,
@@ -23,7 +39,7 @@ AddModuleScore(object, ...)
   ...
 )
 
-\method{AddModuleScore}{Assay}(
+\method{AddModuleScore}{StdAssay}(
   object,
   features,
   kmeans.obj,
@@ -39,11 +55,47 @@ AddModuleScore(object, ...)
 )
 }
 \arguments{
-\item{object}{An object}
+\item{object}{Seurat object}
 
-\item{...}{Arguments passed to other methods}
+\item{...}{Extra parameters passed to \code{\link{UpdateSymbolList}}}
+
+\item{features}{A list of vectors of features for expression programs; each
+entry should be a vector of feature names}
+
+\item{pool}{List of features to check expression levels against, defaults to
+\code{rownames(x = object)}}
+
+\item{nbin}{Number of bins of aggregate expression levels for all
+analyzed features}
+
+\item{ctrl}{Number of control features selected from the same bin per
+analyzed feature}
+
+\item{k}{Use feature clusters returned from DoKMeans}
+
+\item{assay}{Name of assay to use}
+
+\item{name}{Name for the expression programs; will append a number to the
+end for each entry in \code{features} (eg. if \code{features} has three
+programs, the results will be stored as \code{name1}, \code{name2},
+\code{name3}, respectively)}
+
+\item{seed}{Set a random seed. If NULL, seed is not set.}
+
+\item{search}{Search for symbol synonyms for features in \code{features} that
+don't match features in \code{object}? Searches the HGNC's gene names
+database; see \code{\link{UpdateSymbolList}} for more details}
+
+\item{slot}{Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)}
+
+\item{kmeans.obj}{A \code{DoKMeans} output used to define feature clusters 
+when \code{k = TRUE}; ignored if \code{k = FALSE}.}
 }
 \value{
+Returns a Seurat object with module scores added to object meta data;
+each module is stored as \code{name#} for each module program present in
+\code{features}
+
 Returns a Seurat object with module scores added to object meta data;
 each module is stored as \code{name#} for each module program present in
 \code{features}
@@ -53,6 +105,41 @@ Calculate the average expression levels of each program (cluster) on single
 cell level, subtracted by the aggregated expression of control feature sets.
 All analyzed features are binned based on averaged expression, and the
 control features are randomly selected from each bin.
+
+Calculate the average expression levels of each program (cluster) on single
+cell level, subtracted by the aggregated expression of control feature sets.
+All analyzed features are binned based on averaged expression, and the
+control features are randomly selected from each bin.
+}
+\examples{
+\dontrun{
+data("pbmc_small")
+cd_features <- list(c(
+  'CD79B',
+  'CD79A',
+  'CD19',
+  'CD180',
+  'CD200',
+  'CD3D',
+  'CD2',
+  'CD3E',
+  'CD7',
+  'CD8A',
+  'CD14',
+  'CD1C',
+  'CD68',
+  'CD9',
+  'CD247'
+))
+pbmc_small <- AddModuleScore(
+  object = pbmc_small,
+  features = cd_features,
+  ctrl = 5,
+  name = 'CD_Features'
+)
+head(x = pbmc_small[])
+}
+
 }
 \references{
 Tirosh et al, Science (2016)
