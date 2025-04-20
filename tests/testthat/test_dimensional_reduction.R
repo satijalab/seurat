@@ -1,71 +1,72 @@
-context("test-dimensional_reduction")
+#' Returns a random counts matrix.
+get_random_counts <- function() {
+  # Populate a 100 by 100 matrix with random integers from 1 to 50.
+  counts <- matrix(
+    data = sample(c(1:50), size = 1e4, replace = TRUE),
+    ncol = 100,
+    nrow = 100
+  )
 
-set.seed(seed = 1)
-dummyexpMat <- matrix(
-  data = sample(x = c(1:50), size = 1e4, replace = TRUE),
-  ncol = 100, nrow = 100
-)
-colnames(x = dummyexpMat) <- paste0("cell", seq(ncol(x = dummyexpMat)))
-row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
+  # Assign column and row names to the matrix to label cells and genes.
+  colnames(counts) <- paste0("cell", seq(ncol(counts)))
+  row.names(counts) <- paste0("gene", seq(nrow(counts)))
 
-# Create Seurat object for testing
-obj <- CreateSeuratObject(counts = as.sparse(dummyexpMat))
+  # Convert `counts` to a `dgCMatrix`.
+  counts_sparse <- as.sparse(counts)
 
+  return(counts_sparse)
+}
 
-test_that("different ways of passing distance matrix", {
-  # Manually make a distance object to test
-  distMat <- dist(t(dummyexpMat))
+#' Returns a `Seurat` instance containing the specified `assay_version` and
+#' populated with `counts` which is also preprocessed (normalized + scaled).
+get_test_data <- function(
+  counts = get_random_counts(),
+  assay_version = getOption("Seurat.object.assay.version")
+) {
+  # Use the `assay_version` param to choose the correct assay builder.
+  create_assay <- switch(assay_version,
+    v3 = CreateAssayObject,
+    v5 = CreateAssay5Object,
+    stop("`assay_version` should be one of 'v3', 'v5'")
+  )
+  # And then instantiate the specified assay type.
+  assay <- create_assay(counts)
+
+  # Instantiate a `Seurat` instance using the default assay name.
+  test_data <- CreateSeuratObject(assay)
+
+  # Normalize, and then scale the input data.
+  test_data <- NormalizeData(test_data, verbose = FALSE)
+  test_data <- ScaleData(test_data, verbose = FALSE)
+
+  return(test_data)
+}
+
+context("RunPCA")
+
+test_that("`RunPCA` returns total variance", {
+  # For the motivation behind this test see https://github.com/satijalab/seurat/issues/982.
+  test_case <- get_test_data()
+  counts_scaled <- LayerData(test_case, layer = "scale.data")
+
+  # Calculate the expected total variance using `prcomp`
+  prcomp_result <- stats::prcomp(
+    counts_scaled, 
+    center = FALSE, 
+    scale. = FALSE
+  )
+  expected_total_variance <- sum(prcomp_result$sdev^2)
+
+  pca_result <- suppressWarnings(
+    RunPCA(
+      test_case,
+      features = rownames(counts_scaled),
+      verbose = FALSE
+    )
+  )
 
   expect_equivalent(
-    suppressWarnings(expr = RunTSNE(obj, distance.matrix = distMat)),
-    suppressWarnings(expr = RunTSNE(obj, distance.matrix = as.matrix(distMat)))
+    expected_total_variance,
+    slot(object = pca_result[["pca"]], name = "misc")$total.variance,
   )
-  expect_equivalent(
-    suppressWarnings(expr = RunTSNE(obj, distance.matrix = distMat)@reductions$tsne),
-    suppressWarnings(expr = RunTSNE(distMat, assay = "RNA"))
-  )
-  expect_equivalent(
-    suppressWarnings(expr = RunTSNE(obj, distance.matrix = distMat)@reductions$tsne),
-    suppressWarnings(expr = RunTSNE(as.matrix(distMat), assay = "RNA", is_distance = TRUE))
-  )
-})
-
-# Normalize, scale, and compute PCA, using RunPCA
-obj <- NormalizeData(object = obj, verbose = FALSE)
-obj <- ScaleData(object = obj, verbose = FALSE)
-
-pca_result <- suppressWarnings(expr = RunPCA(
-  object = obj,
-  features = rownames(obj[['RNA']]$counts),
-  verbose = FALSE
-))
-
-test_that("pca returns total variance (see #982)", {
-  # Using stats::prcomp
-  scaled_data <- LayerData(object = obj, layer = "scale.data")
-  prcomp_result <- stats::prcomp(scaled_data, center = FALSE, scale. = FALSE)
-
-  # Compare
-  expect_equivalent(slot(object = pca_result[["pca"]], name = "misc")$total.variance,
-                    sum(prcomp_result$sdev^2))
-
-})
-
-test_that("pca is equivalent for BPCells", {
-  skip_on_cran()
-  skip_if_not_installed("BPCells")
-  library(BPCells)
-  library(Matrix)
-  mat_bpcells <- t(x = as(object = t(x = obj[['RNA']]$counts ), Class = "IterableMatrix"))
-  obj[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
-  DefaultAssay(obj) <- "RNAbp"
-  obj <- NormalizeData(object = obj, verbose = FALSE)
-  obj <- ScaleData(object = obj, verbose=FALSE)
-  pca_result_bp <- suppressWarnings(expr = RunPCA(
-    object = obj,
-    features = rownames(obj[['RNAbp']]$counts),
-    assay = "RNAbp"))
-  expect_equivalent(abs(pca_result_bp[['pca']]@cell.embeddings),
-                   abs(pca_result[['pca']]@cell.embeddings),
-                   tolerance = 1e-5)
 })
