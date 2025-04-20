@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Fixed `PseudobulkExpression` to work with `Seurat` inputs containing more than one assay ([9824](https://github.com/satijalab/seurat/pull/9824))
 - Added `RunICA.StdAssay` ([#9825](https://github.com/satijalab/seurat/pull/9825))
 - Updated `HarmonyIntegration` to call `harmony::RunHarmony` in favor of the deprecated `harmony::HarmonyMatrix` ([#9789](https://github.com/satijalab/seurat/pull/9789)) 
 - Added `raster.dpi` parameter to `VlnPlot` ([#9665](https://github.com/satijalab/seurat/pull/9665))
