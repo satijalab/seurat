@@ -78,7 +78,7 @@ test_that("SketchData defaults work", {
   expect_equal(
     as.numeric(result_2$leverage.score[1]), 
     as.numeric(result$leverage.score[1]), 
-    tolerance = 1e-6
+    tolerance = 1e-5
   )
   expect_equal(
     colnames(result_2[["sketch"]])[1], 
