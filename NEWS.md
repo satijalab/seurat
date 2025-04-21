@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Updated `LeverageScore.default` to convert `BPCells::IterableMatrix` inputs with less than 7500 cells into a sparse matrix before performing the calculation ([#9831](https://github.com/satijalab/seurat/pull/9831))
 - Dropped `VariableFeatures` setter from `SketchData` ([#9830](https://github.com/satijalab/seurat/pull/9830))
 - Extended `Cells.SCTAssay`'s `layer` argument accept slot names: `"counts"`, `"data"`, `"scale.data"`; enabled compatibility with `SketchData`/`LeverageScore`([#9830](https://github.com/satijalab/seurat/pull/9830))
 - Updated `SCTransform.StdAssay` to simplify and speed up the method ([#9828](https://github.com/satijalab/seurat/pull/9828))
