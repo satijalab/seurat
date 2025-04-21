@@ -130,13 +130,6 @@ SketchData <- function(
     cells = unlist(cells),
     layers = Layers(object = object[[assay]], search = c('counts', 'data'))
   ))
-  for (layer.name in layer.names) {
-    try(
-      expr = VariableFeatures(object = sketched, method = "sketch", layer = layer.name) <-
-        VariableFeatures(object = object[[assay]], layer = layer.name),
-      silent = TRUE
-    )
-  }
   if (!is.null(x = cast) && inherits(x = sketched, what = 'Assay5')) {
     sketched <- CastAssay(object = sketched, to = cast, ...)
   }

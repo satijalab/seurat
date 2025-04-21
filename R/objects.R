@@ -1462,11 +1462,26 @@ Cells.SCTModel <- function(x, ...) {
 #' @export
 #'
 Cells.SCTAssay <- function(x, layer = NA, ...) {
-  layer <- layer %||% levels(x = x)[1L]
-  if (rlang::is_na(x = layer)) {
-    return(colnames(x = x))
+  # If `layer` is `NA` return all cells in the assay via `colnames`.
+  if (rlang::is_na(layer)) {
+    return(colnames(x))
   }
-  return(Cells(x = components(object = x, model = layer)))
+
+  # If `layer` is `NULL` take the name of the first model in the 
+  # assay's `SCTModel.list`.
+  layer <- layer %||% levels(x)[1L]
+
+  # If `layer` is one of the standard layer names, use the underlying matrix
+  # to get the requested cell names.
+  if (layer %in% Layers(x)) {
+    data <- LayerData(x, layer=layer)
+    cells <- colnames(data)
+  } else {
+    # Otherwise, assume that `layer` is the name of an element in `SCTModel.list`.
+    cells <- Cells(components(x, model = layer))  
+  }
+
+  return(cells)
 }
 
 #' @rdname Cells

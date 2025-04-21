@@ -2,7 +2,7 @@
 path_to_counts <- system.file("extdata", "pbmc_raw.txt", package = "Seurat")
 
 
-build_test_data <- function(multi_layer = FALSE) {
+build_test_data <- function(multi_layer = FALSE, preprocess = TRUE) {
   counts <- read.table(path_to_counts, sep = "\t", row.names = 1)
   counts <- as.sparse(as.matrix(counts))
 
@@ -26,8 +26,10 @@ build_test_data <- function(multi_layer = FALSE) {
     test_data <- CreateSeuratObject(counts)
   }
 
-  test_data <- NormalizeData(test_data, verbose = FALSE)
-  test_data <- FindVariableFeatures(test_data, verbose = FALSE)
+  if (preprocess) {
+    test_data <- NormalizeData(test_data, verbose = FALSE)
+    test_data <- FindVariableFeatures(test_data, verbose = FALSE)
+  }
 
   return (test_data)
 }
@@ -83,6 +85,43 @@ test_that("SketchData defaults work", {
   expect_equal(
     colnames(result_2[["sketch"]])[1], 
     colnames(result[["sketch"]])[1]
+  )
+})
+
+test_that("SketchData works with SCT inputs", {
+  test_case <- build_test_data(preprocess = FALSE)
+  test_case <- SCTransform(test_case, verbose = FALSE)
+  
+  result <- suppressWarnings(
+    SketchData(
+      test_case, 
+      assay = "SCT",
+      ncells = 50, 
+      method = "LeverageScore", 
+      sketched.assay = "sketch", 
+      set.seed = 42
+    )
+  )
+  expect_equal(
+    dim(result[["sketch"]]$counts), 
+    c(nrow(test_case[["SCT"]]$counts), 50)
+  )
+  expect_equal(
+    dim(result[["sketch"]]$data), 
+    c(nrow(test_case[["SCT"]]$data), 50)
+  )
+  expect_equal(
+    dim(result[["sketch"]]$scale.data), 
+    c(nrow(test_case[["SCT"]]$scale.data), 50)
+  )
+  expect_equal(
+    as.numeric(result$leverage.score[42]), 
+    0.7583021, 
+    tolerance = 1e-6
+  )
+  expect_equal(
+    colnames(result[["sketch"]])[42], 
+    "TTTAGCTGTACTCT"
   )
 })
 
