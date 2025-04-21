@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Fixed `merge.SCTAssay` to accept assays containing more than one model ([#9828](https://github.com/satijalab/seurat/pull/9828))
 - Updated `SCTransform.StdAssay` to simplify and speed up the method ([#9828](https://github.com/satijalab/seurat/pull/9828))
 - Updated `AddModuleScore` to support multi-layer inputs ([#9826](https://github.com/satijalab/seurat/pull/9826))
 - Fixed `PseudobulkExpression` to work with `Seurat` inputs containing more than one assay ([9824](https://github.com/satijalab/seurat/pull/9824))
