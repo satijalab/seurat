@@ -1,6 +1,8 @@
 # Unreleased
 
 ## Changes
+- Dropped `VariableFeatures` setter from `SketchData` ([#9830](https://github.com/satijalab/seurat/pull/9830))
+- Extended `Cells.SCTAssay`'s `layer` argument accept slot names: `"counts"`, `"data"`, `"scale.data"`; enabled compatibility with `SketchData`/`LeverageScore`([#9830](https://github.com/satijalab/seurat/pull/9830))
 - Updated `SCTransform.StdAssay` to simplify and speed up the method ([#9828](https://github.com/satijalab/seurat/pull/9828))
 - Updated `AddModuleScore` to support multi-layer inputs ([#9826](https://github.com/satijalab/seurat/pull/9826))
 - Fixed `PseudobulkExpression` to work with `Seurat` inputs containing more than one assay ([9824](https://github.com/satijalab/seurat/pull/9824))
