@@ -652,8 +652,7 @@ LeverageScore.Seurat <- function(
 #' @references Clarkson, KL. & Woodruff, DP.
 #' Low-rank approximation and regression in input sparsity time.
 #' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45.
-#' \url{https://dl.acm.org/doi/abs/10.1145/3019134};
-
+#' \doi{10.1145/3019134};
 CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
   if (!is.na(x = seed)) {
     set.seed(seed = seed)

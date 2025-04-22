@@ -268,7 +268,7 @@ AddModuleScore.StdAssay <- function(
 #' @export
 #' @concept utilities
 #' @rdname AddModuleScore
-#' @method AddModuleScore StdAssay
+#' @method AddModuleScore Assay
 #'
 #' @importFrom ggplot2 cut_number
 #' 
