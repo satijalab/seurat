@@ -39,7 +39,7 @@ AddModuleScore(object, ...)
   ...
 )
 
-\method{AddModuleScore}{StdAssay}(
+\method{AddModuleScore}{Assay}(
   object,
   features,
   kmeans.obj,
