@@ -2439,22 +2439,22 @@ MapQuery <- function(
 #' @export
 #'
 MappingScore.default <- function(
-    anchors,
-    combined.object,
-    query.neighbors,
-    ref.embeddings,
-    query.embeddings,
-    kanchors = 50,
-    ndim = 50,
-    ksmooth = 100,
-    ksnn = 20,
-    snn.prune = 0,
-    subtract.first.nn = TRUE,
-    nn.method = "annoy",
-    n.trees = 50,
-    query.weights = NULL,
-    verbose = TRUE,
-    ...
+  anchors,
+  combined.object,
+  query.neighbors,
+  ref.embeddings,
+  query.embeddings,
+  kanchors = 50,
+  ndim = 50,
+  ksmooth = 100,
+  ksnn = 20,
+  snn.prune = 0,
+  subtract.first.nn = TRUE,
+  nn.method = "annoy",
+  n.trees = 50,
+  query.weights = NULL,
+  verbose = TRUE,
+  ...
 ) {
   CheckDots(...)
   # Input checks
@@ -2641,18 +2641,18 @@ MappingScore.default <- function(
 #' @method MappingScore AnchorSet
 #'
 MappingScore.AnchorSet <- function(
-    anchors,
-    kanchors = 50,
-    ndim = 50,
-    ksmooth = 100,
-    ksnn = 20,
-    snn.prune = 0,
-    subtract.first.nn = TRUE,
-    nn.method = "annoy",
-    n.trees = 50,
-    query.weights = NULL,
-    verbose = TRUE,
-    ...
+  anchors,
+  kanchors = 50,
+  ndim = 50,
+  ksmooth = 100,
+  ksnn = 20,
+  snn.prune = 0,
+  subtract.first.nn = TRUE,
+  nn.method = "annoy",
+  n.trees = 50,
+  query.weights = NULL,
+  verbose = TRUE,
+  ...
 ) {
   CheckDots(...)
   combined.object <- slot(object = anchors, name = "object.list")[[1]]
