@@ -744,6 +744,7 @@ ReciprocalProject <- function(
 #' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
 #'
+
 FindTransferAnchors <- function(
   reference,
   query,
@@ -773,6 +774,7 @@ FindTransferAnchors <- function(
 ) {
   op <- options(Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
+  
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
@@ -801,6 +803,7 @@ FindTransferAnchors <- function(
     mapping.score.k = mapping.score.k,
     verbose = verbose
   )
+  
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
   reduction.2 <- character()
   feature.mean <- NULL
@@ -879,6 +882,30 @@ FindTransferAnchors <- function(
     object = reference,
     new.names = paste0(Cells(x = reference), "_", "reference")
   )
+  
+  # Select one SCT model based on max num of cells if multiple detected in the ref
+  if (normalization.method == "SCT"){
+    model_list <- reference[["SCT"]]@SCTModel.list
+    if (length(x = model_list) > 1) {
+      model_cell_counts <- sapply(
+        X = model_list,
+        FUN = function(model) {
+          length(x = Cells(x = model))
+        }
+      )
+      best_model_index <- which.max(model_cell_counts)
+      chosen_model <- model_list[[best_model_index]]
+      reference[["SCT"]] <- CreateSCTAssayObject(
+        data = GetAssayData(object = reference[["SCT"]], slot = "data"),
+        scale.data = GetAssayData(object = reference[["SCT"]], slot = "scale.data"),
+        SCTModel.list = chosen_model
+      )
+      message("Selected the SCT model fitted on the most cells.")
+    } else {
+      message("Only one SCT model detected; no need to select.")
+    }
+  }
+  
   # Perform PCA projection
   if (reduction == 'pcaproject') {
     if (project.query) {
@@ -907,6 +934,7 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
+      
       projected.pca <- ProjectCellEmbeddings(
         reference = query,
         reduction = reference.reduction,
@@ -6025,14 +6053,33 @@ ValidateParams_FindTransferAnchors <- function(
     recompute.residuals <- FALSE
     ModifyParam(param = "recompute.residuals", value = recompute.residuals)
   }
+  
+  # Added check for preventing SCT and RNA assay mixing 
+  if (normalization.method == "SCT") {
+    if (IsSCT(assay = reference[[reference.assay]]) && !IsSCT(assay = query[[query.assay]])) {
+      stop(
+        "Reference assay is SCT, but query assay is RNA. ",
+        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
+      )
+    }
+    if (!IsSCT(assay = reference[[reference.assay]]) && IsSCT(assay = query[[query.assay]])) {
+      stop(
+        "Reference assay is RNA, but query assay is SCT. ",
+        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
+      )
+    }
+  }
+  
   if (recompute.residuals) {
     # recompute.residuals only happens in ProjectCellEmbeddings, so k.filter set to NA.
     ModifyParam(param = "k.filter", value = NA)
     reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
-      stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
-           " reference sct models. Please provide a reference assay with a ",
-           " single reference sct model.", call. = FALSE)
+      # Enable compatibility with integrated reference with mutliple SCT models
+      print("Given reference assay has multiple sct models, selecting model with most cells for finding transfer anchors")
+      # stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
+      #      " reference sct models. Please provide a reference assay with a ",
+      #      " single reference sct model.", call. = FALSE)
     } else if (reference.model.num == 0) {
       if (IsSCT(query[[query.assay]])) {
         stop("Given reference assay (", reference.assay,
