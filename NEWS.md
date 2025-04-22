@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Changes
+- Extended `FindTransferAnchors`'s `query` argument to accept multi-layer inputs; updated `MappingScore` to support multi-layer query inputs ([#9832](https://github.com/satijalab/seurat/pull/9832))
 - Updated `LeverageScore.default` to convert `BPCells::IterableMatrix` inputs with less than 7500 cells into a sparse matrix before performing the calculation ([#9831](https://github.com/satijalab/seurat/pull/9831))
 - Dropped `VariableFeatures` setter from `SketchData` ([#9830](https://github.com/satijalab/seurat/pull/9830))
 - Extended `Cells.SCTAssay`'s `layer` argument accept slot names: `"counts"`, `"data"`, `"scale.data"`; enabled compatibility with `SketchData`/`LeverageScore`([#9830](https://github.com/satijalab/seurat/pull/9830))
