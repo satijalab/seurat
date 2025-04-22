@@ -2690,12 +2690,30 @@ MappingScore.AnchorSet <- function(
   for (i in colnames(x = combined.object[[]])) {
     combined.object[[i]] <- NULL
   }
+
+  query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
+  if (inherits(query.neighbors, "Neighbor") || is.null(query.neighbors)) {
+    mapping_scores_list <- MappingScore(
+      anchors = slot(object = anchors, name = "anchors"),
+      combined.object = combined.object,
+      query.neighbors = query.neighbors,
+      ref.embeddings = ref.embeddings,
+      query.embeddings = query.embeddings,
+      kanchors = kanchors,
+      ndim = ndim,
+      ksmooth = ksmooth,
+      ksnn = ksnn,
+      snn.prune = snn.prune,
+      subtract.first.nn = subtract.first.nn,
+      nn.method = nn.method,
+      n.trees = n.trees,
+      query.weights = query.weights,
+      verbose = verbose
+      )
+    return(unlist(mapping_scores_list))
+  }
   
-  # If neighbors are precomputed 
-  if (length(anchors@neighbors)!=0){
-  # Handle query layers 
-  query.neighbors.list <- slot(object = anchors, 
-                                 name = "neighbors")[["query.neighbors"]]
+  query.neighbors.list <- query.neighbors
   mapping_scores_list <- list()
   original_anchors_data <- slot(object = anchors, name = "anchors")
   
@@ -2738,28 +2756,7 @@ MappingScore.AnchorSet <- function(
     slot(anchors, "anchors") <- original_anchors_data
   }
   return(unlist(mapping_scores_list))
-  }
   
-  # If no precomputed neighbors 
-  query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
-  mapping_scores_list <- MappingScore(
-    anchors = slot(object = anchors, name = "anchors"),
-    combined.object = combined.object,
-    query.neighbors = query.neighbors,
-    ref.embeddings = ref.embeddings,
-    query.embeddings = query.embeddings,
-    kanchors = kanchors,
-    ndim = ndim,
-    ksmooth = ksmooth,
-    ksnn = ksnn,
-    snn.prune = snn.prune,
-    subtract.first.nn = subtract.first.nn,
-    nn.method = nn.method,
-    n.trees = n.trees,
-    query.weights = query.weights,
-    verbose = verbose
-    )
-  return(unlist(mapping_scores_list)) #flatten returned mapping scores
 }
 
 #' Calculates a mixing metric
