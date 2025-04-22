@@ -339,7 +339,7 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 #' 
 #' @references Clarkson, K. L. & Woodruff, D. P.
 #' Low-rank approximation and regression in input sparsity time.
-#' JACM 63, 1–45 (2017). \url{https://dl.acm.org/doi/10.1145/3019134};
+#' JACM 63, 1–45 (2017). \doi{10.1145/3019134};
 #'
 #' @export
 #'
