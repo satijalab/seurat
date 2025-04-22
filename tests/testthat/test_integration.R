@@ -388,3 +388,111 @@ test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
   expect_equal(anchors@neighbors, list())
 })
 
+# Added test for multi-layer query 
+pbmc_small <- suppressWarnings(UpdateSeuratObject(pbmc_small))
+reference <- pbmc_small
+reference <- NormalizeData(reference, verbose = FALSE)
+reference <- FindVariableFeatures(reference, verbose = FALSE)
+reference <- ScaleData(reference, verbose = FALSE)
+reference <- suppressWarnings(RunPCA(reference, npcs = 30, verbose = FALSE))
+
+query <- CreateSeuratObject(
+  counts = as.sparse(
+    GetAssayData(
+      object = pbmc_small[['RNA']],
+      layer = "counts"
+    ) + rpois(n = ncol(pbmc_small), lambda = 1)
+  )
+)
+multilayer_query <- query
+multilayer_query$dummy_group <- ifelse(
+  test = as.numeric(factor(Cells(multilayer_query))) %% 2 == 0,
+  yes = "Even",
+  no  = "Odd"
+)
+multilayer_query[["RNA"]] <- split(x = multilayer_query[["RNA"]], f = multilayer_query$dummy_group)
+multilayer_query <- NormalizeData(multilayer_query, verbose = FALSE)
+
+test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k is set", {
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+    mapping.score.k = 30
+  )
+  co <- anchors@object.list[[1]]
+  expect_equal(dim(co), c(230, 160))
+  expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
+  expect_equal(GetAssayData(co[["RNA"]], layer ="data")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
+  expect_equal(dim(co[['pcaproject']]), c(160, 30))
+  expect_equal(dim(co[['pcaproject.l2']]), c(160, 30))
+  ref.cells <- paste0(Cells(ref), "_reference")
+  query.cells <- paste0(Cells(multilayer_query), "_query")
+  expect_equal(anchors@reference.cells, ref.cells)
+  expect_equal(anchors@query.cells, query.cells)
+  expect_equal(anchors@reference.objects, logical())
+  anchor.mat <- anchors@anchors
+  expect_true("query.neighbors" %in% names(anchors@neighbors))
+  query_layers <- multilayer_query@assays$RNA@layers
+  expect_equal(length(anchors@neighbors$query.neighbors), length(query_layers)/2)
+})
+
+test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k is NOT set", {
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+  )
+  co <- anchors@object.list[[1]]
+  expect_equal(dim(co), c(230, 160))
+  expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
+  expect_equal(GetAssayData(co[["RNA"]], layer ="data")[1, 3], 0)
+  expect_equal(GetAssayData(co[["RNA"]], layer = "counts")[1, 3], 0)
+  expect_equal(dim(co[['pcaproject']]), c(160, 30))
+  expect_equal(dim(co[['pcaproject.l2']]), c(160, 30))
+  ref.cells <- paste0(Cells(ref), "_reference")
+  query.cells <- paste0(Cells(multilayer_query), "_query")
+  expect_equal(anchors@reference.cells, ref.cells)
+  expect_equal(anchors@query.cells, query.cells)
+  expect_equal(anchors@reference.objects, logical())
+  anchor.mat <- anchors@anchors
+  expect_false("query.neighbors" %in% names(anchors@neighbors))
+})
+
+# Tests for MappingScore
+context("MappingScore")
+
+test_that("MappingScore works as expected", {
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+    mapping.score.k = 10
+  )
+  scores <- MappingScore(
+    anchors, 
+    ndim = 30, 
+    ksmooth = 10,
+    ksnn = 5,
+    kanchor = 10
+  )
+  expect_setequal(names(scores), Cells(multilayer_query))
+  expect_equal(scores[[42]], 0.5455384, tolerance = 1e-6)
+
+  anchors <- FindTransferAnchors(
+    reference = reference,
+    query = multilayer_query,
+    reference.reduction = "pca",
+  )
+  scores <- MappingScore(
+    anchors, 
+    ndim = 30, 
+    ksmooth = 10,
+    ksnn = 5,
+    kanchor = 10
+  )
+  
+  expect_setequal(names(scores), Cells(multilayer_query))
+  expect_equal(scores[[42]], 0.9908003, tolerance = 1e-6)
+})
