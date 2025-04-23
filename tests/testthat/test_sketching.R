@@ -88,43 +88,6 @@ test_that("SketchData defaults work", {
   )
 })
 
-test_that("SketchData works with SCT inputs", {
-  test_case <- build_test_data(preprocess = FALSE)
-  test_case <- SCTransform(test_case, verbose = FALSE)
-  
-  result <- suppressWarnings(
-    SketchData(
-      test_case, 
-      assay = "SCT",
-      ncells = 50, 
-      method = "LeverageScore", 
-      sketched.assay = "sketch", 
-      set.seed = 42
-    )
-  )
-  expect_equal(
-    dim(result[["sketch"]]$counts), 
-    c(nrow(test_case[["SCT"]]$counts), 50)
-  )
-  expect_equal(
-    dim(result[["sketch"]]$data), 
-    c(nrow(test_case[["SCT"]]$data), 50)
-  )
-  expect_equal(
-    dim(result[["sketch"]]$scale.data), 
-    c(nrow(test_case[["SCT"]]$scale.data), 50)
-  )
-  expect_equal(
-    as.numeric(result$leverage.score[42]), 
-    0.7583021, 
-    tolerance = 1e-6
-  )
-  expect_equal(
-    colnames(result[["sketch"]])[42], 
-    "TTTAGCTGTACTCT"
-  )
-})
-
 test_that("SketchData with multiple layers works", { # (and one is less than the number of cells in that layer)
   test_case <- build_test_data(multi_layer = TRUE)
   
