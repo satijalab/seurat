@@ -130,13 +130,6 @@ SketchData <- function(
     cells = unlist(cells),
     layers = Layers(object = object[[assay]], search = c('counts', 'data'))
   ))
-  for (layer.name in layer.names) {
-    try(
-      expr = VariableFeatures(object = sketched, method = "sketch", layer = layer.name) <-
-        VariableFeatures(object = object[[assay]], layer = layer.name),
-      silent = TRUE
-    )
-  }
   if (!is.null(x = cast) && inherits(x = sketched, what = 'Assay5')) {
     sketched <- CastAssay(object = sketched, to = cast, ...)
   }
@@ -412,6 +405,9 @@ LeverageScore.default <- function(
   ncells <- ncol(x = object)
   if (ncells < nsketch * 1.5) {
     nv <- ifelse(nrow(x = object) < 50, nrow(x = object) - 1, 50)
+    if (inherits(x = object, what = 'IterableMatrix')) {
+      object <- as.sparse(x = object)
+    }
     Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
@@ -656,8 +652,7 @@ LeverageScore.Seurat <- function(
 #' @references Clarkson, KL. & Woodruff, DP.
 #' Low-rank approximation and regression in input sparsity time.
 #' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45.
-#' \url{https://dl.acm.org/doi/abs/10.1145/3019134};
-
+#' \doi{10.1145/3019134};
 CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
   if (!is.na(x = seed)) {
     set.seed(seed = seed)

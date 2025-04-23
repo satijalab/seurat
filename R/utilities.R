@@ -137,13 +137,12 @@ AddAzimuthScores <- function(object, filename) {
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
-#' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
 #' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Seurat
 #'
 #' @examples
 #' \dontrun{
@@ -174,7 +173,7 @@ AddAzimuthScores <- function(object, filename) {
 #' head(x = pbmc_small[])
 #' }
 #'
-AddModuleScore <- function(
+AddModuleScore.Seurat <- function(
   object,
   features,
   pool = NULL,
@@ -194,13 +193,106 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
+  features.scores.use <- AddModuleScore(object = object[[assay]],
+                                        features = features,
+                                        kmeans.obj = object@kmeans.obj,
+                                        pool = pool,
+                                        nbin = nbin,
+                                        ctrl = ctrl,
+                                        k = k,
+                                        name = name,
+                                        seed = seed,
+                                        search = search,
+                                        slot = slot,
+                                        ...)
+  object[[colnames(x = features.scores.use)]] <- features.scores.use
+  CheckGC()
+  DefaultAssay(object = object) <- assay.old
+  return(object)
+}
+
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
+#' 
+#' @references Tirosh et al, Science (2016)
+#'
+AddModuleScore.StdAssay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  layer_names <- Layers(object, search = slot)
+  input_list <- lapply(
+    layer_names,
+    function(layer_name) {
+      layer_data <- LayerData(object, layer = layer_name)
+      layer_object <- CreateAssayObject(layer_data)
+      return (layer_object)
+    }
+  )
+  output_list <- lapply(
+    input_list,
+    function(input) {
+      AddModuleScore(object = input,
+                     features = features,
+                     kmeans.obj = kmeans.obj,
+                     pool = pool,
+                     nbin = nbin,
+                     ctrl = ctrl,
+                     k = k,
+                     name = name,
+                     seed = seed,
+                     search = search,
+                     slot = slot,
+                     ...)
+    }
+  )
+  features.scores.use <- do.call(rbind,output_list)
+  return(features.scores.use)
+}
+
+#' 
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#' when \code{k = TRUE}; ignored if \code{k = FALSE}.
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Assay
+#'
+#' @importFrom ggplot2 cut_number
+#' 
+AddModuleScore.Assay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  assay.data <- GetAssayData(object = object, slot = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
     features <- list()
-    for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
-      features[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
+    for (i in as.numeric(x = names(x = table(kmeans.obj[[1]]$cluster)))) {
+      features[[i]] <- names(x = which(x = kmeans.obj[[1]]$cluster == i))
     }
     cluster.length <- length(x = features)
   } else {
@@ -320,10 +412,7 @@ AddModuleScore <- function(
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
-  object[[colnames(x = features.scores.use)]] <- features.scores.use
-  CheckGC()
-  DefaultAssay(object = object) <- assay.old
-  return(object)
+  return(features.scores.use)
 }
 
 #' Aggregated feature expression by identity class
@@ -1225,7 +1314,7 @@ PercentageFeatureSet <- function(
 #' @param object Seurat object
 #' @param method Whether to 'average' (default) or 'aggregate' expression levels
 #' @param assay  The name of the passed assay - used primarily for warning/error messages
-#' @param category.matrix A matrix defining groupings for pseudobulk expression 
+#' @param category.matrix A matrix defining groupings for pseudobulk expression
 #' calculations; each column represents an identity class, and each row a sample
 #' @param features Features to analyze. Default is all features in the assay
 #' @param layer Layer(s) to user; if multiple are given, assumed to follow
@@ -1238,7 +1327,6 @@ PercentageFeatureSet <- function(
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
 #' @rdname PseudobulkExpression
-#' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #' @concept utilities
 #'
@@ -1372,10 +1460,10 @@ PseudobulkExpression.StdAssay <- function(
 
 #' @param assays Which assays to use. Default is all assays
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, "ident", "replicate", 
+#' @param group.by Categories for grouping (e.g, "ident", "replicate",
 #' "celltype"); "ident" by default
 #' @param add.ident (Deprecated) See group.by
-#' @param method The method used for calculating pseudobulk expression; one of: 
+#' @param method The method used for calculating pseudobulk expression; one of:
 #' "average" or "aggregate"
 #' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
 #' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
@@ -1476,26 +1564,28 @@ PseudobulkExpression.Seurat <- function(
     group.by <- colnames(x = data)[which(num.levels > 1)]
     data <- data[, which(num.levels > 1), drop = F]
   }
-  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
-  #check if column names are numeric
-  col.names <- colnames(category.matrix)
-  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
-    col.names <- ifelse(
-      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
-      paste0("g", col.names),
-      col.names
-    )
-    colnames(category.matrix) <- col.names
-    inform(
-      message = paste0("First group.by variable `", group.by[1],
-      "` starts with a number, appending `g` to ensure valid variable names"),
-      .frequency = "regularly",
-      .frequency_id = "PseudobulkExpression"
-    )
-  }
-
   data.return <- list()
   for (i in 1:length(x = assays)) {
+    data_sub <- data[intersect(rownames(data),Cells(object[[assays[i]]])),,drop=FALSE]
+    category.matrix <- CreateCategoryMatrix(labels = data_sub, method = method)
+    #check if column names are numeric
+    col.names <- colnames(category.matrix)
+    if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+      col.names <- ifelse(
+        !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+        paste0("g", col.names),
+        col.names
+      )
+      colnames(category.matrix) <- col.names
+      inform(
+        message = paste0("First group.by variable `", group.by[1],
+        "` starts with a number, appending `g` to ensure valid variable names"),
+        .frequency = "regularly",
+        .frequency_id = "PseudobulkExpression"
+      )
+    }
+
+
     data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
@@ -1546,6 +1636,8 @@ PseudobulkExpression.Seurat <- function(
         ) <- NormalizeData(
           as.matrix(x = data.return[[1]]),
           normalization.method = normalization.method,
+          scale.factor = scale.factor,
+          margin = margin,
           verbose = verbose
         )
       }
@@ -2961,7 +3053,7 @@ BuildNicheAssay <- function(
   )
   rownames(cell.type.mtx) <- cells
   colnames(cell.type.mtx) <- groups
-  # populate the binary matrix 
+  # populate the binary matrix
   cells.idx <- seq_along(cells)
   group.idx <- match(group.labels, groups)
   cell.type.mtx[cbind(cells.idx, group.idx)] <- 1

@@ -1,0 +1,80 @@
+name: Pre-Release Checks
+
+on:
+  # Trigger the workflow when a PR opened/updated against a release branch.
+  pull_request:
+    branches:
+    - 'release/*'
+  # Trigger the workflow when commits are pushed to a release branch. 
+  # Because they are protected branches this workflow is effectively triggered 
+  # by three events:
+  # 1. When a release branch is initially created/pushed.
+  # 2. When a PR against a release branch is opened/updated.
+  # 3. When a PR against a release branch is merged.
+  push:
+    branches:
+    - 'release/*'
+  # Allow the workflow to be triggered manually.
+  workflow_dispatch:
+
+jobs:
+  # Run CRAN checks, for more details see https://github.com/r-lib/actions.
+  check-package:
+    # System dependencies for cannot be automatically resolved by 
+    # `r-lib/actions/setup-r@v2` for macos or windows - to avoid having to 
+    # maintain separate logic to infer and install system of those operating 
+    # systems we'll only run integration checks with the ubuntu
+    runs-on: ubuntu-latest
+
+    # Run checks with R-release, R-devel, and R-oldrelease.
+    strategy:
+      # Make sure each job runs independently. When `fail-fast` is true 
+      # (by default) all jobs in the matrix are cancelled as soon as one fails.
+      fail-fast: false
+      matrix:
+        r-version: ['release', 'devel', 'oldrel']
+
+    # Override the default job name to display the current R version name in
+    # parentheses (e.g. "check-package (R-release)").
+    name: "check-package (R-${{ matrix.r-version }})"
+
+    steps:
+      # Pull the latest changes from the repository down to the runner.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Install R and any system dependencies.
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          # Install the R version specified by the current strategy.
+          r-version: ${{ matrix.r-version }}
+          # Use pre-built binaries from Posit's public package manager to 
+          # speed up R dependency installation.
+          use-public-rspm: true
+          # Specify additional repositories to pull dependencies not
+          # available on CRAN or BioConductor (i.e. `BPCells` & `presto`).
+          extra-repositories: 'https://satijalab.r-universe.dev https://bnprks.r-universe.dev'
+
+      # Install R dependencies.
+      - name: Install Dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: 
+            any::rcmdcheck
+            any::pkgdown
+          # Installed packages are cached by default - force an upgrade to the 
+          # latest version of all dependencies.
+          upgrade: 'TRUE'
+      
+      # Run CRAN checks - fails if any ERRORs or WARNINGs are raised in which 
+      # case the `rcmdcheck` output will be uploaded as an artifact.
+      - name: Run Checks
+        uses: r-lib/actions/check-r-package@v2
+        env:
+            # Suppress NOTEs that are accepted by CRAN, see:
+            # https://www.rdocumentation.org/packages/rcmdcheck/versions/1.4.0/topics/rcmdcheck
+            _R_CHECK_PKG_SIZES_: false
+            _R_CHECK_RD_XREFS_: false
+            _R_CHECK_CRAN_INCOMING_NOTE_GNU_MAKE_: false
+            _R_CHECK_PACKAGE_DATASETS_SUPPRESS_NOTES_: true

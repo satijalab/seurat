@@ -780,6 +780,53 @@ RunICA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param layer The layer in `assay` to use when running independant component 
+#' analysis.
+#'
+#' @rdname RunICA
+#' @concept dimensional_reduction
+#' @export
+#' @method RunICA StdAssay
+#'
+RunICA.StdAssay <- function(
+    object,
+    assay = NULL,
+    features = NULL,
+    layer = 'scale.data',
+    nics = 50,
+    rev.ica = FALSE,
+    ica.function = "icafast",
+    verbose = TRUE,
+    ndims.print = 1:5,
+    nfeatures.print = 30,
+    reduction.name = "ica",
+    reduction.key = "ica_",
+    seed.use = 42,
+    ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  reduction.data <- RunICA(
+    object = data.use,
+    assay = assay,
+    nics = nics,
+    rev.ica = rev.ica,
+    ica.function = ica.function,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+    
+  )
+  return(reduction.data)
+}
+
 #' @param reduction.name dimensional reduction name
 #'
 #' @rdname RunICA
