@@ -4410,7 +4410,8 @@ FindSpatiallyVariableFeatures.default <- function(
   return(svf.info)
 }
 
-#' @param slot Slot in the Assay to pull data from
+#' @param layer The layer in the specified assay to pull data from.
+#' @param slot Deprecated, use `layer`.
 #' @param features If provided, only compute on given features. Otherwise,
 #' compute for all features.
 #' @param nfeatures Number of features to mark as the top spatially variable.
@@ -4423,7 +4424,8 @@ FindSpatiallyVariableFeatures.default <- function(
 #'
 FindSpatiallyVariableFeatures.Assay <- function(
   object,
-  slot = "scale.data",
+  layer = "scale.data",
+  slot = deprecated(),
   spatial.location,
   selection.method = c('markvariogram', 'moransi'),
   features = NULL,
@@ -4434,13 +4436,22 @@ FindSpatiallyVariableFeatures.Assay <- function(
   verbose = TRUE,
   ...
 ) {
-  features <- features %||% rownames(x = object)
+  if (is_present(slot)) {
+    deprecate_soft(
+      when = '5.3.0',
+      what = 'FindSpatiallyVariableFeatures(slot = )',
+      with = 'FindSpatiallyVariableFeatures(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+  features <- features %||% Features(object, layer = layer)
   if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
     features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
     features <- features[! features %in% features.computed]
   }
-  data <- GetAssayData(object = object, slot = slot)
-  data <- as.matrix(x = data[features, ])
+  cells <- rownames(spatial.location)
+  data <- LayerData(object, layer = layer, cells = cells, features = features)
+  data <- as.matrix(x = data)
   data <- data[RowVar(x = data) > 0, ]
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
