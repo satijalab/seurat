@@ -168,72 +168,13 @@ FindVariableFeatures.StdAssay <- function(
   return(object)
 }
 
-#' @param layer Layer in the Assay5 to pull data from
-#' @param features If provided, only compute on given features. Otherwise,
-#' compute for all features.
-#' @param nfeatures Number of features to mark as the top spatially variable.
-#'
 #' @method FindSpatiallyVariableFeatures StdAssay
 #' @rdname FindSpatiallyVariableFeatures
 #' @concept preprocessing
 #' @concept spatial
 #' @export
 #'
-FindSpatiallyVariableFeatures.StdAssay <- function(
-  object,
-  layer = "scale.data",
-  spatial.location,
-  selection.method = c('markvariogram', 'moransi'),
-  features = NULL,
-  r.metric = 5,
-  x.cuts = NULL,
-  y.cuts = NULL,
-  nfeatures = nfeatures,
-  verbose = TRUE,
-  ...
-) {
-  features <- features %||% rownames(x = object)
-  if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
-    features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
-    features <- features[! features %in% features.computed]
-  }
-  data <- GetAssayData(object = object, layer = layer)
-  data <- as.matrix(x = data[features, ])
-  data <- data[RowVar(x = data) > 0, ]
-  if (nrow(x = data) != 0) {
-    svf.info <- FindSpatiallyVariableFeatures(
-      object = data,
-      spatial.location = spatial.location,
-      selection.method = selection.method,
-      r.metric = r.metric,
-      x.cuts = x.cuts,
-      y.cuts = y.cuts,
-      verbose = verbose,
-      ...
-    )
-  } else {
-    svf.info <- c()
-  }
-  if (selection.method == "markvariogram") {
-    if ("markvariogram" %in% names(x = Misc(object = object))) {
-      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
-    }
-    suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
-    svf.info <- ComputeRMetric(mv = svf.info, r.metric)
-    svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
-  }
-  if (selection.method == "moransi") {
-    colnames(x = svf.info) <- paste0("MoransI_", colnames(x = svf.info))
-    svf.info <- svf.info[order(svf.info[, 2], -abs(svf.info[, 1])), , drop = FALSE]
-  }
-  var.name <- paste0(selection.method, ".spatially.variable")
-  var.name.rank <- paste0(var.name, ".rank")
-  svf.info[[var.name]] <- FALSE
-  svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
-  svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
-  object[names(x = svf.info)] <- svf.info
-  return(object)
-}
+FindSpatiallyVariableFeatures.StdAssay <- FindSpatiallyVariableFeatures.Assay
 
 
 #' @rdname LogNormalize
