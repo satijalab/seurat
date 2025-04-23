@@ -4501,7 +4501,9 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   object,
   assay = NULL,
   layer = "scale.data",
-  slot = deprecated(),
+  # Using `deprecated()` as the default for any arguments will break the
+  # `LogSeuratCommand` call at the end of this method.
+  slot = NULL,
   features = NULL,
   image = NULL,
   selection.method = c('markvariogram', 'moransi'),
@@ -4512,7 +4514,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
-  if (is_present(slot)) {
+  if (!is.null(slot)) {
     deprecate_soft(
       when = '5.3.0',
       what = 'FindSpatiallyVariableFeatures(slot = )',
