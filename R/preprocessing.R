@@ -4500,7 +4500,8 @@ FindSpatiallyVariableFeatures.Assay <- function(
 FindSpatiallyVariableFeatures.Seurat <- function(
   object,
   assay = NULL,
-  slot = "scale.data",
+  layer = "scale.data",
+  slot = deprecated(),
   features = NULL,
   image = NULL,
   selection.method = c('markvariogram', 'moransi'),
@@ -4511,12 +4512,20 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  if (is_present(slot)) {
+    deprecate_soft(
+      when = '5.3.0',
+      what = 'FindSpatiallyVariableFeatures(slot = )',
+      with = 'FindSpatiallyVariableFeatures(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   assay <- assay %||% DefaultAssay(object = object)
-  features <- features %||% rownames(x = object[[assay]])
   image <- image %||% DefaultImage(object = object)
+  features <- features %||% Features(object, assay = assay, layer = layer)
   tc <- GetTissueCoordinates(object = object[[image]])
-  # check if markvariogram has been run on necessary features
-  # only run for new ones
+
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
     slot = slot,
@@ -4530,7 +4539,10 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     verbose = verbose,
     ...
   )
-  object <- LogSeuratCommand(object = object)
+  
+  object <- LogSeuratCommand(object)
+
+  return(object)
 }
 
 #' @rdname LogNormalize
