@@ -1,7 +1,8 @@
 # Unreleased
 
 ## Changes
-- Fixed bugs in `FindSpatiallyVariableFeatures` ([#9836](https://github.com/satijalab/seurat/pull/9836))
+- Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))
+- Fixed bugs in `FindSpatiallyVariableFeatures`; deprecated the `slot` parameter in favor of `layer` ([#9836](https://github.com/satijalab/seurat/pull/9836))
 - Extended `FindTransferAnchors`'s `reference` argument to accept SCT inputs containing more than one SCT model; in this case, the reference model that was fit against the largest number of cells is used ([#9833](https://github.com/satijalab/seurat/pull/9833))
 - Extended `FindTransferAnchors`'s `query` argument to accept multi-layer inputs; updated `MappingScore` to support multi-layer query inputs ([#9832](https://github.com/satijalab/seurat/pull/9832))
 - Updated `LeverageScore.default` to convert `BPCells::IterableMatrix` inputs with less than 7500 cells into a sparse matrix before performing the calculation ([#9831](https://github.com/satijalab/seurat/pull/9831))
