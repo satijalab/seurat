@@ -1,6 +1,10 @@
 # Unreleased
 
 ## Changes
+
+# Seurat 5.3.0
+
+## Changes
 - Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))
 - Fixed bugs in `FindSpatiallyVariableFeatures`; deprecated the `slot` parameter in favor of `layer` ([#9836](https://github.com/satijalab/seurat/pull/9836))
 - Extended `FindTransferAnchors`'s `reference` argument to accept SCT inputs containing more than one SCT model; in this case, the reference model that was fit against the largest number of cells is used ([#9833](https://github.com/satijalab/seurat/pull/9833))

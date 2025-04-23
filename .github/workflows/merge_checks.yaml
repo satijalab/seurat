@@ -2,21 +2,21 @@ name: Pre-Merge Checks
 
 on:
   # Trigger the workflow when a PR is opened/updated against the default or
-  # any release branch.
+  # any stable release branch.
   pull_request:
     branches:
     - main
-    - 'release/*'
-  # Trigger the workflow when commits are pushed to a release branch. 
+    - '*-stable'
+  # Trigger the workflow when commits are pushed to a stable release branch. 
   # Because they are protected branches this workflow is effectively triggered 
   # by three events:
-  # 1. When a release branch is initially created/pushed.
-  # 2. When a PR against the default or any release branch is opened/updated.
-  # 3. When a PR against the default or any release branch is merged.
+  # 1. When a stable release branch is initially created/pushed.
+  # 2. When a PR against the default or any stable release branch is opened/updated.
+  # 3. When a PR against the default or any stable release branch is merged.
   push:
     branches:
     - main
-    - 'release/*'
+    - '*-stable'
   # Allow the workflow to be triggered manually.
   workflow_dispatch:
 
