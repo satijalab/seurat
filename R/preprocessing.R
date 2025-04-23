@@ -539,7 +539,7 @@ Load10X_Spatial <- function (
     # but also raise a warning
     warning(
       paste0(
-        "`data.dir` expects a single value but recieved multiple - ",
+        "`data.dir` expects a single value but received multiple - ",
         "continuing using the first: '",
         data.dir,
         "'."
