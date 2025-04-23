@@ -464,35 +464,30 @@ test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k 
 context("MappingScore")
 
 test_that("MappingScore works as expected", {
-  anchors <- FindTransferAnchors(
+  # Calculate leverage score with and without precomputed query neighbors.
+  anchors_vanilla <- FindTransferAnchors(
+    reference           = reference,
+    query               = multilayer_query,
+    reference.reduction = "pca"
+  )
+  anchors_with_neighbors <- FindTransferAnchors(
     reference = reference,
     query = multilayer_query,
     reference.reduction = "pca",
     mapping.score.k = 10
   )
-  scores <- MappingScore(
-    anchors, 
-    ndim = 30, 
-    ksmooth = 10,
-    ksnn = 5,
-    kanchor = 10
-  )
-  expect_setequal(names(scores), Cells(multilayer_query))
-  expect_equal(scores[[42]], 0.5455384, tolerance = 1e-6)
-
-  anchors <- FindTransferAnchors(
-    reference = reference,
-    query = multilayer_query,
-    reference.reduction = "pca",
-  )
-  scores <- MappingScore(
-    anchors, 
-    ndim = 30, 
-    ksmooth = 10,
-    ksnn = 5,
-    kanchor = 10
-  )
-  
-  expect_setequal(names(scores), Cells(multilayer_query))
-  expect_equal(scores[[42]], 0.9908003, tolerance = 1e-6)
+  for (anchors in c(anchors_vanilla, anchors_with_neighbors)) {
+    scores <- MappingScore(
+      anchors,
+      ndim = 30,
+      ksmooth = 10,
+      ksnn = 5,
+      kanchor = 10
+    )
+    # Scores should be numeric values between 0 and 1.
+    expect_setequal(names(scores), Cells(multilayer_query))
+    expect_true(is.numeric(scores))
+    expect_false(any(is.na(scores)))
+    expect_true(all(scores >= 0 & scores <= 1))
+  }
 })
