@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 5.3.0
 
 ## Changes
 - Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))
