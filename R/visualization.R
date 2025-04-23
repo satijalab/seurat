@@ -2428,6 +2428,8 @@ ImageDimPlot <- function(
   coord.fixed = TRUE,
   flip_xy = TRUE
 ) {
+  # Used internally as a seperator character.
+  unit_separator = "\x1F"
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
   fov <- fov %||% DefaultFOV(object = object)
@@ -2442,9 +2444,6 @@ ImageDimPlot <- function(
   )
   if (!length(x = fov)) {
     stop("No compatible spatial coordinates present")
-  }
-  if (grepl("~",fov)){
-    stop("Cannot use '~' in FOV name")
   }
   # Identify boundaries to use
   boundaries <- boundaries %||% sapply(
@@ -2482,15 +2481,15 @@ ImageDimPlot <- function(
       return(if (isTRUE(x = overlap[i])) {
         fov[i]
       } else {
-        paste(fov[i], boundaries[[i]], sep = '~')
+        paste(fov[i], boundaries[[i]], sep = unit_separator)
       })
     }
   ))
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
   for (i in names(x = pdata)) {
-    ul <- unlist(x = strsplit(x = i, split = '~'))
-    img <- paste(ul[1:length(ul)-1], collapse = '~')
+    ul <- unlist(x = strsplit(x = i, split = unit_separator))
+    img <- paste(ul[1:length(ul)-1], collapse = unit_separator)
     # Apply overlap
     lyr <- ul[length(ul)]
     if (is.na(x = lyr)) {
@@ -2563,7 +2562,7 @@ ImageDimPlot <- function(
   idx <- 1L
   for (group in group.by) {
     for (i in seq_along(along.with = pdata)) {
-      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '~'))[1L]
+      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = unit_separator))[1L]
       p <- SingleImagePlot(
         data = pdata[[i]],
         col.by = pdata[[i]] %!NA% group,
