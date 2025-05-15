@@ -83,7 +83,7 @@ SketchData <- function(
       over.write = over.write,
       seed = seed,
       verbose = FALSE,
-      features = features,
+      features = features %||% VariableFeatures(object),
       ...
     )
   } else if (method == 'Uniform') {
