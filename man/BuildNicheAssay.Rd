@@ -11,7 +11,10 @@ BuildNicheAssay(
   assay = "niche",
   cluster.name = "niches",
   neighbors.k = 20,
-  niches.k = 4
+  niches.k = 4,
+  iter.max = 10,
+  nstart = 30,
+  algorithm = c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen")
 )
 }
 \arguments{
@@ -28,6 +31,13 @@ BuildNicheAssay(
 \item{neighbors.k}{Number of neighbors to consider for each cell}
 
 \item{niches.k}{Number of clusters to return based on the niche assay}
+
+\item{iter.max}{The maximum number of iterations allowed (see \code{\link[stats]{kmeans}})}
+
+\item{nstart}{If centers is a number, how many random sets should be chosen (see \code{\link[stats]{kmeans}})}
+
+\item{algorithm}{Character string: may be abbreviated.
+Note that "Lloyd" and "Forgy" are alternative names (see \code{\link[stats]{kmeans}})}
 }
 \value{
 Seurat object containing a new assay
