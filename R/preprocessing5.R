@@ -1147,13 +1147,13 @@ CreateSCTAssay <- function(vst.out,  do.correct.umi, residual.type, clip.range){
   # put log1p transformed counts in data
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'data',
-    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+    layer = 'data',
+    new.data = log1p(x = GetAssayData(object = assay.out, layer = 'counts'))
   )
   scale.data <- vst.out$y
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'scale.data',
+    layer = 'scale.data',
     new.data = scale.data
   )
   vst.out$y <- NULL
@@ -1300,8 +1300,8 @@ SCTransform.StdAssay <- function(
 
     if (length(x = cells.grid) == 1){
       merged.assay <- assay.out
-      corrected_counts[[1]] <- GetAssayData(object = assay.out, slot = "data")
-      residuals[[1]] <- GetAssayData(object = assay.out, slot = "scale.data")
+      corrected_counts[[1]] <- GetAssayData(object = assay.out, layer = "data")
+      residuals[[1]] <- GetAssayData(object = assay.out, layer = "scale.data")
       cell_attrs[[1]] <- vst_out.reference$cell_attr
       sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
     } else {
@@ -1408,14 +1408,14 @@ SCTransform.StdAssay <- function(
         vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
         vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
         new_residual <- GetResidualsChunked(
-          vst_out = vst_out, 
+          vst_out = vst_out,
           layer.counts = layer.counts.tmp,
-          residual_type = "pearson", 
-          min_variance = min_var, 
+          residual_type = "pearson",
+          min_variance = min_var,
           res_clip_range = clip.range,
           verbose = FALSE
         )
-        old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
+        old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], layer = 'scale.data')
         merged_residual <- rbind(old_residual, new_residual)
         merged_residual <- ScaleData(
           merged_residual,
@@ -1431,7 +1431,7 @@ SCTransform.StdAssay <- function(
           min.cells.to.block = 3000,
           verbose = verbose
         )
-        sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
+        sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], layer = 'scale.data', new.data = merged_residual)
         VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
       }
       merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
@@ -1581,7 +1581,7 @@ FetchResiduals <- function(
     )
   }
 
-  existing.data <- GetAssayData(object = object, slot = "scale.data", assay = assay)
+  existing.data <- GetAssayData(object = object, layer = "scale.data", assay = assay)
   all.features <- union(x = rownames(x = existing.data), y = features)
   new.scale <- matrix(
     data = NA,
@@ -1675,7 +1675,7 @@ FetchResidualSCTModel <- function(
   }
   existing.scale.data <- NULL
   if (is.null(x=reference.SCT.model)){
-    existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
+    existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, layer = "scale.data"))
   }
   scale.data.cells <- colnames(x = existing.scale.data)
   scale.data.cells.common <- intersect(scale.data.cells, layer.cells)
@@ -1705,7 +1705,7 @@ FetchResidualSCTModel <- function(
 
   if (is.null(x = reference.SCT.model) & length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
     existing_features <- names(x = which(x = ! apply(
-      X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
+      X = GetAssayData(object = object, assay = assay, layer = "scale.data")[, model.cells],
       MARGIN = 1,
       FUN = anyNA)
     ))
@@ -1857,7 +1857,7 @@ FetchResidualSCTModel <- function(
     #  Some features do not exist
     warning(
       "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
-      " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
+      " features do not exist in the counts layer: ", paste(diff_features, collapse = ", ")
     )
     if (length(x = intersect_features) == 0) {
       # No features exist
@@ -1871,7 +1871,7 @@ FetchResidualSCTModel <- function(
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
-    old_residuals <- GetAssayData(object = object[[assay]], slot = "scale.data")[old.features, model.cells, drop = FALSE]
+    old_residuals <- GetAssayData(object = object[[assay]], layer = "scale.data")[old.features, model.cells, drop = FALSE]
     new_residual <- rbind(new_residual, old_residuals)[new_features, ]
   }
   return(new_residual)
