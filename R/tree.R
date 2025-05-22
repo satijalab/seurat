@@ -29,7 +29,8 @@ cluster.ape <- paste(
 #' overrides \code{features}
 #' @param reduction Name of dimension reduction to use. Only used if \code{dims}
 #' is not NULL.
-#' @param slot slot/layer to use. 
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Layer to use.
 #' @param graph If graph is passed, build tree based on graph connectivity between
 #' clusters; overrides \code{dims} and \code{features}
 #' @param reorder Re-order identity classes (factor ordering), according to
@@ -57,7 +58,7 @@ cluster.ape <- paste(
 #'   Tool(object = pbmc_small, slot = 'BuildClusterTree')
 #' }
 #' }
-#' 
+#'
 BuildClusterTree <- function(
   object,
   assay = NULL,
@@ -65,11 +66,21 @@ BuildClusterTree <- function(
   dims = NULL,
   reduction = "pca",
   graph = NULL,
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   reorder = FALSE,
   reorder.numeric = FALSE,
   verbose = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'BuildClusterTree(slot = )',
+      with = 'BuildClusterTree(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   if (!requireNamespace('ape', quietly = TRUE)) {
     stop(cluster.ape, call. = FALSE)
   }
@@ -135,9 +146,9 @@ BuildClusterTree <- function(
   } else {
     features <- features %||% VariableFeatures(object = object)
     features <- intersect(x = features, y = rownames(x = object))
-    # if `slot` is set to "counts" sum the expression of the
+    # if `layer` is set to "counts" sum the expression of the
     # ident groups, otherwise average them
-    if(slot == "counts") {
+    if(layer == "counts") {
       # AggregateExpression only operates on a "counts" matrix so `layer`
       # cannot be specified
       data.pseudobulk <- AggregateExpression(
@@ -152,8 +163,8 @@ BuildClusterTree <- function(
           object,
           assays = assay,
           features = features,
-          # explicitly pass in the value of `slot` in as `layer`
-          layer = slot,
+          # explicitly pass in the value of `slot` in as `layer` (No longer needed?)
+          layer = layer,
           verbose = verbose
         )
       )[[1]]
@@ -183,7 +194,7 @@ BuildClusterTree <- function(
       dims = dims,
       reduction = reduction,
       graph = graph,
-      slot = slot,
+      layer = layer,
       reorder = FALSE,
       verbose = verbose
     )
