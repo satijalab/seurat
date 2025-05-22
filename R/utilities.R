@@ -130,7 +130,8 @@ AddAzimuthScores <- function(object, filename) {
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names
 #' database; see \code{\link{UpdateSymbolList}} for more details
-#' @param slot Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Layer to calculate score values off of. Defaults to data slot (i.e log-normalized counts)
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
 #' @return Returns a Seurat object with module scores added to object meta data;
@@ -185,16 +186,26 @@ AddModuleScore <- function(
   name = 'Cluster',
   seed = 1,
   search = FALSE,
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   ...
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'AddModuleScore(slot = )',
+      with = 'AddModuleScore(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   if (!is.null(x = seed)) {
     set.seed(seed = seed)
   }
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
+  assay.data <- GetAssayData(object = object, assay = assay, layer = layer)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
@@ -416,7 +427,7 @@ AggregateExpression <- function(
 #' @param add.ident (Deprecated). Place an additional label on each cell prior to pseudobulking
 #' @param layer Layer(s) to use; if multiple layers are given, assumed to follow
 #' the order of 'assays' (if specified) or object's assays
-#' @param slot (Deprecated). Slots(s) to use
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
@@ -443,6 +454,15 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'AverageExpression(slot = )',
+      with = 'AverageExpression(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   return(
     PseudobulkExpression(
       object = object,
@@ -452,7 +472,6 @@ AverageExpression <- function(
       group.by = group.by,
       add.ident = add.ident,
       layer = layer,
-      slot = slot,
       method = 'average',
       verbose = verbose,
       ...
@@ -672,7 +691,7 @@ CreateAnn <- function(name, ndim) {
 #' # Define custom distance matrix
 #' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
 #'
-#' input.data <- GetAssayData(pbmc_small, assay.type = "RNA", slot = "scale.data")
+#' input.data <- GetAssayData(pbmc_small, assay.type = "RNA", layer = "scale.data")
 #' cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 #'
 CustomDistance <- function(my.mat, my.function, ...) {
@@ -940,7 +959,8 @@ GeneSymbolThesarus <- function(
 #'
 #' @param object Seurat object
 #' @param assay Assay to pull the data from
-#' @param slot Slot in the assay to pull feature expression data from (counts,
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Layer in the assay to pull feature expression data from (counts,
 #' data, or scale.data)
 #' @param var Variable with which to correlate the features
 #' @param group.assay Compute the gene groups based off the data in this assay.
@@ -957,13 +977,23 @@ GeneSymbolThesarus <- function(
 GroupCorrelation <- function(
   object,
   assay = NULL,
-  slot = "scale.data",
+  slot = deprecated(),
+  layer = 'scale.data',
   var = NULL,
   group.assay = NULL,
   min.cells = 5,
   ngroups = 6,
   do.plot = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'GroupCorrelation(slot = )',
+      with = 'GroupCorrelation(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   assay <- assay %||% DefaultAssay(object = object)
   group.assay <- group.assay %||% assay
   var <- var %||% paste0("nCount_", group.assay)
@@ -973,7 +1003,7 @@ GroupCorrelation <- function(
     min.cells = min.cells,
     ngroups = ngroups
   )
-  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], layer = layer))
   data <- data[rowMeans(x = data) != 0, ]
   grp.cors <- apply(
     X = data,
@@ -1055,7 +1085,8 @@ LogVMR <- function(x, ...) {
 #' @param meta.name Name of column in metadata to store metafeature
 #' @param cells List of cells to use (default all cells)
 #' @param assay Which assay to use
-#' @param slot Which slot to take data from (default data)
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Which layer to take data from (default data)
 #'
 #' @return Returns a \code{Seurat} object with metafeature stored in objct metadata
 #'
@@ -1079,13 +1110,23 @@ MetaFeature <- function(
   meta.name = 'metafeature',
   cells = NULL,
   assay = NULL,
-  slot = 'data'
+  slot = deprecated(),
+  layer = 'data'
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'MetaFeature(slot = )',
+      with = 'MetaFeature(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   cells <- cells %||% colnames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
-  newmat <- GetAssayData(object = object, assay = assay, slot = slot)
+  newmat <- GetAssayData(object = object, assay = assay, layer = layer)
   newmat <- newmat[features, cells]
-  if (slot == 'scale.data') {
+  if (layer == 'scale.data') {
     newdata <- Matrix::colMeans(newmat)
   } else {
     rowtotals <- Matrix::rowSums(newmat)
@@ -1140,7 +1181,7 @@ PercentAbove <- function(x, threshold) {
 #' This function enables you to easily calculate the percentage of all the counts belonging to a
 #' subset of the possible features for each cell. This is useful when trying to compute the percentage
 #' of transcripts that map to mitochondrial genes for example. The calculation here is simply the
-#' column sum of the matrix present in the counts slot for features belonging to the set divided by
+#' column sum of the matrix present in the counts layer for features belonging to the set divided by
 #' the column sum for all features times 100.
 #'
 #' @param object A Seurat object
@@ -1225,12 +1266,12 @@ PercentageFeatureSet <- function(
 #' @param object Seurat object
 #' @param method Whether to 'average' (default) or 'aggregate' expression levels
 #' @param assay  The name of the passed assay - used primarily for warning/error messages
-#' @param category.matrix A matrix defining groupings for pseudobulk expression 
+#' @param category.matrix A matrix defining groupings for pseudobulk expression
 #' calculations; each column represents an identity class, and each row a sample
 #' @param features Features to analyze. Default is all features in the assay
 #' @param layer Layer(s) to user; if multiple are given, assumed to follow
 #' the order of 'assays' (if specified) or object's assays
-#' @param slot (Deprecated) See \code{layer}
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #
@@ -1372,10 +1413,10 @@ PseudobulkExpression.StdAssay <- function(
 
 #' @param assays Which assays to use. Default is all assays
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, "ident", "replicate", 
+#' @param group.by Categories for grouping (e.g, "ident", "replicate",
 #' "celltype"); "ident" by default
 #' @param add.ident (Deprecated) See group.by
-#' @param method The method used for calculating pseudobulk expression; one of: 
+#' @param method The method used for calculating pseudobulk expression; one of:
 #' "average" or "aggregate"
 #' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
 #' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
@@ -2961,7 +3002,7 @@ BuildNicheAssay <- function(
   )
   rownames(cell.type.mtx) <- cells
   colnames(cell.type.mtx) <- groups
-  # populate the binary matrix 
+  # populate the binary matrix
   cells.idx <- seq_along(cells)
   group.idx <- match(group.labels, groups)
   cell.type.mtx[cbind(cells.idx, group.idx)] <- 1
