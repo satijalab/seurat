@@ -66,15 +66,25 @@ DimHeatmap <- function(
   ncol = NULL,
   fast = TRUE,
   raster = TRUE,
-  slot = 'scale.data',
+  slot = deprecated(),
+  layer = 'scale.data',
   assays = NULL,
   combine = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'DimHeatmap(slot = )',
+      with = 'DimHeatmap(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   ncol <- ncol %||% ifelse(test = length(x = dims) > 2, yes = 3, no = length(x = dims))
   plots <- vector(mode = 'list', length = length(x = dims))
   assays <- assays %||% DefaultAssay(object = object)
   disp.max <- disp.max %||% ifelse(
-    test = slot == 'scale.data',
+    test = layer == 'scale.data',
     yes = 2.5,
     no = 6
   )
@@ -132,7 +142,7 @@ DimHeatmap <- function(
     object = object,
     vars = features.keyed,
     cells = unique(x = unlist(x = cells)),
-    slot = slot
+    layer = layer
   )
   data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
   data.limits <- c(min(data.all), max(data.all))
@@ -192,11 +202,12 @@ DimHeatmap <- function(
 #' @param cells A vector of cells to plot
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped); defaults to 2.5
-#' if \code{slot} is 'scale.data', 6 otherwise
+#' if \code{layer} is 'scale.data', 6 otherwise
 #' @param group.by A vector of variables to group cells by; pass 'ident' to group by cell identity classes
 #' @param group.bar Add a color bar showing group status for cells
 #' @param group.colors Colors to use for the color bar
-#' @param slot Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Data layer to use, choose from 'raw.data', 'data', or 'scale.data'
 #' @param assay Assay to pull from
 # @param check.plot Check that plotting will finish in a reasonable amount of time
 #' @param label Label the cell identies above the color bar
@@ -229,6 +240,7 @@ DimHeatmap <- function(
 #' data("pbmc_small")
 #' DoHeatmap(object = pbmc_small)
 #'
+
 DoHeatmap <- function(
   object,
   features = NULL,
@@ -238,7 +250,8 @@ DoHeatmap <- function(
   group.colors = NULL,
   disp.min = -2.5,
   disp.max = NULL,
-  slot = 'scale.data',
+  slot = deprecated(),
+  layer = 'scale.data',
   assay = NULL,
   label = TRUE,
   size = 5.5,
@@ -251,6 +264,15 @@ DoHeatmap <- function(
   group.bar.height = 0.02,
   combine = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'DoHeatmap(slot = )',
+      with = 'DoHeatmap(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
   cells <- cells %||% colnames(x = object[[assay]])
@@ -260,24 +282,24 @@ DoHeatmap <- function(
   features <- features %||% VariableFeatures(object = object)
   features <- rev(x = unique(x = features))
   disp.max <- disp.max %||% ifelse(
-    test = slot == 'scale.data',
+    test = layer == 'scale.data',
     yes = 2.5,
     no = 6
   )
   # make sure features are present
-  possible.features <- rownames(x = GetAssayData(object = object, slot = slot))
+  possible.features <- rownames(x = GetAssayData(object = object, layer = layer))
   if (any(!features %in% possible.features)) {
     bad.features <- features[!features %in% possible.features]
     features <- features[features %in% possible.features]
     if(length(x = features) == 0) {
-      stop("No requested features found in the ", slot, " slot for the ", assay, " assay.")
+      stop("No requested features found in the ", layer, " layer for the ", assay, " assay.")
     }
-    warning("The following features were omitted as they were not found in the ", slot,
-            " slot for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
+    warning("The following features were omitted as they were not found in the ", layer,
+            " layer for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
   }
   data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
     object = object,
-    slot = slot)[features, cells, drop = FALSE])))
+    layer = layer)[features, cells, drop = FALSE])))
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -509,7 +531,7 @@ HTOHeatmap <- function(
 #' @param same.y.lims Set all the y-axis limits to the same values
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
-#' @param slot Slot to pull expression data from (e.g. "counts" or "data")
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
 #' @param layer Layer to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
@@ -526,6 +548,7 @@ HTOHeatmap <- function(
 #' data("pbmc_small")
 #' RidgePlot(object = pbmc_small, features = 'PC_1')
 #'
+
 RidgePlot <- function(
   object,
   features,
@@ -1036,7 +1059,8 @@ DimPlot <- function(
 #'     \code{split.by}. Be aware setting \code{NULL} will result in color
 #'     scales that are not comparable between plots
 #' }
-#' @param slot Which slot to pull expression data from?
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Which layer to pull expression data from.
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
@@ -1092,7 +1116,8 @@ FeaturePlot <- function(
   split.by = NULL,
   keep.scale = "feature",
   shape.by = NULL,
-  slot = 'data',
+  slot = deprecated(),
+  layer = "data",
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -1108,6 +1133,15 @@ FeaturePlot <- function(
   raster = NULL,
   raster.dpi = c(512, 512)
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'FeaturePlot(slot = )',
+      with = 'FeaturePlot(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   # TODO: deprecate fully on 3.2.0
   if (is_present(arg = sort.cell)) {
     deprecate_stop(
@@ -1122,7 +1156,7 @@ FeaturePlot <- function(
       feature = features[1],
       dims = dims,
       reduction = reduction,
-      slot = slot
+      layer = layer
     ))
   }
   # Check keep.scale param for valid entries
@@ -1193,15 +1227,15 @@ FeaturePlot <- function(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
-    slot = slot
+    layer = layer
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
     abort(message = paste(
       "None of the requested features were found:",
       paste(features, collapse = ', '),
-      "in slot ",
-      slot
+      "in layer ",
+      layer
     ))
   } else if (!all(dims %in% colnames(x = data))) {
     abort(message = "The dimensions requested were not found")
@@ -1601,7 +1635,23 @@ FeaturePlot <- function(
 #' @export
 #' @concept visualization
 #'
-IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot = 'data') {
+IFeaturePlot <- function(
+    object,
+    feature,
+    dims = c(1, 2),
+    reduction = NULL,
+    layer = 'data',
+    slot = deprecated()
+) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'IFeaturePlot(slot = )',
+      with = 'IFeaturePlot(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   # Set initial data values
   feature.label <- 'Feature to visualize'
   assay.keys <- Key(object = object)[Assays(object = object)]
@@ -1613,7 +1663,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   }
   features <- sort(x = rownames(x = GetAssayData(
     object = object,
-    slot = slot,
+    layer = layer,
     assay = assay
   )))
   assays.use <- vapply(
@@ -1621,7 +1671,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
     FUN = function(x) {
       return(!IsMatrixEmpty(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = layer,
         assay = x
       )))
     },
@@ -1701,7 +1751,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   )
   # Prepare plotting data
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  plot.data <- FetchData(object = object, vars = c(dims, feature), slot = slot)
+  plot.data <- FetchData(object = object, vars = c(dims, feature), layer = layer)
   # Shiny server
   server <- function(input, output, session) {
     plot.env <- reactiveValues(
@@ -1720,7 +1770,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = layer,
         assay = assay
       )))
       feature.use <- ifelse(
@@ -1772,7 +1822,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
         expr = FetchData(
           object = object,
           vars = c(dims, feature.keyed),
-          slot = slot
+          layer = layer
         ),
         warning = function(...) {
           return(plot.env$data)
@@ -1980,7 +2030,8 @@ CellScatter <- function(
 #' to split by cell identity
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
-#' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Layer to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' @param plot.cor Display correlation in plot title
 #' @param ncol Number of columns if plotting multiple plots
@@ -2021,7 +2072,8 @@ FeatureScatter <- function(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   plot.cor = TRUE,
   ncol = NULL,
   raster = NULL,
@@ -2029,6 +2081,15 @@ FeatureScatter <- function(
   jitter = FALSE,
   log = FALSE
 ) {
+  if (is_present(arg = slot)) {
+    lifecycle::deprecate_soft(
+      when = '5.3.X',
+      what = 'FeatureScatter(slot = )',
+      with = 'FeatureScatter(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
@@ -2039,7 +2100,7 @@ FeatureScatter <- function(
     object = object,
     vars = c(feature1, feature2, group.by),
     cells = cells,
-    slot = slot
+    layer = layer
   )
   if (!grepl(pattern = feature1, x = names(x = data)[1])) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
@@ -3404,10 +3465,20 @@ LinkedFeaturePlot <- function(
   reduction = NULL,
   image = NULL,
   image.scale = "lowres",
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   alpha = c(0.1, 1),
   combine = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'LinkedFeaturePlot(slot = )',
+      with = 'LinkedFeaturePlot(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   # Setup gadget UI
   ui <- miniPage(
     gadgetTitleBar(
@@ -3676,9 +3747,19 @@ ISpatialFeaturePlot <- function(
   feature,
   image = NULL,
   image.scale = "lowres",
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   alpha = c(0.1, 1)
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'ISpatialFeaturePlot(slot = )',
+      with = 'ISpatialFeaturePlot(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   # Set inital data values
   assay.keys <- Key(object = object)[Assays(object = object)]
   keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
@@ -3689,7 +3770,7 @@ ISpatialFeaturePlot <- function(
   }
   features <- sort(x = rownames(x = GetAssayData(
     object = object,
-    slot = slot,
+    layer = layer,
     assay = assay
   )))
   feature.label <- 'Feature to visualize'
@@ -3698,7 +3779,7 @@ ISpatialFeaturePlot <- function(
     FUN = function(x) {
       return(!IsMatrixEmpty(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = layer,
         assay = x
       )))
     },
@@ -3772,7 +3853,7 @@ ISpatialFeaturePlot <- function(
     object = object,
     vars = feature,
     cells = cells.use,
-    slot = slot
+    layer = layer
   )
   plot.data <- cbind(coords, feature.data)
   server <- function(input, output, session) {
@@ -3791,7 +3872,7 @@ ISpatialFeaturePlot <- function(
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = layer,
         assay = assay
       )))
       feature.use <- ifelse(
@@ -3822,7 +3903,7 @@ ISpatialFeaturePlot <- function(
             object = object,
             vars = paste0(Key(object = object[[input$assay]]), feature.use),
             cells = cells.use,
-            slot = slot
+            layer = layer
           )
           colnames(x = feature.data) <- feature.use
           plot.env$data <- cbind(coords, feature.data)
@@ -3878,7 +3959,8 @@ ISpatialFeaturePlot <- function(
 #' order to matchthe plot with the specified `image` - defaults to "lowres"
 #' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 #' entire background image.
-#' @param slot If plotting a feature, which data slot to pull from (counts,
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer If plotting a feature, which data layer to pull from (counts,
 #' data, or scale.data)
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
 #' \itemize{
@@ -3958,7 +4040,8 @@ SpatialPlot <- function(
   image.alpha = 1,
   image.scale = "lowres",
   crop = TRUE,
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   keep.scale = "feature",
   min.cutoff = NA,
   max.cutoff = NA,
@@ -3982,6 +4065,15 @@ SpatialPlot <- function(
   do.hover = FALSE,
   information = NULL
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'SpatialPlot(slot = )',
+      with = 'SpatialPlot(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   if (isTRUE(x = do.hover) || isTRUE(x = do.identify)) {
     warning(
       "'do.hover' and 'do.identify' are deprecated as we are removing plotly-based interactive graphics, use 'interactive' instead for Shiny-based interactivity",
@@ -4033,7 +4125,7 @@ SpatialPlot <- function(
         feature = features[1],
         image = images[1],
         image.scale = image.scale,
-        slot = slot,
+        layer = layer,
         alpha = alpha
       ))
     }
@@ -4041,7 +4133,7 @@ SpatialPlot <- function(
       object = object,
       vars = features,
       cells = cells,
-      layer = slot,
+      layer = layer,
       clean = FALSE
     )
     features <- colnames(x = data)
@@ -6767,7 +6859,7 @@ ExIPlot <- function(
       y = cells
     )
   }
-  data <- FetchData(object = object, vars = features, slot = layer, cells = cells)
+  data <- FetchData(object = object, vars = features, layer = layer, cells = cells)
   pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   data <- data[cells, , drop = FALSE]
@@ -6931,7 +7023,7 @@ FeaturePalettes <- list(
 #' @importFrom Matrix rowMeans rowSums
 #
 GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
-  cm <- GetAssayData(object = object[[assay]], slot = "counts")
+  cm <- GetAssayData(object = object[[assay]], layer = "counts")
   # subset to keep only genes detected in at least min.cells cells
   cm <- cm[rowSums(cm > 0) >= min.cells, ]
   # use the geometric mean of the features to group them
