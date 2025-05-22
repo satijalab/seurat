@@ -426,7 +426,7 @@ CreateSCTAssayObject <- function(
     min.features = min.features
   )
   if (!is.null(scale.data)) {
-    assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
+    assay <- SetAssayData(object = assay, layer = "scale.data", new.data = scale.data)
   }
 
   slot(object = assay, name = "assay.orig") <- umi.assay
@@ -940,7 +940,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = x)
   # make variables, then run `newCellDataSet`
   # create cellData counts
-  counts <- GetAssayData(object = x, assay = assay, slot = "counts")
+  counts <- GetAssayData(object = x, assay = assay, layer = "counts")
   # metadata
   cell.metadata <- x[[]]
   feature.metadata <- x[[assay]][[]]
@@ -1003,7 +1003,8 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
 #' Convert objects to \code{Seurat} objects
 #'
 #' @inheritParams SeuratObject::as.Seurat
-#' @param slot Slot to store expression data as
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Layer to store expression data as
 #' @param verbose Show progress updates
 #'
 #' @return A \code{Seurat} object generated from \code{x}
@@ -1019,18 +1020,28 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
 #'
 as.Seurat.CellDataSet <- function(
   x,
-  slot = 'counts',
+  slot = deprecated(),
+  layer = 'counts',
   assay = 'RNA',
   verbose = TRUE,
   ...
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'as.Seurat.CellDataSet(slot = )',
+      with = 'as.Seurat.CellDataSet(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   CheckDots(...)
   if (!PackageCheck('monocle', error = FALSE)) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
     stop("Seurat can only convert to/from Monocle v2.X objects")
   }
-  slot <- match.arg(arg = slot, choices = c('counts', 'data'))
+  layer <- match.arg(arg = layer, choices = c('counts', 'data'))
   if (verbose) {
     message("Pulling expression data")
   }
@@ -1052,7 +1063,7 @@ as.Seurat.CellDataSet <- function(
   if (verbose) {
     message("Building Seurat object")
   }
-  if (slot == 'data') {
+  if (layer == 'data') {
     assays <- list(CreateAssayObject(data = expr))
     names(x = assays) <- assay
     Key(object = assays[[assay]]) <- suppressWarnings(expr = UpdateKey(key = assay))
@@ -1155,7 +1166,7 @@ as.Seurat.CellDataSet <- function(
 
 #' @param counts name of the SingleCellExperiment assay to store as \code{counts};
 #' set to \code{NULL} if only normalized data are present
-#' @param data name of the SingleCellExperiment assay to slot as \code{data}.
+#' @param data name of the SingleCellExperiment assay to layer as \code{data}.
 #' Set to NULL if only counts are present
 #' @param assay Name of assays to convert; set to \code{NULL} for all assays to be converted
 #' @param project Project name for new Seurat object
@@ -1233,7 +1244,7 @@ as.Seurat.SingleCellExperiment <- function(
       list(CreateAssayObject(counts = mats$counts))
     } else {
       a <- CreateAssayObject(counts = mats$counts)
-      a <- SetAssayData(object = a, slot = 'data', new.data = mats$data)
+      a <- SetAssayData(object = a, layer = 'data', new.data = mats$data)
       list(a)
     }
     names(x = assays) <- assay
@@ -1331,10 +1342,10 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   experiments <- list()
   for (assayn in assay) {
     assays <- list(
-      counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-      logcounts = GetAssayData(object = x, assay = assayn, slot = "data")
+      counts = GetAssayData(object = x, assay = assayn, layer = "counts"),
+      logcounts = GetAssayData(object = x, assay = assayn, layer = "data")
     )
-    scaledata_a <- GetAssayData(object = x, assay = assayn, slot = "scale.data")
+    scaledata_a <- GetAssayData(object = x, assay = assayn, layer = "scale.data")
     if (isTRUE(x = all.equal(
       target = dim(x = assays[["counts"]]),
       current = dim(x = scaledata_a))
@@ -2124,10 +2135,10 @@ VariableFeatures.SCTAssay <- function(
 #' @concept spatial
 #'
 ScaleFactors.SlideSeq <- function(object, ...) {
-  # The concept of image scale factors comes from the 10x Visium platform. 
+  # The concept of image scale factors comes from the 10x Visium platform.
   # Although SlideSeq has no equivalent, we still want to provide the generic
   # so that the all of our concrete `SpatialImage` classes implement the same
-  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # interface, so we'll return an S3 `scalefactors` object with all values set
   # to 1.
   return(scalefactors())
 }
@@ -2138,10 +2149,10 @@ ScaleFactors.SlideSeq <- function(object, ...) {
 #' @concept spatial
 #'
 ScaleFactors.STARmap <- function(object, ...) {
-  # The concept of image scale factors comes from the 10x Visium platform. 
+  # The concept of image scale factors comes from the 10x Visium platform.
   # Although STARmap has no equivalent, we still want to provide the generic
   # so that the all of our concrete `SpatialImage` classes implement the same
-  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # interface, so we'll return an S3 `scalefactors` object with all values set
   # to 1.
   return(scalefactors())
 }
@@ -2340,7 +2351,7 @@ merge.SCTAssay <- function(
           X = assays,
           FUN = function(assay) {
       if (inherits(x = assay, what = "SCTAssay")) {
-        return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
+        return(rownames(x = GetAssayData(object = assay, layer = "scale.data")))
       }
     })
     )
@@ -2397,7 +2408,7 @@ merge.SCTAssay <- function(
     })
   }
   scale.data <- lapply(X = assays, FUN = function(x) {
-    dat <- GetAssayData(object = x, slot = "scale.data")
+    dat <- GetAssayData(object = x, layer = "scale.data")
     if (ncol(x = dat) == 0) {
       dat <- matrix(ncol = ncol(x = x))
     }
@@ -2426,7 +2437,7 @@ merge.SCTAssay <- function(
     })
   }
   scale.data <- do.call(what = cbind, args = scale.data)
-  combined.assay <- SetAssayData(object = combined.assay, slot = "scale.data", new.data = scale.data)
+  combined.assay <- SetAssayData(object = combined.assay, layer = "scale.data", new.data = scale.data)
   model.list <- unlist(x = lapply(
     X = assays,
     FUN = slot,
@@ -3278,32 +3289,42 @@ UpdateSlots <- function(object) {
 # matrix with the proper dimensions from one of the remaining data slots.
 #
 # @param assay Assay to pull data from
-# @param slot Slot to pull from
+# @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+# @param layer Layer to pull from
 #
 # @return Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an
 # appropriately sized empty sparse matrix
 #
 #' @importFrom Matrix Matrix
 #
-ValidateDataForMerge <- function(assay, slot) {
-  mat <- GetAssayData(object = assay, slot = slot)
+ValidateDataForMerge <- function(assay, slot = deprecated(), layer) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'ValidateDataForMerge(slot = )',
+      with = 'ValidateDataForMerge(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
+  mat <- GetAssayData(object = assay, layer = layer)
   if (any(dim(x = mat) == c(0, 0))) {
-    slots.to.check <- setdiff(x = c("counts", "data", "scale.data"), y = slot)
+    slots.to.check <- setdiff(x = c("counts", "data", "scale.data"), y = layer)
     for (ss in slots.to.check) {
-      data.dims <- dim(x = GetAssayData(object = assay, slot = ss))
+      data.dims <- dim(x = GetAssayData(object = assay, layer = ss))
       data.slot <- ss
       if (!any(data.dims == c(0, 0))) {
         break
       }
     }
     if (any(data.dims == c(0, 0))) {
-      stop("The counts, data, and scale.data slots are all empty for the provided assay.")
+      stop("The counts, data, and scale.data layers are all empty for the provided assay.")
     }
     mat <- Matrix(
       data = 0,
       nrow = data.dims[1],
       ncol = data.dims[2],
-      dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
+      dimnames = dimnames(x = GetAssayData(object = assay, layer = data.slot))
     )
     mat <- as.sparse(x = mat)
   }
