@@ -10,7 +10,8 @@ FindConservedMarkers(
   ident.2 = NULL,
   grouping.var,
   assay = "RNA",
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   min.cells.group = 3,
   meta.method = metap::minimump,
   verbose = TRUE,
@@ -30,6 +31,9 @@ use all other cells for comparison.}
 \item{assay}{of assay to fetch data for (default is RNA)}
 
 \item{slot}{Slot to pull data from; note that if \code{test.use} is
+"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+
+\item{layer}{Layer to pull data from; note that if \code{test.use} is
 "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
 
 \item{min.cells.group}{Minimum number of cells in one of the groups}

@@ -4,7 +4,14 @@
 \alias{IFeaturePlot}
 \title{Visualize features in dimensional reduction space interactively}
 \usage{
-IFeaturePlot(object, feature, dims = c(1, 2), reduction = NULL, slot = "data")
+IFeaturePlot(
+  object,
+  feature,
+  dims = c(1, 2),
+  reduction = NULL,
+  layer = "data",
+  slot = deprecated()
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -15,7 +22,9 @@ IFeaturePlot(object, feature, dims = c(1, 2), reduction = NULL, slot = "data")
 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
-\item{slot}{Which slot to pull expression data from?}
+\item{layer}{Which layer to pull expression data from.}
+
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
 }
 \value{
 Returns the final plot as a ggplot object

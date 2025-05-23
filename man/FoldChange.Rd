@@ -18,7 +18,8 @@ FoldChange(object, ...)
   cells.1,
   cells.2,
   features = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
@@ -32,7 +33,8 @@ FoldChange(object, ...)
   cells.1,
   cells.2,
   features = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
@@ -45,7 +47,6 @@ FoldChange(object, ...)
   cells.1,
   cells.2,
   features = NULL,
-  slot = NULL,
   pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
@@ -59,7 +60,8 @@ FoldChange(object, ...)
   group.by = NULL,
   subset.ident = NULL,
   assay = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   reduction = NULL,
   features = NULL,
   pseudocount.use = 1,
@@ -86,7 +88,9 @@ in the output data.frame}
 \item{features}{Features to calculate fold change for.
 If NULL, use all features}
 
-\item{slot}{Slot to pull data from}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer to pull data from}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC.}
@@ -94,7 +98,7 @@ calculating logFC.}
 \item{base}{The base with respect to which logarithms are computed.}
 
 \item{norm.method}{Normalization method for mean function selection
-when \code{slot} is \dQuote{\code{data}}}
+when \code{layer} is \dQuote{\code{data}}}
 
 \item{ident.1}{Identity class to calculate fold change for; pass an object of class
 \code{phylo} or 'clustertree' to calculate fold change for a node in a cluster tree;
@@ -122,7 +126,7 @@ Calculate log fold change and percentage of cells expressing each feature
 for different identity classes.
 }
 \details{
-If the slot is \code{scale.data} or a reduction is specified, average difference
+If the layer is \code{scale.data} or a reduction is specified, average difference
 is returned instead of log fold change and the column is named "avg_diff".
 Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 }

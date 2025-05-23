@@ -23,7 +23,7 @@ RunLeiden(
 \item{method}{DEPRECATED.}
 
 \item{partition.type}{Type of partition to use for Leiden algorithm.
-Defaults to "RBConfigurationVertexPartition", see 
+Defaults to "RBConfigurationVertexPartition", see
 https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.}
 
 \item{initial.membership}{Passed to the `initial_membership` parameter

@@ -21,8 +21,8 @@ Given a merged object with multiple SCT models, this function uses minimum
 of the median UMI (calculated using the raw UMI counts) of individual objects
 to reverse the individual SCT regression model using minimum of median UMI
 as the sequencing depth covariate.
-The counts slot of the SCT assay is replaced with recorrected counts and
-the data slot is replaced with log1p of recorrected counts.
+The counts layer of the SCT assay is replaced with recorrected counts and
+the data layer is replaced with log1p of recorrected counts.
 }
 \section{Progress Updates with \pkg{progressr}}{
 

@@ -101,7 +101,7 @@ to FALSE, in which case the 'var.name' is modified if it already exists in the o
 }
 \description{
 This function computes the leverage scores for a given object
-It uses the concept of sketching and random projections. The function provides an approximation 
+It uses the concept of sketching and random projections. The function provides an approximation
 to the leverage scores using a scalable method suitable for large matrices.
 }
 \references{

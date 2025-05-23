@@ -11,7 +11,8 @@ PredictAssay(
   reduction = NULL,
   dims = NULL,
   return.assay = TRUE,
-  slot = "scale.data",
+  slot = deprecated(),
+  layer = "scale.data",
   features = NULL,
   mean.function = rowMeans,
   seed = 4273,
@@ -31,7 +32,9 @@ PredictAssay(
 
 \item{return.assay}{Return an assay or a predicted matrix}
 
-\item{slot}{slot used for prediction}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{layer used for prediction}
 
 \item{features}{features used for prediction}
 
@@ -44,7 +47,7 @@ cell}
 }
 \value{
 return an assay containing predicted expression value in the data
-slot
+layer
 }
 \description{
 This function will predict expression or cell embeddings from its k nearest

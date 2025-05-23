@@ -20,7 +20,8 @@ FeatureScatter(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   plot.cor = TRUE,
   ncol = NULL,
   raster = NULL,
@@ -62,7 +63,9 @@ to split by cell identity}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}}
 
-\item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer to pull data from, should be one of 'counts', 'data', or 'scale.data'}
 
 \item{plot.cor}{Display correlation in plot title}
 

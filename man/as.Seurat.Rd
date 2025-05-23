@@ -5,7 +5,14 @@
 \alias{as.Seurat.SingleCellExperiment}
 \title{Convert objects to \code{Seurat} objects}
 \usage{
-\method{as.Seurat}{CellDataSet}(x, slot = "counts", assay = "RNA", verbose = TRUE, ...)
+\method{as.Seurat}{CellDataSet}(
+  x,
+  slot = deprecated(),
+  layer = "counts",
+  assay = "RNA",
+  verbose = TRUE,
+  ...
+)
 
 \method{as.Seurat}{SingleCellExperiment}(
   x,
@@ -19,7 +26,9 @@
 \arguments{
 \item{x}{An object to convert to class \code{Seurat}}
 
-\item{slot}{Slot to store expression data as}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer to store expression data as}
 
 \item{assay}{Name of assays to convert; set to \code{NULL} for all assays to be converted}
 
@@ -30,7 +39,7 @@
 \item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
 set to \code{NULL} if only normalized data are present}
 
-\item{data}{name of the SingleCellExperiment assay to slot as \code{data}.
+\item{data}{name of the SingleCellExperiment assay to layer as \code{data}.
 Set to NULL if only counts are present}
 
 \item{project}{Project name for new Seurat object}

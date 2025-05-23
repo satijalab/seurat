@@ -25,7 +25,8 @@ FeaturePlot(
   split.by = NULL,
   keep.scale = "feature",
   shape.by = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -101,7 +102,9 @@ to split by cell identity}
 cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.}
 
-\item{slot}{Which slot to pull expression data from?}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Which layer to pull expression data from.}
 
 \item{blend}{Scale and blend expression values to visualize coexpression of two features}
 

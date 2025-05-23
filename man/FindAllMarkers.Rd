@@ -12,7 +12,8 @@ FindAllMarkers(
   group.by = NULL,
   logfc.threshold = 0.1,
   test.use = "wilcox",
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   min.pct = 0.01,
   min.diff.pct = -Inf,
   node = NULL,
@@ -38,7 +39,7 @@ FindAllMarkers(
 
 \item{features}{Genes to test. Default is to use all genes}
 
-\item{group.by}{Regroup cells into a different identity class prior to 
+\item{group.by}{Regroup cells into a different identity class prior to
 performing differential expression (see example); \code{"ident"} to use Idents}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
@@ -94,6 +95,9 @@ If the \code{slot} parameter is "scale.data" no filtering is performed.}
 \item{slot}{Slot to pull data from; note that if \code{test.use} is
 "negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
 
+\item{layer}{Layer to pull data from; note that if \code{test.use} is
+"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+
 \item{min.pct}{only test genes that are detected in a minimum fraction of
 min.pct cells in either of the two populations. Meant to speed up the function
 by not testing genes that are very infrequently expressed. Default is 0.01}
@@ -122,7 +126,7 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation.
-The default depends on the the value of \code{fc.slot}:
+The default depends on the the value of \code{fc.layer}:
 \itemize{
  \item{"counts"} : difference in the log of the mean counts, with pseudocount.
  \item{"data"} : difference in the log of the average exponentiated data, with pseudocount.
@@ -140,7 +144,7 @@ slot "avg_diff".}
 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
-\item{densify}{Convert the sparse matrix to a dense form before running the 
+\item{densify}{Convert the sparse matrix to a dense form before running the
 DE test. This can provide speedups but might require higher memory; default is FALSE}
 
 \item{...}{Arguments passed to other methods and to specific DE methods}

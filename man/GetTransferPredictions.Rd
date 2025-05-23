@@ -7,7 +7,8 @@
 GetTransferPredictions(
   object,
   assay = "predictions",
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   score.filter = 0.75
 )
 }
@@ -16,7 +17,9 @@ GetTransferPredictions(
 
 \item{assay}{Name of the assay holding the predictions}
 
-\item{slot}{Slot of the assay in which the prediction scores are stored}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer of the assay in which the prediction scores are stored}
 
 \item{score.filter}{Return "Unassigned" for any cell with a score less than
 this value}

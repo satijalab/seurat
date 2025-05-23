@@ -15,7 +15,8 @@ SpatialPlot(
   image.alpha = 1,
   image.scale = "lowres",
   crop = TRUE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   keep.scale = "feature",
   min.cutoff = NA,
   max.cutoff = NA,
@@ -71,7 +72,8 @@ SpatialFeaturePlot(
   features,
   images = NULL,
   crop = TRUE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   keep.scale = "feature",
   min.cutoff = NA,
   max.cutoff = NA,
@@ -111,7 +113,9 @@ order to matchthe plot with the specified `image` - defaults to "lowres"}
 \item{crop}{Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 entire background image.}
 
-\item{slot}{If plotting a feature, which data slot to pull from (counts,
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{If plotting a feature, which data layer to pull from (counts,
 data, or scale.data)}
 
 \item{keep.scale}{How to handle the color scale across multiple plots. Options are:

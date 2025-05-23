@@ -18,7 +18,8 @@ TransferData(
   eps = 0,
   n.trees = 50,
   verbose = TRUE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   prediction.assay = FALSE,
   only.weights = FALSE,
   store.weights = TRUE
@@ -76,7 +77,9 @@ nearest neighbor search}
 
 \item{verbose}{Print progress bars and output}
 
-\item{slot}{Slot to store the imputed data. Must be either "data" (default)
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer to store the imputed data. Must be either "data" (default)
 or "counts"}
 
 \item{prediction.assay}{Return an \code{Assay} object with the prediction

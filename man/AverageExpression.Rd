@@ -34,7 +34,7 @@ To use multiple categories, specify a vector, such as c('ident', 'replicate', 'c
 \item{layer}{Layer(s) to use; if multiple layers are given, assumed to follow
 the order of 'assays' (if specified) or object's assays}
 
-\item{slot}{(Deprecated). Slots(s) to use}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
 
 \item{verbose}{Print messages and show progress bar}
 

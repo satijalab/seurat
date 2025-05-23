@@ -32,7 +32,7 @@ Seurat object with the proportion of the feature set stored in metadata.
 This function enables you to easily calculate the percentage of all the counts belonging to a
 subset of the possible features for each cell. This is useful when trying to compute the percentage
 of transcripts that map to mitochondrial genes for example. The calculation here is simply the
-column sum of the matrix present in the counts slot for features belonging to the set divided by
+column sum of the matrix present in the counts layer for features belonging to the set divided by
 the column sum for all features times 100.
 }
 \examples{
