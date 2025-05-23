@@ -673,7 +673,7 @@ FindMarkers.default <- function(
 #' @param norm.method Normalization method for fold change calculation when
 #' \code{slot} is \dQuote{\code{data}}
 #' @param mean.fxn Function to use for fold change or average difference calculation.
-#' The default depends on the the value of \code{fc.slot}:
+#' The default depends on the the value of \code{fc.layer}:
 #' \itemize{
 #'  \item{"counts"} : difference in the log of the mean counts, with pseudocount.
 #'  \item{"data"} : difference in the log of the average exponentiated data, with pseudocount.
