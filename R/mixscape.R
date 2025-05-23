@@ -173,7 +173,7 @@ DEenrichRPlot <- function(
   return.gene.list = FALSE,
   ...
 ) {
-  enrichr.installed <- PackageCheck("enrichR", error = FALSE)
+  enrichr.installed <- is_installed("enrichR")
   if (!enrichr.installed[1]) {
     stop(
       "Please install the enrichR package to use DEenrichRPlot",
@@ -711,7 +711,7 @@ RunMixscape <- function(
   fine.mode.labels = "guide_ID",
   prtb.type = "KO"
 ) {
-  mixtools.installed <- PackageCheck("mixtools", error = FALSE)
+  mixtools.installed <- is_installed("mixtools")
   if (!mixtools.installed[1]) {
     stop("Please install the mixtools package to use RunMixscape",
          "\nThis can be accomplished with the following command: ",

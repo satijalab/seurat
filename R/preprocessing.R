@@ -1264,8 +1264,8 @@ Read10X_Image <- function(
       image = image
     )
 
-    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the 
-    # `spot.radius` slot and instead calculates the value on the fly, but we 
+    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the
+    # `spot.radius` slot and instead calculates the value on the fly, but we
     # can populate the static slot in case it's depended on.
     visium.v1@spot.radius <- Radius(visium.v1)
 
@@ -3419,10 +3419,10 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
     message("Computing Moran's I")
     mysapply <- pbsapply
   }
-  Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
+  Rfast2.installed <- is_installed("Rfast2")
   if (Rfast2.installed) {
     MyMoran <- Rfast2::moranI
-  } else if (!PackageCheck('ape', error = FALSE)) {
+  } else if (isFALSE(x = is_installed('ape'))) {
     stop(
       "'RunMoransI' requires either Rfast2 or ape to be installed",
       call. = FALSE

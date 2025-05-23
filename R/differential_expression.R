@@ -94,8 +94,10 @@ FindAllMarkers <- function(
     }
     idents.all <- sort(x = unique(x = Idents(object = object)))
   } else {
-    if (!PackageCheck('ape', error = FALSE)) {
-      stop(cluster.ape, call. = FALSE)
+    check_installed(
+      pkg = "ape",
+      reason = "Cluster tree functionality"
+    )
     }
     if (!is.null(group.by)) {
       warning(
@@ -270,7 +272,7 @@ FindConservedMarkers <- function(
   verbose = TRUE,
   ...
 ) {
-  metap.installed <- PackageCheck("metap", error = FALSE)
+  metap.installed <- is_installed("metap")
   if (!metap.installed[1]) {
     stop(
       "Please install the metap package to use FindConservedMarkers.",
@@ -1550,7 +1552,7 @@ DESeq2DETest <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!PackageCheck('DESeq2', error = FALSE)) {
+  if (isFALSE(x = is_installed('DESeq2'))) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
   CheckDots(..., fxns = 'DESeq2::results')
@@ -2004,7 +2006,7 @@ MASTDETest <- function(
   ...
 ) {
   # Check for MAST
-  if (!PackageCheck('MAST', error = FALSE)) {
+  if (isFALSE(x = is_installed('MAST'))) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
@@ -2547,8 +2549,8 @@ WilcoxDETest <- function(
     yes = FALSE,
     no = TRUE
   )
-  presto.check <- PackageCheck("presto", error = FALSE)
-  limma.check <- PackageCheck("limma", error = FALSE)
+  presto.check <- is_installed("presto")
+  limma.check <- is_installed("limma")
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
