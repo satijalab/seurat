@@ -772,6 +772,7 @@ FindMarkers.StdAssay <- FindMarkers.Assay
 #' @rdname FindMarkers
 #' @concept differential_expression
 #' @export
+#' @importFrom methods slot
 #' @method FindMarkers SCTAssay
 #'
 FindMarkers.SCTAssay <- function(
