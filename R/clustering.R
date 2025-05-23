@@ -195,7 +195,8 @@ FindSubCluster <- function(
 #' @param reduction Cell embedding of the reduction used for prediction
 #' @param dims Number of dimensions of cell embedding
 #' @param return.assay Return an assay or a predicted matrix
-#' @param slot slot used for prediction
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer layer used for prediction
 #' @param features features used for prediction
 #' @param mean.function the function used to calculate row mean
 #' @param seed Sets the random seed to check if the nearest neighbor is query
@@ -203,7 +204,7 @@ FindSubCluster <- function(
 #' @param verbose Print progress
 #'
 #' @return return an assay containing predicted expression value in the data
-#' slot
+#' layer
 #' @concept integration
 #' @export
 #'
@@ -214,12 +215,22 @@ PredictAssay <- function(
   reduction = NULL,
   dims = NULL,
   return.assay = TRUE,
-  slot = "scale.data",
+  slot = deprecated(),
+  layer = "scale.data",
   features = NULL,
   mean.function = rowMeans,
   seed = 4273,
   verbose = TRUE
 ){
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'DimHeatmap(slot = )',
+      with = 'DimHeatmap(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   if (!inherits(x = mean.function, what = 'function')) {
     stop("'mean.function' must be a function")
   }
@@ -227,14 +238,14 @@ PredictAssay <- function(
     reference.data <- GetAssayData(
       object = object,
       assay = assay,
-      slot = slot
+      layer = layer
     )
     features <- features %||% VariableFeatures(object = object[[assay]])
     if (length(x = features) == 0) {
       features <- rownames(x = reference.data)
       if (verbose) {
         message("VariableFeatures are empty in the ", assay,
-                " assay, features in the ", slot, " slot will be used" )
+                " assay, features in the ", layer, " layer will be used" )
       }
     }
     reference.data <- reference.data[features, , drop = FALSE]
@@ -667,7 +678,7 @@ FindNeighbors.Assay <- function(
 ) {
   CheckDots(...)
   features <- features %||% VariableFeatures(object = object)
-  data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
+  data.use <- t(x = GetAssayData(object = object, layer = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
     object = data.use,
     k.param = k.param,
@@ -1651,10 +1662,10 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #'
 #' Returns a vector of partition indices.
 #'
-#' @param object An adjacency matrix or adjacency list. 
+#' @param object An adjacency matrix or adjacency list.
 #' @param method DEPRECATED.
 #' @param partition.type Type of partition to use for Leiden algorithm.
-#' Defaults to "RBConfigurationVertexPartition", see 
+#' Defaults to "RBConfigurationVertexPartition", see
 #' https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.
 #' @param initial.membership Passed to the `initial_membership` parameter
 #' of `leidenbase::leiden_find_partition`.
@@ -1669,10 +1680,10 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #'
 #' @export
-#' 
+#'
 #' @rdname RunLeiden
 #' @concept clustering
-#' 
+#'
 RunLeiden <- function(
   object,
   method = deprecated(),
@@ -1692,8 +1703,8 @@ RunLeiden <- function(
   n.iter = 10
 ) {
   # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
-  # greater than 0 (or NULL) but the default value for `FindClusters` is 0. 
-  # If `random.seed` is 0 or less, throw a warning and reset the value to 1. 
+  # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
+  # If `random.seed` is 0 or less, throw a warning and reset the value to 1.
    if (!is.null(random.seed) && random.seed <= 0) {
     warning(
       paste0(
@@ -1708,21 +1719,21 @@ RunLeiden <- function(
   # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
   # _requires_ an `igraph` input, so the parameter no longer makes sense. The
   # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
-  # really matter. 
+  # really matter.
   if (is_present(method)) {
     deprecate_soft(
       when = "5.2.0",
       what = "RunLeiden(method)"
     )
   }
-  
+
   # Convert `object` into an `igraph`.
   # If `object` is already an `igraph` no conversion is necessary.
-  if (inherits(object, what = "igraph")) { 
+  if (inherits(object, what = "igraph")) {
     input <- object
   # Otherwise, if `object` is a list, assume it is an adjacency list...
   } else if (inherits(object, what = "list")) {
-    # And convert it to an `igraph` with the appropriate method. 
+    # And convert it to an `igraph` with the appropriate method.
     input <- graph_from_adj_list(object)
   # Or, if `object` is a matrix...
   } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
@@ -1732,7 +1743,7 @@ RunLeiden <- function(
     }
     # And then convert it to an graph.
     input <- graph_from_adjacency_matrix(object, weighted = TRUE)
-  # Throw an error if `object` is of an unknown type. 
+  # Throw an error if `object` is of an unknown type.
   } else {
     stop(
       "Method for Leiden not found for class", class(object),
