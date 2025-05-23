@@ -3393,7 +3393,6 @@ SelectSCTIntegrationFeatures <- function(
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
 #'
 #' @importFrom Matrix t
-#' @importFrom methods slot
 #'
 #' @export
 #'
