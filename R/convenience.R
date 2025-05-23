@@ -371,7 +371,8 @@ SpatialFeaturePlot <- function(
   features,
   images = NULL,
   crop = TRUE,
-  slot = 'data',
+  slot = deprecated(),
+  layer = "data",
   keep.scale = "feature",
   min.cutoff = NA,
   max.cutoff = NA,
@@ -386,12 +387,21 @@ SpatialFeaturePlot <- function(
   interactive = FALSE,
   information = NULL
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'SpatialFeaturePlot(slot = )',
+      with = 'SpatialFeaturePlot(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   return(SpatialPlot(
     object = object,
     features = features,
     images = images,
     crop = crop,
-    slot = slot,
+    layer = layer,
     keep.scale = keep.scale,
     min.cutoff = min.cutoff,
     max.cutoff = max.cutoff,
