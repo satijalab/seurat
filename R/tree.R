@@ -2,11 +2,6 @@
 #'
 NULL
 
-cluster.ape <- paste(
-  "Cluster tree functionality requires 'ape'",
-  "please install with 'install.packages('ape')'"
-)
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
