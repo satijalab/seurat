@@ -661,9 +661,11 @@ Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
 ) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
-    stop("Please install hdf5r to read HDF5 files")
-  }
+  check_installed(
+    pkg = "hdf5r",
+    reason = "to read HDF5 files"
+  )
+
   file.path = paste0(data.dir,"/", filename)
   if (!file.exists(file.path)) {
     stop("File not found")
@@ -1128,9 +1130,10 @@ Read10X <- function(
 #' @concept preprocessing
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
-    stop("Please install hdf5r to read HDF5 files")
-  }
+  check_installed(
+    pkg = "hdf5r",
+    reason = "to read HDF5 files"
+  )
   if (!file.exists(filename)) {
     stop("File not found")
   }
@@ -1317,9 +1320,10 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
   # if the coordinate mappings are in a parquet file
   if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
-    if (!requireNamespace("arrow", quietly = TRUE)) {
-      stop("Please install arrow to read parquet files")
-    }
+    check_installed(
+      pkg = "arrow",
+      reason = "to read parquet files"
+    )
 
     # read in coordinates and conver the resulting tibble into a data.frame
     coordinates <- as.data.frame(arrow::read_parquet(filename))
@@ -1438,9 +1442,11 @@ ReadAkoya <- function(
   filter = 'DAPI|Blank|Empty',
   inform.quant = c('mean', 'total', 'min', 'max', 'std')
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
-    stop("Please install 'data.table' for this function")
-  }
+  check_installed(
+    pkg = "data.table",
+    reason = "to use ReadAkoya"
+  )
+
   # Check arguments
   if (!file.exists(filename)) {
     stop(paste("Can't file file:", filename))
@@ -2011,9 +2017,10 @@ ReadNanostring <- function(
   subset.counts.matrix = NULL,
   cell.mols.only = TRUE
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
-    stop("Please install 'data.table' for this function")
-  }
+  check_installed(
+    pkg = "data.table",
+    reason = "to use ReadNanostring"
+  )
 
   # Argument checking
   type <- match.arg(
@@ -2747,9 +2754,10 @@ ReadVitessce <- function(
   type = c('segmentations', 'centroids'),
   filter = NA_character_
 ) {
-  if (!requireNamespace('jsonlite', quietly = TRUE)) {
-    stop("Please install 'jsonlite' for this function")
-  }
+  check_installed(
+    pkg = "jsonlite",
+    reason = "to use ReadVitessce"
+  )
   type <- match.arg(arg = type, several.ok = TRUE)
   nouts <- c(
     counts %iff% 'counts',
@@ -2964,9 +2972,10 @@ ReadVizgen <- function(
   z = 3L
 ) {
   # TODO: handle multiple segmentations per z-plane
-  if (!requireNamespace("data.table", quietly = TRUE)) {
-    stop("Please install 'data.table' for this function")
-  }
+  check_installed(
+    pkg = "data.table",
+    reason = "to use ReadVizgen"
+  )
   # hdf5r is only used for loading polygon boundaries
   # Not needed for all Vizgen input
   hdf5 <- requireNamespace("hdf5r", quietly = TRUE)
