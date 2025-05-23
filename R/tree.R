@@ -81,9 +81,11 @@ BuildClusterTree <- function(
     layer <- slot %||% layer
   }
 
-  if (!requireNamespace('ape', quietly = TRUE)) {
-    stop(cluster.ape, call. = FALSE)
-  }
+  check_installed(
+    pkg = "ape",
+    reason = "Cluster tree functionality"
+  )
+
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = graph)) {
     idents <- levels(x = object)
