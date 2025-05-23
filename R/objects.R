@@ -1478,7 +1478,7 @@ Cells.SCTAssay <- function(x, layer = NA, ...) {
     return(colnames(x))
   }
 
-  # If `layer` is `NULL` take the name of the first model in the 
+  # If `layer` is `NULL` take the name of the first model in the
   # assay's `SCTModel.list`.
   layer <- layer %||% levels(x)[1L]
 
@@ -1489,7 +1489,7 @@ Cells.SCTAssay <- function(x, layer = NA, ...) {
     cells <- colnames(data)
   } else {
     # Otherwise, assume that `layer` is the name of an element in `SCTModel.list`.
-    cells <- Cells(components(x, model = layer))  
+    cells <- Cells(components(x, model = layer))
   }
 
   return(cells)
@@ -2381,9 +2381,9 @@ merge.SCTAssay <- function(
           seurat.object <- SetAssayData(
             object = seurat.object,
             assay = parent.environ$assay,
-            slot = "scale.data",
+            layer = "scale.data",
             new.data = residuals
-          )                                                                
+          )
           return(seurat.object[[parent.environ$assay]])
         }
         return(assays[[assay]])
