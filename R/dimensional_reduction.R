@@ -92,7 +92,7 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
+  data.use <- GetAssayData(object = object, assay = assay, layer = "scale.data")[reduc.features, ]
   rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
   weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
   fake.vals.raw <- my.lapply(
@@ -293,7 +293,7 @@ ProjectDim <- function(
   assay <- assay %||% DefaultAssay(object = redeuc)
   data.use <- GetAssayData(
     object = object[[assay]],
-    slot = "scale.data"
+    layer = "scale.data"
   )
   if (do.center) {
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
@@ -593,16 +593,16 @@ RunCCA.Seurat <- function(
   }
   nfeatures <- length(x = features)
   if (!(rescale)) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "scale.data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "scale.data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "scale.data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "scale.data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features, ]
     data2 <- data.use2[features, ]
   }
   if (rescale) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features,]
@@ -614,7 +614,7 @@ RunCCA.Seurat <- function(
     dimnames(data2) <- list(features, colnames(x = object2))
   }
   if (length(x = features) / nfeatures < 0.1 & verbose) {
-    warning("More than 10% of provided features filtered out. Please check that the given features are present in the scale.data slot for both the assays provided here and that they have non-zero variance.")
+    warning("More than 10% of provided features filtered out. Please check that the given features are present in the scale.data layer for both the assays provided here and that they have non-zero variance.")
   }
   if (length(x = features) < 50) {
     warning("Fewer than 50 features used as input for CCA.")
@@ -651,7 +651,7 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, layer = "scale.data")
   ## combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
@@ -1673,7 +1673,8 @@ RunUMAP.Neighbor <- function(
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
 #' @param nn.name Name of knn output on which to run UMAP
-#' @param slot The slot used to pull data for when using \code{features}. data slot is by default.
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer The layer used to pull data for when using \code{features}. data slot is by default.
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
 #'   \item{\code{uwot}:}{Runs umap via the uwot R package}
@@ -1766,7 +1767,8 @@ RunUMAP.Seurat <- function(
   graph = NULL,
   assay = DefaultAssay(object = object),
   nn.name = NULL,
-  slot = 'data',
+  slot = deprecated(),
+  layer = "data",
   umap.method = 'uwot',
   reduction.model = NULL,
   return.model = FALSE,
@@ -1796,6 +1798,15 @@ RunUMAP.Seurat <- function(
   reduction.key = NULL,
   ...
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'RunUMAP(slot = )',
+      with = 'RunUMAP(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   CheckDots(...)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
@@ -1807,7 +1818,7 @@ RunUMAP.Seurat <- function(
   }
 
   if (!is.null(x = features)) {
-    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
@@ -2384,14 +2395,24 @@ L2Norm <- function(vec) {
 PrepDR <- function(
   object,
   features = NULL,
-  slot = 'scale.data',
+  slot = deprecated(),
+  layer = "scale.data",
   verbose = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'PrepDR(slot = )',
+      with = 'PrepDR(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
   }
-  data.use <- GetAssayData(object = object, slot = slot)
-  if (nrow(x = data.use ) == 0 && slot == "scale.data") {
+  data.use <- GetAssayData(object = object, layer = layer)
+  if (nrow(x = data.use ) == 0 && layer == "scale.data") {
     stop("Data has not been scaled. Please run ScaleData and retry")
   }
   features <- features %||% VariableFeatures(object = object)
@@ -2727,7 +2748,7 @@ RunSLSI.Assay <- function(
   data.use <- PrepDR(
     object = object,
     features = features,
-    slot = "data",
+    layer = "data",
     verbose = verbose
   )
   reduction.data <- RunSLSI(
