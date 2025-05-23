@@ -137,13 +137,12 @@ AddAzimuthScores <- function(object, filename) {
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
-#' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
 #' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Seurat
 #'
 #' @examples
 #' \dontrun{
@@ -174,7 +173,7 @@ AddAzimuthScores <- function(object, filename) {
 #' head(x = pbmc_small[])
 #' }
 #'
-AddModuleScore <- function(
+AddModuleScore.Seurat <- function(
   object,
   features,
   pool = NULL,
@@ -204,13 +203,120 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
+
   assay.data <- GetAssayData(object = object, assay = assay, layer = layer)
+
+  features.scores.use <- AddModuleScore(object = object[[assay]],
+                                        features = features,
+                                        kmeans.obj = object@kmeans.obj,
+                                        pool = pool,
+                                        nbin = nbin,
+                                        ctrl = ctrl,
+                                        k = k,
+                                        name = name,
+                                        seed = seed,
+                                        search = search,
+                                        layer = layer,
+                                        ...)
+  object[[colnames(x = features.scores.use)]] <- features.scores.use
+  CheckGC()
+  DefaultAssay(object = object) <- assay.old
+  return(object)
+}
+
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
+#' 
+#' @references Tirosh et al, Science (2016)
+#'
+AddModuleScore.StdAssay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  layer_names <- Layers(object, search = slot)
+  input_list <- lapply(
+    layer_names,
+    function(layer_name) {
+      layer_data <- LayerData(object, layer = layer_name)
+      layer_object <- CreateAssayObject(layer_data)
+      return (layer_object)
+    }
+  )
+  output_list <- lapply(
+    input_list,
+    function(input) {
+      AddModuleScore(object = input,
+                     features = features,
+                     kmeans.obj = kmeans.obj,
+                     pool = pool,
+                     nbin = nbin,
+                     ctrl = ctrl,
+                     k = k,
+                     name = name,
+                     seed = seed,
+                     search = search,
+                     layer = layer,
+                     ...)
+    }
+  )
+  features.scores.use <- do.call(rbind,output_list)
+  return(features.scores.use)
+}
+
+#' 
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#' when \code{k = TRUE}; ignored if \code{k = FALSE}.
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Assay
+#'
+#' @importFrom ggplot2 cut_number
+#' 
+AddModuleScore.Assay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = deprecated(),
+    layer = "data",
+    ...
+) {
+    if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'AddModuleScore(slot = )',
+      with = 'AddModuleScore(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+  
+  assay.data <- GetAssayData(object = object, layer = layer)
+
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
     features <- list()
-    for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
-      features[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
+    for (i in as.numeric(x = names(x = table(kmeans.obj[[1]]$cluster)))) {
+      features[[i]] <- names(x = which(x = kmeans.obj[[1]]$cluster == i))
     }
     cluster.length <- length(x = features)
   } else {
@@ -330,10 +436,7 @@ AddModuleScore <- function(
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
-  object[[colnames(x = features.scores.use)]] <- features.scores.use
-  CheckGC()
-  DefaultAssay(object = object) <- assay.old
-  return(object)
+  return(features.scores.use)
 }
 
 #' Aggregated feature expression by identity class
@@ -1278,7 +1381,6 @@ PercentageFeatureSet <- function(
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
 #' @rdname PseudobulkExpression
-#' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #' @concept utilities
 #'
@@ -1516,26 +1618,28 @@ PseudobulkExpression.Seurat <- function(
     group.by <- colnames(x = data)[which(num.levels > 1)]
     data <- data[, which(num.levels > 1), drop = F]
   }
-  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
-  #check if column names are numeric
-  col.names <- colnames(category.matrix)
-  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
-    col.names <- ifelse(
-      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
-      paste0("g", col.names),
-      col.names
-    )
-    colnames(category.matrix) <- col.names
-    inform(
-      message = paste0("First group.by variable `", group.by[1],
-      "` starts with a number, appending `g` to ensure valid variable names"),
-      .frequency = "regularly",
-      .frequency_id = "PseudobulkExpression"
-    )
-  }
-
   data.return <- list()
   for (i in 1:length(x = assays)) {
+    data_sub <- data[intersect(rownames(data),Cells(object[[assays[i]]])),,drop=FALSE]
+    category.matrix <- CreateCategoryMatrix(labels = data_sub, method = method)
+    #check if column names are numeric
+    col.names <- colnames(category.matrix)
+    if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+      col.names <- ifelse(
+        !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+        paste0("g", col.names),
+        col.names
+      )
+      colnames(category.matrix) <- col.names
+      inform(
+        message = paste0("First group.by variable `", group.by[1],
+        "` starts with a number, appending `g` to ensure valid variable names"),
+        .frequency = "regularly",
+        .frequency_id = "PseudobulkExpression"
+      )
+    }
+
+
     data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
@@ -1586,6 +1690,8 @@ PseudobulkExpression.Seurat <- function(
         ) <- NormalizeData(
           as.matrix(x = data.return[[1]]),
           normalization.method = normalization.method,
+          scale.factor = scale.factor,
+          margin = margin,
           verbose = verbose
         )
       }

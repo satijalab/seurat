@@ -746,6 +746,7 @@ ReciprocalProject <- function(
 #' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
 #'
+
 FindTransferAnchors <- function(
   reference,
   query,
@@ -775,6 +776,7 @@ FindTransferAnchors <- function(
 ) {
   op <- options(Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
+  
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
@@ -803,6 +805,7 @@ FindTransferAnchors <- function(
     mapping.score.k = mapping.score.k,
     verbose = verbose
   )
+  
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
   reduction.2 <- character()
   feature.mean <- NULL
@@ -881,6 +884,30 @@ FindTransferAnchors <- function(
     object = reference,
     new.names = paste0(Cells(x = reference), "_", "reference")
   )
+  
+  # Select one SCT model based on max num of cells if multiple detected in the ref
+  if (normalization.method == "SCT"){
+    model_list <- reference[["SCT"]]@SCTModel.list
+    if (length(x = model_list) > 1) {
+      model_cell_counts <- sapply(
+        X = model_list,
+        FUN = function(model) {
+          length(x = Cells(x = model))
+        }
+      )
+      best_model_index <- which.max(model_cell_counts)
+      chosen_model <- model_list[[best_model_index]]
+      reference[["SCT"]] <- CreateSCTAssayObject(
+        data = GetAssayData(object = reference[["SCT"]], slot = "data"),
+        scale.data = GetAssayData(object = reference[["SCT"]], slot = "scale.data"),
+        SCTModel.list = chosen_model
+      )
+      message("Selected the SCT model fitted on the most cells.")
+    } else {
+      message("Only one SCT model detected; no need to select.")
+    }
+  }
+  
   # Perform PCA projection
   if (reduction == 'pcaproject') {
     if (project.query) {
@@ -909,6 +936,7 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
+      
       projected.pca <- ProjectCellEmbeddings(
         reference = query,
         reduction = reference.reduction,
@@ -1146,30 +1174,64 @@ FindTransferAnchors <- function(
   precomputed.neighbors <- list(ref.neighbors = NULL, query.neighbors = NULL)
   nn.idx1 <- NULL
   nn.idx2 <- NULL
+  
   # if computing the mapping score later, compute large enough query
   # neighborhood here to reuse
+  # when mapping.score.k is set, neighbors are pre-computed
+  
   if (!is.null(x = mapping.score.k)) {
     if (verbose) {
       message("Finding query neighbors")
     }
     k.nn <- max(k.score, k.anchor)
-    query.neighbors <- NNHelper(
-      data = Embeddings(object = combined.ob[[reduction]])[colnames(x = query), ],
-      k = max(mapping.score.k, k.nn + 1),
-      method = nn.method,
-      n.trees = n.trees,
-      cache.index = TRUE
-    )
-    query.neighbors.sub <- query.neighbors
-    slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
-      object = query.neighbors.sub,
-      name = "nn.idx")[, 1:(k.nn + 1)]
-    slot(object = query.neighbors.sub, name = "nn.dist") <- slot(
-      object = query.neighbors.sub,
-      name = "nn.dist")[, 1:(k.nn + 1)]
-    precomputed.neighbors[["query.neighbors"]] <- query.neighbors.sub
-    nn.idx2 <- Index(object = query.neighbors.sub)
+    
+    # Enable processing query.neighbors as a list for multi-layered query objects
+    query.layers <- Layers(query, search = 'data')
+    query.neighbors.list <- vector("list", length(query.layers))
+    query.neighbors.sub.list <- vector("list", length(query.layers))
+    
+    nn.idx2.list <- vector("list", length(query.layers))
+    for (layer in seq_along(query.layers)) {
+      cells2.i <- Cells(
+        x = query,
+        layer = query.layers[layer]
+      )
+      query.subset <- subset(
+        x = query,
+        cells = cells2.i
+      )
+      
+      layer_embeddings <- Embeddings(object = combined.ob[[reduction]])[colnames(x = query.subset), ]
+      
+      # query.neighbors is a neighbors object that maps query cell indices to 
+      # its k nearest neighbors. This will be computed per each query layer. 
+      query.neighbors <- NNHelper(
+        data = layer_embeddings,
+        k = max(mapping.score.k, k.nn + 1),
+        method = nn.method,
+        n.trees = n.trees,
+        cache.index = TRUE
+      )
+      
+      query.neighbors.sub <- query.neighbors
+      slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
+        object = query.neighbors.sub,
+        name = "nn.idx")[, 1:(k.nn + 1)]
+      slot(object = query.neighbors.sub, name = "nn.dist") <- slot(
+        object = query.neighbors.sub,
+        name = "nn.dist")[, 1:(k.nn + 1)]
+      
+      # Adding neighbors to list 
+      query.neighbors.list[[layer]] <- query.neighbors
+      query.neighbors.sub.list[[layer]] <- query.neighbors.sub
+      
+      nn.idx2.list[[layer]] <- Index(object = query.neighbors.sub)
+    }
+    
+    precomputed.neighbors[["query.neighbors"]] <- query.neighbors.sub.list
+    nn.idx2 <- nn.idx2.list
   }
+  
   if (!is.null(x = reference.neighbors)) {
     precomputed.neighbors[["ref.neighbors"]] <- reference[[reference.neighbors]]
   } else {
@@ -1177,13 +1239,14 @@ FindTransferAnchors <- function(
       data = Embeddings(combined.ob[[reduction]])[
         colnames(x = reference),
         1:length(x = dims)
-        ],
+      ],
       k = max(k.score, k.anchor) + 1,
       method = nn.method,
       cache.index = TRUE
-      )
+    )
   }
   nn.idx1 <- Index(object = precomputed.neighbors[["ref.neighbors"]])
+  
   anchors <- FindAnchors(
     object.pair = combined.ob,
     assay = c(reference.assay, reference.assay),
@@ -1234,7 +1297,8 @@ FindTransferAnchors <- function(
   )
   if (!is.null(x = precomputed.neighbors[["query.neighbors"]])) {
     slot(object = anchor.set, name = "neighbors") <- list(
-      query.neighbors = query.neighbors)
+      # return list of neighbors in anchor.set object 
+      query.neighbors = query.neighbors.list) 
   }
   return(anchor.set)
 }
@@ -2505,7 +2569,7 @@ MappingScore.default <- function(
   )
   colnames(x = query.cells.projected) <- query.cells
   rownames(x = query.cells.projected) <- colnames(x = ref.pca)
-
+  
   # Re-project the query cells back onto query
   if (verbose) {
     message("Projecting back the query cells into original PCA space")
@@ -2656,11 +2720,12 @@ MappingScore.AnchorSet <- function(
     x = combined.object[["pcaproject.l2"]],
     cells = query.cells
   ))
+
   ref.embeddings <- Embeddings(object = subset(
     x = combined.object[["pcaproject.l2"]],
     cells = ref.cells
   ))
-  query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
+  
   # reduce size of anchorset combined object
   combined.object <- DietSeurat(object = combined.object)
   combined.object <- subset(
@@ -2670,23 +2735,73 @@ MappingScore.AnchorSet <- function(
   for (i in colnames(x = combined.object[[]])) {
     combined.object[[i]] <- NULL
   }
-  return(MappingScore(
-    anchors = slot(object = anchors, name = "anchors"),
-    combined.object = combined.object,
-    query.neighbors = query.neighbors,
-    ref.embeddings = ref.embeddings,
-    query.embeddings = query.embeddings,
-    kanchors = kanchors,
-    ndim = ndim,
-    ksmooth = ksmooth,
-    ksnn = ksnn,
-    snn.prune = snn.prune,
-    subtract.first.nn = subtract.first.nn,
-    nn.method = nn.method,
-    n.trees = n.trees,
-    query.weights = query.weights,
-    verbose = verbose
-  ))
+
+  query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
+  if (inherits(query.neighbors, "Neighbor") || is.null(query.neighbors)) {
+    mapping_scores_list <- MappingScore(
+      anchors = slot(object = anchors, name = "anchors"),
+      combined.object = combined.object,
+      query.neighbors = query.neighbors,
+      ref.embeddings = ref.embeddings,
+      query.embeddings = query.embeddings,
+      kanchors = kanchors,
+      ndim = ndim,
+      ksmooth = ksmooth,
+      ksnn = ksnn,
+      snn.prune = snn.prune,
+      subtract.first.nn = subtract.first.nn,
+      nn.method = nn.method,
+      n.trees = n.trees,
+      query.weights = query.weights,
+      verbose = verbose
+      )
+    return(unlist(mapping_scores_list))
+  }
+  
+  query.neighbors.list <- query.neighbors
+  mapping_scores_list <- list()
+  original_anchors_data <- slot(object = anchors, name = "anchors")
+  
+  for (i in seq_along(query.neighbors.list)) {
+    query.neighbors.i <- query.neighbors.list[[i]]  
+    # query cells in neighbors obj have suffix _query, strip to match
+    query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) 
+    query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
+    
+    # subset anchors to query specific 
+    anchors_data <- original_anchors_data 
+    anchors_data_df <- as.data.frame(anchors_data)
+    
+    # indices of current query layer where query cells are in anchors, should < anchors obj 
+    query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2]) 
+    
+    anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
+    anchors_subset <- as.matrix(anchors_subset_df)
+    
+    slot(anchors, "anchors") <- anchors_subset
+    
+    mapping_scores_list[[i]] <- MappingScore(
+      # input subset of layer-specific anchors
+      anchors = slot(object = anchors, name = "anchors"), 
+      combined.object = combined.object,
+      query.neighbors = query.neighbors.i,
+      ref.embeddings = ref.embeddings,
+      query.embeddings = query.embeddings.i,
+      kanchors = kanchors,
+      ndim = ndim,
+      ksmooth = ksmooth,
+      ksnn = ksnn,
+      snn.prune = snn.prune,
+      subtract.first.nn = subtract.first.nn,
+      nn.method = nn.method,
+      n.trees = n.trees,
+      query.weights = query.weights,
+      verbose = verbose
+    )
+    slot(anchors, "anchors") <- original_anchors_data
+  }
+  return(unlist(mapping_scores_list))
+  
 }
 
 #' Calculates a mixing metric
@@ -4158,6 +4273,8 @@ FindAnchors_v5 <- function(
   reference.layers <- Layers(object.pair[[ref.assay]], search = 'data')[1]
   query.layers <- setdiff(Layers(object.pair[[query.assay]], search = 'data'), reference.layers)
   anchor.list <- list()
+  
+  # Enable compatibility with multi-layer query 
   for (i in seq_along(query.layers)) {
     cells2.i <- Cells(
       x = object.pair[[query.assay]],
@@ -4168,13 +4285,21 @@ FindAnchors_v5 <- function(
       cells = c(cells1, cells2.i)
     )
     object.pair.i <- JoinLayers(object.pair.i)
+    
+    # Extract the neighbors for the current query layer from the neighbors list
+    query.neighbors.sub <- internal.neighbors[["query.neighbors"]][[i]]
+    nn.idx2.i <- nn.idx2[[i]]
+    
     anchor.list[[i]] <- FindAnchors_v3(
       object.pair = object.pair.i,
       assay = assay,
       layer = layer,
       cells1 = cells1,
       cells2 = cells2.i,
-      internal.neighbors = internal.neighbors,
+      internal.neighbors = list(
+        "ref.neighbors" = internal.neighbors[["ref.neighbors"]],
+        "query.neighbors" = query.neighbors.sub  # neighbors for current layer
+      ),
       reduction = reduction,
       reduction.2 = reduction.2,
       nn.reduction = nn.reduction,
@@ -4186,7 +4311,7 @@ FindAnchors_v5 <- function(
       nn.method = nn.method,
       n.trees = n.trees,
       nn.idx1 = nn.idx1,
-      nn.idx2 = nn.idx2,
+      nn.idx2 = nn.idx2.i, #select the layer specific nn.idx2
       eps = eps,
       projected = projected,
       verbose = verbose
@@ -6027,14 +6152,33 @@ ValidateParams_FindTransferAnchors <- function(
     recompute.residuals <- FALSE
     ModifyParam(param = "recompute.residuals", value = recompute.residuals)
   }
+  
+  # Added check for preventing SCT and RNA assay mixing 
+  if (normalization.method == "SCT") {
+    if (IsSCT(assay = reference[[reference.assay]]) && !IsSCT(assay = query[[query.assay]])) {
+      stop(
+        "Reference assay is SCT, but query assay is RNA. ",
+        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
+      )
+    }
+    if (!IsSCT(assay = reference[[reference.assay]]) && IsSCT(assay = query[[query.assay]])) {
+      stop(
+        "Reference assay is RNA, but query assay is SCT. ",
+        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
+      )
+    }
+  }
+  
   if (recompute.residuals) {
     # recompute.residuals only happens in ProjectCellEmbeddings, so k.filter set to NA.
     ModifyParam(param = "k.filter", value = NA)
     reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
-      stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
-           " reference sct models. Please provide a reference assay with a ",
-           " single reference sct model.", call. = FALSE)
+      # Enable compatibility with integrated reference with mutliple SCT models
+      print("Given reference assay has multiple sct models, selecting model with most cells for finding transfer anchors")
+      # stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
+      #      " reference sct models. Please provide a reference assay with a ",
+      #      " single reference sct model.", call. = FALSE)
     } else if (reference.model.num == 0) {
       if (IsSCT(query[[query.assay]])) {
         stop("Given reference assay (", reference.assay,

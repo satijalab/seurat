@@ -168,72 +168,13 @@ FindVariableFeatures.StdAssay <- function(
   return(object)
 }
 
-#' @param layer Layer in the Assay5 to pull data from
-#' @param features If provided, only compute on given features. Otherwise,
-#' compute for all features.
-#' @param nfeatures Number of features to mark as the top spatially variable.
-#'
 #' @method FindSpatiallyVariableFeatures StdAssay
 #' @rdname FindSpatiallyVariableFeatures
 #' @concept preprocessing
 #' @concept spatial
 #' @export
 #'
-FindSpatiallyVariableFeatures.StdAssay <- function(
-  object,
-  layer = "scale.data",
-  spatial.location,
-  selection.method = c('markvariogram', 'moransi'),
-  features = NULL,
-  r.metric = 5,
-  x.cuts = NULL,
-  y.cuts = NULL,
-  nfeatures = nfeatures,
-  verbose = TRUE,
-  ...
-) {
-  features <- features %||% rownames(x = object)
-  if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
-    features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
-    features <- features[! features %in% features.computed]
-  }
-  data <- GetAssayData(object = object, layer = layer)
-  data <- as.matrix(x = data[features, ])
-  data <- data[RowVar(x = data) > 0, ]
-  if (nrow(x = data) != 0) {
-    svf.info <- FindSpatiallyVariableFeatures(
-      object = data,
-      spatial.location = spatial.location,
-      selection.method = selection.method,
-      r.metric = r.metric,
-      x.cuts = x.cuts,
-      y.cuts = y.cuts,
-      verbose = verbose,
-      ...
-    )
-  } else {
-    svf.info <- c()
-  }
-  if (selection.method == "markvariogram") {
-    if ("markvariogram" %in% names(x = Misc(object = object))) {
-      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
-    }
-    suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
-    svf.info <- ComputeRMetric(mv = svf.info, r.metric)
-    svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
-  }
-  if (selection.method == "moransi") {
-    colnames(x = svf.info) <- paste0("MoransI_", colnames(x = svf.info))
-    svf.info <- svf.info[order(svf.info[, 2], -abs(svf.info[, 1])), , drop = FALSE]
-  }
-  var.name <- paste0(selection.method, ".spatially.variable")
-  var.name.rank <- paste0(var.name, ".rank")
-  svf.info[[var.name]] <- FALSE
-  svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
-  svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
-  object[names(x = svf.info)] <- svf.info
-  return(object)
-}
+FindSpatiallyVariableFeatures.StdAssay <- FindSpatiallyVariableFeatures.Assay
 
 
 #' @rdname LogNormalize
@@ -1191,294 +1132,138 @@ SCTransform.StdAssay <- function(
   return.only.var.genes = TRUE,
   seed.use = 1448145,
   verbose = TRUE,
-  ...) {
-  if (!is.null(x = seed.use)) {
-    set.seed(seed = seed.use)
-  }
-  if (!is.null(reference.SCT.model)){
-    do.correct.umi <- FALSE
-    do.center <- FALSE
-  }
-  olayer <- layer <- unique(x = layer)
-  layers <- Layers(object = object, search = layer)
-  dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
-  # loop over layers performing SCTransform() on individual layers
-  sct.assay.list <- list()
-  # Keep a tab of variable features per chunk
-  variable.feature.list <- list()
-
-  for (dataset.index in seq_along(along.with = layers)) {
-    l <- layers[dataset.index]
-    if (isTRUE(x = verbose)) {
-      message("Running SCTransform on layer: ", l)
+  ...
+) {
+  
+  # Extract TK and TK.
+  layer_names <- Layers(object, search = layer)
+  input_list <- lapply(
+    layer_names,
+    function(layer_name) {
+      layer_counts <- LayerData(object, layer = layer_name)
+      layer_object <- CreateAssayObject(layer_counts)
+      return (layer_object)
     }
-    all_cells <-  Cells(x = object, layer = l)
-    all_features <- Features(x = object, layer = l)
-    layer.data <- LayerData(
-      object = object,
-      layer = l,
-      features = all_features,
-      cells = all_cells
-    )
-    local.reference.SCT.model <- NULL
-    set.seed(seed = seed.use)
-    do.correct.umi.chunk <- FALSE
-    sct.function <- if (inherits(x = layer.data, what = 'V3Matrix')) {
-      SCTransform.default
-    } else {
-      SCTransform
-    }
-    if (is.null(x = cell.attr) && is.null(x = reference.SCT.model)){
-      calcn <- CalcN(object = layer.data)
-      cell.attr.layer <-  data.frame(umi = calcn$nCount,
-                               log_umi = log10(x = calcn$nCount))
-      rownames(cell.attr.layer) <- colnames(x = layer.data)
-    } else {
-      cell.attr.layer <- cell.attr[colnames(x = layer.data),, drop=FALSE]
-    }
-    if (!"umi" %in% cell.attr.layer && is.null(x = reference.SCT.model)){
-      calcn <- CalcN(object = layer.data)
-      cell.attr.tmp <-  data.frame(umi = calcn$nCount)
-      rownames(cell.attr.tmp) <- colnames(x = layer.data)
-      cell.attr.layer$umi <- NA
-      cell.attr.layer$log_umi <- NA
-      cell.attr.layer[rownames(cell.attr.tmp), "umi"] <- cell.attr.tmp$umi
-      cell.attr.layer[rownames(cell.attr.tmp), "log_umi"] <- log10(x = cell.attr.tmp$umi)
-    }
+  )
 
-    # Step 1: Learn model
-    vst.out <- sct.function(object = layer.data,
-                            do.correct.umi = TRUE,
-                            cell.attr = cell.attr.layer,
-                            reference.SCT.model = reference.SCT.model,
-                            ncells = ncells,
-                            residual.features = residual.features,
-                            variable.features.n = variable.features.n,
-                            variable.features.rv.th = variable.features.rv.th,
-                            vars.to.regress = vars.to.regress,
-                            latent.data = latent.data,
-                            do.scale = do.scale,
-                            do.center = do.center,
-                            clip.range = clip.range,
-                            vst.flavor = vst.flavor,
-                            conserve.memory = conserve.memory,
-                            return.only.var.genes = return.only.var.genes,
-                            seed.use = seed.use,
-                            verbose = verbose,
-                            ...)
-    min_var <- vst.out$arguments$min_variance
-    residual.type <- vst.out[['residual_type']] %||% 'pearson'
-    assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
-                                clip.range = clip.range)
-
-    # If there is no reference model, use the model learned on subset of cells to calculate residuals
-    # by setting the learned model as the reference model (local.reference.SCT.model)
-    if (is.null(x = reference.SCT.model)) {
-      local.reference.SCT.model <- assay.out@SCTModel.list[[1]]
-    } else {
-      local.reference.SCT.model <- reference.SCT.model
-    }
-    variable.features <- VariableFeatures(assay.out)
-
-    # once we have the model, just calculate residuals for all cells
-    # local.reference.SCT.model set to reference.model if it is non null
-    vst_out.reference <- SCTModel_to_vst(SCTModel = local.reference.SCT.model)
-    vst_out.reference$gene_attr <- local.reference.SCT.model@feature.attributes
-    min_var <- vst_out.reference$arguments$min_variance
-    if (min_var == "umi_median"){
-      counts.x <- as.sparse(x = layer.data[, sample.int(n = ncol(x = layer.data), size =  min(ncells, ncol(x = layer.data)) )])
-      min_var <- (median(counts.x@x)/5)^2
-      }
-
-    # Step 2: Use learned model to calculate residuals in chunks
-    cells.vector <- 1:ncol(x = layer.data)
-    cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/ncells))
-    # Single block
-    residuals <- list()
-    corrected_counts <- list()
-    cell_attrs <- list()
-
-    if (length(x = cells.grid) == 1){
-      merged.assay <- assay.out
-      corrected_counts[[1]] <- GetAssayData(object = assay.out, layer = "data")
-      residuals[[1]] <- GetAssayData(object = assay.out, layer = "scale.data")
-      cell_attrs[[1]] <- vst_out.reference$cell_attr
-      sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
-    } else {
-      # iterate over chunks to get residuals
-      for (i in seq_len(length.out = length(x = cells.grid))) {
-        vp <- cells.grid[[i]]
-        if (verbose){
-          message("Getting residuals for block ", i, "(of ", length(cells.grid), ") for ", dataset.names[[dataset.index]], " dataset")
-        }
-        counts.vp <- as.sparse(x = layer.data[, vp, drop=FALSE])
-        cell.attr.object <- cell.attr.layer[colnames(x = counts.vp),, drop=FALSE]
-        vst_out <- vst_out.reference
-
-        vst_out$cell_attr <- cell.attr.object
-        vst_out$gene_attr <- vst_out$gene_attr[variable.features,,drop=FALSE]
-        if (return.only.var.genes){
-          new_residual <- get_residuals(
-            vst_out = vst_out,
-            umi = counts.vp[variable.features,,drop=FALSE],
-            residual_type = "pearson",
-            min_variance = min_var,
-            res_clip_range = clip.range,
-            verbosity =  FALSE
-          )
-        } else {
-          new_residual <- get_residuals(
-            vst_out = vst_out,
-            umi = counts.vp[all_features,,drop=FALSE],
-            residual_type = "pearson",
-            min_variance = min_var,
-            res_clip_range = clip.range,
-            verbosity =  FALSE
-          )
-        }
-        vst_out$y <- new_residual
-        corrected_counts[[i]] <- correct_counts(
-          x = vst_out,
-          umi = counts.vp[all_features,,drop=FALSE],
-          verbosity = FALSE# as.numeric(x = verbose) * 2
-        )
-        residuals[[i]] <- new_residual
-        cell_attrs[[i]] <- cell.attr.object
-      }
-      new.residuals <- Reduce(cbind, residuals)
-      corrected_counts <- Reduce(cbind, corrected_counts)
-      cell_attrs <- Reduce(rbind, cell_attrs)
-      vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),,drop=FALSE]
-      SCTModel.list <- PrepVSTResults(vst.res = vst_out.reference, cell.names = all_cells)
-      SCTModel.list <- list(model1 = SCTModel.list)
-      # scale data here as do.center and do.scale are set to FALSE inside
-      new.residuals <- ScaleData(
-        new.residuals,
-        features = NULL,
+  # Apply SCTransform to each assay in `input_list`.
+  output_list <- lapply(
+    input_list,
+    function(input) {
+      .cell.attr <- cell.attr[Cells(input), ]
+      result <- SCTransform(
+        input,
+        cell.attr = .cell.attr,
+        reference.SCT.model = reference.SCT.model,
+        do.correct.umi = do.correct.umi,
+        ncells = ncells,
+        residual.features = residual.features,
+        variable.features.n = variable.features.n,
+        variable.features.rv.th = variable.features.rv.th,
         vars.to.regress = vars.to.regress,
         latent.data = latent.data,
-        model.use = 'linear',
-        use.umi = FALSE,
         do.scale = do.scale,
         do.center = do.center,
-        scale.max = Inf,
-        block.size = 750,
-        min.cells.to.block = 3000,
-        verbose = verbose
+        clip.range = clip.range,
+        vst.flavor = vst.flavor,
+        conserve.memory = conserve.memory,
+        return.only.var.genes = return.only.var.genes,
+        seed.use = seed.use,
+        verbose = verbose,
+        ...
       )
-      assay.out <- CreateSCTAssayObject(counts = corrected_counts, scale.data = new.residuals,  SCTModel.list = SCTModel.list)
-      assay.out$data <- log1p(x = corrected_counts)
-      VariableFeatures(assay.out) <- variable.features
-      # one assay per dataset
-      if (verbose){
-        message("Finished calculating residuals for ", dataset.names[dataset.index])
-      }
-      sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
-      variable.feature.list[[dataset.names[dataset.index]]] <- VariableFeatures(assay.out)
     }
+  )
+  
+  # Merge output assays into one, or take the single result.
+  if (length(output_list) > 1) {
+    assay_out <- merge(
+      output_list[[1]], 
+      output_list[-1]
+    )
+  } else {
+    assay_out <- output_list[[1]]
   }
-  # Return array by merging everythin
-  if (length(x = sct.assay.list) == 1){
-    merged.assay <- sct.assay.list[[1]]
-    } else {
-      vf.list <- lapply(X  = sct.assay.list, FUN = function(object.i) VariableFeatures(object = object.i))
-      variable.features.union <- Reduce(f = union, x = vf.list)
-      var.features.sorted <- sort(
-        x = table(unlist(x = vf.list, use.names = FALSE)),
-        decreasing = TRUE
-        )
-      # select top ranking features
-      var.features <- variable.features.union
-      # calculate residuals for union of features
-      for (layer.name in names(x = sct.assay.list)){
-        vst_out <- SCTModel_to_vst(SCTModel = slot(object = sct.assay.list[[layer.name]], name = "SCTModel.list")[[1]])
-        all_cells <-  Cells(x = object, layer = paste0(layer, ".", layer.name))
-        all_features <- Features(x = object, layer = paste0(layer, ".", layer.name))
-        variable.features.target <- intersect(x = rownames(x = vst_out$model_pars_fit), y = var.features)
-        variable.features.target <- setdiff(x = variable.features.target, y = VariableFeatures(sct.assay.list[[layer.name]]))
-        if (length(x = variable.features.target )<1){
-          next
-          }
-        layer.counts.tmp <- LayerData(
-          object = object,
-          layer = paste0(layer, ".", layer.name),
-          cells = all_cells
-          )
-        layer.counts.tmp <- as.sparse(x = layer.counts.tmp)
-        vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
-        vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
-        new_residual <- GetResidualsChunked(
-          vst_out = vst_out,
-          layer.counts = layer.counts.tmp,
-          residual_type = "pearson",
-          min_variance = min_var,
-          res_clip_range = clip.range,
-          verbose = FALSE
-        )
-        old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], layer = 'scale.data')
-        merged_residual <- rbind(old_residual, new_residual)
-        merged_residual <- ScaleData(
-          merged_residual,
-          features = NULL,
-          vars.to.regress = vars.to.regress,
-          latent.data = latent.data,
-          model.use = 'linear',
-          use.umi = FALSE,
-          do.scale = do.scale,
-          do.center = do.center,
-          scale.max = Inf,
-          block.size = 750,
-          min.cells.to.block = 3000,
-          verbose = verbose
-        )
-        sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], layer = 'scale.data', new.data = merged_residual)
-        VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
-      }
-      merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
-      VariableFeatures(object = merged.assay) <- VariableFeatures(object = merged.assay, use.var.features = FALSE, nfeatures = variable.features.n)
-
-    }
-  # set the names of SCTmodels to be layer names
-  models <- slot(object = merged.assay, name="SCTModel.list")
-  names(models) <- names(x = sct.assay.list)
-  slot(object = merged.assay, name="SCTModel.list") <- models
-  gc(verbose = FALSE)
-  return(merged.assay)
+  
+  # Determine which features to include in the output's scale.data slot.
+  if (return.only.var.genes) {
+    # Take the union of variable features across all output assays/layers.
+    var_features_union <- Reduce(
+      union,
+      lapply(
+        output_list,
+        function(output) {
+          return(VariableFeatures(output))
+        }
+      )
+    )
+    # Take the intersection of all features across all output assays/layers.
+    all_features_intersect <- Reduce(
+      intersect,
+      lapply(
+        output_list,
+        function(output) {
+          return(rownames(output))
+        }
+      )
+    )
+    # Keep features that are variable in at least one output assay/layer but
+    # present in all of them.
+    scale_data_features <- intersect(all_features_intersect, var_features_union)
+  } else {
+    # Use every feature found in any output assay/layer,
+    scale_data_features <- Reduce(
+      union,
+      lapply(
+        output_list,
+        function(output) {
+          return(rownames(output))
+        }
+      )
+    )
   }
 
-#' Calculate pearson residuals of features not in the scale.data
+  # Extract residuals for the selected features and store them in
+  # the outputs scaled.data slot.
+  residuals <- suppressWarnings(
+    FetchResiduals(
+      object = assay_out, 
+      umi.object = object,
+      features = scale_data_features,
+      verbose = FALSE
+    )
+  )
+  LayerData(assay_out, layer = "scale.data") <- residuals
+
+  # Set the output's variable features.
+  VariableFeatures(assay_out) <- VariableFeatures(
+    assay_out, 
+    use.var.features = FALSE,
+    nfeatures = variable.features.n
+  )
+
+  return (assay_out)
+}
+
+#' Get the Pearson residuals from the specified assay and maybe recalculate 
+#' any missing pearson residuals using the specified `umi.assay`.
 #'
-#' This function calls sctransform::get_residuals.
-#'
-#' @param object A seurat object
-#' @param features Name of features to add into the scale.data
-#' @param assay Name of the assay of the seurat object generated by SCTransform
-#' @param layer Name (prefix) of the layer to pull counts from
-#' @param umi.assay Name of the assay of the seurat object containing UMI matrix
-#' and the default is RNA
-#' @param clip.range Numeric of length two specifying the min and max values the
-#' Pearson residual will be clipped to
-#' @param reference.SCT.model reference.SCT.model If a reference SCT model should be used
-#' for calculating the residuals. When set to not NULL, ignores the `SCTModel`
-#' paramater.
-#' @param replace.value Recalculate residuals for all features, even if they are
-#' already present. Useful if you want to change the clip.range.
-#' @param na.rm For features where there is no feature model stored, return NA
-#' for residual value in scale.data when na.rm = FALSE. When na.rm is TRUE, only
-#' return residuals for features with a model stored for all cells.
-#' @param verbose Whether to print messages and progress bars
-#'
-#' @return Returns a Seurat object containing Pearson residuals of added
-#' features in its scale.data
-#'
-#' @importFrom sctransform get_residuals
-#' @importFrom matrixStats rowAnyNAs
+#' @param object A Seurat object.
+#' @param assay Name of the assay to fetch residuals for.
+#' @param umi.assay Name of the assay of the seurat object containing counts
+#' matrix to use when recalculating any missing residuals.
+#' @param layer The name of the layer(s) in `umi.assay` to use when 
+#' recalculating any missing residuals.
 #'
 #' @export
 #' @concept preprocessing
+#' 
+#' @method FetchResiduals Seurat
+#' @rdname FetchResiduals
 #'
 #' @seealso \code{\link[sctransform]{get_residuals}}
-FetchResiduals <- function(
+#' 
+FetchResiduals.Seurat <- function(
   object,
   features,
   assay = NULL,
@@ -1488,24 +1273,93 @@ FetchResiduals <- function(
   reference.SCT.model = NULL,
   replace.value = FALSE,
   na.rm = TRUE,
-  verbose = TRUE) {
+  verbose = TRUE,
+  ...
+) {
   assay <- assay %||% DefaultAssay(object = object)
+
   if (IsSCT(assay = object[[assay]])) {
-    object[[assay]] <- as(object[[assay]], "SCTAssay")
+    object[[assay]] <- as(object[[assay]], 'SCTAssay')
   }
+
   if (!inherits(x = object[[assay]], what = "SCTAssay")) {
     stop(assay, " assay was not generated by SCTransform")
   }
-  sct.models <- levels(x = object[[assay]])
-  if (length(sct.models)==1){
+
+  if (!umi.assay %in% Assays(object) || is.null(Layers(object[[umi.assay]], search = layer))) {
+    return(LayerData(object[[assay]], layer = "scale.data"))
+  }
+
+  residuals <- FetchResiduals(
+    object[[assay]],
+    umi.object = object[[umi.assay]],
+    features = features,
+    layer = layer,
+    clip.range = clip.range,
+    reference.SCT.model = reference.SCT.model,
+    replace.value = replace.value,
+    na.rm = na.rm,
+    verbose = verbose
+  )
+
+  return(residuals)
+}
+
+
+#' Get the Pearson residuals from the assay and maybe recalculate 
+#' any missing pearson residuals using the passed `umi.object`.
+#'
+#' This function calls sctransform::get_residuals.
+#'
+#' @param object An SCTAssay object.
+#' @param umi.object TK.
+#' @param features Name of features to fetch residuals for.
+#' @param layer The name of the layer(s) in `umi.assay` to use when 
+#' recalculating any missing residuals.
+#' @param clip.range Numeric of length two specifying the min and max values the
+#' Pearson residual will be clipped to.
+#' @param reference.SCT.model If provided, the reference model will be used
+#' to recalculate missing residuals instead of the 
+#' @param replace.value Recalculate residuals for all features, even if they are
+#' already present. Useful if you want to change the clip.range.
+#' @param na.rm For features where there is no feature model stored, return NA
+#' for residual value in scale.data when na.rm = FALSE. When na.rm is TRUE, only
+#' return residuals for features with a model stored for all cells.
+#' @param verbose Whether to print messages and progress bars
+#' 
+#' @return A matrix containing the requested pearson residuals.
+#'
+#' @export
+#' @concept preprocessing
+#' @method FetchResiduals SCTAssay
+#' @rdname FetchResiduals
+#'
+#' @importFrom sctransform get_residuals
+#' @importFrom matrixStats rowAnyNAs
+#'
+FetchResiduals.SCTAssay <- function(
+  object,
+  umi.object,
+  features,
+  layer = "counts",
+  clip.range = NULL,
+  reference.SCT.model = NULL,
+  replace.value = FALSE,
+  na.rm = TRUE,
+  verbose = TRUE,
+  ...
+) {
+  
+  sct.models <- levels(x = object)
+  if (length(sct.models) == 1) {
     sct.models <- list(sct.models)
   }
   if (length(x = sct.models) == 0) {
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
-    return(object)
+    return(LayerData(object, layer = "scale.data"))
   }
   possible.features <- Reduce(f = union, x = lapply(X = sct.models, FUN = function(x) {
-    rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
+    rownames(x = SCTResults(object = object, slot = "feature.attributes", model = x))
   }))
   bad.features <- setdiff(x = features, y = possible.features)
   if (length(x = bad.features) > 0) {
@@ -1521,11 +1375,11 @@ FetchResiduals <- function(
     features <- names(x = which(x = table(unlist(x = lapply(
       X = sct.models,
       FUN = function(x) {
-        rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
+        rownames(x = SCTResults(object = object, slot = "feature.attributes", model = x))
       }
     ))) == length(x = sct.models)))
     if (length(x = features) == 0) {
-      return(object)
+      return(LayerData(object, layer = "scale.data"))
     }
   }
 
@@ -1535,13 +1389,11 @@ FetchResiduals <- function(
             paste(features.orig, collapse = ", "),
             call. = FALSE
     )
-    return(NULL)
-  }  #if (length(x = sct.models) > 1 & verbose) {
-  #  message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
-  #}
+    return(LayerData(object, layer = "scale.data"))
+  }
 
   # Get all (count) layers
-  layers <- Layers(object = object[[umi.assay]], search = layer)
+  layers <- Layers(object = umi.object, search = layer)
 
   # iterate over layer running sct model for each of the object names
   new.residuals <- list()
@@ -1562,14 +1414,13 @@ FetchResiduals <- function(
     l <- layers[i]
     sct_model <- sct.models[[i]]
     # these cells belong to this layer
-    layer_cells <- Cells(x = object[[umi.assay]], layer = l)
+    layer_cells <- Cells(x = umi.object, layer = l)
     all_cells <- c(all_cells, layer_cells)
     total_cells <- total_cells + length(layer_cells)
     # calculate residual using this model and these cells
     new.residuals[[i]] <- FetchResidualSCTModel(
       object = object,
-      umi.assay = umi.assay,
-      assay = assay,
+      umi.object = umi.object,
       layer = l,
       layer.cells = layer_cells,
       SCTModel = sct_model,
@@ -1581,7 +1432,8 @@ FetchResiduals <- function(
     )
   }
 
-  existing.data <- GetAssayData(object = object, layer = "scale.data", assay = assay)
+
+  existing.data <- GetAssayData(object, layer = "scale.data")
   all.features <- union(x = rownames(x = existing.data), y = features)
   new.scale <- matrix(
     data = NA,
@@ -1597,9 +1449,6 @@ FetchResiduals <- function(
     new.residuals <- new.residuals[[1]]
   } else {
     new.residuals <- Reduce(cbind, new.residuals)
-    #new.residuals <- matrix(data = unlist(new.residuals), nrow = nrow(new.scale) , ncol = ncol(new.scale))
-    #colnames(new.residuals) <- colnames(new.scale)
-    #rownames(new.residuals) <- rownames(new.scale)
   }
   new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
 
@@ -1613,13 +1462,10 @@ FetchResiduals <- function(
 #' Calculate pearson residuals of features not in the scale.data
 #' This function is the secondary function under FetchResiduals
 #'
-#' @param object A seurat object
-#' @param assay Name of the assay of the seurat object generated by
-#' SCTransform. Default is "SCT"
-#' @param umi.assay Name of the assay of the seurat object to fetch
-#' UMIs from. Default is "RNA"
-#' @param layer Name of the layer under `umi.assay` to fetch UMIs from.
-#' Default is "counts"
+#' @param object An SCTAssay object
+#' @param umi.object The assay to use when recalculating any missing residuals.
+#' @param layer The name of the layer(s) in `umi.object` to use when 
+#' recalculating any missing residuals.
 #' @param chunk_size Number of cells to load in memory for calculating
 #' residuals
 #' @param layer.cells Vector of cells to calculate the residual for.
@@ -1646,8 +1492,7 @@ FetchResiduals <- function(
 #' @keywords internal
 FetchResidualSCTModel <- function(
   object,
-  assay = "SCT",
-  umi.assay = "RNA",
+  umi.object,
   layer = "counts",
   chunk_size = 2000,
   layer.cells = NULL,
@@ -1660,36 +1505,29 @@ FetchResidualSCTModel <- function(
 ) {
 
   model.cells <- character()
-  model.features <- Features(x = object, assay = assay)
+  model.features <- Features(object)
   if (is.null(x = reference.SCT.model)){
-    clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
-    model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
-    model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
-    sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
+    clip.range <- clip.range %||% SCTResults(object, slot = "clips", model = SCTModel)$sct
+    model.features <- rownames(x = SCTResults(object, slot = "feature.attributes", model = SCTModel))
+    model.cells <- Cells(x = slot(object, name = "SCTModel.list")[[SCTModel]])
+    sct.method <- SCTResults(object, slot = "arguments", model = SCTModel)$sct.method %||% "default"
   }
 
-  layer.cells <- layer.cells %||% Cells(x = object[[umi.assay]], layer = layer)
+  layer.cells <- layer.cells %||% Cells(umi.object, layer = layer)
   if (!is.null(reference.SCT.model)) {
     # use reference SCT model
     sct.method <- "reference"
   }
   existing.scale.data <- NULL
   if (is.null(x=reference.SCT.model)){
-    existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, layer = "scale.data"))
+
+    existing.scale.data <- suppressWarnings(GetAssayData(object, layer = "scale.data"))
+
   }
   scale.data.cells <- colnames(x = existing.scale.data)
   scale.data.cells.common <- intersect(scale.data.cells, layer.cells)
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
   if (length(x = setdiff(x = layer.cells, y = scale.data.cells)) == 0) {
-    # existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
-    #full.scale.data <- matrix(data = NA, nrow = nrow(x = existing.scale.data),
-    #                          ncol = length(x = layer.cells), dimnames = list(rownames(x = existing.scale.data), layer.cells))
-    #full.scale.data[rownames(x = existing.scale.data), colnames(x = existing.scale.data)] <- existing.scale.data
-    #existing_features <- names(x = which(x = !apply(
-    #  X = full.scale.data,
-    #  MARGIN = 1,
-    #  FUN = anyNA
-    #)))
     existing_features <- rownames(x = existing.scale.data)
   } else {
     existing_features <- character()
@@ -1705,7 +1543,7 @@ FetchResidualSCTModel <- function(
 
   if (is.null(x = reference.SCT.model) & length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
     existing_features <- names(x = which(x = ! apply(
-      X = GetAssayData(object = object, assay = assay, layer = "scale.data")[, model.cells],
+      X = GetAssayData(object, layer = "scale.data")[, model.cells],
       MARGIN = 1,
       FUN = anyNA)
     ))
@@ -1718,13 +1556,7 @@ FetchResidualSCTModel <- function(
     }
     features_to_compute <- character()
   }
-  if (!umi.assay %in% Assays(object = object)) {
-    warning("The umi assay (", umi.assay, ") is not present in the object. ",
-            "Cannot compute additional residuals.",
-            call. = FALSE, immediate. = TRUE
-    )
-    return(NULL)
-  }
+
   # these features do not have feature attriutes
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
@@ -1733,7 +1565,6 @@ FetchResidualSCTModel <- function(
 
     # override clip.range
     clip.range <- vst_out$arguments$sct.clip.range
-    umi.field <- paste0("nCount_", assay)
     # get rid of the cell attributes
     vst_out$cell_attr <- NULL
     all.features <- intersect(
@@ -1743,16 +1574,16 @@ FetchResidualSCTModel <- function(
     vst_out$gene_attr <- vst_out$gene_attr[all.features, , drop = FALSE]
     vst_out$model_pars_fit <- vst_out$model_pars_fit[all.features, , drop = FALSE]
   } else {
-    vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
+    vst_out <- SCTModel_to_vst(SCTModel = slot(object, name = "SCTModel.list")[[SCTModel]])
     clip.range <- vst_out$arguments$sct.clip.range
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
 
-  layer.cells <- layer.cells %||% Cells(x = object[[umi.assay]], layer = layer)
+  layer.cells <- layer.cells %||% Cells(umi.object, layer = layer)
   if (length(x = diff_features) == 0) {
     counts <- LayerData(
-      object = object[[umi.assay]],
+      umi.object,
       layer = layer,
       cells = layer.cells
     )
@@ -1871,7 +1702,7 @@ FetchResidualSCTModel <- function(
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
-    old_residuals <- GetAssayData(object = object[[assay]], layer = "scale.data")[old.features, model.cells, drop = FALSE]
+    old_residuals <- GetAssayData(object, layer = "scale.data")[old.features, model.cells, drop = FALSE]
     new_residual <- rbind(new_residual, old_residuals)[new_features, ]
   }
   return(new_residual)

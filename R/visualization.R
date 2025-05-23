@@ -287,7 +287,7 @@ DoHeatmap <- function(
     no = 6
   )
   # make sure features are present
-  possible.features <- rownames(x = GetAssayData(object = object, layer = layer))
+  possible.features <- Features(object,layer = layer)
   if (any(!features %in% possible.features)) {
     bad.features <- features[!features %in% possible.features]
     features <- features[features %in% possible.features]
