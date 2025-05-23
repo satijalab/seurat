@@ -98,7 +98,6 @@ FindAllMarkers <- function(
       pkg = "ape",
       reason = "Cluster tree functionality"
     )
-    }
     if (!is.null(group.by)) {
       warning(
         paste0(
