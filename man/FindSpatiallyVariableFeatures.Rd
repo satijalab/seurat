@@ -41,7 +41,7 @@ FindSpatiallyVariableFeatures(object, ...)
   object,
   assay = NULL,
   layer = "scale.data",
-  slot = NULL,
+  slot = deprecated(),
   features = NULL,
   image = NULL,
   selection.method = c("markvariogram", "moransi"),

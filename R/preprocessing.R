@@ -220,7 +220,7 @@ HTODemux <- function(
   counts <- GetAssayData(
     object = object,
     assay = assay,
-    slot = 'counts'
+    layer = 'counts'
   )[, colnames(x = object)]
   counts <- as.matrix(x = counts)
   ncenters <- init %||% (nrow(x = data) + 1)
@@ -455,7 +455,7 @@ GetResidual <- function(
       }
     )
   }
-  existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
+  existing.data <- GetAssayData(object = object, layer = 'scale.data', assay = assay)
   all.features <- union(x = rownames(x = existing.data), y = features)
    new.scale <- matrix(
     data = NA,
@@ -478,7 +478,7 @@ GetResidual <- function(
   object <- SetAssayData(
     object = object,
     assay = assay,
-    slot = "scale.data",
+    layer = "scale.data",
     new.data = new.scale
   )
   if (any(!features.orig %in% rownames(x = new.scale))) {
@@ -870,7 +870,7 @@ MULTIseqDemux <- function(
   assay <- assay %||% DefaultAssay(object = object)
   multi_data_norm <- t(x = GetAssayData(
     object = object,
-    slot = "data",
+    layer = "data",
     assay = assay
   ))
   if (autoThresh) {
@@ -3490,7 +3490,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #'
 #' @examples
 #' data("pbmc_small")
-#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
+#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", layer = "counts"))
 #' downsampled = SampleUMI(data = counts)
 #' head(x = downsampled)
 #'
@@ -3529,7 +3529,7 @@ SampleUMI <- function(
 #' replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
 #' \code{ScaleData} workflow by fitting a regularized negative binomial model
 #' per gene and returning:
-#' 
+#'
 #' - A new assay (default name “SCT”), in which:
 #'   - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
 #'     sequencing depth; controlled by \code{do.correct.umi}).
@@ -3540,13 +3540,13 @@ SampleUMI <- function(
 #'
 #' When multiple \code{counts} layers exist (e.g. after \code{split()}),
 #' each layer is modeled independently. A consensus variable‐feature set is
-#' then defined by ranking features by how often they’re called “variable” 
+#' then defined by ranking features by how often they’re called “variable”
 #' across different layers (ties broken by median rank).
-#' 
+#'
 #' By default, \code{sctransform::vst} will drop features expressed in fewer
 #' than five cells. In the multi-layer case, this can lead to consenus
 #' variable-features being excluded from the output's \code{scale.data} when
-#' a feature is "variable" across many layers but sparsely expressed in at 
+#' a feature is "variable" across many layers but sparsely expressed in at
 #' least one.
 #'
 #' @param object A Seurat object or UMI count matrix.
@@ -3602,11 +3602,11 @@ SampleUMI <- function(
 #' @seealso \code{\link[sctransform]{vst}},
 #'   \code{\link[sctransform]{get_residuals}},
 #'   \code{\link[sctransform]{correct_counts}}
-#' 
+#'
 #' @rdname SCTransform
 #' @concept preprocessing
 #' @export
-#' 
+#'
 SCTransform.default <- function(
   object,
   cell.attr,
@@ -3909,7 +3909,7 @@ SCTransform.Assay <- function(
     do.center <- FALSE
   }
 
-  umi <- GetAssayData(object = object, slot = 'counts')
+  umi <- GetAssayData(object = object, layer = 'counts')
   vst.out <- SCTransform(object = umi,
                          cell.attr = cell.attr,
                          reference.SCT.model = reference.SCT.model,
@@ -3934,7 +3934,7 @@ SCTransform.Assay <- function(
   # create output assay and put (corrected) umi counts in count slot
   if (do.correct.umi & residual.type == 'pearson') {
     if (verbose) {
-      message('Place corrected count matrix in counts slot')
+      message('Place corrected count matrix in counts layer')
     }
     assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
     vst.out$umi_corrected <- NULL
@@ -3948,13 +3948,13 @@ SCTransform.Assay <- function(
   # put log1p transformed counts in data
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'data',
-    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+    layer = 'data',
+    new.data = log1p(x = GetAssayData(object = assay.out, layer = 'counts'))
   )
   scale.data <- vst.out$y
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'scale.data',
+    layer = 'scale.data',
     new.data = scale.data
   )
   vst.out$y <- NULL
@@ -4249,14 +4249,14 @@ FindVariableFeatures.Assay <- function(
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
   if (selection.method == "vst") {
-    data <- GetAssayData(object = object, slot = "counts")
+    data <- GetAssayData(object = object, layer = "counts")
     # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
     if (IsMatrixEmpty(x = data)) {
-      warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
-      data <- GetAssayData(object = object, slot = "data")
+      warning("selection.method set to 'vst' but count layer is empty; will use data layer instead")
+      data <- GetAssayData(object = object, layer = "data")
     }
   } else {
-    data <- GetAssayData(object = object, slot = "data")
+    data <- GetAssayData(object = object, layer = "data")
   }
   hvf.info <- FindVariableFeatures(
     object = data,
@@ -4528,7 +4528,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   layer = "scale.data",
   # Using `deprecated()` as the default for any arguments will break the
   # `LogSeuratCommand` call at the end of this method.
-  slot = NULL,
+  slot = deprecated(),
   features = NULL,
   image = NULL,
   selection.method = c('markvariogram', 'moransi'),
@@ -4555,7 +4555,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
-    slot = slot,
+    layer = layer,
     features = features,
     spatial.location = tc,
     selection.method = selection.method,
@@ -4566,7 +4566,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     verbose = verbose,
     ...
   )
-  
+
   object <- LogSeuratCommand(object)
 
   return(object)
@@ -4759,9 +4759,9 @@ NormalizeData.Assay <- function(
 ) {
   object <- SetAssayData(
     object = object,
-    slot = 'data',
+    layer = 'data',
     new.data = NormalizeData(
-      object = GetAssayData(object = object, slot = 'counts'),
+      object = GetAssayData(object = object, layer = 'counts'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
       verbose = verbose,
@@ -5141,13 +5141,13 @@ ScaleData.Assay <- function(
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
   if (length(x = features) == 0) {
-    features <- rownames(x = GetAssayData(object = object, slot = slot.use))
+    features <- rownames(x = GetAssayData(object = object, layer = slot.use))
   }
   object <- SetAssayData(
     object = object,
-    slot = 'scale.data',
+    layer = 'scale.data',
     new.data = ScaleData(
-      object = GetAssayData(object = object, slot = slot.use),
+      object = GetAssayData(object = object, layer = slot.use),
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
@@ -5604,10 +5604,10 @@ GetResidualSCTModel <- function(
   umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", model = SCTModel)
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
   sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
-  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, layer = "scale.data"))
   if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
   existing_features <- names(x = which(x = ! apply(
-    X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
+    X = GetAssayData(object = object, assay = assay, layer = "scale.data")[, model.cells],
     MARGIN = 1,
     FUN = anyNA)
   ))
@@ -5633,11 +5633,11 @@ GetResidualSCTModel <- function(
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
   if (length(x = diff_features) == 0) {
-    umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[features_to_compute, model.cells, drop = FALSE]
+    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts" )[features_to_compute, model.cells, drop = FALSE]
   } else {
     warning(
       "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
-      " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
+      " features do not exist in the counts layer: ", paste(diff_features, collapse = ", ")
     )
     if (length(x = intersect_features) == 0) {
       return(matrix(
@@ -5647,7 +5647,7 @@ GetResidualSCTModel <- function(
         dimnames = list(features_to_compute, model.cells)
       ))
     }
-    umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")[intersect_features, model.cells, drop = FALSE]
+    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[intersect_features, model.cells, drop = FALSE]
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
@@ -5671,7 +5671,7 @@ GetResidualSCTModel <- function(
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
-    old_residuals <- GetAssayData(object = object[[assay]], slot = "scale.data")[old.features, model.cells, drop = FALSE]
+    old_residuals <- GetAssayData(object = object[[assay]], layer = "scale.data")[old.features, model.cells, drop = FALSE]
     new_residual <- rbind(new_residual, old_residuals)[new_features, ]
   }
   return(new_residual)

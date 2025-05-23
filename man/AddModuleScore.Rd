@@ -36,7 +36,8 @@ AddModuleScore(object, ...)
   name = "Cluster",
   seed = 1,
   search = FALSE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   ...
 )
 
@@ -51,7 +52,8 @@ AddModuleScore(object, ...)
   name = "Cluster",
   seed = 1,
   search = FALSE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   ...
 )
 }
@@ -91,7 +93,7 @@ database; see \code{\link{UpdateSymbolList}} for more details}
 
 \item{layer}{Layer to calculate score values off of. Defaults to data slot (i.e log-normalized counts)}
 
-\item{kmeans.obj}{A \code{DoKMeans} output used to define feature clusters 
+\item{kmeans.obj}{A \code{DoKMeans} output used to define feature clusters
 when \code{k = TRUE}; ignored if \code{k = FALSE}.}
 }
 \value{

@@ -228,7 +228,7 @@ AddModuleScore.Seurat <- function(
 #' @concept utilities
 #' @rdname AddModuleScore
 #' @method AddModuleScore StdAssay
-#' 
+#'
 #' @references Tirosh et al, Science (2016)
 #'
 AddModuleScore.StdAssay <- function(
@@ -242,10 +242,21 @@ AddModuleScore.StdAssay <- function(
     name = 'Cluster',
     seed = 1,
     search = FALSE,
-    slot = 'data',
+    slot = deprecated(),
+    layer = "data",
     ...
 ) {
-  layer_names <- Layers(object, search = slot)
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.X',
+      what = 'AddModuleScore.StdAssay(slot = )',
+      with = 'AddModuleScore.StdAssay(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
+
+  layer_names <- Layers(object, search = layer)
   input_list <- lapply(
     layer_names,
     function(layer_name) {
@@ -275,8 +286,8 @@ AddModuleScore.StdAssay <- function(
   return(features.scores.use)
 }
 
-#' 
-#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#'
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters
 #' when \code{k = TRUE}; ignored if \code{k = FALSE}.
 #' @export
 #' @concept utilities
@@ -284,7 +295,7 @@ AddModuleScore.StdAssay <- function(
 #' @method AddModuleScore Assay
 #'
 #' @importFrom ggplot2 cut_number
-#' 
+#'
 AddModuleScore.Assay <- function(
     object,
     features,
@@ -308,7 +319,7 @@ AddModuleScore.Assay <- function(
     )
     layer <- slot %||% layer
   }
-  
+
   assay.data <- GetAssayData(object = object, layer = layer)
 
   features.old <- features
