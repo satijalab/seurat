@@ -204,8 +204,6 @@ AddModuleScore.Seurat <- function(
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
 
-  assay.data <- GetAssayData(object = object, assay = assay, layer = layer)
-
   features.scores.use <- AddModuleScore(object = object[[assay]],
                                         features = features,
                                         kmeans.obj = object@kmeans.obj,
