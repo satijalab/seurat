@@ -5164,7 +5164,7 @@ PairwiseIntegrateReference <- function(
     slot = "sample.tree",
     new.data = sample.tree
   )
-  unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+  unintegrated[["FindIntegrationAnchors"]] <- methods::slot(object = anchorset, name = "command")
   suppressWarnings(expr = unintegrated <- LogSeuratCommand(object = unintegrated))
   return(unintegrated)
 }
