@@ -3455,9 +3455,9 @@ TransferData <- function(
   }
 
   combined.ob <- methods::slot(object = anchorset, name = "object.list")[[1]]
-  anchors <- slot(object = anchorset, name = "anchors")
-  reference.cells <- slot(object = anchorset, name = "reference.cells")
-  query.cells <- slot(object = anchorset, name = "query.cells")
+  anchors <- methods::slot(object = anchorset, name = "anchors")
+  reference.cells <- methods::slot(object = anchorset, name = "reference.cells")
+  query.cells <- methods::slot(object = anchorset, name = "query.cells")
   if (!is.null(query)) {
     query.assay <- query.assay %||% DefaultAssay(query)
   }
@@ -3490,7 +3490,7 @@ TransferData <- function(
       message("Running PCA on query dataset")
     }
 
-    features <- slot(object = anchorset, name = "anchor.features")
+    features <- methods::slot(object = anchorset, name = "anchor.features")
     query.ob <- query
     DefaultAssay(query.ob) <- query.assay
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
@@ -3578,7 +3578,7 @@ TransferData <- function(
     if (is.null(x = query)) {
       return(weights)
     } else {
-      slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
+      methods::slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
       return(query)
     }
   }
@@ -3713,7 +3713,7 @@ TransferData <- function(
     return(transfer.results)
   } else {
     if (store.weights) {
-      slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
+      methods::slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
     }
     return(query)
   }
