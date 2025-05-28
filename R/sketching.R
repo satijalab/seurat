@@ -542,13 +542,27 @@ LeverageScore.StdAssay <- function(
       stop("Unable to get variable features from layer `", l, "`. Try providing `features` argument instead.")
     })
     
+    # Extract gene expression matrix from single layer 
+    mat <- LayerData(
+      object = object,
+      layer = l,
+      features = features.use,
+      fast = TRUE
+    )
+
+    # Remove any rows with zero variances
+    nonzero_var <- which(apply(mat, 1, function(x) var(x) > 0))
+    
+    # Check if any features had zero variance 
+    # If so, remove them and print a message
+    if (length(nonzero_var) < nrow(mat)) {
+      warning("Removed ", nrow(mat) - length(nonzero_var), " zero-variance features from layer ", l)
+      mat <- mat[nonzero_var, , drop = FALSE]
+    }
+    
+    # Pass in filtered matrix to leverage score function
     scores[Cells(x = object, layer = l), 1] <- LeverageScore(
-      object = LayerData(
-        object = object,
-        layer = l,
-        features = features.use,
-        fast = TRUE
-      ),
+      object = mat,
       nsketch = nsketch,
       ndims = ndims %||% ncol(x = object),
       method = method,
