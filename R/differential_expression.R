@@ -2274,7 +2274,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   model.list <- methods::slot(object = object[[assay]], name = "SCTModel.list")
   median_umi.status <- lapply(X = model.list,
                               FUN = function(x) { return(tryCatch(
-                                expr = slot(object = x, name = 'median_umi'),
+                                expr = methods::slot(object = x, name = 'median_umi'),
                                 error = function(...) {return(NULL)})
                               )})
   if (any(is.null(x = unlist(x = median_umi.status)))){
