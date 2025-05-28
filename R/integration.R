@@ -3454,7 +3454,7 @@ TransferData <- function(
     layer <- slot %||% layer
   }
 
-  combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
+  combined.ob <- methods::slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
