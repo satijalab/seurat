@@ -256,7 +256,7 @@ results <- suppressWarnings(
     test.use = "negbinom",
     verbose = FALSE,
     base = exp(1),
-    fc.slot = "counts",
+    fc.layer = "counts",
     pseudocount.use = 1
   )
 )
@@ -278,7 +278,7 @@ results <- suppressWarnings(
     test.use = "poisson",
     verbose = FALSE,
     base = exp(1),
-    fc.slot = "counts",
+    fc.layer = "counts",
     pseudocount.use = 1
   )
 )
