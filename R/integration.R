@@ -1547,7 +1547,7 @@ IntegrateData <- function(
       )
     }
     model.list <- unlist(x = model.list)
-    slot(object = anchorset, name = "object.list") <- object.list
+    methods::slot(object = anchorset, name = "object.list") <- object.list
   }
   # perform pairwise integration of reference objects
   reference.integrated <- PairwiseIntegrateReference(
@@ -1751,7 +1751,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
   }
-  slot(object = anchorset, name = "object.list") <- object.list
+  methods::slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
   new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name.safe)
 
@@ -1903,7 +1903,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
     object.list[[i]] <- DietSeurat(object = object.list[[i]], assays = "drtointegrate")
   }
-  slot(object = anchorset, name = "object.list") <- object.list
+  methods::slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
   new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name)
   slot(object = anchorset, name = "reference.objects") <- 1
@@ -2309,7 +2309,7 @@ MapQuery <- function(
   } else if (grepl(pattern = "cca", x = transfer.reduction)) {
     anchor.reduction <- "cca"
     ref.cca.embedding <- Embeddings(
-      slot(object = anchorset, name = "object.list")[[1]][["cca"]]
+      methods::slot(object = anchorset, name = "object.list")[[1]][["cca"]]
       )[slot(object = anchorset, name = "reference.cells"), ]
     rownames(x = ref.cca.embedding) <- gsub(
       pattern =  "_reference",
@@ -2317,7 +2317,7 @@ MapQuery <- function(
       x = rownames(x = ref.cca.embedding)
       )
     query.cca.embedding <- Embeddings(
-      slot(object = anchorset, name = "object.list")[[1]][["cca"]]
+      methods::slot(object = anchorset, name = "object.list")[[1]][["cca"]]
       )[slot(object = anchorset, name = "query.cells"), ]
     rownames(x = query.cca.embedding) <- gsub(
       pattern = "_query",
@@ -2346,7 +2346,7 @@ MapQuery <- function(
       )
     ref.reduction.emb <- Embeddings(
       object =
-        slot(
+        methods::slot(
           object = anchorset,
           name = "object.list"
           )[[1]][[anchor.reduction]])[
@@ -2700,7 +2700,7 @@ MappingScore.AnchorSet <- function(
   ...
 ) {
   CheckDots(...)
-  combined.object <- slot(object = anchors, name = "object.list")[[1]]
+  combined.object <- methods::slot(object = anchors, name = "object.list")[[1]]
   combined.object <- RenameCells(
     object = combined.object,
     new.names = unname(obj = make.unique(sapply(
@@ -6487,7 +6487,7 @@ ValidateParams_TransferData <- function(
 
 
 
-  object.reduction <- Reductions(object = slot(object = anchorset, name = "object.list")[[1]])
+  object.reduction <- Reductions(object = methods::slot(object = anchorset, name = "object.list")[[1]])
   valid.weight.reduction <- c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi", object.reduction)
   if (!inherits(x = weight.reduction, "DimReduc")) {
     if (!weight.reduction %in% valid.weight.reduction) {
