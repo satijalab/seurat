@@ -683,7 +683,7 @@ FindMarkers.Assay <- function(
   if (length(x = Layers(object = object, search = slot)) > 1) {
     stop(slot, " layers are not joined. Please run JoinLayers")
   }
-  data.use <-  GetAssayData(object = object, slot = data.slot)
+  data.use <- LayerData(object = object, layer = slot)
   fc.results <- FoldChange(
     object = object,
     slot = fc.slot,
@@ -771,7 +771,7 @@ FindMarkers.SCTAssay <- function(
     }
   }
 
-  data.use <-  GetAssayData(object = object, slot = data.slot)
+  data.use <- LayerData(object = object, layer = slot)
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
@@ -1081,7 +1081,7 @@ FoldChange.Assay <- function(
   norm.method = NULL,
   ...
 ) {
-  data <- GetAssayData(object = object, slot = slot)
+  data <- LayerData(object = object, layer = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
     # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
@@ -1160,7 +1160,7 @@ FoldChange.SCTAssay <- function(
     ...
 ) {
   pseudocount.use <- pseudocount.use %||% 1
-  data <- GetAssayData(object = object, slot = slot)
+  data <- LayerData(object = object, layer = slot)
   default.mean.fxn <- function(x) {
     # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
@@ -2211,7 +2211,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
       object = object[[umi.assay]],
       layers = "counts", new = "counts")
   }
-  raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
+  raw_umi <- LayerData(object = object, assay = umi.assay, layer = "counts")
   corrected_counts <- Matrix(
     nrow = nrow(x = raw_umi),
     ncol = ncol(x = raw_umi),
