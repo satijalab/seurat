@@ -827,7 +827,7 @@ FindMarkers.SCTAssay <- function(
       X = cell_attributes,
       FUN = function(x) median(x[, "umi"])
     )
-    model.list <- slot(object = object, "SCTModel.list")
+    model.list <- methods::slot(object = object, "SCTModel.list")
     median_umi.status <- lapply(X = model.list,
                                 FUN = function(x) { return(tryCatch(
                                   expr = slot(object = x, name = 'median_umi'),
