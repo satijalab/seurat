@@ -4986,7 +4986,7 @@ PairwiseIntegrateReference <- function(
   eps = 0,
   verbose = TRUE
 ) {
-  object.list <- slot(object = anchorset, name = "object.list")
+  object.list <- methods::slot(object = anchorset, name = "object.list")
   reference.objects <- slot(object = anchorset, name = "reference.objects")
   features <- features %||% slot(object = anchorset, name = "anchor.features")
   features.to.integrate <- features.to.integrate %||% features
