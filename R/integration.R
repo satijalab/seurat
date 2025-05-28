@@ -4971,6 +4971,7 @@ NNtoMatrix <- function(idx, distance, k) {
 #
 # @return Returns a Seurat object with a new integrated Assay
 #
+
 PairwiseIntegrateReference <- function(
   anchorset,
   new.assay.name = "integrated",
@@ -4987,8 +4988,8 @@ PairwiseIntegrateReference <- function(
   verbose = TRUE
 ) {
   object.list <- methods::slot(object = anchorset, name = "object.list")
-  reference.objects <- slot(object = anchorset, name = "reference.objects")
-  features <- features %||% slot(object = anchorset, name = "anchor.features")
+  reference.objects <- methods::slot(object = anchorset, name = "reference.objects")
+  features <- features %||% methods::slot(object = anchorset, name = "anchor.features")
   features.to.integrate <- features.to.integrate %||% features
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
@@ -4999,8 +5000,8 @@ PairwiseIntegrateReference <- function(
     DefaultAssay(object = ref.obj) <- new.assay.name
     return(ref.obj)
   }
-  anchors <- slot(object = anchorset, name = "anchors")
-  offsets <- slot(object = anchorset, name = "offsets")
+  anchors <- methods::slot(object = anchorset, name = "anchors")
+  offsets <- methods::slot(object = anchorset, name = "offsets")
   objects.ncell <- sapply(X = object.list, FUN = ncol)
   if (!is.null(x = weight.reduction)) {
     if (length(x = weight.reduction) == 1 | inherits(x = weight.reduction, what = "DimReduc")) {
