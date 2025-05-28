@@ -84,7 +84,7 @@ FindAllMarkers <- function(
     }
     idents.all <- sort(x = unique(x = Idents(object = object)))
   } else {
-    if (!PackageCheck('ape', error = FALSE)) {
+    if (!requireNamespace("ape", quietly = TRUE)) {
       stop(cluster.ape, call. = FALSE)
     }
     if (!is.null(group.by)) {
@@ -259,7 +259,7 @@ FindConservedMarkers <- function(
   verbose = TRUE,
   ...
 ) {
-  metap.installed <- PackageCheck("metap", error = FALSE)
+  metap.installed <- requireNamespace("metap", quietly = TRUE)
   if (!metap.installed[1]) {
     stop(
       "Please install the metap package to use FindConservedMarkers.",
@@ -1448,7 +1448,7 @@ DESeq2DETest <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!PackageCheck('DESeq2', error = FALSE)) {
+  if (!requireNamespace("DESeq2", quietly=TRUE)) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
   CheckDots(..., fxns = 'DESeq2::results')
@@ -1902,7 +1902,7 @@ MASTDETest <- function(
   ...
 ) {
   # Check for MAST
-  if (!PackageCheck('MAST', error = FALSE)) {
+  if (!requireNamespace("MAST", quietly = TRUE)) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
@@ -2445,8 +2445,8 @@ WilcoxDETest <- function(
     yes = FALSE,
     no = TRUE
   )
-  presto.check <- PackageCheck("presto", error = FALSE)
-  limma.check <- PackageCheck("limma", error = FALSE)
+  presto.check <- requireNamespace("presto", quietly = TRUE)
+  limma.check <- requireNamespace("limma", quietly = TRUE)
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
