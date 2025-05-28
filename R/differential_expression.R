@@ -2271,7 +2271,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     X = SCTResults(object = object[[assay]], slot = "cell.attributes"),
     FUN = function(x) median(x[, "umi"])
   )
-  model.list <- slot(object = object[[assay]], name = "SCTModel.list")
+  model.list <- methods::slot(object = object[[assay]], name = "SCTModel.list")
   median_umi.status <- lapply(X = model.list,
                               FUN = function(x) { return(tryCatch(
                                 expr = slot(object = x, name = 'median_umi'),
@@ -2279,7 +2279,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
                               )})
   if (any(is.null(x = unlist(x = median_umi.status)))){
     # For old SCT objects  median_umi is set to median umi as calculated from obserbed UMIs
-    slot(object = object[[assay]], name = "SCTModel.list") <- lapply(X = model.list,
+    methods::slot(object = object[[assay]], name = "SCTModel.list") <- lapply(X = model.list,
                                                                      FUN = UpdateSlots)
     SCTResults(object = object[[assay]], slot = "median_umi") <- observed_median_umis
 
