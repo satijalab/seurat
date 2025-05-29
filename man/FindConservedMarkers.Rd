@@ -30,11 +30,10 @@ use all other cells for comparison.}
 
 \item{assay}{of assay to fetch data for (default is RNA)}
 
-\item{slot}{Slot to pull data from; note that if \code{test.use} is
-"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
 
 \item{layer}{Layer to pull data from; note that if \code{test.use} is
-"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+"negbinom", "poisson", or "DESeq2", \code{layer} will be set to "counts"}
 
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 

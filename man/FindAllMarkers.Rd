@@ -45,7 +45,7 @@ performing differential expression (see example); \code{"ident"} to use Idents}
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.
-If the \code{slot} parameter is "scale.data" no filtering is performed.}
+If the \code{layer} parameter is "scale.data" no filtering is performed.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
@@ -92,11 +92,10 @@ If the \code{slot} parameter is "scale.data" no filtering is performed.}
  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }}
 
-\item{slot}{Slot to pull data from; note that if \code{test.use} is
-"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
 
 \item{layer}{Layer to pull data from; note that if \code{test.use} is
-"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+"negbinom", "poisson", or "DESeq2", \code{layer} will be set to "counts"}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
 min.pct cells in either of the two populations. Meant to speed up the function
@@ -138,7 +137,7 @@ The default depends on the the value of \code{fc.layer}:
 \item{fc.name}{Name of the fold change, average difference, or custom function column
 in the output data.frame. If NULL, the fold change column will be named
 according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
-slot "avg_diff".}
+layer "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 

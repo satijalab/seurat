@@ -62,8 +62,7 @@ FindMarkers(object, ...)
   pseudocount.use = 1,
   slot = deprecated(),
   layer = "data",
-  fc.slot = deprecated(),
-  fc.layer = "data",
+  fc.layer = deprecated(),
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -110,11 +109,10 @@ FindMarkers(object, ...)
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
 
-\item{slot}{Slot to pull data from; note that if \code{test.use} is
-"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
 
 \item{layer}{Layer to pull data from; note that if \code{test.use} is
-"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+"negbinom", "poisson", or "DESeq2", \code{layer} will be set to "counts"}
 
 \item{cells.1}{Vector of cell names belonging to group 1}
 
@@ -125,7 +123,7 @@ FindMarkers(object, ...)
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.
-If the \code{slot} parameter is "scale.data" no filtering is performed.}
+If the \code{layer} parameter is "scale.data" no filtering is performed.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
@@ -210,7 +208,7 @@ default for \code{mean.fxn}, see below for more details.}
 calculating logFC. 1 by default.}
 
 \item{norm.method}{Normalization method for fold change calculation when
-\code{slot} is \dQuote{\code{data}}}
+\code{layer} is \dQuote{\code{data}}}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation.
 The default depends on the the value of \code{fc.layer}:
@@ -225,7 +223,7 @@ The default depends on the the value of \code{fc.layer}:
 \item{fc.name}{Name of the fold change, average difference, or custom function column
 in the output data.frame. If NULL, the fold change column will be named
 according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
-slot "avg_diff".}
+layer "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 

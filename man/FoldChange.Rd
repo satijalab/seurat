@@ -47,6 +47,8 @@ FoldChange(object, ...)
   cells.1,
   cells.2,
   features = NULL,
+  slot = deprecated(),
+  layer = NULL,
   pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
