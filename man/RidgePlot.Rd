@@ -48,7 +48,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{ncol}{Number of columns if multiple plots are displayed}
 
-\item{slot}{Slot to pull expression data from (e.g. "counts" or "data")}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
 
 \item{layer}{Layer to pull expression data from (e.g. "counts" or "data")}
 

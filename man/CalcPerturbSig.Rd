@@ -8,7 +8,8 @@ CalcPerturbSig(
   object,
   assay = NULL,
   features = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   gd.class = "guide_ID",
   nt.cell.class = "NT",
   split.by = NULL,
@@ -27,7 +28,9 @@ CalcPerturbSig(
 \item{features}{Features to compute PRTB signature for. Defaults to the
 variable features set in the assay specified.}
 
-\item{slot}{Data slot to use for PRTB signature calculation.}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Data layer to use for PRTB signature calculation.}
 
 \item{gd.class}{Metadata column containing target gene classification.}
 

@@ -10,7 +10,8 @@ MetaFeature(
   meta.name = "metafeature",
   cells = NULL,
   assay = NULL,
-  slot = "data"
+  slot = deprecated(),
+  layer = "data"
 )
 }
 \arguments{
@@ -24,7 +25,9 @@ MetaFeature(
 
 \item{assay}{Which assay to use}
 
-\item{slot}{Which slot to take data from (default data)}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Which layer to take data from (default data)}
 }
 \value{
 Returns a \code{Seurat} object with metafeature stored in objct metadata

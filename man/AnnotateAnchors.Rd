@@ -7,12 +7,13 @@
 \alias{AnnotateAnchors.TransferAnchorSet}
 \title{Add info to anchor matrix}
 \usage{
-AnnotateAnchors(anchors, vars, slot, ...)
+AnnotateAnchors(anchors, vars, slot = deprecated(), layer, ...)
 
 \method{AnnotateAnchors}{default}(
   anchors,
   vars = NULL,
-  slot = NULL,
+  slot = deprecated(),
+  layer = NULL,
   object.list,
   assay = NULL,
   ...
@@ -21,7 +22,8 @@ AnnotateAnchors(anchors, vars, slot, ...)
 \method{AnnotateAnchors}{IntegrationAnchorSet}(
   anchors,
   vars = NULL,
-  slot = NULL,
+  slot = deprecated(),
+  layer = NULL,
   object.list = NULL,
   assay = NULL,
   ...
@@ -30,7 +32,8 @@ AnnotateAnchors(anchors, vars, slot, ...)
 \method{AnnotateAnchors}{TransferAnchorSet}(
   anchors,
   vars = NULL,
-  slot = NULL,
+  slot = deprecated(),
+  layer = NULL,
   reference = NULL,
   query = NULL,
   assay = NULL,
@@ -42,7 +45,9 @@ AnnotateAnchors(anchors, vars, slot, ...)
 
 \item{vars}{Variables to pull for each object via FetchData}
 
-\item{slot}{Slot to pull feature data for}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{layer to pull feature data for}
 
 \item{...}{Arguments passed to other methods}
 

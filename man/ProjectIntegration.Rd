@@ -43,11 +43,11 @@ one from \code{reduction.name}}
 \item{method}{Methods to construct sketch-cell representation
 for all cells (default is 'sketch'). Can be one of:
 \itemize{
- \item \dQuote{\code{sketch}}: Use random sketched data slot
- \item \dQuote{\code{data}}: Use data slot
+ \item \dQuote{\code{sketch}}: Use random sketched data layer
+ \item \dQuote{\code{data}}: Use data layer
 }}
 
-\item{ratio}{Sketch ratio of data slot when \code{dictionary.method} is set
+\item{ratio}{Sketch ratio of data layer when \code{dictionary.method} is set
 to \dQuote{\code{sketch}}; defaults to 0.8}
 
 \item{sketched.layers}{Names of sketched layers, defaults to all

@@ -18,7 +18,8 @@ TransferData(
   eps = 0,
   n.trees = 50,
   verbose = TRUE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   prediction.assay = FALSE,
   only.weights = FALSE,
   store.weights = TRUE
@@ -35,8 +36,8 @@ TransferData(
   correspond to the reference cells.}
   \item{The name of the metadata field or assay from the reference object
   provided. This requires the reference parameter to be specified. If pulling
-  assay data in this manner, it will pull the data from the data slot. To
-  transfer data from other slots, please pull the data explicitly with
+  assay data in this manner, it will pull the data from the data layer. To
+  transfer data from other layers, please pull the data explicitly with
   \code{\link{GetAssayData}} and provide that matrix here.}
 }}
 
@@ -76,11 +77,13 @@ nearest neighbor search}
 
 \item{verbose}{Print progress bars and output}
 
-\item{slot}{Slot to store the imputed data. Must be either "data" (default)
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer to store the imputed data. Must be either "data" (default)
 or "counts"}
 
 \item{prediction.assay}{Return an \code{Assay} object with the prediction
-scores for each class stored in the \code{data} slot.}
+scores for each class stored in the \code{data} layer.}
 
 \item{only.weights}{Only return weights matrix}
 
@@ -91,7 +94,7 @@ in the returned query object.}
 If \code{query} is not provided, for the categorical data in \code{refdata},
 returns a data.frame with label predictions. If \code{refdata} is a matrix,
 returns an Assay object where the imputed data has been stored in the
-provided slot.
+provided layer.
 
 If \code{query} is provided, a modified query object is returned. For
 the categorical data in refdata, prediction scores are stored as Assays

@@ -35,7 +35,7 @@ the Pearson residual will be clipped to}
 \item{verbose}{Display output/messages}
 }
 \value{
-A list of \code{\link[SeuratObject]{Seurat}} objects with the appropriate \code{scale.data} slots
+A list of \code{\link[SeuratObject]{Seurat}} objects with the appropriate \code{scale.data} layers
 containing only the required \code{anchor.features}.
 }
 \description{
@@ -50,7 +50,7 @@ This function takes in a list of objects that have been normalized with the
   only store the residuals for the features determined to be variable.
   Residuals are recomputed for missing features using the stored model
   parameters via the \code{\link{GetResidual}} function.}
-  \item{Subsets the \code{scale.data} slot to only contain the residuals for
+  \item{Subsets the \code{scale.data} layer to only contain the residuals for
   anchor.features for efficiency in downstream processing. }
 }
 }

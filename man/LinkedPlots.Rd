@@ -26,7 +26,8 @@ LinkedFeaturePlot(
   reduction = NULL,
   image = NULL,
   image.scale = "lowres",
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   alpha = c(0.1, 1),
   combine = TRUE
 )
@@ -54,7 +55,9 @@ themeing will not work when plotting multiple features/groupings}
 
 \item{feature}{Feature to visualize}
 
-\item{slot}{If plotting a feature, which data slot to pull from (counts,
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{If plotting a feature, which data layer to pull from (counts,
 data, or scale.data)}
 }
 \value{

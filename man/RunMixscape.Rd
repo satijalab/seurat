@@ -7,7 +7,8 @@
 RunMixscape(
   object,
   assay = "PRTB",
-  slot = "scale.data",
+  slot = deprecated(),
+  layer = "scale.data",
   labels = "gene",
   nt.class.name = "NT",
   new.class.name = "mixscape_class",
@@ -28,7 +29,9 @@ RunMixscape(
 
 \item{assay}{Assay to use for mixscape classification.}
 
-\item{slot}{Assay data slot to use.}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Assay data layer to use.}
 
 \item{labels}{metadata column with target gene labels.}
 

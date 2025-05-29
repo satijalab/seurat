@@ -47,7 +47,7 @@ FetchResiduals(object, ...)
 \item{umi.assay}{Name of the assay of the seurat object containing counts
 matrix to use when recalculating any missing residuals.}
 
-\item{layer}{The name of the layer(s) in `umi.assay` to use when 
+\item{layer}{The name of the layer(s) in `umi.assay` to use when
 recalculating any missing residuals.}
 
 \item{clip.range}{Numeric of length two specifying the min and max values the

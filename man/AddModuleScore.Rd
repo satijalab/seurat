@@ -20,7 +20,8 @@ AddModuleScore(object, ...)
   name = "Cluster",
   seed = 1,
   search = FALSE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   ...
 )
 
@@ -35,7 +36,8 @@ AddModuleScore(object, ...)
   name = "Cluster",
   seed = 1,
   search = FALSE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   ...
 )
 
@@ -50,7 +52,8 @@ AddModuleScore(object, ...)
   name = "Cluster",
   seed = 1,
   search = FALSE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   ...
 )
 }
@@ -86,9 +89,11 @@ programs, the results will be stored as \code{name1}, \code{name2},
 don't match features in \code{object}? Searches the HGNC's gene names
 database; see \code{\link{UpdateSymbolList}} for more details}
 
-\item{slot}{Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
 
-\item{kmeans.obj}{A \code{DoKMeans} output used to define feature clusters 
+\item{layer}{Layer to calculate score values off of. Defaults to data layer (i.e log-normalized counts)}
+
+\item{kmeans.obj}{A \code{DoKMeans} output used to define feature clusters
 when \code{k = TRUE}; ignored if \code{k = FALSE}.}
 }
 \value{

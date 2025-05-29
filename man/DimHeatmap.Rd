@@ -18,7 +18,8 @@ DimHeatmap(
   ncol = NULL,
   fast = TRUE,
   raster = TRUE,
-  slot = "scale.data",
+  slot = deprecated(),
+  layer = "scale.data",
   assays = NULL,
   combine = TRUE
 )
@@ -39,7 +40,7 @@ PCHeatmap(object, ...)
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped); defaults to 2.5
-if \code{slot} is 'scale.data', 6 otherwise}
+if \code{layer} is 'scale.data', 6 otherwise}
 
 \item{balanced}{Plot an equal number of genes with both + and - scores.}
 
@@ -53,7 +54,9 @@ if \code{slot} is 'scale.data', 6 otherwise}
 some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 if you are encountering that issue (note that plots may take longer to produce/render).}
 
-\item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Data layer to use, choose from 'raw.data', 'data', or 'scale.data'}
 
 \item{assays}{A vector of assays to pull data from}
 

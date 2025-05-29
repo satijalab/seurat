@@ -76,7 +76,8 @@ RunUMAP(object, ...)
   graph = NULL,
   assay = DefaultAssay(object = object),
   nn.name = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   umap.method = "uwot",
   reduction.model = NULL,
   return.model = FALSE,
@@ -234,7 +235,9 @@ on features}
 
 \item{nn.name}{Name of knn output on which to run UMAP}
 
-\item{slot}{The slot used to pull data for when using \code{features}. data slot is by default.}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{The layer used to pull data for when using \code{features}. data layer is by default.}
 
 \item{reduction.name}{Name to store dimensional reduction under in the Seurat object}
 }

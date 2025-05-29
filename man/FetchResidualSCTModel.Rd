@@ -24,7 +24,7 @@ FetchResidualSCTModel(
 
 \item{umi.object}{The assay to use when recalculating any missing residuals.}
 
-\item{layer}{The name of the layer(s) in `umi.object` to use when 
+\item{layer}{The name of the layer(s) in `umi.object` to use when
 recalculating any missing residuals.}
 
 \item{chunk_size}{Number of cells to load in memory for calculating

@@ -35,8 +35,8 @@ MapQuery(
   correspond to the reference cells.}
   \item{The name of the metadata field or assay from the reference object
   provided. This requires the reference parameter to be specified. If pulling
-  assay data in this manner, it will pull the data from the data slot. To
-  transfer data from other slots, please pull the data explicitly with
+  assay data in this manner, it will pull the data from the data layer. To
+  transfer data from other layers, please pull the data explicitly with
   \code{\link{GetAssayData}} and provide that matrix here.}
 }}
 

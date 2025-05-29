@@ -122,7 +122,7 @@ Calculate log fold change and percentage of cells expressing each feature
 for different identity classes.
 }
 \details{
-If the slot is \code{scale.data} or a reduction is specified, average difference
+If the layer is \code{scale.data} or a reduction is specified, average difference
 is returned instead of log fold change and the column is named "avg_diff".
 Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 }

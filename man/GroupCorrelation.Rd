@@ -8,7 +8,8 @@ covariate}
 GroupCorrelation(
   object,
   assay = NULL,
-  slot = "scale.data",
+  slot = deprecated(),
+  layer = "scale.data",
   var = NULL,
   group.assay = NULL,
   min.cells = 5,
@@ -21,7 +22,9 @@ GroupCorrelation(
 
 \item{assay}{Assay to pull the data from}
 
-\item{slot}{Slot in the assay to pull feature expression data from (counts,
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer in the assay to pull feature expression data from (counts,
 data, or scale.data)}
 
 \item{var}{Variable with which to correlate the features}

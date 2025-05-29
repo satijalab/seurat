@@ -87,9 +87,9 @@ integration.}
 \value{
 Returns a \code{\link[SeuratObject]{Seurat}} object with a new integrated
 \code{\link[SeuratObject]{Assay}}. If \code{normalization.method = "LogNormalize"}, the
-integrated data is returned to the \code{data} slot and can be treated as
+integrated data is returned to the \code{data} layer and can be treated as
 log-normalized, corrected data. If \code{normalization.method = "SCT"}, the
-integrated data is returned to the \code{scale.data} slot and can be treated
+integrated data is returned to the \code{scale.data} layer and can be treated
 as centered, corrected Pearson residuals.
 }
 \description{
