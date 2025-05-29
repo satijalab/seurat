@@ -14,7 +14,8 @@ FindMarkers(object, ...)
 
 \method{FindMarkers}{default}(
   object,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
@@ -36,12 +37,14 @@ FindMarkers(object, ...)
 
 \method{FindMarkers}{Assay}(
   object,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
   test.use = "wilcox",
-  fc.slot = "data",
+  fc.slot = deprecated(),
+  fc.layer = "data",
   pseudocount.use = 1,
   norm.method = NULL,
   mean.fxn = NULL,
@@ -57,8 +60,10 @@ FindMarkers(object, ...)
   features = NULL,
   test.use = "wilcox",
   pseudocount.use = 1,
-  slot = "data",
-  fc.slot = "data",
+  layer = "data",
+  fc.layer = "data",
+  slot = deprecated(),
+  fc.slot = deprecated(),
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -105,8 +110,10 @@ FindMarkers(object, ...)
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
 
-\item{slot}{Slot to pull data from; note that if \code{test.use} is
-"negbinom", "poisson", or "DESeq2", \code{slot} will be set to "counts"}
+\item{slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.}
+
+\item{layer}{Layer to pull data from; note that if \code{test.use} is
+"negbinom", "poisson", or "DESeq2", \code{layer} will be set to "counts"}
 
 \item{cells.1}{Vector of cell names belonging to group 1}
 
@@ -117,7 +124,7 @@ FindMarkers(object, ...)
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.1
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.
-If the \code{slot} parameter is "scale.data" no filtering is performed.}
+If the \code{layer} parameter is "scale.data" no filtering is performed.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
@@ -193,17 +200,19 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{densify}{Convert the sparse matrix to a dense form before running the
 DE test. This can provide speedups but might require higher memory; default is FALSE}
 
-\item{fc.slot}{Slot used to calculate fold-change - will also affect the
+\item{fc.slot}{`r lifecycle::badge("deprecated")` soft-deprecated. See `fc.layer`.}
+
+\item{fc.layer}{Layer used to calculate fold-change - will also affect the
 default for \code{mean.fxn}, see below for more details.}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
 \item{norm.method}{Normalization method for fold change calculation when
-\code{slot} is \dQuote{\code{data}}}
+\code{layer} is \dQuote{\code{data}}}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation.
-The default depends on the the value of \code{fc.slot}:
+The default depends on the the value of \code{fc.layer}:
 \itemize{
  \item{"counts"} : difference in the log of the mean counts, with pseudocount.
  \item{"data"} : difference in the log of the average exponentiated data, with pseudocount.
@@ -215,7 +224,7 @@ The default depends on the the value of \code{fc.slot}:
 \item{fc.name}{Name of the fold change, average difference, or custom function column
 in the output data.frame. If NULL, the fold change column will be named
 according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
-slot "avg_diff".}
+layer "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 
