@@ -19,7 +19,8 @@ NULL
 #' @param assay Name of Assay PRTB  signature is being calculated on.
 #' @param features Features to compute PRTB signature for. Defaults to the
 #' variable features set in the assay specified.
-#' @param slot Data slot to use for PRTB signature calculation.
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Data layer to use for PRTB signature calculation.
 #' @param gd.class Metadata column containing target gene classification.
 #' @param nt.cell.class Non-targeting gRNA cell classification identity.
 #' @param split.by Provide metadata column if multiple biological replicates
@@ -40,7 +41,8 @@ CalcPerturbSig <- function(
   object,
   assay = NULL,
   features = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   gd.class = "guide_ID",
   nt.cell.class = "NT",
   split.by = NULL,
@@ -50,7 +52,16 @@ CalcPerturbSig <- function(
   new.assay.name = "PRTB",
   verbose = TRUE
 ) {
-  assay <- assay %||% DefaultAssay(object = object )
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'CalcPerturbSig(slot = )',
+      with = 'CalcPerturbSig(layer = )'
+    )
+    layer <- slot
+  }
+
+  assay <- assay %||% DefaultAssay(object = object)
   if (is.null(x = reduction)) {
     stop('Please provide dimensionality reduction name.')
   }
@@ -62,7 +73,7 @@ CalcPerturbSig <- function(
   }
   features <- features %||% VariableFeatures(object = object[[assay]])
   if (length(x = features) == 0) {
-    features <- rownames(x = GetAssayData(object = object[[assay]], slot = slot))
+    features <- rownames(x = GetAssayData(object = object[[assay]], layer = layer))
   }
   if (! is.null(x = split.by)) {
     Idents(object = object) <-  split.by
@@ -93,7 +104,7 @@ CalcPerturbSig <- function(
     diff <- PerturbDiff(
       object = object,
       assay = assay,
-      slot = slot,
+      layer = layer,
       all_cells = all_cells,
       nt_cells = nt_cells,
       features = features,
@@ -128,7 +139,7 @@ CalcPerturbSig <- function(
 #' positive DE genes.If false, only positive DE gene will be displayed.
 #' @param max.genes Maximum number of genes to use as input to enrichR.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param p.val.cutoff Cutoff to select DE genes.
 #' @param cols A list of colors to use for barplots.
@@ -371,7 +382,7 @@ MixscapeLDA <- function(
 #' @param npcs Number of principle components to use.
 #' @param verbose Print progress bar.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @return Returns a list of the first 10 PCs from each projection.
 #'
@@ -636,7 +647,8 @@ RunLDA.Seurat <- function(
 #' @importFrom ggplot2 geom_density position_dodge
 #' @param object An object of class Seurat.
 #' @param assay Assay to use for mixscape classification.
-#' @param slot Assay data slot to use.
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Assay data layer to use.
 #' @param labels metadata column with target gene labels.
 #' @param nt.class.name Classification name of non-targeting gRNA cells.
 #' @param new.class.name Name of mixscape classification to be stored in
@@ -683,7 +695,8 @@ RunLDA.Seurat <- function(
 RunMixscape <- function(
   object,
   assay = "PRTB",
-  slot = "scale.data",
+  slot = deprecated(),
+  layer = "scale.data",
   labels = "gene",
   nt.class.name = "NT",
   new.class.name = "mixscape_class",
@@ -698,6 +711,15 @@ RunMixscape <- function(
   fine.mode.labels = "guide_ID",
   prtb.type = "KO"
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'RunMixscape(slot = )',
+      with = 'RunMixscape(layer = )'
+    )
+    layer <- slot
+  }
+
   mixtools.installed <- PackageCheck("mixtools", error = FALSE)
   if (!mixtools.installed[1]) {
     stop("Please install the mixtools package to use RunMixscape",
@@ -798,8 +820,8 @@ RunMixscape <- function(
           message("  ", gene)
         }
         de.genes <- prtb_markers[[s]][[gene]]
-        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells, drop = FALSE]
-        if (slot == "scale.data") {
+        dat <- GetAssayData(object = object[[assay]], layer = "data")[de.genes, all.cells, drop = FALSE]
+        if (layer == "scale.data") {
           dat <- ScaleData(object = dat, features = de.genes, verbose = FALSE)
         }
         converged <- FALSE
@@ -872,7 +894,7 @@ RunMixscape <- function(
 #' @param max.genes Total number of DE genes to plot.
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout
 #' probability from highest to lowest score.
@@ -1211,7 +1233,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
     diff <- PerturbDiff(
       object = object,
       assay = assay.orig,
-      slot = slot,
+      layer = layer,
       all_cells = all_cells,
       nt_cells = nt_cells,
       features = features,
@@ -1224,7 +1246,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   all_diff <- all_diff[, colnames(x = object[[assay]]), drop = FALSE]
   new.assay <- CreateAssayObject(
     data = rbind(
-      GetAssayData(object = object[[assay]], slot = "data"),
+      GetAssayData(object = object[[assay]], layer = "data"),
       all_diff
     ),
     min.cells = 0,
@@ -1233,8 +1255,8 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   )
   new.assay <- SetAssayData(
     object = new.assay,
-    slot = "scale.data",
-    new.data = GetAssayData(object = object[[assay]], slot = "scale.data")
+    layer = "scale.data",
+    new.data = GetAssayData(object = object[[assay]], layer = "scale.data")
   )
   object[[assay]] <- new.assay
   Idents(object = object) <- old.idents
@@ -1246,7 +1268,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
 #
 # @param object Seurat object
 # @param assay assay to use
-# @param slot slot to use
+# @param layer layer to use
 # @param all_cells vector of cell names to compute difference for
 # @param nt_cells vector of nt cell names
 # @param features vector of features to compute for
@@ -1257,8 +1279,18 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
 #' @importFrom matrixStats rowMeans2
 #' @importFrom Matrix sparseMatrix colSums
 #'
-PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neighbors, verbose) {
-  nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, slot = slot)[features, nt_cells, drop = FALSE]))
+PerturbDiff <- function(
+    object,
+    assay,
+    slot = deprecated(),
+    layer,
+    all_cells,
+    nt_cells,
+    features,
+    neighbors,
+    verbose
+) {
+  nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, layer = layer)[features, nt_cells, drop = FALSE]))
   mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   # new_expr <- mysapply(X = all_cells, FUN = function(i) {
   #   index <- Indices(object = neighbors)[i, ]
@@ -1277,7 +1309,7 @@ PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neig
   new_expr <- log1p(x = new_expr)
   rownames(x = new_expr) <- rownames(x = nt_data)
   colnames(x = new_expr) <- all_cells
-  diff <- new_expr - as.matrix(GetAssayData(object = object, slot = slot, assay = assay)[features, colnames(x = new_expr), drop = FALSE])
+  diff <- new_expr - as.matrix(GetAssayData(object = object, layer = layer, assay = assay)[features, colnames(x = new_expr), drop = FALSE])
   return(diff)
 }
 
