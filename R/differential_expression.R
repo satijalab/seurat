@@ -495,7 +495,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param fc.results data.frame from FoldChange
-#' @param densify Convert the sparse matrix to a dense form before running the 
+#' @param densify Convert the sparse matrix to a dense form before running the
 #' DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
 #'
@@ -634,8 +634,8 @@ FindMarkers.default <- function(
 }
 
 
-#' @param fc.slot Slot used to calculate fold-change - will also affect the 
-#' default for \code{mean.fxn}, see below for more details. 
+#' @param fc.slot Slot used to calculate fold-change - will also affect the
+#' default for \code{mean.fxn}, see below for more details.
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param norm.method Normalization method for fold change calculation when
@@ -713,7 +713,7 @@ FindMarkers.Assay <- function(
 #'
 FindMarkers.StdAssay <- FindMarkers.Assay
 
-#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the 
+#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the
 #' median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
 #' @rdname FindMarkers
@@ -817,7 +817,7 @@ FindMarkers.SCTAssay <- function(
 FindMarkers.DimReduc <- function(
   object,
   cells.1 = NULL,
-  cells.2 = NULL, 
+  cells.2 = NULL,
   features = NULL,
   logfc.threshold = 0.1,
   test.use = "wilcox",
@@ -910,12 +910,12 @@ FindMarkers.DimReduc <- function(
 #' @param ident.2 A second identity class for comparison; if \code{NULL},
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
-#' @param group.by Regroup cells into a different identity class prior to 
+#' @param group.by Regroup cells into a different identity class prior to
 #' performing differential expression (see example); \code{"ident"} to use Idents
-#' @param subset.ident Subset a particular identity class prior to regrouping. 
+#' @param subset.ident Subset a particular identity class prior to regrouping.
 #' Only relevant if group.by is set (see example)
 #' @param assay Assay to use in differential expression testing
-#' @param reduction Reduction to use in differential expression testing - will 
+#' @param reduction Reduction to use in differential expression testing - will
 #' test for DE on cell embeddings
 #'
 #' @rdname FindMarkers
