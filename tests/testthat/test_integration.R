@@ -339,7 +339,7 @@ test_that("FindTransferAnchors with SCT and project.query work", {
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
   expect_equal(DefaultAssay(co), "SCT")
   expect_equal(GetAssayData(co[["SCT"]])[1, 1], 0)
-  expect_equal(GetAssayData(co[["SCT"]], slot = "scale.data"), new("matrix"))
+  expect_equal(GetAssayData(co[["SCT"]], layer = "scale.data"), new("matrix"))
   expect_equal(dim(co[['pcaproject']]), c(160, 30))
   expect_equal(Embeddings(co[['pcaproject']])[1, 1], 0.3049308, tolerance = 1e-7)
   expect_equal(Loadings(co[['pcaproject']], projected = T)[1, 1], 0.05788217444, tolerance = 1e-7)
@@ -388,7 +388,7 @@ test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
   expect_equal(anchors@neighbors, list())
 })
 
-# Added test for multi-layer query 
+# Added test for multi-layer query
 pbmc_small <- suppressWarnings(UpdateSeuratObject(pbmc_small))
 reference <- pbmc_small
 reference <- NormalizeData(reference, verbose = FALSE)

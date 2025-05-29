@@ -192,7 +192,7 @@ object2 <- object
 object2 <- SetAssayData(
   object = object,
   assay = "RNA",
-  slot = "data",
+  layer = "data",
   new.data = new.data
 )
 object2 <- ScaleData(object = object2, verbose = FALSE)
@@ -417,7 +417,7 @@ test_that("SCTransform ncells param works", {
 })
 
 suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
-object[["SCT"]] <- suppressWarnings({SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])})
+object[["SCT"]] <- suppressWarnings({SetAssayData(object = object[["SCT"]], layer = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])})
 object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
 test_that("GetResidual works", {
   expect_equal(dim(GetAssayData(object = object[["SCT"]], layer = "scale.data")), c(220, 80))
@@ -472,7 +472,7 @@ test_that("SCTransform `clip.range` param works as expected", {
   expect_true(min(scale.data) >= clip.min)
   expect_true(max(scale.data) <= (clip.max + clip.max.tolerance))
 
-  # when `ncells` is less than the size of the dataset the residuals will get 
+  # when `ncells` is less than the size of the dataset the residuals will get
   # re-clipped in batches, make sure this clipping is done correctly as well
   test.result <- suppressWarnings(
     SCTransform(
@@ -499,8 +499,8 @@ test_that("SCTransform `vars.to.regress` param works as expected", {
     pattern="^MT-"
   )
 
-  # make sure that `ncells` is smaller than the datset being transformed 
-  # so tha the regression model is trained on a subset of the data - make sure 
+  # make sure that `ncells` is smaller than the datset being transformed
+  # so tha the regression model is trained on a subset of the data - make sure
   # the regression is applied to the entire dataset
   left <- suppressWarnings(
       SCTransform(
@@ -558,19 +558,19 @@ object2 <- CreateSeuratObject(counts = pbmc.test,
 
 test_that("`SCTransform` is consistent for multi-layer inputs", {
   clip.range = c(-1.632993, 1.632993)
-  
+
   test_case_v3 <- SplitObject(object2, split.by = "Condition")
   result_v3_list <- lapply(test_case_v3, SCTransform, clip.range = clip.range)
   result_v3 <- merge(result_v3_list[[1]], result_v3_list[[2]])
-  
+
   test_case_v5 <- object2
   test_case_v5 <- split(object2, f = object2$Condition)
   result_v5 <- SCTransform(test_case_v5, clip.range = clip.range)
-  
+
   expected <- result_v3[["SCT"]]@data[,colnames(object2)]
   result <- result_v5[["SCT"]]@data[,colnames(object2)]
   expect_true(all.equal(expected, result))
-  
+
   expected <- result_v3[["SCT"]]@scale.data[,colnames(object2)]
   result <- result_v5[["SCT"]]@scale.data[,colnames(object2)]
   expect_true(all.equal(expected[rownames(result), ], result))

@@ -7,7 +7,7 @@ setup_test_data <- function(cluster_resolution) {
         as.matrix(read.table(PATH_TO_DATA, sep = "\t", row.names = 1))
     )
     test.data <- CreateSeuratObject(counts)
- 
+
     test.data <- NormalizeData(test.data)
     test.data <- FindVariableFeatures(test.data)
     test.data <- ScaleData(test.data)
@@ -15,7 +15,7 @@ setup_test_data <- function(cluster_resolution) {
     test.data <- RunPCA(test.data, npcs = 20)
     test.data <- FindNeighbors(test.data, dims = 1:20)
     test.data <- FindClusters(test.data, resolution = cluster_resolution)
-    
+
     return(test.data)
 }
 
@@ -30,7 +30,7 @@ test_that("BuildClusterTree works as expected", {
     # some structure into the resulting phylogeny
     test_case <- setup_test_data(cluster_resolution = 5)
 
-    result <- BuildClusterTree(test_case, slot = "counts")
+    result <- BuildClusterTree(test_case, layer = "counts")
     tree <- Tool(result, slot = "BuildClusterTree")
     # check that the tree contains the expected number of leaf nodes
     expect_equal(length(tree$tip.label), 6)
@@ -41,7 +41,7 @@ test_that("BuildClusterTree works as expected", {
     expect_equal(tree$edge.length[[5]], 182.42944, tolerance = TOLERANCE)
     expect_equal(tree$edge.length[[10]], 59.24525, tolerance = TOLERANCE)
 
-    result <- BuildClusterTree(test_case, slot = "data")
+    result <- BuildClusterTree(test_case, layer = "data")
     tree <- Tool(result, slot = "BuildClusterTree")
     # check that the tree contains the expected number of leaf nodes
     expect_equal(length(tree$tip.label), 6)
