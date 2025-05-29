@@ -768,6 +768,7 @@ FindMarkers.StdAssay <- FindMarkers.Assay
 #' median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
 #' @rdname FindMarkers
+#' @importFrom methods slot slot<-
 #' @concept differential_expression
 #' @export
 #' @method FindMarkers SCTAssay
@@ -2234,6 +2235,7 @@ PerformDE <- function(
 #' @importFrom future nbrOfWorkers
 #' @importFrom sctransform correct_counts
 #' @importFrom SeuratObject JoinLayers
+#' @importFrom methods slot slot<-
 #'
 #' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
