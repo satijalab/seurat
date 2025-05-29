@@ -13,7 +13,7 @@ NULL
 #' All analyzed features are binned based on averaged expression, and the
 #' control features are randomly selected from each bin.
 #'
-#' @param object An object 
+#' @param object An object
 #' @param ... Arguments passed to other methods
 #'
 #' @return Returns a Seurat object with module scores added to object meta data;
@@ -33,7 +33,8 @@ AddModuleScore <- function(object, ...) {
 #'
 #' @param anchors An \code{\link{AnchorSet}} object
 #' @param vars Variables to pull for each object via FetchData
-#' @param slot Slot to pull feature data for
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer layer to pull feature data for
 #' @param assay Specify the Assay per object if annotating with expression data
 #' @param ... Arguments passed to other methods
 #
@@ -42,7 +43,7 @@ AddModuleScore <- function(object, ...) {
 #'
 #' @export
 #'
-AnnotateAnchors <- function(anchors, vars, slot, ...) {
+AnnotateAnchors <- function(anchors, vars, slot = deprecated(), layer, ...) {
   UseMethod(generic = 'AnnotateAnchors', object = anchors)
 }
 
@@ -157,7 +158,7 @@ FindClusters <- function(object, ...) {
 #'   head(x = markers)
 #' }
 #' }
-#' 
+#'
 #' @rdname FindMarkers
 #' @export FindMarkers
 #'
@@ -249,7 +250,7 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' Calculate log fold change and percentage of cells expressing each feature
 #' for different identity classes.
 #'
-#' If the slot is \code{scale.data} or a reduction is specified, average difference
+#' If the layer is \code{scale.data} or a reduction is specified, average difference
 #' is returned instead of log fold change and the column is named "avg_diff".
 #' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 #'
@@ -258,7 +259,7 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' data("pbmc_small")
 #' FoldChange(pbmc_small, ident.1 = 1)
 #' }
-#' 
+#'
 #' @param object A Seurat object
 #' @param ... Arguments passed to other methods
 #' @rdname FoldChange
@@ -331,12 +332,12 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 #' Leverage Score Calculation
 #'
 #' This function computes the leverage scores for a given object
-#' It uses the concept of sketching and random projections. The function provides an approximation 
+#' It uses the concept of sketching and random projections. The function provides an approximation
 #' to the leverage scores using a scalable method suitable for large matrices.
 #'
 #' @param object A matrix-like object
 #' @param ... Arguments passed to other methods
-#' 
+#'
 #' @references Clarkson, K. L. & Woodruff, D. P.
 #' Low-rank approximation and regression in input sparsity time.
 #' JACM 63, 1–45 (2017). \doi{10.1145/3019134};
@@ -507,7 +508,7 @@ PseudobulkExpression <- function(object, ...) {
 #' # Print results
 #' print(x = pbmc_cca[["cca"]])
 #' }
-#' 
+#'
 #' @rdname RunCCA
 #' @export RunCCA
 #'
@@ -777,7 +778,7 @@ SCTResults <- function(object, ...) {
 }
 
 #' Get the Pearson residuals from an sctransform-normalized dataset.
-#' 
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods (not used)
 #'
