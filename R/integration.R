@@ -198,13 +198,13 @@ FindIntegrationAnchors <- function(
       return(obj)
   })
   object.list <- CheckDuplicateCellNames(object.list = object.list)
-  slot <- "data"
+  layer <- "data"
   if (reduction == "lsi") {
     all.rownames <- lapply(X = object.list, FUN = rownames)
     anchor.features <- Reduce(f = intersect, x = all.rownames)
   }
   if (normalization.method == "SCT") {
-    slot <- "scale.data"
+    layer <- "scale.data"
     scale <- FALSE
     if (is.numeric(x = anchor.features)) {
       stop("Please specify the anchor.features to be used. The expected ",
@@ -373,7 +373,7 @@ FindIntegrationAnchors <- function(
           features = anchor.features,
           do.scale = FALSE,
           do.center = FALSE,
-          slot = 'scale.data',
+          layer = 'scale.data',
           l2.norm = l2.norm,
           verbose = verbose
         )
@@ -394,7 +394,7 @@ FindIntegrationAnchors <- function(
           features = anchor.features,
           do.center = TRUE,
           do.scale = FALSE,
-          slot = 'data',
+          layer = 'data',
           l2.norm = l2.norm,
           verbose = verbose
         )
@@ -432,7 +432,7 @@ FindIntegrationAnchors <- function(
     anchors <- FindAnchors(
       object.pair = object.pair,
       assay = c("ToIntegrate", "ToIntegrate"),
-      slot = slot,
+      layer = layer,
       cells1 = colnames(x = object.1),
       cells2 = colnames(x = object.2),
       internal.neighbors = internal.neighbors,
@@ -495,7 +495,7 @@ FindIntegrationAnchors <- function(
 # before performing projection. Typically uses the anchor.features for integration.
 # @param do.center Center projected values (subtract mean)
 # @param do.scale Scale projected values (divide by SD)
-# @param slot Name of slot to pull data from. Should be scale.data for PCA and data for LSI
+# @param layer Name of layer to pull data from. Should be scale.data for PCA and data for LSI
 # @param verbose Display messages
 # @return Returns a merged Seurat object with two projected SVDs (object.1 -> object.2, object.2 -> object.1)
 # and a merged SVD (needed for within-dataset neighbors)
@@ -508,10 +508,20 @@ ReciprocalProject <- function(
   features,
   do.scale,
   do.center,
-  slot,
+  slot = deprecated(),
+  layer,
   l2.norm,
   verbose = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'ReciprocalProject(slot = )',
+      with = 'ReciprocalProject(layer = )'
+    )
+    layer <- slot
+  }
+
   common.features <- intersect(
     x = rownames(x = Loadings(object = object.1[[reduction]])),
     y = rownames(x = Loadings(object = object.2[[reduction]]))
@@ -523,11 +533,11 @@ ReciprocalProject <- function(
   object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
   data.1 <- GetAssayData(
     object = object.1,
-    slot = slot
+    layer = layer
   )
   data.2 <- GetAssayData(
     object = object.2,
-    slot = slot
+    layer = layer
   )
 
   proj.1 <- ProjectSVD(
@@ -774,7 +784,7 @@ FindTransferAnchors <- function(
 ) {
   op <- options(Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
-  
+
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
@@ -803,7 +813,7 @@ FindTransferAnchors <- function(
     mapping.score.k = mapping.score.k,
     verbose = verbose
   )
-  
+
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
   reduction.2 <- character()
   feature.mean <- NULL
@@ -882,7 +892,7 @@ FindTransferAnchors <- function(
     object = reference,
     new.names = paste0(Cells(x = reference), "_", "reference")
   )
-  
+
   # Select one SCT model based on max num of cells if multiple detected in the ref
   if (normalization.method == "SCT"){
     model_list <- reference[["SCT"]]@SCTModel.list
@@ -896,8 +906,8 @@ FindTransferAnchors <- function(
       best_model_index <- which.max(model_cell_counts)
       chosen_model <- model_list[[best_model_index]]
       reference[["SCT"]] <- CreateSCTAssayObject(
-        data = GetAssayData(object = reference[["SCT"]], slot = "data"),
-        scale.data = GetAssayData(object = reference[["SCT"]], slot = "scale.data"),
+        data = GetAssayData(object = reference[["SCT"]], layer = "data"),
+        scale.data = GetAssayData(object = reference[["SCT"]], layer = "scale.data"),
         SCTModel.list = chosen_model
       )
       message("Selected the SCT model fitted on the most cells.")
@@ -905,7 +915,7 @@ FindTransferAnchors <- function(
       message("Only one SCT model detected; no need to select.")
     }
   }
-  
+
   # Perform PCA projection
   if (reduction == 'pcaproject') {
     if (project.query) {
@@ -934,7 +944,7 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
-      
+
       projected.pca <- ProjectCellEmbeddings(
         reference = query,
         reduction = reference.reduction,
@@ -1066,7 +1076,7 @@ FindTransferAnchors <- function(
       features = features,
       do.scale = FALSE,
       do.center = FALSE,
-      slot = 'scale.data',
+      layer = 'scale.data',
       l2.norm = l2.norm,
       verbose = verbose
     )
@@ -1130,7 +1140,7 @@ FindTransferAnchors <- function(
     if (project.query) {
       projected.lsi <- ProjectSVD(
         reduction = query[[reference.reduction]],
-        data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
+        data = GetAssayData(object = reference, assay = reference.assay, layer = "data"),
         mode = "lsi",
         do.center = FALSE,
         do.scale = FALSE,
@@ -1142,7 +1152,7 @@ FindTransferAnchors <- function(
     } else {
       projected.lsi <- ProjectSVD(
         reduction = reference[[reference.reduction]],
-        data = GetAssayData(object = query, assay = reference.assay, slot = "data"),
+        data = GetAssayData(object = query, assay = reference.assay, layer = "data"),
         mode = "lsi",
         do.center = FALSE,
         do.scale = FALSE,
@@ -1172,22 +1182,22 @@ FindTransferAnchors <- function(
   precomputed.neighbors <- list(ref.neighbors = NULL, query.neighbors = NULL)
   nn.idx1 <- NULL
   nn.idx2 <- NULL
-  
+
   # if computing the mapping score later, compute large enough query
   # neighborhood here to reuse
   # when mapping.score.k is set, neighbors are pre-computed
-  
+
   if (!is.null(x = mapping.score.k)) {
     if (verbose) {
       message("Finding query neighbors")
     }
     k.nn <- max(k.score, k.anchor)
-    
+
     # Enable processing query.neighbors as a list for multi-layered query objects
     query.layers <- Layers(query, search = 'data')
     query.neighbors.list <- vector("list", length(query.layers))
     query.neighbors.sub.list <- vector("list", length(query.layers))
-    
+
     nn.idx2.list <- vector("list", length(query.layers))
     for (layer in seq_along(query.layers)) {
       cells2.i <- Cells(
@@ -1198,11 +1208,11 @@ FindTransferAnchors <- function(
         x = query,
         cells = cells2.i
       )
-      
+
       layer_embeddings <- Embeddings(object = combined.ob[[reduction]])[colnames(x = query.subset), ]
-      
-      # query.neighbors is a neighbors object that maps query cell indices to 
-      # its k nearest neighbors. This will be computed per each query layer. 
+
+      # query.neighbors is a neighbors object that maps query cell indices to
+      # its k nearest neighbors. This will be computed per each query layer.
       query.neighbors <- NNHelper(
         data = layer_embeddings,
         k = max(mapping.score.k, k.nn + 1),
@@ -1210,7 +1220,7 @@ FindTransferAnchors <- function(
         n.trees = n.trees,
         cache.index = TRUE
       )
-      
+
       query.neighbors.sub <- query.neighbors
       slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
         object = query.neighbors.sub,
@@ -1218,18 +1228,18 @@ FindTransferAnchors <- function(
       slot(object = query.neighbors.sub, name = "nn.dist") <- slot(
         object = query.neighbors.sub,
         name = "nn.dist")[, 1:(k.nn + 1)]
-      
-      # Adding neighbors to list 
+
+      # Adding neighbors to list
       query.neighbors.list[[layer]] <- query.neighbors
       query.neighbors.sub.list[[layer]] <- query.neighbors.sub
-      
+
       nn.idx2.list[[layer]] <- Index(object = query.neighbors.sub)
     }
-    
+
     precomputed.neighbors[["query.neighbors"]] <- query.neighbors.sub.list
     nn.idx2 <- nn.idx2.list
   }
-  
+
   if (!is.null(x = reference.neighbors)) {
     precomputed.neighbors[["ref.neighbors"]] <- reference[[reference.neighbors]]
   } else {
@@ -1244,11 +1254,11 @@ FindTransferAnchors <- function(
     )
   }
   nn.idx1 <- Index(object = precomputed.neighbors[["ref.neighbors"]])
-  
+
   anchors <- FindAnchors(
     object.pair = combined.ob,
     assay = c(reference.assay, reference.assay),
-    slot = "data",
+    layer = "data",
     cells1 = colnames(x = reference),
     cells2 = colnames(x = query),
     reduction = reduction,
@@ -1295,8 +1305,8 @@ FindTransferAnchors <- function(
   )
   if (!is.null(x = precomputed.neighbors[["query.neighbors"]])) {
     slot(object = anchor.set, name = "neighbors") <- list(
-      # return list of neighbors in anchor.set object 
-      query.neighbors = query.neighbors.list) 
+      # return list of neighbors in anchor.set object
+      query.neighbors = query.neighbors.list)
   }
   return(anchor.set)
 }
@@ -1309,7 +1319,8 @@ FindTransferAnchors <- function(
 #'
 #' @param object Seurat object
 #' @param assay Name of the assay holding the predictions
-#' @param slot Slot of the assay in which the prediction scores are stored
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Layer of the assay in which the prediction scores are stored
 #' @param score.filter Return "Unassigned" for any cell with a score less than
 #' this value
 #'
@@ -1324,8 +1335,23 @@ FindTransferAnchors <- function(
 #' @export
 #' @concept integration
 #'
-GetTransferPredictions <- function(object, assay = "predictions", slot = "data", score.filter = 0.75) {
-  dat <- GetAssayData(object[[assay]], slot = slot)
+GetTransferPredictions <- function(
+    object,
+    assay = "predictions",
+    slot = deprecated(),
+    layer = "data",
+    score.filter = 0.75
+) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'GetTransferPredictions(slot = )',
+      with = 'GetTransferPredictions(layer = )'
+    )
+    layer <- slot
+  }
+
+  dat <- GetAssayData(object[[assay]], layer = layer)
   predictions <- apply(
     X = dat,
     MARGIN = 2,
@@ -1398,7 +1424,7 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #'    all objects to be integrated}
 #'    \item{A vector of strings, specifying the name of a dimension reduction to
 #'    use for each object to be integrated}
-#'    \item{A vector of \code{\link[SeuratObject]{DimReduc}} objects, 
+#'    \item{A vector of \code{\link[SeuratObject]{DimReduc}} objects,
 #'    specifying the object to use for each object in the integration}
 #'    \item{NULL, in which case a new PCA will be calculated and used to
 #'    calculate anchor weights}
@@ -1433,9 +1459,9 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #'
 #' @return Returns a \code{\link[SeuratObject]{Seurat}} object with a new integrated
 #' \code{\link[SeuratObject]{Assay}}. If \code{normalization.method = "LogNormalize"}, the
-#' integrated data is returned to the \code{data} slot and can be treated as
+#' integrated data is returned to the \code{data} layer and can be treated as
 #' log-normalized, corrected data. If \code{normalization.method = "SCT"}, the
-#' integrated data is returned to the \code{scale.data} slot and can be treated
+#' integrated data is returned to the \code{scale.data} layer and can be treated
 #' as centered, corrected Pearson residuals.
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
@@ -1525,7 +1551,7 @@ IntegrateData <- function(
         data = GetAssayData(
           object = object.list[[i]],
           assay = assay,
-          slot = "scale.data")
+          layer = "scale.data")
         )
       )
     }
@@ -1580,9 +1606,9 @@ IntegrateData <- function(
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
       reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
-        data = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "data"),
+        data = GetAssayData(object = reference.integrated, assay = new.assay.name, layer = "data"),
         scale.data = ScaleData(
-          object = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "scale.data"),
+          object = GetAssayData(object = reference.integrated, assay = new.assay.name, layer = "scale.data"),
           do.scale = FALSE,
           do.center = TRUE,
           verbose = FALSE),
@@ -1602,7 +1628,7 @@ IntegrateData <- function(
     reference.integrated[[active.assay]] <- CreateAssayObject(
       data = GetAssayData(
         object = reference.integrated[[new.assay.name]],
-        slot = 'data'
+        layer = 'data'
       ),
       check.matrix = FALSE
     )
@@ -1772,7 +1798,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data'
+      layer = 'data'
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1944,10 +1970,10 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' @param method Methods to construct sketch-cell representation
 #' for all cells (default is 'sketch'). Can be one of:
 #' \itemize{
-#'  \item \dQuote{\code{sketch}}: Use random sketched data slot
-#'  \item \dQuote{\code{data}}: Use data slot
+#'  \item \dQuote{\code{sketch}}: Use random sketched data layer
+#'  \item \dQuote{\code{data}}: Use data layer
 #' }
-#' @param ratio Sketch ratio of data slot when \code{dictionary.method} is set
+#' @param ratio Sketch ratio of data layer when \code{dictionary.method} is set
 #' to \dQuote{\code{sketch}}; defaults to 0.8
 #' @param reduction.name Name to save new reduction as; defaults to
 #' \code{paste0(reduction, '.orig')}
@@ -2552,7 +2578,7 @@ MappingScore.default <- function(
   )
   colnames(x = query.cells.projected) <- query.cells
   rownames(x = query.cells.projected) <- colnames(x = ref.pca)
-  
+
   # Re-project the query cells back onto query
   if (verbose) {
     message("Projecting back the query cells into original PCA space")
@@ -2708,7 +2734,7 @@ MappingScore.AnchorSet <- function(
     x = combined.object[["pcaproject.l2"]],
     cells = ref.cells
   ))
-  
+
   # reduce size of anchorset combined object
   combined.object <- DietSeurat(object = combined.object)
   combined.object <- subset(
@@ -2740,32 +2766,32 @@ MappingScore.AnchorSet <- function(
       )
     return(unlist(mapping_scores_list))
   }
-  
+
   query.neighbors.list <- query.neighbors
   mapping_scores_list <- list()
   original_anchors_data <- slot(object = anchors, name = "anchors")
-  
+
   for (i in seq_along(query.neighbors.list)) {
-    query.neighbors.i <- query.neighbors.list[[i]]  
+    query.neighbors.i <- query.neighbors.list[[i]]
     # query cells in neighbors obj have suffix _query, strip to match
-    query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i)) 
-    query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ] 
-    
-    # subset anchors to query specific 
-    anchors_data <- original_anchors_data 
+    query.cells.i <- gsub(pattern = "_query$", replacement = "", x = Cells(query.neighbors.i))
+    query.embeddings.i <- query.embeddings[rownames(query.embeddings) %in% query.cells.i, ]
+
+    # subset anchors to query specific
+    anchors_data <- original_anchors_data
     anchors_data_df <- as.data.frame(anchors_data)
-    
-    # indices of current query layer where query cells are in anchors, should < anchors obj 
-    query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2]) 
-    
+
+    # indices of current query layer where query cells are in anchors, should < anchors obj
+    query.indices.i <- which(query.cells.i %in% query.cells[anchors_data_df$cell2])
+
     anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
     anchors_subset <- as.matrix(anchors_subset_df)
-    
+
     slot(anchors, "anchors") <- anchors_subset
-    
+
     mapping_scores_list[[i]] <- MappingScore(
       # input subset of layer-specific anchors
-      anchors = slot(object = anchors, name = "anchors"), 
+      anchors = slot(object = anchors, name = "anchors"),
       combined.object = combined.object,
       query.neighbors = query.neighbors.i,
       ref.embeddings = ref.embeddings,
@@ -2784,7 +2810,7 @@ MappingScore.AnchorSet <- function(
     slot(anchors, "anchors") <- original_anchors_data
   }
   return(unlist(mapping_scores_list))
-  
+
 }
 
 #' Calculates a mixing metric
@@ -2867,7 +2893,7 @@ MixingMetric <- function(
 #'   only store the residuals for the features determined to be variable.
 #'   Residuals are recomputed for missing features using the stored model
 #'   parameters via the \code{\link{GetResidual}} function.}
-#'   \item{Subsets the \code{scale.data} slot to only contain the residuals for
+#'   \item{Subsets the \code{scale.data} layer to only contain the residuals for
 #'   anchor.features for efficiency in downstream processing. }
 #' }
 #'
@@ -2888,7 +2914,7 @@ MixingMetric <- function(
 #' the Pearson residual will be clipped to
 #' @param verbose Display output/messages
 #'
-#' @return A list of \code{\link[SeuratObject]{Seurat}} objects with the appropriate \code{scale.data} slots
+#' @return A list of \code{\link[SeuratObject]{Seurat}} objects with the appropriate \code{scale.data} layers
 #' containing only the required \code{anchor.features}.
 #'
 #' @importFrom pbapply pblapply
@@ -2999,11 +3025,11 @@ PrepSCTIntegration <- function(
       scale.data <- GetAssayData(
         object = obj,
         assay = assay[i],
-        slot = 'scale.data'
+        layer = 'scale.data'
       )
       obj <- SetAssayData(
         object = obj,
-        slot = 'scale.data',
+        layer = 'scale.data',
         new.data = scale.data[anchor.features, ],
         assay = assay[i]
       )
@@ -3320,8 +3346,8 @@ SelectSCTIntegrationFeatures <- function(
 #'   correspond to the reference cells.}
 #'   \item{The name of the metadata field or assay from the reference object
 #'   provided. This requires the reference parameter to be specified. If pulling
-#'   assay data in this manner, it will pull the data from the data slot. To
-#'   transfer data from other slots, please pull the data explicitly with
+#'   assay data in this manner, it will pull the data from the data layer. To
+#'   transfer data from other layers, please pull the data explicitly with
 #'   \code{\link{GetAssayData}} and provide that matrix here.}
 #' }
 #' @param reference Reference object from which to pull data to transfer
@@ -3349,10 +3375,11 @@ SelectSCTIntegrationFeatures <- function(
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
 #' @param verbose Print progress bars and output
-#' @param slot Slot to store the imputed data. Must be either "data" (default)
+#' @param slot `r lifecycle::badge("deprecated")` soft-deprecated. See `layer`.
+#' @param layer Layer to store the imputed data. Must be either "data" (default)
 #' or "counts"
 #' @param prediction.assay Return an \code{Assay} object with the prediction
-#' scores for each class stored in the \code{data} slot.
+#' scores for each class stored in the \code{data} layer.
 #' @param only.weights Only return weights matrix
 #' @param store.weights Optionally store the weights matrix used for predictions
 #' in the returned query object.
@@ -3361,7 +3388,7 @@ SelectSCTIntegrationFeatures <- function(
 #' If \code{query} is not provided, for the categorical data in \code{refdata},
 #' returns a data.frame with label predictions. If \code{refdata} is a matrix,
 #' returns an Assay object where the imputed data has been stored in the
-#' provided slot.
+#' provided layer.
 #'
 #' If \code{query} is provided, a modified query object is returned. For
 #' the categorical data in refdata, prediction scores are stored as Assays
@@ -3421,11 +3448,21 @@ TransferData <- function(
   eps = 0,
   n.trees = 50,
   verbose = TRUE,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   prediction.assay = FALSE,
   only.weights = FALSE,
   store.weights = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'TransferData(slot = )',
+      with = 'TransferData(layer = )'
+    )
+    layer <- slot
+  }
+
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
@@ -3453,7 +3490,7 @@ TransferData <- function(
     n.trees = n.trees,
     verbose = verbose,
     only.weights = only.weights,
-    slot = slot,
+    layer = layer,
     prediction.assay = prediction.assay,
     label.transfer = label.transfer
   )
@@ -3655,9 +3692,9 @@ TransferData <- function(
       if (inherits(x = new.data, what = "Matrix")) {
         new.data <- as.sparse(x = new.data)
       }
-      if (slot == "counts") {
+      if (layer == "counts") {
         new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
-      } else if (slot == "data") {
+      } else if (layer == "data") {
         new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
       }
       Key(object = new.assay) <- Key(rd.name, quiet = TRUE)
@@ -3705,11 +3742,21 @@ TransferData <- function(
 AnnotateAnchors.default <- function(
   anchors,
   vars = NULL,
-  slot = NULL,
+  slot = deprecated(),
+  layer = NULL,
   object.list,
   assay = NULL,
   ...
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'AnnotateAnchors(slot = )',
+      with = 'AnnotateAnchors(layer = )'
+    )
+    layer <- slot
+  }
+
   # reorder columns
   anchors <- anchors[, c("cell1", "dataset1", "cell2", "dataset2", "score")]
   colnames(x = anchors)[5] <- "anchor.score"
@@ -3726,7 +3773,7 @@ AnnotateAnchors.default <- function(
     cell2.names[dataset.cells] <- cell.names[[dataset]][anchors[dataset.cells, "cell2"]]
   }
   anchors$cell2 <- cell2.names
-  slot <- slot %||% "data"
+  layer <- layer %||% "data"
   assay <- assay %||% sapply(X = object.list, FUN = DefaultAssay)
   if (length(x = assay) == 1) {
     assay <- rep(x = assay, times = length(x = object.list))
@@ -3737,15 +3784,15 @@ AnnotateAnchors.default <- function(
   for (ob in 1:length(x = object.list)) {
     DefaultAssay(object = object.list[[ob]]) <- assay[ob]
   }
-  if (length(x = slot) == 1) {
-    slot <- rep(x = slot, times = length(x = vars))
+  if (length(x = layer) == 1) {
+    layer <- rep(x = layer, times = length(x = vars))
   }
   if (length(x = vars) > 0) {
     for(v in 1:length(x = vars)) {
       var <- vars[v]
       var.list <- lapply(X = object.list, FUN = function(x) {
         tryCatch(
-          expr = FetchData(object = x, vars = var, slot = slot[v]),
+          expr = FetchData(object = x, vars = var, layer = layer[v]),
           error = function(e) {
             data.fetched <- as.data.frame(
               x = rep(x = NA, times = ncol(x = x)),
@@ -3803,18 +3850,28 @@ AnnotateAnchors.default <- function(
 AnnotateAnchors.IntegrationAnchorSet <- function(
   anchors,
   vars = NULL,
-  slot = NULL,
+  slot = deprecated(),
+  layer = NULL,
   object.list = NULL,
   assay = NULL,
   ...
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'AnnotateAnchors(slot = )',
+      with = 'AnnotateAnchors(layer = )'
+    )
+    layer <- slot
+  }
+
   anchor.df <- slot(object = anchors, name = 'anchors')
   object.list <- object.list %||% slot(object = anchors, name = 'object.list')
   anchor.df <- as.data.frame(x = anchor.df)
   anchor.df <- AnnotateAnchors(
     anchors = anchor.df,
     vars = vars,
-    slot = slot,
+    layer = layer,
     object.list = object.list,
     assay = assay
   )
@@ -3830,12 +3887,22 @@ AnnotateAnchors.IntegrationAnchorSet <- function(
 AnnotateAnchors.TransferAnchorSet <- function(
   anchors,
   vars = NULL,
-  slot = NULL,
+  slot = deprecated(),
+  layer = NULL,
   reference = NULL,
   query = NULL,
   assay = NULL,
   ...
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'AnnotateAnchors(slot = )',
+      with = 'AnnotateAnchors(layer = )'
+    )
+    layer <- slot
+  }
+
   anchor.df <- slot(object = anchors, name = 'anchors')
   if (class(x = reference) != class(x = query)) {
     stop("If setting reference/query, please set both parameters.")
@@ -3862,7 +3929,7 @@ AnnotateAnchors.TransferAnchorSet <- function(
   anchor.df <- AnnotateAnchors(
     anchors = anchor.df,
     vars = vars,
-    slot = slot,
+    layer = layer,
     object.list = object.list,
     assay = assay
   )
@@ -3991,7 +4058,8 @@ CountAnchors <- function(
 FilterAnchors <- function(
   object,
   assay = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   integration.name = 'integrated',
   features = NULL,
   k.filter = 200,
@@ -4000,6 +4068,15 @@ FilterAnchors <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'FilterAnchors(slot = )',
+      with = 'FilterAnchors(layer = )'
+    )
+    layer <- slot
+  }
+
   if (verbose) {
     message("Filtering anchors")
   }
@@ -4020,12 +4097,12 @@ FilterAnchors <- function(
     cn.data1 <- L2Norm(
       mat = as.matrix(x = t(x = GetAssayData(
         object = object[[assay[1]]],
-        slot = slot)[features, nn.cells1])),
+        layer = layer)[features, nn.cells1])),
       MARGIN = 1)
     cn.data2 <- L2Norm(
       mat = as.matrix(x = t(x = GetAssayData(
         object = object[[assay[2]]],
-        slot = slot)[features, nn.cells2])),
+        layer = layer)[features, nn.cells2])),
       MARGIN = 1)
     nn <- NNHelper(
       data = cn.data2[nn.cells2, ],
@@ -4059,7 +4136,8 @@ FilterAnchors <- function(
 FindAnchors_v3 <- function(
   object.pair,
   assay,
-  slot,
+  slot = deprecated(),
+  layer,
   cells1,
   cells2,
   internal.neighbors,
@@ -4128,7 +4206,7 @@ FindAnchors_v3 <- function(
     object.pair <- FilterAnchors(
       object = object.pair,
       assay = assay,
-      slot = slot,
+      layer = layer,
       integration.name = 'integrated',
       features = top.features,
       k.filter = k.filter,
@@ -4159,7 +4237,8 @@ FindAnchors_v3 <- function(
 FindAnchors_v5 <- function(
   object.pair,
   assay,
-  slot,
+  slot = deprecated(),
+  layer,
   cells1,
   cells2,
   internal.neighbors,
@@ -4184,8 +4263,8 @@ FindAnchors_v5 <- function(
   reference.layers <- Layers(object.pair[[ref.assay]], search = 'data')[1]
   query.layers <- setdiff(Layers(object.pair[[query.assay]], search = 'data'), reference.layers)
   anchor.list <- list()
-  
-  # Enable compatibility with multi-layer query 
+
+  # Enable compatibility with multi-layer query
   for (i in seq_along(query.layers)) {
     cells2.i <- Cells(
       x = object.pair[[query.assay]],
@@ -4196,15 +4275,15 @@ FindAnchors_v5 <- function(
       cells = c(cells1, cells2.i)
     )
     object.pair.i <- JoinLayers(object.pair.i)
-    
+
     # Extract the neighbors for the current query layer from the neighbors list
     query.neighbors.sub <- internal.neighbors[["query.neighbors"]][[i]]
     nn.idx2.i <- nn.idx2[[i]]
-    
+
     anchor.list[[i]] <- FindAnchors_v3(
       object.pair = object.pair.i,
       assay = assay,
-      slot = slot,
+      layer = layer,
       cells1 = cells1,
       cells2 = cells2.i,
       internal.neighbors = list(
@@ -4245,7 +4324,8 @@ FindAnchors_v5 <- function(
 FindAnchors <- function(
   object.pair,
   assay,
-  slot,
+  slot = deprecated(),
+  layer,
   cells1,
   cells2,
   internal.neighbors,
@@ -4265,6 +4345,15 @@ FindAnchors <- function(
   projected = FALSE,
   verbose = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'FindAnchors(slot = )',
+      with = 'FindAnchors(layer = )'
+    )
+    layer <- slot
+  }
+
   if (inherits(x = object.pair[[assay[1]]], what = 'Assay')) {
     FindAnchors.function <- FindAnchors_v3
   } else if (inherits(x = object.pair[[assay[1]]], what = 'Assay5')) {
@@ -4273,7 +4362,7 @@ FindAnchors <- function(
   anchors <- FindAnchors.function(
     object.pair = object.pair,
     assay = assay,
-    slot = slot,
+    layer = layer,
     cells1 = cells1,
     cells2 = cells2,
     internal.neighbors = internal.neighbors,
@@ -4380,17 +4469,17 @@ FindIntegrationMatrix <- function(
     message("Finding integration vectors")
   }
   features.integrate <- features.integrate %||% rownames(
-    x = GetAssayData(object = object, assay = assay, slot = "data")
+    x = GetAssayData(object = object, assay = assay, layer = "data")
   )
   data.use1 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.integrate, nn.cells1]
+    layer = "data")[features.integrate, nn.cells1]
   )
   data.use2 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.integrate, nn.cells2]
+    layer = "data")[features.integrate, nn.cells2]
   )
   anchors1 <- nn.cells1[anchors[, "cell1"]]
   anchors2 <- nn.cells2[anchors[, "cell2"]]
@@ -4580,12 +4669,12 @@ FindWeights <- function(
     } else {
       data.use <- t(x = GetAssayData(
         object = object,
-        slot = 'data',
+        layer = 'data',
         assay = assay)[features, nn.cells1]
       )
       data.use.query <- t(x = GetAssayData(
         object = object,
-        slot = 'data',
+        layer = 'data',
         assay = assay)[features, nn.cells2]
       )
     }
@@ -4605,7 +4694,7 @@ FindWeights <- function(
     if (is.null(x = features)) {
       data.use <- Embeddings(reduction)[nn.cells2, dims]
     } else {
-      data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
+      data.use <- t(x = GetAssayData(object = object, layer = 'data', assay = assay)[features, nn.cells2])
     }
     knn_2_2 <- NNHelper(
       data = data.use[anchors.cells2, ],
@@ -4796,7 +4885,7 @@ MapQueryData <- function(
   )
   reference.integrated <- GetAssayData(
     object = reference,
-    slot = 'data'
+    layer = 'data'
   )[features.to.integrate, ]
   query.corrected[[length(x = query.corrected) + 1]] <- reference.integrated
   all.integrated <- do.call(cbind, query.corrected)
@@ -4894,7 +4983,7 @@ PairwiseIntegrateReference <- function(
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
     ref.obj[[new.assay.name]] <- CreateAssayObject(
-      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
+      data = GetAssayData(ref.obj, layer = 'data')[features.to.integrate, ],
       check.matrix = FALSE
     )
     DefaultAssay(object = ref.obj) <- new.assay.name
@@ -5017,7 +5106,7 @@ PairwiseIntegrateReference <- function(
       eps = eps,
       verbose = verbose
     )
-    integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
+    integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, layer = 'data')[features.to.integrate, ])
     merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
@@ -5028,7 +5117,7 @@ PairwiseIntegrateReference <- function(
   integrated.data <- GetAssayData(
     object = object.list[[as.character(x = ii)]],
     assay = new.assay.name,
-    slot = 'data'
+    layer = 'data'
   )
   integrated.data <- integrated.data[, colnames(x = unintegrated)]
   new.assay <- new(
@@ -5048,8 +5137,8 @@ PairwiseIntegrateReference <- function(
   if (normalization.method == "SCT"){
     unintegrated[[new.assay.name]] <- SetAssayData(
       object = unintegrated[[new.assay.name]],
-      slot = "scale.data",
-      new.data = as.matrix(x = GetAssayData(object = unintegrated[[new.assay.name]], slot = "data"))
+      layer = "scale.data",
+      new.data = as.matrix(x = GetAssayData(object = unintegrated[[new.assay.name]], layer = "data"))
     )
   }
   unintegrated <- SetIntegrationData(
@@ -5193,14 +5282,14 @@ ProjectCellEmbeddings.Assay <- function(
   )
   )
  if (normalization.method == 'SCT') {
-   slot <- 'counts'
+   layer <- 'counts'
  } else {
-   slot <- 'data'
+   layer <- 'data'
  }
   proj.pca <- ProjectCellEmbeddings(
     query = GetAssayData(
       object = query,
-      slot = slot),
+      layer = layer),
     reference = reference,
     reference.assay = reference.assay,
     reduction = reduction,
@@ -5247,7 +5336,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   )
   query.data <- GetAssayData(
     object = query,
-    slot = "scale.data")[features,]
+    layer = "scale.data")[features,]
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = query.data))
   return(proj.pca)
@@ -5357,7 +5446,7 @@ if (normalization.method == 'SCT') {
     reference.data <- GetAssayData(
       object = reference,
       assay = reference.assay,
-      slot = "data")[features, ]
+      layer = "data")[features, ]
   }
   if (is.null(x = feature.mean)) {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
@@ -5696,7 +5785,7 @@ RunIntegration <- function(
       if (normalization.method == "SCT"){
         # recenter residuals
         centered.resids <- ScaleData(
-          object = GetAssayData(object = merged.obj, assay = assay, slot = "data"),
+          object = GetAssayData(object = merged.obj, assay = assay, layer = "data"),
           do.scale = FALSE,
           do.center = TRUE,
           verbose = FALSE
@@ -5770,7 +5859,7 @@ RunIntegration <- function(
   integrated.matrix <- GetAssayData(
     object = merged.obj,
     assay = new.assay.name,
-    slot = 'data'
+    layer = 'data'
   )
   return(integrated.matrix[, cells2])
 }
@@ -5907,12 +5996,12 @@ TransformDataMatrix <- function(
   data.use1 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.to.integrate, nn.cells1]
+    layer = "data")[features.to.integrate, nn.cells1]
   )
   data.use2 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.to.integrate, nn.cells2]
+    layer = "data")[features.to.integrate, nn.cells2]
   )
 
   integrated <- IntegrateDataC(integration_matrix = as.sparse(x = integration.matrix),
@@ -6053,8 +6142,8 @@ ValidateParams_FindTransferAnchors <- function(
     recompute.residuals <- FALSE
     ModifyParam(param = "recompute.residuals", value = recompute.residuals)
   }
-  
-  # Added check for preventing SCT and RNA assay mixing 
+
+  # Added check for preventing SCT and RNA assay mixing
   if (normalization.method == "SCT") {
     if (IsSCT(assay = reference[[reference.assay]]) && !IsSCT(assay = query[[query.assay]])) {
       stop(
@@ -6069,7 +6158,7 @@ ValidateParams_FindTransferAnchors <- function(
       )
     }
   }
-  
+
   if (recompute.residuals) {
     # recompute.residuals only happens in ProjectCellEmbeddings, so k.filter set to NA.
     ModifyParam(param = "k.filter", value = NA)
@@ -6281,7 +6370,8 @@ ValidateParams_TransferData <- function(
   eps,
   n.trees,
   verbose,
-  slot,
+  slot = deprecated(),
+  layer,
   only.weights,
   prediction.assay,
   label.transfer
@@ -6349,8 +6439,8 @@ ValidateParams_TransferData <- function(
             }
           }
         }
-        if (!slot %in% c("counts", "data")) {
-          stop("Please specify slot as either 'counts' or 'data'.")
+        if (!layer %in% c("counts", "data")) {
+          stop("Please specify layer as either 'counts' or 'data'.")
         }
         label.transfer[[i]] <- FALSE
       } else {
@@ -6700,12 +6790,22 @@ FindAssayAnchor <- function(
   reference = NULL,
   anchor.type = c("Transfer", "Integration"),
   assay = "Bridge",
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   reduction =  NULL,
   k.anchor = 20,
   k.score = 50,
   verbose = TRUE
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.3.1',
+      what = 'FindAssayAnchor(slot = )',
+      with = 'FindAssayAnchor(layer = )'
+    )
+    layer <- slot
+  }
+
   anchor.type <- match.arg(arg = anchor.type)
   reduction.name <- reduction %||% paste0(assay, ".reduc")
   if ( is.null(x = reduction) || !reduction %in% Reductions(object.list[[1]])) {
@@ -6714,7 +6814,7 @@ FindAssayAnchor <- function(
         x[[reduction.name]] <- CreateDimReducObject(
           embeddings = t(GetAssayData(
             object = x,
-            slot = slot,
+            layer = layer,
             assay = assay
           )),
           key = "L_",
@@ -6735,7 +6835,7 @@ FindAssayAnchor <- function(
     }
     anchors <- FindAnchors(object.pair = object.both,
                            assay = c(DefaultAssay(object.both), DefaultAssay(object.both)),
-                           slot = 'data',
+                           layer = 'data',
                            cells1 = colnames(object.list[[1]]),
                            cells2 = colnames(object.list[[2]]),
                            internal.neighbors = NULL,
@@ -7052,7 +7152,7 @@ FindBridgeAnchor <- function(object.list,
     anchor <- FindAssayAnchor(
       object.list = object.list ,
       reference = reference,
-      slot = "data",
+      layer = "data",
       anchor.type = anchor.type,
       assay = bridge.assay.name,
       k.anchor = k.anchor,
@@ -7060,15 +7160,15 @@ FindBridgeAnchor <- function(object.list,
       verbose = verbose
     )
   } else if (reduction == "cca") {
-    # set data slot to scale.data slot
+    # set data layer to scale.data layer
     object.list <- lapply(
       X = object.list,
       FUN = function(x) {
      x <- SetAssayData(
        object = x,
-       slot = "scale.data",
+       layer = "scale.data",
        new.data = as.matrix(
-         x = GetAssayData(object = x, slot = "data")
+         x = GetAssayData(object = x, layer = "data")
          ))
      return(x)
      }
@@ -7094,7 +7194,7 @@ FindBridgeAnchor <- function(object.list,
                          ) <- CreateDimReducObject(
                            embeddings = t(GetAssayData(
                              object = object.merge,
-                             slot = 'data'
+                             layer = 'data'
                            )),
                            key = "L_",
                            assay = bridge.assay.name
@@ -7390,14 +7490,15 @@ IntegrationReferenceIndex <- function(object) {
 #
 SparseMeanSd <- function(object,
                          assay = NULL,
-                         slot = 'data',
+                         slot = deprecated(),
+                         layer = 'data',
                          features = NULL,
                          eps = 1e-8
 ){
   assay <- assay%||% DefaultAssay(object)
   features <- features %||% rownames(object[[assay]])
   assay <- assay %||% DefaultAssay(object = object)
-  mat <- GetAssayData(object = object[[assay]], slot = slot)[features,]
+  mat <- GetAssayData(object = object[[assay]], layer = layer)[features,]
   if (class(mat)[1] !='dgCMatrix'){
     stop('Matrix is not sparse')
   }
@@ -7428,7 +7529,7 @@ RunPCA_Sparse <- function(
   verbose = TRUE
 ) {
   features <- features %||% VariableFeatures(object)
-  data <- GetAssayData(object = object, slot = "data")[features,]
+  data <- GetAssayData(object = object, layer = "data")[features,]
   n <- npcs
   args <- list(A = t(data), nv = n)
   args$center <- RowMeanSparse(data)
@@ -7534,7 +7635,7 @@ ProjectDimReduc <- function(query,
     }
     projected.embeddings <- ProjectSVD(
       reduction = reference[[reference.reduction]],
-      data = GetAssayData(object = query, assay = query.assay, slot = "data"),
+      data = GetAssayData(object = query, assay = query.assay, layer = "data"),
       mode = "lsi",
       do.center = FALSE,
       do.scale = FALSE,
@@ -7553,7 +7654,7 @@ ProjectDimReduc <- function(query,
                            features = features,
                            verbose = FALSE)
       )
-      query.mat <- GetAssayData(object = query, slot = 'scale.data')[features,]
+      query.mat <- GetAssayData(object = query, layer = 'scale.data')[features,]
 
       projected.embeddings <- t(
         crossprod(x = Loadings(
