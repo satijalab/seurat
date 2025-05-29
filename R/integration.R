@@ -194,7 +194,7 @@ FindIntegrationAnchors <- function(
  object.list <- lapply(
    X = object.list,
    FUN = function (obj) {
-      slot(object = obj, name = "tools")$Integration <- NULL
+      methods::slot(object = obj, name = "tools")$Integration <- NULL
       return(obj)
   })
   object.list <- CheckDuplicateCellNames(object.list = object.list)
@@ -333,13 +333,13 @@ FindIntegrationAnchors <- function(
     suppressWarnings(object.1[["ToIntegrate"]] <- object.1[[assay[i]]])
     DefaultAssay(object = object.1) <- "ToIntegrate"
     if (reduction %in% Reductions(object = object.1)) {
-      slot(object = object.1[[reduction]], name = "assay.used") <- "ToIntegrate"
+      methods::slot(object = object.1[[reduction]], name = "assay.used") <- "ToIntegrate"
     }
     object.1 <- DietSeurat(object = object.1, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
     suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[assay[j]]])
     DefaultAssay(object = object.2) <- "ToIntegrate"
     if (reduction %in% Reductions(object = object.2)) {
-      slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
+      methods::slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
     }
     object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
     object.pair <- switch(
@@ -584,13 +584,13 @@ ReciprocalProject <- function(
     key = paste0(projected.name, "_")
   )
   if (l2.norm) {
-    slot(object = object.pair[[reduction.dr.name.1]], name = "cell.embeddings") <- Sweep(
+    methods::slot(object = object.pair[[reduction.dr.name.1]], name = "cell.embeddings") <- Sweep(
       x = Embeddings(object = object.pair[[reduction.dr.name.1]]),
       MARGIN = 2,
       STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.1]]), MARGIN = 2, FUN = sd),
       FUN = "/"
     )
-    slot(object = object.pair[[reduction.dr.name.2]], name = "cell.embeddings") <- Sweep(
+    methods::slot(object = object.pair[[reduction.dr.name.2]], name = "cell.embeddings") <- Sweep(
       x = Embeddings(object = object.pair[[reduction.dr.name.2]]),
       MARGIN = 2,
       STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.2]]), MARGIN = 2, FUN = sd),
@@ -870,9 +870,9 @@ FindTransferAnchors <- function(
   )
   # check assay in the reference.reduction
   if (!is.null(reference.reduction) &&
-    slot(object = reference[[reference.reduction]], name = "assay.used") != reference.assay) {
+    methods::slot(object = reference[[reference.reduction]], name = "assay.used") != reference.assay) {
     warnings("reference assay is diffrent from the assay.used in", reference.reduction)
-    slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
+    methods::slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
   }
   suppressWarnings(
     reference <- DietSeurat(
@@ -1132,9 +1132,9 @@ FindTransferAnchors <- function(
       rescale = FALSE,
       verbose = verbose
     )
-    slot(object = combined.ob[["cca"]], name = "cell.embeddings") <- Embeddings(combined.ob[["cca"]])[, dims]
-    slot(object = combined.ob[["cca"]], name = "feature.loadings") <- Loadings(combined.ob[["cca"]])[, dims]
-    slot(object = combined.ob[["cca"]], name = "feature.loadings.projected") <- Loadings(object = combined.ob[["cca"]], projected = TRUE)[, dims]
+    methods::slot(object = combined.ob[["cca"]], name = "cell.embeddings") <- Embeddings(combined.ob[["cca"]])[, dims]
+    methods::slot(object = combined.ob[["cca"]], name = "feature.loadings") <- Loadings(combined.ob[["cca"]])[, dims]
+    methods::slot(object = combined.ob[["cca"]], name = "feature.loadings.projected") <- Loadings(object = combined.ob[["cca"]], projected = TRUE)[, dims]
   }
   if (reduction == "lsiproject") {
     if (project.query) {
@@ -1222,10 +1222,10 @@ FindTransferAnchors <- function(
       )
 
       query.neighbors.sub <- query.neighbors
-      slot(object = query.neighbors.sub, name = "nn.idx") <- slot(
+      methods::slot(object = query.neighbors.sub, name = "nn.idx") <- methods::slot(
         object = query.neighbors.sub,
         name = "nn.idx")[, 1:(k.nn + 1)]
-      slot(object = query.neighbors.sub, name = "nn.dist") <- slot(
+      methods::slot(object = query.neighbors.sub, name = "nn.dist") <- methods::slot(
         object = query.neighbors.sub,
         name = "nn.dist")[, 1:(k.nn + 1)]
 
@@ -1277,7 +1277,7 @@ FindTransferAnchors <- function(
     projected = projected,
     verbose = verbose
   )
-  reductions <- slot(object = combined.ob, name = "reductions")
+  reductions <- methods::slot(object = combined.ob, name = "reductions")
   for (i in unique(x = c(reference.assay))) {
     dummy.assay <- paste0(i, "DUMMY")
     suppressWarnings(
@@ -1291,9 +1291,9 @@ FindTransferAnchors <- function(
     DefaultAssay(combined.ob) <- i
     combined.ob[[dummy.assay]] <- NULL
   }
-  slot(object = combined.ob, name = "reductions") <- reductions
+  methods::slot(object = combined.ob, name = "reductions") <- reductions
   command <- LogSeuratCommand(object = combined.ob, return.command = TRUE)
-  slot(command, name = 'params')$reference.reduction <- reference.reduction.init
+  methods::slot(command, name = 'params')$reference.reduction <- reference.reduction.init
   anchor.set <- new(
     Class = "TransferAnchorSet",
     object.list = list(combined.ob),
@@ -1304,7 +1304,7 @@ FindTransferAnchors <- function(
     command = command
   )
   if (!is.null(x = precomputed.neighbors[["query.neighbors"]])) {
-    slot(object = anchor.set, name = "neighbors") <- list(
+    methods::slot(object = anchor.set, name = "neighbors") <- list(
       # return list of neighbors in anchor.set object
       query.neighbors = query.neighbors.list)
   }
@@ -1512,11 +1512,11 @@ IntegrateData <- function(
   verbose = TRUE
 ) {
   normalization.method <- match.arg(arg = normalization.method)
-  reference.datasets <- slot(object = anchorset, name = 'reference.objects')
-  object.list <- slot(object = anchorset, name = 'object.list')
-  anchors <- slot(object = anchorset, name = 'anchors')
+  reference.datasets <- methods::slot(object = anchorset, name = 'reference.objects')
+  object.list <- methods::slot(object = anchorset, name = 'object.list')
+  anchors <- methods::slot(object = anchorset, name = 'anchors')
   ref <- object.list[reference.datasets]
-  features <- features %||% slot(object = anchorset, name = "anchor.features")
+  features <- features %||% methods::slot(object = anchorset, name = "anchor.features")
 
   unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[1]],
@@ -1546,7 +1546,7 @@ IntegrateData <- function(
         )
       }
       print(i)
-      model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
+      model.list[[i]] <- methods::slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
       object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
         data = GetAssayData(
           object = object.list[[i]],
@@ -1556,7 +1556,7 @@ IntegrateData <- function(
       )
     }
     model.list <- unlist(x = model.list)
-    slot(object = anchorset, name = "object.list") <- object.list
+    methods::slot(object = anchorset, name = "object.list") <- object.list
   }
   # perform pairwise integration of reference objects
   reference.integrated <- PairwiseIntegrateReference(
@@ -1578,10 +1578,10 @@ IntegrateData <- function(
   # set SCT model
   if (normalization.method == "SCT") {
     if (is.null(x = Tool(object = reference.integrated, slot = "Integration"))) {
-      reference.sample <- slot(object = anchorset, name = "reference.objects")
+      reference.sample <- methods::slot(object = anchorset, name = "reference.objects")
     } else {
       reference.sample <- SampleIntegrationOrder(
-        tree = slot(
+        tree = methods::slot(
           object = reference.integrated,
           name = "tools"
         )$Integration@sample.tree
@@ -1619,7 +1619,7 @@ IntegrateData <- function(
     }
     DefaultAssay(object = reference.integrated) <- new.assay.name
     VariableFeatures(object = reference.integrated) <- features
-    reference.integrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+    reference.integrated[["FindIntegrationAnchors"]] <- methods::slot(object = anchorset, name = "command")
     reference.integrated <- suppressWarnings(LogSeuratCommand(object = reference.integrated))
     return(reference.integrated)
   } else {
@@ -1691,7 +1691,7 @@ IntegrateData <- function(
     )
     DefaultAssay(object = unintegrated) <- new.assay.name
     VariableFeatures(object = unintegrated) <- features
-    unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+    unintegrated[["FindIntegrationAnchors"]] <- methods::slot(object = anchorset, name = "command")
     unintegrated <- suppressWarnings(LogSeuratCommand(object = unintegrated))
     return(unintegrated)
   }
@@ -1718,10 +1718,10 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   ...
 ) {
   CheckDots(...)
-  reference.datasets <- slot(object = anchorset, name = 'reference.objects')
-  object.list <- slot(object = anchorset, name = 'object.list')
-  anchors <- slot(object = anchorset, name = 'anchors')
-  reductions <- reductions %||%  slot(
+  reference.datasets <- methods::slot(object = anchorset, name = 'reference.objects')
+  object.list <- methods::slot(object = anchorset, name = 'object.list')
+  anchors <- methods::slot(object = anchorset, name = 'anchors')
+  reductions <- reductions %||%  methods::slot(
     object = anchorset,
     name = 'weight.reduction'
   )
@@ -1760,7 +1760,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
   }
-  slot(object = anchorset, name = "object.list") <- object.list
+  methods::slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
   new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name.safe)
 
@@ -1844,7 +1844,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     slot = "sample.tree",
     new.data = sample.tree
   )
-  unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+  unintegrated[["FindIntegrationAnchors"]] <- methods::slot(object = anchorset, name = "command")
   suppressWarnings(unintegrated <- LogSeuratCommand(object = unintegrated))
   return(unintegrated)
 }
@@ -1876,8 +1876,8 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   ...
 ) {
   CheckDots(...)
-  combined.object <- slot(object = anchorset, name = 'object.list')[[1]]
-  anchors <- slot(object = anchorset, name = 'anchors')
+  combined.object <- methods::slot(object = anchorset, name = 'object.list')[[1]]
+  anchors <- methods::slot(object = anchorset, name = 'anchors')
   weights.matrix <- NULL
   query.assay <- query.assay %||% DefaultAssay(query)
   ValidateParams_IntegrateEmbeddings_TransferAnchors(
@@ -1912,14 +1912,14 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
     object.list[[i]] <- DietSeurat(object = object.list[[i]], assays = "drtointegrate")
   }
-  slot(object = anchorset, name = "object.list") <- object.list
+  methods::slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
   new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name)
-  slot(object = anchorset, name = "reference.objects") <- 1
+  methods::slot(object = anchorset, name = "reference.objects") <- 1
   anchors <- as.data.frame(x = anchors)
   anchors$dataset1 <- 1
   anchors$dataset2 <- 2
-  slot(object = anchorset, name = "anchors") <- anchors
+  methods::slot(object = anchorset, name = "anchors") <- anchors
   integrated.embeddings <- MapQueryData(
     anchorset = anchorset,
     reference = object.list[[1]],
@@ -2299,7 +2299,7 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
-  transfer.reduction <- slot(object = anchorset, name = "command")$reduction
+  transfer.reduction <- methods::slot(object = anchorset, name = "command")$reduction
   if (DefaultAssay(anchorset@object.list[[1]]) %in% Assays(reference)) {
     DefaultAssay(reference) <- DefaultAssay(anchorset@object.list[[1]])
   } else {
@@ -2310,7 +2310,7 @@ MapQuery <- function(
   if (grepl(pattern = "pca", x = transfer.reduction)) {
     anchor.reduction <- "pcaproject"
     # check if the anchorset can be used for mapping
-    if (is.null(x = slot(object = anchorset, name = "command")$reference.reduction)) {
+    if (is.null(x = methods::slot(object = anchorset, name = "command")$reference.reduction)) {
       stop('The reference.reduction parameter was not set when running ',
       'FindTransferAnchors, so the resulting AnchorSet object cannot be used ',
       'in the MapQuery function.')
@@ -2318,16 +2318,16 @@ MapQuery <- function(
   } else if (grepl(pattern = "cca", x = transfer.reduction)) {
     anchor.reduction <- "cca"
     ref.cca.embedding <- Embeddings(
-      slot(object = anchorset, name = "object.list")[[1]][["cca"]]
-      )[slot(object = anchorset, name = "reference.cells"), ]
+      methods::slot(object = anchorset, name = "object.list")[[1]][["cca"]]
+      )[methods::slot(object = anchorset, name = "reference.cells"), ]
     rownames(x = ref.cca.embedding) <- gsub(
       pattern =  "_reference",
       replacement = "",
       x = rownames(x = ref.cca.embedding)
       )
     query.cca.embedding <- Embeddings(
-      slot(object = anchorset, name = "object.list")[[1]][["cca"]]
-      )[slot(object = anchorset, name = "query.cells"), ]
+      methods::slot(object = anchorset, name = "object.list")[[1]][["cca"]]
+      )[methods::slot(object = anchorset, name = "query.cells"), ]
     rownames(x = query.cca.embedding) <- gsub(
       pattern = "_query",
       replacement = "",
@@ -2349,17 +2349,17 @@ MapQuery <- function(
     anchor.reduction <- "lsiproject"
   }  else if (grepl(pattern = "direct", x = transfer.reduction)) {
     anchor.reduction <- paste0(
-      slot(object = anchorset,
+      methods::slot(object = anchorset,
            name = "command")$bridge.assay.name,
       ".reduc"
       )
     ref.reduction.emb <- Embeddings(
       object =
-        slot(
+        methods::slot(
           object = anchorset,
           name = "object.list"
           )[[1]][[anchor.reduction]])[
-            slot(object = anchorset, name = "reference.cells"),]
+            methods::slot(object = anchorset, name = "reference.cells"),]
     rownames(ref.reduction.emb) <- gsub(
       pattern = "_reference",
       replacement = "",
@@ -2375,7 +2375,7 @@ MapQuery <- function(
     stop("unkown type of anchors")
   }
   reference.reduction <- reference.reduction %||%
-    slot(object = anchorset, name = "command")$reference.reduction %||%
+    methods::slot(object = anchorset, name = "command")$reference.reduction %||%
     anchor.reduction
   new.reduction.name <- new.reduction.name %||%
     paste0("ref.", reference.reduction)
@@ -2396,7 +2396,7 @@ MapQuery <- function(
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
   integrateembeddings.args$reductions <- integrateembeddings.args$reductions %||% anchor.reduction
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
-  slot(object = query, name = "tools")$TransferData <- NULL
+  methods::slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   td.allarguments <- c(list(anchorset = anchorset,
                           reference = reference, query = query, refdata = refdata,
@@ -2421,22 +2421,22 @@ MapQuery <- function(
     Misc(
       object = query[[new.reduction.name]],
       slot = 'ref.dims'
-      ) <-  slot(object = anchorset, name = "command")$dims
+      ) <-  methods::slot(object = anchorset, name = "command")$dims
   }
-  slot(object = query, name = "tools")$MapQuery <- NULL
+  methods::slot(object = query, name = "tools")$MapQuery <- NULL
   if (store.weights) {
-    slot(object = query, name = "tools")$MapQuery <- slot(
+    methods::slot(object = query, name = "tools")$MapQuery <- methods::slot(
       object = query,
       name = "tools"
       )$TransferData
-    slot(object = query, name = "tools")$MapQuery$anchor <- slot(
+    methods::slot(object = query, name = "tools")$MapQuery$anchor <- methods::slot(
       object = anchorset,
       name = "anchors"
       )
   }
-  slot(object = query, name = "tools")$TransferData <- NULL
+  methods::slot(object = query, name = "tools")$TransferData <- NULL
   if (!is.null(x = reduction.model)) {
-    reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
+    reference.dims <- reference.dims %||% methods::slot(object = anchorset, name = "command")$dims
     query.dims <- query.dims %||% 1:ncol(x = query[[new.reduction.name]])
     if (length(x = query.dims) != length(x = reference.dims)) {
       message("Query and reference dimensions are not equal, proceeding with reference dimensions.")
@@ -2536,7 +2536,7 @@ MappingScore.default <- function(
   ## Need to set up an IntegrationData object to use FindWeights here
   int.mat <- matrix(data = NA, nrow = nrow(x = anchors), ncol = 0)
   rownames(x = int.mat) <- query.cells[anchors[, "cell2"]]
-  slot(object = combined.object, name = 'tools')[["IT1"]] <- new(
+  methods::slot(object = combined.object, name = 'tools')[["IT1"]] <- new(
     Class = "IntegrationData",
     anchors = anchors,
     neighbors = list(cells1 = ref.cells, cells2 = query.cells),
@@ -2709,7 +2709,7 @@ MappingScore.AnchorSet <- function(
   ...
 ) {
   CheckDots(...)
-  combined.object <- slot(object = anchors, name = "object.list")[[1]]
+  combined.object <- methods::slot(object = anchors, name = "object.list")[[1]]
   combined.object <- RenameCells(
     object = combined.object,
     new.names = unname(obj = make.unique(sapply(
@@ -2718,11 +2718,11 @@ MappingScore.AnchorSet <- function(
     )))
   )
   query.cells <- make.unique(sapply(
-    X = slot(object = anchors, name = "query.cells"),
+    X = methods::slot(object = anchors, name = "query.cells"),
     FUN = RemoveLastField
   ))
   ref.cells <- make.unique(sapply(
-    X = slot(object = anchors, name = "reference.cells"),
+    X = methods::slot(object = anchors, name = "reference.cells"),
     FUN = RemoveLastField
   ))
   query.embeddings <- Embeddings(object = subset(
@@ -2745,10 +2745,10 @@ MappingScore.AnchorSet <- function(
     combined.object[[i]] <- NULL
   }
 
-  query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
+  query.neighbors <- methods::slot(object = anchors, name = "neighbors")[["query.neighbors"]]
   if (inherits(query.neighbors, "Neighbor") || is.null(query.neighbors)) {
     mapping_scores_list <- MappingScore(
-      anchors = slot(object = anchors, name = "anchors"),
+      anchors = methods::slot(object = anchors, name = "anchors"),
       combined.object = combined.object,
       query.neighbors = query.neighbors,
       ref.embeddings = ref.embeddings,
@@ -2769,7 +2769,7 @@ MappingScore.AnchorSet <- function(
 
   query.neighbors.list <- query.neighbors
   mapping_scores_list <- list()
-  original_anchors_data <- slot(object = anchors, name = "anchors")
+  original_anchors_data <- methods::slot(object = anchors, name = "anchors")
 
   for (i in seq_along(query.neighbors.list)) {
     query.neighbors.i <- query.neighbors.list[[i]]
@@ -2787,11 +2787,11 @@ MappingScore.AnchorSet <- function(
     anchors_subset_df <- anchors_data_df[anchors_data_df$cell2 %in% query.indices.i, ]
     anchors_subset <- as.matrix(anchors_subset_df)
 
-    slot(anchors, "anchors") <- anchors_subset
+    methods::slot(anchors, "anchors") <- anchors_subset
 
     mapping_scores_list[[i]] <- MappingScore(
       # input subset of layer-specific anchors
-      anchors = slot(object = anchors, name = "anchors"),
+      anchors = methods::slot(object = anchors, name = "anchors"),
       combined.object = combined.object,
       query.neighbors = query.neighbors.i,
       ref.embeddings = ref.embeddings,
@@ -2807,7 +2807,7 @@ MappingScore.AnchorSet <- function(
       query.weights = query.weights,
       verbose = verbose
     )
-    slot(anchors, "anchors") <- original_anchors_data
+    methods::slot(anchors, "anchors") <- original_anchors_data
   }
   return(unlist(mapping_scores_list))
 
@@ -3256,7 +3256,7 @@ SelectSCTIntegrationFeatures <- function(
     decreasing = TRUE
   )
   for (i in 1:length(x = models)) {
-    vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[models[[i]]]])
+    vst_out <- SCTModel_to_vst(SCTModel = methods::slot(object = object[[assay]], name = "SCTModel.list")[[models[[i]]]])
     var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
   }
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
@@ -3463,10 +3463,10 @@ TransferData <- function(
     layer <- slot
   }
 
-  combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
-  anchors <- slot(object = anchorset, name = "anchors")
-  reference.cells <- slot(object = anchorset, name = "reference.cells")
-  query.cells <- slot(object = anchorset, name = "query.cells")
+  combined.ob <- methods::slot(object = anchorset, name = "object.list")[[1]]
+  anchors <- methods::slot(object = anchorset, name = "anchors")
+  reference.cells <- methods::slot(object = anchorset, name = "reference.cells")
+  query.cells <- methods::slot(object = anchorset, name = "query.cells")
   if (!is.null(query)) {
     query.assay <- query.assay %||% DefaultAssay(query)
   }
@@ -3499,7 +3499,7 @@ TransferData <- function(
       message("Running PCA on query dataset")
     }
 
-    features <- slot(object = anchorset, name = "anchor.features")
+    features <- methods::slot(object = anchorset, name = "anchor.features")
     query.ob <- query
     DefaultAssay(query.ob) <- query.assay
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
@@ -3587,7 +3587,7 @@ TransferData <- function(
     if (is.null(x = query)) {
       return(weights)
     } else {
-      slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
+      methods::slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
       return(query)
     }
   }
@@ -3722,7 +3722,7 @@ TransferData <- function(
     return(transfer.results)
   } else {
     if (store.weights) {
-      slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
+      methods::slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
     }
     return(query)
   }
@@ -3865,8 +3865,8 @@ AnnotateAnchors.IntegrationAnchorSet <- function(
     layer <- slot
   }
 
-  anchor.df <- slot(object = anchors, name = 'anchors')
-  object.list <- object.list %||% slot(object = anchors, name = 'object.list')
+  anchor.df <- methods::slot(object = anchors, name = 'anchors')
+  object.list <- object.list %||% methods::slot(object = anchors, name = 'object.list')
   anchor.df <- as.data.frame(x = anchor.df)
   anchor.df <- AnnotateAnchors(
     anchors = anchor.df,
@@ -3903,19 +3903,19 @@ AnnotateAnchors.TransferAnchorSet <- function(
     layer <- slot
   }
 
-  anchor.df <- slot(object = anchors, name = 'anchors')
+  anchor.df <- methods::slot(object = anchors, name = 'anchors')
   if (class(x = reference) != class(x = query)) {
     stop("If setting reference/query, please set both parameters.")
   }
   if (is.null(x = reference)) {
-    object.list <- slot(object = anchors, name = 'object.list')[[1]]
-    reference.cells <- slot(object = anchors, name = "reference.cells")
+    object.list <- methods::slot(object = anchors, name = 'object.list')[[1]]
+    reference.cells <- methods::slot(object = anchors, name = "reference.cells")
     reference <- subset(x = object.list, cells = reference.cells, recompute = FALSE)
     reference <- RenameCells(
       object = reference,
       new.names = gsub(pattern = "_reference$", replacement = "", x = reference.cells)
     )
-    query.cells <- slot(object = anchors, name = "query.cells")
+    query.cells <- methods::slot(object = anchors, name = "query.cells")
     query <- subset(x = object.list, cells = query.cells, recompute = FALSE)
     query <- RenameCells(
       object = query,
@@ -4836,10 +4836,10 @@ MapQueryData <- function(
   verbose = TRUE
 ) {
   normalization.method <- match.arg(arg = normalization.method)
-  reference.datasets <- slot(object = anchorset, name = 'reference.objects')
-  object.list <- slot(object = anchorset, name = 'object.list')
-  anchors <- slot(object = anchorset, name = 'anchors')
-  features <- features %||% slot(object = anchorset, name = "anchor.features")
+  reference.datasets <- methods::slot(object = anchorset, name = 'reference.objects')
+  object.list <- methods::slot(object = anchorset, name = 'object.list')
+  anchors <- methods::slot(object = anchorset, name = 'anchors')
+  features <- features %||% methods::slot(object = anchorset, name = "anchor.features")
   features.to.integrate <- features.to.integrate %||% features
   cellnames.list <- list()
   for (ii in 1:length(x = object.list)) {
@@ -4976,9 +4976,9 @@ PairwiseIntegrateReference <- function(
   eps = 0,
   verbose = TRUE
 ) {
-  object.list <- slot(object = anchorset, name = "object.list")
-  reference.objects <- slot(object = anchorset, name = "reference.objects")
-  features <- features %||% slot(object = anchorset, name = "anchor.features")
+  object.list <- methods::slot(object = anchorset, name = "object.list")
+  reference.objects <- methods::slot(object = anchorset, name = "reference.objects")
+  features <- features %||% methods::slot(object = anchorset, name = "anchor.features")
   features.to.integrate <- features.to.integrate %||% features
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
@@ -4989,8 +4989,8 @@ PairwiseIntegrateReference <- function(
     DefaultAssay(object = ref.obj) <- new.assay.name
     return(ref.obj)
   }
-  anchors <- slot(object = anchorset, name = "anchors")
-  offsets <- slot(object = anchorset, name = "offsets")
+  anchors <- methods::slot(object = anchorset, name = "anchors")
+  offsets <- methods::slot(object = anchorset, name = "offsets")
   objects.ncell <- sapply(X = object.list, FUN = ncol)
   if (!is.null(x = weight.reduction)) {
     if (length(x = weight.reduction) == 1 | inherits(x = weight.reduction, what = "DimReduc")) {
@@ -5153,7 +5153,7 @@ PairwiseIntegrateReference <- function(
     slot = "sample.tree",
     new.data = sample.tree
   )
-  unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+  unintegrated[["FindIntegrationAnchors"]] <- methods::slot(object = anchorset, name = "command")
   suppressWarnings(expr = unintegrated <- LogSeuratCommand(object = unintegrated))
   return(unintegrated)
 }
@@ -5229,7 +5229,7 @@ ProjectCellEmbeddings.Seurat <- function(
     if (!IsSCT(assay = reference[[reference.assay]])) {
       stop('reference in ', reference.assay, ' assay does not have a SCT model' )
     }
-    reference.model.num <- length(slot(object = reference[[reference.assay]], name = "SCTModel.list"))
+    reference.model.num <- length(methods::slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
       stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
            " reference sct models. Please provide a reference assay with a ",
@@ -5425,7 +5425,7 @@ ProjectCellEmbeddings.default <- function(
 ){
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
 if (normalization.method == 'SCT') {
-  reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
+  reference.SCT.model <- methods::slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
   query <- FetchResiduals_reference(
     object = query,
     reference.SCT.model = reference.SCT.model,
@@ -5511,7 +5511,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(query))
   if (normalization.method == 'SCT') {
-    reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
+    reference.SCT.model <- methods::slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
     cells.grid <- split(
       x = 1:ncol(query),
       f = ceiling(seq_along(along.with = 1:ncol(query)) / block.size))
@@ -5628,13 +5628,13 @@ ProjectSVD <- function(
   }
   projected.u <- as.matrix(t(vt) %*% data)
   if (mode == "lsi") {
-    components <- slot(object = reduction, name = 'misc')
+    components <- methods::slot(object = reduction, name = 'misc')
     sigma <- components$d
     projected.u <- projected.u / sigma[dims]
   }
   if (do.center) {
     if (use.original.stats) {
-      components <- slot(object = reduction, name = 'misc')
+      components <- methods::slot(object = reduction, name = 'misc')
       if ("u" %in% names(x = components)) {
         # preferentially use original irlba output stored in misc
         # signac scales and centers embeddings by default
@@ -5652,7 +5652,7 @@ ProjectSVD <- function(
   }
   if (do.scale) {
     if (use.original.stats) {
-      components <- slot(object = reduction, name = 'misc')
+      components <- methods::slot(object = reduction, name = 'misc')
       if ("u" %in% names(x = components)) {
         embed.sd <- apply(X = components$u, MARGIN = 2, FUN = sd)
       } else {
@@ -6162,7 +6162,7 @@ ValidateParams_FindTransferAnchors <- function(
   if (recompute.residuals) {
     # recompute.residuals only happens in ProjectCellEmbeddings, so k.filter set to NA.
     ModifyParam(param = "k.filter", value = NA)
-    reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
+    reference.model.num <- length(x = methods::slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
       # Enable compatibility with integrated reference with mutliple SCT models
       print("Given reference assay has multiple sct models, selecting model with most cells for finding transfer anchors")
@@ -6189,7 +6189,7 @@ ValidateParams_FindTransferAnchors <- function(
     }
     query.umi.assay <- query.assay
     if (IsSCT(assay = query[[query.assay]])) {
-      query.sct.models <- slot(object = query[[query.assay]], name = "SCTModel.list")
+      query.sct.models <- methods::slot(object = query[[query.assay]], name = "SCTModel.list")
       query.umi.assay <- unique(x = unname(obj = unlist(x = lapply(X = query.sct.models, FUN = slot, name = "umi.assay"))))
       if (length(x = query.umi.assay) > 1) {
         stop("Query assay provided is an SCTAssay with multiple different original umi assays", call = FALSE)
@@ -6205,7 +6205,7 @@ ValidateParams_FindTransferAnchors <- function(
     if (reduction %in% c('cca', 'rpca')) {
       query <- SCTransform(
         object = query,
-        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
+        reference.SCT.model = methods::slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
         residual.features = features,
         assay = query.umi.assay,
         new.assay.name = new.sct.assay,
@@ -6467,7 +6467,7 @@ ValidateParams_TransferData <- function(
 
 
 
-  object.reduction <- Reductions(object = slot(object = anchorset, name = "object.list")[[1]])
+  object.reduction <- Reductions(object = methods::slot(object = anchorset, name = "object.list")[[1]])
   valid.weight.reduction <- c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi", object.reduction)
   if (!inherits(x = weight.reduction, "DimReduc")) {
     if (!weight.reduction %in% valid.weight.reduction) {
@@ -6494,8 +6494,8 @@ ValidateParams_TransferData <- function(
            ncol(x = weight.reduction), ").", call. = FALSE)
     }
   } else {
-    if (is.null(x = dims) && !is.null(x = slot(object = anchorset, name = "command")$dims)) {
-     ModifyParam(param = "dims", value = 1:length(x = slot(object = anchorset, name = "command")$dims))
+    if (is.null(x = dims) && !is.null(x = methods::slot(object = anchorset, name = "command")$dims)) {
+     ModifyParam(param = "dims", value = 1:length(x = methods::slot(object = anchorset, name = "command")$dims))
     }
   }
 
@@ -6628,13 +6628,13 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   if (missing(x = query)) {
     stop("Please provide the query object.", call. = FALSE)
   }
-  reference.cells <- slot(object = anchorset, name = "reference.cells")
+  reference.cells <- methods::slot(object = anchorset, name = "reference.cells")
   reference.cells <- gsub(pattern = "_reference", replacement = "", x = reference.cells)
   if (!isTRUE(x = all.equal(target = reference.cells, current = Cells(x = reference), check.attributes = FALSE))) {
     stop("The set of cells used as a reference in the AnchorSet does not match ",
          "the set of cells provided in the reference object.")
   }
-  query.cells <- slot(object = anchorset, name = "query.cells")
+  query.cells <- methods::slot(object = anchorset, name = "query.cells")
   query.cells <- gsub(pattern = "_query", replacement = "", x = query.cells)
   if (!isTRUE(x = all.equal(target = query.cells, current = colnames(x = query[[query.assay]]), check.attributes = FALSE))) {
     stop("The set of cells used as a query in the AnchorSet does not match ",
@@ -6675,10 +6675,10 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
     if (is.null(x = weights.matrix)) {
       message("Requested to reuse weights matrix, but no weights found. Computing new weights.")
       reuse.weights.matrix <- FALSE
-    } else if (nrow(x = weights.matrix) != nrow(x = slot(object = anchorset, name = "anchors"))) {
+    } else if (nrow(x = weights.matrix) != nrow(x = methods::slot(object = anchorset, name = "anchors"))) {
       stop("The number of anchors in the weights matrix stored in the query (",
            nrow(x = weights.matrix), ") doesn't match the number of anchors ",
-           "in the anchorset (", nrow(x = slot(object = anchorset, name = "anchors")),
+           "in the anchorset (", nrow(x = methods::slot(object = anchorset, name = "anchors")),
            ").", call. = FALSE)
     } else {
       ModifyParam(param = 'weights.matrix', value = weights.matrix)
@@ -7188,7 +7188,7 @@ FindBridgeAnchor <- function(object.list,
                        object.merge <- merge(x = object.list[[1]],
                                              y = object.list[2:length(object.list)]
                                              )
-                       slot(
+                       methods::slot(
                          object = anchor,
                          name = "weight.reduction"
                          ) <- CreateDimReducObject(
@@ -7218,24 +7218,24 @@ FindBridgeAnchor <- function(object.list,
   }
   if (anchor.type == "Transfer") {
     if (stored.bridge.weights) {
-      slot( object = anchor,name = "weight.reduction"
+      methods::slot( object = anchor,name = "weight.reduction"
       )@misc$bridge.sets <- list(
-        bridge.weights =   slot(object = bridge.object,
+        bridge.weights =   methods::slot(object = bridge.object,
                                 name = "tools"
         )$MapQuery_PrepareBridgeReference$weights.matrix,
-        bridge.ref_anchor =  slot(object = bridge.object,
+        bridge.ref_anchor =  methods::slot(object = bridge.object,
                                   name = "tools"
         )$MapQuery_PrepareBridgeReference$anchor[,1],
-        query.weights =  slot(object = object.list[[query]],
+        query.weights =  methods::slot(object = object.list[[query]],
                               name = "tools"
         )$MapQuery$weights.matrix,
-        query.ref_anchor =  slot(object = object.list[[query]],
+        query.ref_anchor =  methods::slot(object = object.list[[query]],
                                  name = "tools"
         )$MapQuery$anchor[,1]
       )
     }
   }
-  slot(object = anchor, name = "command") <- LogSeuratCommand(
+  methods::slot(object = anchor, name = "command") <- LogSeuratCommand(
     object = object.list[[1]],
     return.command = TRUE
     )
@@ -7381,7 +7381,7 @@ RunGraphLaplacian.default <- function(object,
                                       ...
 ) {
  if (!all(
-   slot(object = t(x = object), name = "x") == slot(object = object, name = "x")
+   methods::slot(object = t(x = object), name = "x") == methods::slot(object = object, name = "x")
    )) {
    stop("Input graph is not symmetric")
  }
@@ -7856,8 +7856,8 @@ PrepareBridgeReference <- function (
   reference <- merge(x = reference, y = bridge, merge.dr = NA)
   reference@tools$MapQuery_PrepareBridgeReference <- bridge@tools$MapQuery
   command <- LogSeuratCommand(object = reference, return.command = TRUE)
-  slot(object = command, name = "params")$bridge.query.features <- NULL
-  command.name <- slot(object = command, name = "name")
+  methods::slot(object = command, name = "params")$bridge.query.features <- NULL
+  command.name <- methods::slot(object = command, name = "name")
   reference[[command.name]] <- command
   return(reference)
 }
@@ -7922,7 +7922,7 @@ FindBridgeTransferAnchors <- function(
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
   command.name <- grep(pattern = 'PrepareBridgeReference',
-       x = names(slot(object = extended.reference, name = 'commands')),
+       x = names(methods::slot(object = extended.reference, name = 'commands')),
        value = TRUE)
   params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
@@ -8006,7 +8006,7 @@ FindBridgeIntegrationAnchors <- function(
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
   command.name <- grep(pattern = 'PrepareBridgeReference',
-                       x = names(slot(object = extended.reference, name = 'commands')),
+                       x = names(methods::slot(object = extended.reference, name = 'commands')),
                        value = TRUE)
   params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
@@ -8135,7 +8135,7 @@ FastRPCAIntegration <- function(
 
   )
 
-  anchor.feature <- slot(object = anchor, name = 'anchor.features')
+  anchor.feature <- methods::slot(object = anchor, name = 'anchor.features')
   if (normalization.method != 'SCT') {
     object_merged <- ScaleData(object = object_merged,
                                features = anchor.feature,
