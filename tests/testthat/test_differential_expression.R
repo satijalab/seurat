@@ -423,11 +423,11 @@ test_that("FindAllMarkers works as expected", {
 ref <- pbmc_small
 ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
 query <- CreateSeuratObject(CreateAssayObject(
-  counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], layer = "counts") + rpois(n = ncol(pbmc_small), lambda = 1))
+  counts = as.sparse(LayerData(object = pbmc_small[['RNA']], layer = "counts") + rpois(n = ncol(pbmc_small), lambda = 1))
 ))
 
 query2 <- CreateSeuratObject(CreateAssayObject(
-  counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], layer = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1))
+  counts = as.sparse(LayerData(object = pbmc_small[['RNA']], layer = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1))
 ))
 
 

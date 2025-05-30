@@ -7,7 +7,7 @@ ref <- pbmc_small
 ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
 query <- CreateSeuratObject(
   counts = as.sparse(
-    GetAssayData(
+    LayerData(
       object = pbmc_small[['RNA']],
       layer = "counts") + rpois(n = ncol(pbmc_small),
       lambda = 1
@@ -82,10 +82,10 @@ test_that("IntegrateData with two objects default work", {
   expect_equal(Tool(int2), "Integration")
   expect_equal(dim(int2[["integrated"]]), c(133, 160))
   expect_equal(length(VariableFeatures(int2)), 133)
-  expect_equal(GetAssayData(int2[["integrated"]], layer = "counts"), new("dgCMatrix"))
-  expect_equal(GetAssayData(int2[['integrated']], layer = "scale.data"), matrix())
-  expect_equal(sum(GetAssayData(int2[["integrated"]], layer = "data")[1, ]), 44.97355, tolerance = 1e-3)
-  expect_equal(sum(GetAssayData(int2[["integrated"]], layer = "data")[, 1]), 78.8965706046, tolerance = 1e-6)
+  expect_equal(LayerData(int2[["integrated"]], layer = "counts"), new("dgCMatrix"))
+  expect_equal(LayerData(int2[['integrated']], layer = "scale.data"), matrix())
+  expect_equal(sum(LayerData(int2[["integrated"]], layer = "data")[1, ]), 44.97355, tolerance = 1e-3)
+  expect_equal(sum(LayerData(int2[["integrated"]], layer = "data")[, 1]), 78.8965706046, tolerance = 1e-6)
   expect_equal(Tool(object = int2, slot = "Integration")@sample.tree, matrix(c(-1, -2), nrow  = 1))
 })
 
@@ -96,10 +96,10 @@ test_that("IntegrateData with three objects default work", {
   expect_equal(Tool(int3), "Integration")
   expect_equal(dim(int3[["integrated"]]), c(169, 200))
   expect_equal(length(VariableFeatures(int3)), 169)
-  expect_equal(GetAssayData(int3[["integrated"]], layer = "counts"), new("dgCMatrix"))
-  expect_equal(GetAssayData(int3[['integrated']], layer = "scale.data"), matrix())
-  expect_equal(sum(GetAssayData(int3[["integrated"]], layer = "data")[1, ]), 372.829, tolerance = 1e-6)
-  expect_equal(sum(GetAssayData(int3[["integrated"]], layer = "data")[, 1]), 482.5009, tolerance = 1e-6)
+  expect_equal(LayerData(int3[["integrated"]], layer = "counts"), new("dgCMatrix"))
+  expect_equal(LayerData(int3[['integrated']], layer = "scale.data"), matrix())
+  expect_equal(sum(LayerData(int3[["integrated"]], layer = "data")[1, ]), 372.829, tolerance = 1e-6)
+  expect_equal(sum(LayerData(int3[["integrated"]], layer = "data")[, 1]), 482.5009, tolerance = 1e-6)
   expect_equal(Tool(object = int3, slot = "Integration")@sample.tree, matrix(c(-2, -3, 1, -1), nrow  = 2, byrow = TRUE))
 })
 
