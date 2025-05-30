@@ -11,6 +11,7 @@
 #' check_installed
 #' enquo
 #' inform
+#' is_installed
 #' is_integerish
 #' is_na
 #' is_quosure
