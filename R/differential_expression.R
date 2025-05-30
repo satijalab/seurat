@@ -84,9 +84,7 @@ FindAllMarkers <- function(
     }
     idents.all <- sort(x = unique(x = Idents(object = object)))
   } else {
-    if (!PackageCheck('ape', error = FALSE)) {
-      stop(cluster.ape, call. = FALSE)
-    }
+    check_installed(pkg = "ape", reason = "for cluster tree functionality")
     if (!is.null(group.by)) {
       warning(
         paste0(
@@ -259,8 +257,8 @@ FindConservedMarkers <- function(
   verbose = TRUE,
   ...
 ) {
-  metap.installed <- PackageCheck("metap", error = FALSE)
-  if (!metap.installed[1]) {
+  metap.installed <- is_installed('metap')
+  if (isFALSE(x = metap.installed)) {
     stop(
       "Please install the metap package to use FindConservedMarkers.",
       "\nThis can be accomplished with the following commands: ",
@@ -495,7 +493,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param fc.results data.frame from FoldChange
-#' @param densify Convert the sparse matrix to a dense form before running the 
+#' @param densify Convert the sparse matrix to a dense form before running the
 #' DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
 #'
@@ -634,8 +632,8 @@ FindMarkers.default <- function(
 }
 
 
-#' @param fc.slot Slot used to calculate fold-change - will also affect the 
-#' default for \code{mean.fxn}, see below for more details. 
+#' @param fc.slot Slot used to calculate fold-change - will also affect the
+#' default for \code{mean.fxn}, see below for more details.
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param norm.method Normalization method for fold change calculation when
@@ -713,7 +711,7 @@ FindMarkers.Assay <- function(
 #'
 FindMarkers.StdAssay <- FindMarkers.Assay
 
-#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the 
+#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the
 #' median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
 #' @rdname FindMarkers
@@ -817,7 +815,7 @@ FindMarkers.SCTAssay <- function(
 FindMarkers.DimReduc <- function(
   object,
   cells.1 = NULL,
-  cells.2 = NULL, 
+  cells.2 = NULL,
   features = NULL,
   logfc.threshold = 0.1,
   test.use = "wilcox",
@@ -910,12 +908,12 @@ FindMarkers.DimReduc <- function(
 #' @param ident.2 A second identity class for comparison; if \code{NULL},
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
-#' @param group.by Regroup cells into a different identity class prior to 
+#' @param group.by Regroup cells into a different identity class prior to
 #' performing differential expression (see example); \code{"ident"} to use Idents
-#' @param subset.ident Subset a particular identity class prior to regrouping. 
+#' @param subset.ident Subset a particular identity class prior to regrouping.
 #' Only relevant if group.by is set (see example)
 #' @param assay Assay to use in differential expression testing
-#' @param reduction Reduction to use in differential expression testing - will 
+#' @param reduction Reduction to use in differential expression testing - will
 #' test for DE on cell embeddings
 #'
 #' @rdname FindMarkers
@@ -1448,7 +1446,7 @@ DESeq2DETest <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!PackageCheck('DESeq2', error = FALSE)) {
+  if (isFALSE(x = is_installed('DESeq2'))) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
   CheckDots(..., fxns = 'DESeq2::results')
@@ -1902,7 +1900,7 @@ MASTDETest <- function(
   ...
 ) {
   # Check for MAST
-  if (!PackageCheck('MAST', error = FALSE)) {
+  if (isFALSE(x = is_installed('MAST'))) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
@@ -2445,13 +2443,13 @@ WilcoxDETest <- function(
     yes = FALSE,
     no = TRUE
   )
-  presto.check <- PackageCheck("presto", error = FALSE)
-  limma.check <- PackageCheck("limma", error = FALSE)
+  presto.check <- is_installed('presto')
+  limma.check <- is_installed('limma')
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (presto.check[1] && (!limma)) {
+  if (presto.check && (!limma)) {
     data.use <- data.use[, rownames(group.info), drop = FALSE]
     res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"])
     res <- res[1:(nrow(x = res)/2),]

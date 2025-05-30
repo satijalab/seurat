@@ -2,10 +2,6 @@
 #'
 NULL
 
-cluster.ape <- paste(
-  "Cluster tree functionality requires 'ape'",
-  "please install with 'install.packages('ape')'"
-)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
@@ -29,7 +25,7 @@ cluster.ape <- paste(
 #' overrides \code{features}
 #' @param reduction Name of dimension reduction to use. Only used if \code{dims}
 #' is not NULL.
-#' @param slot slot/layer to use. 
+#' @param slot slot/layer to use.
 #' @param graph If graph is passed, build tree based on graph connectivity between
 #' clusters; overrides \code{dims} and \code{features}
 #' @param reorder Re-order identity classes (factor ordering), according to
@@ -57,7 +53,7 @@ cluster.ape <- paste(
 #'   Tool(object = pbmc_small, slot = 'BuildClusterTree')
 #' }
 #' }
-#' 
+#'
 BuildClusterTree <- function(
   object,
   assay = NULL,
@@ -70,9 +66,7 @@ BuildClusterTree <- function(
   reorder.numeric = FALSE,
   verbose = TRUE
 ) {
-  if (!requireNamespace('ape', quietly = TRUE)) {
-    stop(cluster.ape, call. = FALSE)
-  }
+  check_installed(pkg = "ape", reason = "for cluster tree functionality")
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = graph)) {
     idents <- levels(x = object)

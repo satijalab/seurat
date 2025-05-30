@@ -660,7 +660,7 @@ Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
 ) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+  if (isFALSE(x = is_installed('hdf5r'))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   file.path = paste0(data.dir,"/", filename)
@@ -1127,7 +1127,7 @@ Read10X <- function(
 #' @concept preprocessing
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+  if (isFALSE(x = is_installed('hdf5r'))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
@@ -1263,8 +1263,8 @@ Read10X_Image <- function(
       image = image
     )
 
-    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the 
-    # `spot.radius` slot and instead calculates the value on the fly, but we 
+    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the
+    # `spot.radius` slot and instead calculates the value on the fly, but we
     # can populate the static slot in case it's depended on.
     visium.v1@spot.radius <- Radius(visium.v1)
 
@@ -1316,7 +1316,7 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
   # if the coordinate mappings are in a parquet file
   if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
-    if (!requireNamespace("arrow", quietly = TRUE)) {
+    if (isFALSE(x = is_installed('arrow'))) {
       stop("Please install arrow to read parquet files")
     }
 
@@ -1437,7 +1437,7 @@ ReadAkoya <- function(
   filter = 'DAPI|Blank|Empty',
   inform.quant = c('mean', 'total', 'min', 'max', 'std')
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = is_installed('data.table'))) {
     stop("Please install 'data.table' for this function")
   }
   # Check arguments
@@ -2010,7 +2010,7 @@ ReadNanostring <- function(
   subset.counts.matrix = NULL,
   cell.mols.only = TRUE
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = is_installed('data.table'))) {
     stop("Please install 'data.table' for this function")
   }
 
@@ -2746,7 +2746,7 @@ ReadVitessce <- function(
   type = c('segmentations', 'centroids'),
   filter = NA_character_
 ) {
-  if (!requireNamespace('jsonlite', quietly = TRUE)) {
+  if (isFALSE(x = is_installed('jsonlite'))) {
     stop("Please install 'jsonlite' for this function")
   }
   type <- match.arg(arg = type, several.ok = TRUE)
@@ -2963,7 +2963,7 @@ ReadVizgen <- function(
   z = 3L
 ) {
   # TODO: handle multiple segmentations per z-plane
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = is_installed('data.table'))) {
     stop("Please install 'data.table' for this function")
   }
   # hdf5r is only used for loading polygon boundaries
@@ -3418,10 +3418,10 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
     message("Computing Moran's I")
     mysapply <- pbsapply
   }
-  Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
+  Rfast2.installed <- is_installed('Rfast2')
   if (Rfast2.installed) {
     MyMoran <- Rfast2::moranI
-  } else if (!PackageCheck('ape', error = FALSE)) {
+  } else if (isFALSE(x = is_installed('ape'))) {
     stop(
       "'RunMoransI' requires either Rfast2 or ape to be installed",
       call. = FALSE
@@ -3520,7 +3520,7 @@ SampleUMI <- function(
 #' replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
 #' \code{ScaleData} workflow by fitting a regularized negative binomial model
 #' per gene and returning:
-#' 
+#'
 #' - A new assay (default name “SCT”), in which:
 #'   - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
 #'     sequencing depth; controlled by \code{do.correct.umi}).
@@ -3531,13 +3531,13 @@ SampleUMI <- function(
 #'
 #' When multiple \code{counts} layers exist (e.g. after \code{split()}),
 #' each layer is modeled independently. A consensus variable‐feature set is
-#' then defined by ranking features by how often they’re called “variable” 
+#' then defined by ranking features by how often they’re called “variable”
 #' across different layers (ties broken by median rank).
-#' 
+#'
 #' By default, \code{sctransform::vst} will drop features expressed in fewer
 #' than five cells. In the multi-layer case, this can lead to consenus
 #' variable-features being excluded from the output's \code{scale.data} when
-#' a feature is "variable" across many layers but sparsely expressed in at 
+#' a feature is "variable" across many layers but sparsely expressed in at
 #' least one.
 #'
 #' @param object A Seurat object or UMI count matrix.
@@ -3593,11 +3593,11 @@ SampleUMI <- function(
 #' @seealso \code{\link[sctransform]{vst}},
 #'   \code{\link[sctransform]{get_residuals}},
 #'   \code{\link[sctransform]{correct_counts}}
-#' 
+#'
 #' @rdname SCTransform
 #' @concept preprocessing
 #' @export
-#' 
+#'
 SCTransform.default <- function(
   object,
   cell.attr,
@@ -4557,7 +4557,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     verbose = verbose,
     ...
   )
-  
+
   object <- LogSeuratCommand(object)
 
   return(object)

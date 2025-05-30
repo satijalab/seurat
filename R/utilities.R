@@ -1,5 +1,4 @@
 #' @include generics.R
-#' @importFrom SeuratObject PackageCheck
 #'
 NULL
 
@@ -215,7 +214,7 @@ AddModuleScore.Seurat <- function(
 #' @concept utilities
 #' @rdname AddModuleScore
 #' @method AddModuleScore StdAssay
-#' 
+#'
 #' @references Tirosh et al, Science (2016)
 #'
 AddModuleScore.StdAssay <- function(
@@ -262,8 +261,8 @@ AddModuleScore.StdAssay <- function(
   return(features.scores.use)
 }
 
-#' 
-#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#'
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters
 #' when \code{k = TRUE}; ignored if \code{k = FALSE}.
 #' @export
 #' @concept utilities
@@ -271,7 +270,7 @@ AddModuleScore.StdAssay <- function(
 #' @method AddModuleScore Assay
 #'
 #' @importFrom ggplot2 cut_number
-#' 
+#'
 AddModuleScore.Assay <- function(
     object,
     features,
