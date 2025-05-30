@@ -132,7 +132,7 @@ DimHeatmap <- function(
     object = object,
     vars = features.keyed,
     cells = unique(x = unlist(x = cells)),
-    slot = slot
+    layer = slot
   )
   data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
   data.limits <- c(min(data.all), max(data.all))
@@ -1193,7 +1193,7 @@ FeaturePlot <- function(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
-    slot = slot
+    layer = slot
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
@@ -1701,7 +1701,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   )
   # Prepare plotting data
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  plot.data <- FetchData(object = object, vars = c(dims, feature), slot = slot)
+  plot.data <- FetchData(object = object, vars = c(dims, feature), layer = slot)
   # Shiny server
   server <- function(input, output, session) {
     plot.env <- reactiveValues(
@@ -1772,7 +1772,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
         expr = FetchData(
           object = object,
           vars = c(dims, feature.keyed),
-          slot = slot
+          layer = slot
         ),
         warning = function(...) {
           return(plot.env$data)
@@ -2039,7 +2039,7 @@ FeatureScatter <- function(
     object = object,
     vars = c(feature1, feature2, group.by),
     cells = cells,
-    slot = slot
+    layer = slot
   )
   if (!grepl(pattern = feature1, x = names(x = data)[1])) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
@@ -3772,7 +3772,7 @@ ISpatialFeaturePlot <- function(
     object = object,
     vars = feature,
     cells = cells.use,
-    slot = slot
+    layer = slot
   )
   plot.data <- cbind(coords, feature.data)
   server <- function(input, output, session) {
@@ -3822,7 +3822,7 @@ ISpatialFeaturePlot <- function(
             object = object,
             vars = paste0(Key(object = object[[input$assay]]), feature.use),
             cells = cells.use,
-            slot = slot
+            layer = slot
           )
           colnames(x = feature.data) <- feature.use
           plot.env$data <- cbind(coords, feature.data)
@@ -6767,7 +6767,7 @@ ExIPlot <- function(
       y = cells
     )
   }
-  data <- FetchData(object = object, vars = features, slot = layer, cells = cells)
+  data <- FetchData(object = object, vars = features, layer = layer, cells = cells)
   pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   data <- data[cells, , drop = FALSE]
