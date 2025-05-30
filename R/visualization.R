@@ -633,6 +633,7 @@ VlnPlot <- function(
   raster = NULL,
   raster.dpi = 300
 ) {
+  DefaultAssay(object = object) <- assay
   if (is_present(arg = slot)) {
     deprecate_soft(
       when = '5.0.0',
