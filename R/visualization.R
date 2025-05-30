@@ -2041,7 +2041,7 @@ FeatureScatter <- function(
     cells = cells,
     layer = slot
   )
-  if (!grepl(pattern = feature1, x = names(x = data)[1])) {
+  if (!grepl(pattern = feature1, x = names(x = data)[1], fixed=TRUE)) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
   }
   if (!grepl(pattern = feature2, x = names(x = data)[2])) {
@@ -8000,6 +8000,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 #' @return A ggplot2 object
 #'
 #' @importFrom stats cor
+#' @importFrom rlang .data
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot aes_string geom_point labs scale_color_brewer
@@ -8054,6 +8055,18 @@ SingleCorPlot <- function(
     x = colnames(x = data),
     fixed = TRUE
   )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = ')',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = '(',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
   if (ncol(x = data) < 2) {
     msg <- "Too few variables passed"
     if (ncol(x = data) == 1) {
@@ -8092,7 +8105,7 @@ SingleCorPlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
-  ) +
+    ) +
     labs(
       x = orig.names[1],
       y = orig.names[2],
