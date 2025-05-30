@@ -6,7 +6,7 @@ pbmc_small <- suppressWarnings(UpdateSeuratObject(pbmc_small))
 ref <- pbmc_small
 query <- CreateSeuratObject(
   counts = as.sparse(
-    GetAssayData(
+    LayerData(
       object = pbmc_small[['RNA']],
       layer = "counts") + rpois(n = ncol(pbmc_small),
       lambda = 1
@@ -34,14 +34,14 @@ test_that("TransferData default work", {
   expect_equal(as.vector(rowSums(as.matrix(preds.standard[, 2:4]))), rep(1, times = ncol(query)))
   expect_true(inherits(preds.standard, "data.frame"))
   # continuous assay data
-  pred.assay <- TransferData(anchorset = anchors, refdata = GetAssayData(ref[["RNA"]]), verbose = FALSE)
+  pred.assay <- TransferData(anchorset = anchors, refdata = LayerData(ref[["RNA"]]), verbose = FALSE)
   expect_equal(dim(pred.assay), c(230, 80))
-  expect_equal(GetAssayData(pred.assay, layer = "counts"), new("matrix"))
-  expect_equal(GetAssayData(pred.assay, layer = "scale.data"), new("matrix"))
+  expect_equal(LayerData(pred.assay, layer = "counts"), new("matrix"))
+  expect_equal(LayerData(pred.assay, layer = "scale.data"), new("matrix"))
   expect_equal(colnames(pred.assay), Cells(query))
   expect_equal(rownames(pred.assay), rownames(ref[["RNA"]]))
-  expect_equal(sum(GetAssayData(pred.assay)[1, ]), 64.46388, tolerance = 1e-6)
-  expect_equal(sum(GetAssayData(pred.assay)[, 1]), 281.0306, tolerance = 1e-6)
+  expect_equal(sum(LayerData(pred.assay)[1, ]), 64.46388, tolerance = 1e-6)
+  expect_equal(sum(LayerData(pred.assay)[, 1]), 281.0306, tolerance = 1e-6)
   expect_true(inherits(pred.assay, "Assay"))
   expect_equal(pred.assay@var.features, logical(0))
   expect_equal(ncol(pred.assay@meta.features), 0)
@@ -51,14 +51,14 @@ test_that("TransferData can return predictions assay, ", {
   pred.assay <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, prediction.assay = TRUE, verbose = FALSE)
   expect_true(inherits(pred.assay, "Assay"))
   expect_equal(dim(pred.assay), c(4, 80))
-  expect_equal(GetAssayData(pred.assay, layer = "counts"), new("matrix"))
-  expect_equal(GetAssayData(pred.assay, layer = "scale.data"), new("matrix"))
+  expect_equal(LayerData(pred.assay, layer = "counts"), new("matrix"))
+  expect_equal(LayerData(pred.assay, layer = "scale.data"), new("matrix"))
   expect_equal(colnames(pred.assay), Cells(query))
   expect_equal(pred.assay@var.features, logical(0))
   expect_equal(ncol(pred.assay@meta.features), 0)
-  expect_equal(sum(GetAssayData(pred.assay)[1, ]), 26.59365, tolerance = 1e-6)
-  expect_equal(sum(GetAssayData(pred.assay)[, 1]), 1.428075, tolerance = 1e-6)
-  expect_equal(as.vector(colSums(GetAssayData(pred.assay)[1:3, ])), rep(1, ncol(query)))
+  expect_equal(sum(LayerData(pred.assay)[1, ]), 26.59365, tolerance = 1e-6)
+  expect_equal(sum(LayerData(pred.assay)[, 1]), 1.428075, tolerance = 1e-6)
+  expect_equal(as.vector(colSums(LayerData(pred.assay)[1:3, ])), rep(1, ncol(query)))
 })
 
 test_that("TransferData handles weight.reduction properly, ", {
@@ -76,7 +76,7 @@ test_that("TransferData handles weight.reduction properly, ", {
   # weight.reduction = "pca
   pca.preds <- suppressWarnings(TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, weight.reduction = "pca", verbose = FALSE))
   expect_true(inherits(pca.preds, "Seurat"))
-  expect_equal(sum(GetAssayData(pca.preds[['prediction.score.id']])[1, ]), 27.83330252, tolerance = 1e-6)
+  expect_equal(sum(LayerData(pca.preds[['prediction.score.id']])[1, ]), 27.83330252, tolerance = 1e-6)
   # weight.reduction = "cca"
   anchors.cca <- FindTransferAnchors(reference = ref, query = query, k.filter = 50, reduction = "cca")
   cca.preds <- TransferData(anchorset = anchors.cca, refdata = ref$RNA_snn_res.1, weight.reduction = "cca", verbose = FALSE)
@@ -127,7 +127,7 @@ test_that("TransferData throws expected errors ", {
 test_that("TransferData with multiple items to transfer works ", {
   skip_on_cran()
   preds <- TransferData(anchorset = anchors, refdata = list(
-    ids = ref$RNA_snn_res.1, groups = ref$groups, dat = GetAssayData(ref[["RNA"]])),
+    ids = ref$RNA_snn_res.1, groups = ref$groups, dat = LayerData(ref[["RNA"]])),
     verbose = FALSE)
   expect_equal(length(preds), 3)
   expect_equal(preds[[1]], preds.standard)
