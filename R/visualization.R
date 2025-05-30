@@ -483,7 +483,7 @@ HTOHeatmap <- function(
     feature.order = rev(x = singlet.ids),
     cell.order = names(x = sort(x = Idents(object = object))),
     group.by = Idents(object = object)
-  ) + guides(color = FALSE)
+  ) + guides(color = "none")
   return(plot)
 }
 
@@ -8125,7 +8125,7 @@ SingleCorPlot <- function(
       #   data = density
       # ) +
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
-      guides(fill = FALSE)
+      guides(fill = "none")
   }
   position <- NULL
   if (jitter) {
@@ -8163,7 +8163,7 @@ SingleCorPlot <- function(
     }
     plot <- plot + cols.scale
     if (!is.null(x = rows.highlight)) {
-      plot <- plot + guides(color = FALSE)
+      plot <- plot + guides(color = "none")
     }
   }
   plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
