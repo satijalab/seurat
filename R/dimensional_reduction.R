@@ -1324,7 +1324,7 @@ RunTSNE.Seurat <- function(
 }
 
 #' @importFrom reticulate py_module_available py_set_seed import
-#' @importFrom uwot umap umap_transform
+#' @importFrom uwot umap umap2 umap_transform
 #' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
