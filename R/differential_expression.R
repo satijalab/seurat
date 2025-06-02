@@ -683,7 +683,7 @@ FindMarkers.Assay <- function(
   if (length(x = Layers(object = object, search = slot)) > 1) {
     stop(slot, " layers are not joined. Please run JoinLayers")
   }
-  data.use <- LayerData(object = object, layer = slot)
+  data.use <- LayerData(object = object, layer = data.slot)
   fc.results <- FoldChange(
     object = object,
     slot = fc.slot,
@@ -771,7 +771,7 @@ FindMarkers.SCTAssay <- function(
     }
   }
 
-  data.use <- LayerData(object = object, layer = slot)
+  data.use <- LayerData(object = object, layer = data.slot)
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
