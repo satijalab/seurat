@@ -588,7 +588,7 @@ LeverageScore.StdAssay <- function(
       # Warn user if any zero-variance features encountered
       # Display the first 5 problematic features
       if (length(zero_var_features) > 0) {
-        warning("LeverageScore failed on full matrix. Removed ", length(zero_var_features),
+        warning("LeverageScore failed on full matrix due to presence of features with zero-variance in matrix. Removed ", length(zero_var_features),
                 " zero-variance features from layer ", l, ". First few problematic features: ",
                 paste(head(zero_var_features, 5), collapse = ", "), " ...")
       } else {
