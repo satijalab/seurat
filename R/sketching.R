@@ -560,7 +560,6 @@ LeverageScore.StdAssay <- function(
         })
       }
     }
-    
     # Extract gene expression matrix from single layer 
     mat <- LayerData(
       object = object,
@@ -569,27 +568,46 @@ LeverageScore.StdAssay <- function(
       fast = TRUE
     )
 
-    # Remove any rows with zero variances
-    nonzero_var <- which(apply(mat, 1, function(x) var(x) > 0))
-    
-    # Check if any features had zero variance 
-    # If so, remove them and print a message
-    if (length(nonzero_var) < nrow(mat)) {
-      warning("Removed ", nrow(mat) - length(nonzero_var), " zero-variance features from layer ", l)
-      mat <- mat[nonzero_var, , drop = FALSE]
-    }
-    
-    # Pass in filtered matrix to leverage score function
-    scores[Cells(x = object, layer = l), 1] <- LeverageScore(
-      object = mat,
-      nsketch = nsketch,
-      ndims = ndims %||% ncol(x = object),
-      method = method,
-      eps = eps,
-      seed = seed,
-      verbose = verbose,
-      ...
-    )
+    # Try LeverageScore directly on gene expression matrix
+    score_try <- tryCatch({
+      LeverageScore(
+        object = mat,
+        nsketch = nsketch,
+        ndims = ndims %||% ncol(x = object),
+        method = method,
+        eps = eps,
+        seed = seed,
+        verbose = verbose,
+        ...
+      )
+    }, error = function(e) {
+      # Rerun LeverageScore with zero-variance rows removed
+      nonzero_var <- which(apply(mat, 1, function(x) var(x) > 0))
+      zero_var_features <- setdiff(rownames(mat), rownames(mat)[nonzero_var])
+
+      # Warn user if any zero-variance features encountered
+      # Display the first 5 problematic features
+      if (length(zero_var_features) > 0) {
+        warning("LeverageScore failed on full matrix. Removed ", length(zero_var_features),
+                " zero-variance features from layer ", l, ". First few problematic features: ",
+                paste(head(zero_var_features, 5), collapse = ", "), " ...")
+      } else {
+        warning("LeverageScore failed on full matrix, retrying with same data (no zero-variance features found).")
+      }
+
+      LeverageScore(
+        object = mat[nonzero_var, , drop = FALSE],
+        nsketch = nsketch,
+        ndims = ndims %||% ncol(x = object),
+        method = method,
+        eps = eps,
+        seed = seed,
+        verbose = verbose,
+        ...
+      )
+    })
+
+    scores[Cells(x = object, layer = l), 1] <- score_try
   }
   return(scores)
 }
