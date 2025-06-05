@@ -300,21 +300,23 @@ PredictAssay <- function(
 #' @export
 #'
 FindClusters.default <- function(
-  object,
-  modularity.fxn = 1,
-  initial.membership = NULL,
-  node.sizes = NULL,
-  resolution = 0.8,
-  method = deprecated(),
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  group.singletons = TRUE,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  ...
+    object,
+    modularity.fxn = 1,
+    initial.membership = NULL,
+    node.sizes = NULL,
+    resolution = 0.8,
+    method = deprecated(),
+    algorithm = 1,
+    leiden_method = c("leidenbase", "igraph"),
+    leiden_objective_function = c("modularity", "CPM"),
+    n.start = 10,
+    n.iter = 10,
+    random.seed = 0,
+    group.singletons = TRUE,
+    temp.file.location = NULL,
+    edge.file.name = NULL,
+    verbose = TRUE,
+    ...
 ) {
   CheckDots(...)
   # The `method` parameter is for `RunLeiden` but was deprecated, see
@@ -334,6 +336,9 @@ FindClusters.default <- function(
   if (tolower(x = algorithm) == "leiden") {
     algorithm <- 4
   }
+  leiden_method <- match.arg(leiden_method)
+  leiden_objective_function <- match.arg(leiden_objective_function)
+
   if (nbrOfWorkers() > 1) {
     clustering.results <- future_lapply(
       X = resolution,
@@ -354,6 +359,8 @@ FindClusters.default <- function(
         } else if (algorithm == 4) {
           ids <- RunLeiden(
             object = object,
+            leiden_method = leiden_method,
+            leiden_objective_function = leiden_objective_function,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
             node.sizes = node.sizes,
@@ -390,6 +397,8 @@ FindClusters.default <- function(
       } else if (algorithm == 4) {
         ids <- RunLeiden(
           object = object,
+          leiden_method = leiden_method,
+          leiden_objective_function = leiden_objective_function,
           method = method,
           partition.type = "RBConfigurationVertexPartition",
           initial.membership = initial.membership,
