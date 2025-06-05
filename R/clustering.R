@@ -1691,6 +1691,11 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #'
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list cluster_leiden membership
 #'
+#' @references igraph-based leiden clustering is adapted from \code{\link[BPCells]{cluster_graph_leiden}}
+#' (MIT License), author: Benjamin Parks.  Reordering of igraph leiden cluster numbers by
+#' cluster size adapted from rliger v2.0 `.labelClustBySize` (GPL-3.0 License) authors:
+#' Josh Welch & Yichen Wang
+#'
 #' @export
 #'
 #' @rdname RunLeiden
