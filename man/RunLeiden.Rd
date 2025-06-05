@@ -7,9 +7,11 @@
 RunLeiden(
   object,
   method = deprecated(),
+  leiden_method = c("leidenbase", "igraph"),
   partition.type = c("RBConfigurationVertexPartition", "ModularityVertexPartition",
     "RBERVertexPartition", "CPMVertexPartition", "MutableVertexPartition",
     "SignificanceVertexPartition", "SurpriseVertexPartition"),
+  leiden_objective_function = c("modularity", "CPM"),
   initial.membership = NULL,
   node.sizes = NULL,
   resolution.parameter = 1,
@@ -22,9 +24,16 @@ RunLeiden(
 
 \item{method}{DEPRECATED.}
 
+\item{leiden_method}{Chose between leidenbase or igraph packages for running leiden.
+Default is "leidenbase"}
+
 \item{partition.type}{Type of partition to use for Leiden algorithm.
-Defaults to "RBConfigurationVertexPartition", see 
+Defaults to "RBConfigurationVertexPartition", see
 https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.}
+
+\item{leiden_objective_function}{objective function to use if `leiden_method = "igraph"`.
+See \code{\link[igraph]{cluster_leiden}} for more information.
+Default is "modularity".}
 
 \item{initial.membership}{Passed to the `initial_membership` parameter
 of `leidenbase::leiden_find_partition`.}
