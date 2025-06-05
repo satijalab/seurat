@@ -1651,10 +1651,10 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #'
 #' Returns a vector of partition indices.
 #'
-#' @param object An adjacency matrix or adjacency list. 
+#' @param object An adjacency matrix or adjacency list.
 #' @param method DEPRECATED.
 #' @param partition.type Type of partition to use for Leiden algorithm.
-#' Defaults to "RBConfigurationVertexPartition", see 
+#' Defaults to "RBConfigurationVertexPartition", see
 #' https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.
 #' @param initial.membership Passed to the `initial_membership` parameter
 #' of `leidenbase::leiden_find_partition`.
@@ -1669,32 +1669,34 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #'
 #' @export
-#' 
+#'
 #' @rdname RunLeiden
 #' @concept clustering
-#' 
+#'
 RunLeiden <- function(
-  object,
-  method = deprecated(),
-  partition.type = c(
-    'RBConfigurationVertexPartition',
-    'ModularityVertexPartition',
-    'RBERVertexPartition',
-    'CPMVertexPartition',
-    'MutableVertexPartition',
-    'SignificanceVertexPartition',
-    'SurpriseVertexPartition'
-  ),
-  initial.membership = NULL,
-  node.sizes = NULL,
-  resolution.parameter = 1,
-  random.seed = 1,
-  n.iter = 10
+    object,
+    method = deprecated(),
+    leiden_method = c("leidenbase", "igraph"),
+    partition.type = c(
+      'RBConfigurationVertexPartition',
+      'ModularityVertexPartition',
+      'RBERVertexPartition',
+      'CPMVertexPartition',
+      'MutableVertexPartition',
+      'SignificanceVertexPartition',
+      'SurpriseVertexPartition'
+    ),
+    leiden_objective_function = c("modularity", "CPM"),
+    initial.membership = NULL,
+    node.sizes = NULL,
+    resolution.parameter = 1,
+    random.seed = 1,
+    n.iter = 10
 ) {
   # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
-  # greater than 0 (or NULL) but the default value for `FindClusters` is 0. 
-  # If `random.seed` is 0 or less, throw a warning and reset the value to 1. 
-   if (!is.null(random.seed) && random.seed <= 0) {
+  # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
+  # If `random.seed` is 0 or less, throw a warning and reset the value to 1.
+  if (!is.null(random.seed) && random.seed <= 0) {
     warning(
       paste0(
         "`random.seed` must be greater than 0 for leiden clustering, ",
@@ -1708,31 +1710,55 @@ RunLeiden <- function(
   # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
   # _requires_ an `igraph` input, so the parameter no longer makes sense. The
   # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
-  # really matter. 
+  # really matter.
   if (is_present(method)) {
     deprecate_soft(
       when = "5.2.0",
       what = "RunLeiden(method)"
     )
   }
-  
+
+  # select leiden method
+  leiden_method <- match.arg(leiden_method)
+
+  if (leiden_method == "igraph") {
+    # adjust seed for igraph leiden
+    #Set seed without permanently changing seed state
+    prev_seed <- get_seed()
+    on.exit(restore_seed(prev_seed), add = TRUE)
+    set.seed(random.seed)
+  }
+
+
   # Convert `object` into an `igraph`.
   # If `object` is already an `igraph` no conversion is necessary.
-  if (inherits(object, what = "igraph")) { 
+  if (inherits(object, what = "igraph")) {
     input <- object
-  # Otherwise, if `object` is a list, assume it is an adjacency list...
+    # Otherwise, if `object` is a list, assume it is an adjacency list...
   } else if (inherits(object, what = "list")) {
-    # And convert it to an `igraph` with the appropriate method. 
+    # And convert it to an `igraph` with the appropriate method.
     input <- graph_from_adj_list(object)
-  # Or, if `object` is a matrix...
+    # Or, if `object` is a matrix...
   } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
     # Make sure the matrix is sparse.
     if (inherits(object, what = "Graph")) {
-      object <- as.sparse(object)
+      if (leiden_method == "leidenbase") {
+        object <- as.sparse(object)
+      }
     }
     # And then convert it to an graph.
-    input <- graph_from_adjacency_matrix(object, weighted = TRUE)
-  # Throw an error if `object` is of an unknown type. 
+    if (leiden_method == "leidenbase") {
+      input <- graph_from_adjacency_matrix(object, weighted = TRUE)
+    }
+    if (leiden_method == "igraph") {
+      input <- graph_from_adjacency_matrix(
+        object,
+        weighted = TRUE,
+        diag = FALSE,
+        mode = "lower")
+    }
+
+    # Throw an error if `object` is of an unknown type.
   } else {
     stop(
       "Method for Leiden not found for class", class(object),
@@ -1741,16 +1767,40 @@ RunLeiden <- function(
   }
 
   # Run clustering with `leidenbase`.
-  partition <- leidenbase::leiden_find_partition(
-    input,
-    partition_type = partition.type,
-    initial_membership = initial.membership,
-    edge_weights = NULL,
-    node_sizes = node.sizes,
-    resolution_parameter = resolution.parameter,
-    seed = random.seed,
-    num_iter = n.iter
-  )$membership
+  if (leiden_method == "leidenbase") {
+    partition <- leidenbase::leiden_find_partition(
+      input,
+      partition_type = partition.type,
+      initial_membership = initial.membership,
+      edge_weights = NULL,
+      node_sizes = node.sizes,
+      resolution_parameter = resolution.parameter,
+      seed = random.seed,
+      num_iter = n.iter
+    )$membership
+  }
+  if (leiden_method == "igraph") {
+    leiden_objective_function <- match.arg(leiden_objective_function)
+
+    partition <- cluster_leiden(
+      graph = input,
+      resolution = resolution.parameter,
+      objective_function = leiden_objective_function,
+      n_iterations = n.iter,
+      initial_membership = initial.membership)
+    partition <- as.integer(x = membership(communities = partition))
+
+    # reorder cluster number by cluster membership size
+    clusts <- as.character(x = partition)
+    count <- data.frame(table(clusts))
+    count <- count[order(count$Freq, decreasing = TRUE), ]
+    map <- seq(1, nrow(x = count))
+    names(x = map) <- count[[1]]
+    clusts <- factor(map[clusts])
+    partition <- data.frame("res" = factor(clusts))
+    partition <- as.integer(x = partition$res)
+  }
+
   return(partition)
 }
 
