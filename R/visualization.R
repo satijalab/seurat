@@ -8972,11 +8972,11 @@ SingleRasterMap <- function(
   if (!is.null(x = feature.order)) {
     data$Feature <- factor(x = data$Feature, levels = unique(x = feature.order))
   }
-  if (!is.null(x = cell.order)) {
-    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
-  }
   if (!is.null(x = group.by)) {
     data$Identity <- group.by[data$Cell]
+  }
+  if (!is.null(x = cell.order)) {
+    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
   }
   limits <- limits %||% c(min(data$Expression), max(data$Expression))
   if (length(x = limits) != 2 || !is.numeric(x = limits)) {
