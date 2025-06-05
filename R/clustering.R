@@ -429,24 +429,26 @@ FindClusters.default <- function(
 #' @method FindClusters Seurat
 #'
 FindClusters.Seurat <- function(
-  object,
-  graph.name = NULL,
-  cluster.name = NULL,
-  modularity.fxn = 1,
-  initial.membership = NULL,
-  node.sizes = NULL,
-  resolution = 0.8,
-  # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
-  method = NULL,
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  group.singletons = TRUE,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  ...
+    object,
+    graph.name = NULL,
+    cluster.name = NULL,
+    modularity.fxn = 1,
+    initial.membership = NULL,
+    node.sizes = NULL,
+    resolution = 0.8,
+    # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
+    method = NULL,
+    algorithm = 1,
+    leiden_method = c("leidenbase", "igraph"),
+    leiden_objective_function = c("modularity", "CPM"),
+    n.start = 10,
+    n.iter = 10,
+    random.seed = 0,
+    group.singletons = TRUE,
+    temp.file.location = NULL,
+    edge.file.name = NULL,
+    verbose = TRUE,
+    ...
 ) {
   CheckDots(...)
   # Since we're throwing a soft deprecation warning, it needs to be duplicated
@@ -472,6 +474,8 @@ FindClusters.Seurat <- function(
     node.sizes = node.sizes,
     resolution = resolution,
     algorithm = algorithm,
+    leiden_method = leiden_method,
+    leiden_objective_function = leiden_objective_function,
     n.start = n.start,
     n.iter = n.iter,
     random.seed = random.seed,
