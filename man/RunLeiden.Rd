@@ -52,4 +52,10 @@ partition types that accept a resolution parameter)}
 \description{
 Returns a vector of partition indices.
 }
+\references{
+igraph-based leiden clustering is adapted from \code{\link[BPCells]{cluster_graph_leiden}}
+(MIT License), author: Benjamin Parks.  Reordering of igraph leiden cluster numbers by
+cluster size adapted from rliger v2.0 `.labelClustBySize` (GPL-3.0 License) authors:
+Josh Welch & Yichen Wang
+}
 \concept{clustering}
