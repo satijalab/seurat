@@ -284,6 +284,11 @@ PredictAssay <- function(
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm).
+#' @param leiden_method Chose between leidenbase or igraph packages for running leiden.
+#' Default is "leidenbase"
+#' @param leiden_objective_function objective function to use if `leiden_method = "igraph"`.
+#' See \code{\link[igraph]{cluster_leiden}} for more information.
+#' Default is "modularity".
 #' @param method DEPRECATED.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
@@ -1666,9 +1671,14 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #'
 #' @param object An adjacency matrix or adjacency list.
 #' @param method DEPRECATED.
+#' @param leiden_method Chose between leidenbase or igraph packages for running leiden.
+#' Default is "leidenbase"
 #' @param partition.type Type of partition to use for Leiden algorithm.
 #' Defaults to "RBConfigurationVertexPartition", see
 #' https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.
+#' @param leiden_objective_function objective function to use if `leiden_method = "igraph"`.
+#' See \code{\link[igraph]{cluster_leiden}} for more information.
+#' Default is "modularity".
 #' @param initial.membership Passed to the `initial_membership` parameter
 #' of `leidenbase::leiden_find_partition`.
 #' @param node.sizes Passed to the `node_sizes` parameter of
@@ -1679,7 +1689,7 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #' @param random.seed Seed of the random number generator, must be greater than 0.
 #' @param n.iter Maximal number of iterations per random start
 #'
-#' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
+#' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list cluster_leiden membership
 #'
 #' @export
 #'
