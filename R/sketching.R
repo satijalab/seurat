@@ -465,6 +465,15 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
+
+  # Check if matrix is square prior to QR decomposition
+  if (nrow(R) < ncol(R)) {
+    stop("QR decomposition failed: R is not square (", 
+        nrow(R), " x ", ncol(R), "). ",
+        "This usually means there are too few features compared to cells. ",
+        "Consider increasing the number of input features or adjusting dimensionality parameters.")
+  }
+
   R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
   if (isTRUE(x = verbose)) {
     message("Performing random projection")
@@ -586,13 +595,13 @@ LeverageScore.StdAssay <- function(
       zero_var_features <- setdiff(rownames(mat), rownames(mat)[nonzero_var])
 
       # Warn user if any zero-variance features encountered
-      # Display the first 5 problematic features
+      # Display the first 5 such problematic features
       if (length(zero_var_features) > 0) {
-        warning("LeverageScore failed on full matrix due to presence of features with zero-variance in matrix. Removed ", length(zero_var_features),
+        message("LeverageScore failed on full matrix due to presence of features with zero-variance in matrix. Removed ", length(zero_var_features),
                 " zero-variance features from layer ", l, ". First few problematic features: ",
                 paste(head(zero_var_features, 5), collapse = ", "), " ...")
       } else {
-        warning("LeverageScore failed on full matrix, retrying with same data (no zero-variance features found).")
+        message("LeverageScore failed on full matrix, retrying with same data (no zero-variance features found).")
       }
 
       LeverageScore(
