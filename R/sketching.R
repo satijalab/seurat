@@ -465,6 +465,15 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
+
+  # Check if matrix is square prior to QR decomposition
+  if (nrow(R) < ncol(R)) {
+    stop("QR decomposition failed: R is not square (", 
+        nrow(R), " x ", ncol(R), "). ",
+        "This usually means there are too few features compared to cells. ",
+        "Consider increasing the number of input features or adjusting dimensionality parameters.")
+  }
+
   R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
   if (isTRUE(x = verbose)) {
     message("Performing random projection")
@@ -532,31 +541,82 @@ LeverageScore.StdAssay <- function(
     if (isTRUE(x = verbose)) {
       message("Running LeverageScore for layer ", l)
     }
-    features.use <- features %||% tryCatch({
-      VariableFeatures(
-        object = object,
-        method = vf.method,
-        layer = l
+    
+    # If user-defined features are provided, use them
+    features.use <- if (!is.null(features)) {
+      features
+    } else {
+      # Otherwise, try to get VariableFeatures from the same data layer
+      vf <- tryCatch({
+        VariableFeatures(object = object, method = vf.method, layer = l)
+      }, error = function(e) NULL)
+      
+      # Otherwise, if user-defined features and data-layer features are both NULL
+      # use counts-layer variable features instead
+      if (!is.null(vf) && length(vf) > 0) {
+        vf
+      } else {
+        # Try Variable Features from Counts layer
+        counts_layer <- sub("^data", "counts", l)
+        if (isTRUE(x = verbose)) {
+          message("No variable features were found in ",l,". Falling back to variable features from ", counts_layer)
+        }
+        tryCatch({
+          VariableFeatures(object = object, method = vf.method, layer = counts_layer)
+        }, error = function(e) {
+          stop("Unable to get variable features from data layer `", l,
+               "` or fallback layer `", counts_layer, "`. Consider providing `features` explicitly.")
+        })
+      }
+    }
+    # Extract gene expression matrix from single layer 
+    mat <- LayerData(
+      object = object,
+      layer = l,
+      features = features.use,
+      fast = TRUE
+    )
+
+    # Try LeverageScore directly on gene expression matrix
+    score_try <- tryCatch({
+      LeverageScore(
+        object = mat,
+        nsketch = nsketch,
+        ndims = ndims %||% ncol(x = object),
+        method = method,
+        eps = eps,
+        seed = seed,
+        verbose = verbose,
+        ...
       )
     }, error = function(e) {
-      stop("Unable to get variable features from layer `", l, "`. Try providing `features` argument instead.")
+      # Rerun LeverageScore with zero-variance rows removed
+      nonzero_var <- which(apply(mat, 1, function(x) var(x) > 0))
+      zero_var_features <- setdiff(rownames(mat), rownames(mat)[nonzero_var])
+
+      # Warn user if any zero-variance features encountered
+      # Display the first 5 such problematic features
+      if (length(zero_var_features) > 0) {
+        message("LeverageScore failed on full matrix due to presence of features with zero-variance in matrix. Removed ", length(zero_var_features),
+                " zero-variance features from layer ", l, ". First few problematic features: ",
+                paste(head(zero_var_features, 5), collapse = ", "), " ...")
+      } else {
+        message("LeverageScore failed on full matrix, retrying with same data (no zero-variance features found).")
+      }
+
+      LeverageScore(
+        object = mat[nonzero_var, , drop = FALSE],
+        nsketch = nsketch,
+        ndims = ndims %||% ncol(x = object),
+        method = method,
+        eps = eps,
+        seed = seed,
+        verbose = verbose,
+        ...
+      )
     })
-    
-    scores[Cells(x = object, layer = l), 1] <- LeverageScore(
-      object = LayerData(
-        object = object,
-        layer = l,
-        features = features.use,
-        fast = TRUE
-      ),
-      nsketch = nsketch,
-      ndims = ndims %||% ncol(x = object),
-      method = method,
-      eps = eps,
-      seed = seed,
-      verbose = verbose,
-      ...
-    )
+
+    scores[Cells(x = object, layer = l), 1] <- score_try
   }
   return(scores)
 }
