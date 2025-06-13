@@ -215,7 +215,7 @@ AddModuleScore.Seurat <- function(
 #' @concept utilities
 #' @rdname AddModuleScore
 #' @method AddModuleScore StdAssay
-#' 
+#'
 #' @references Tirosh et al, Science (2016)
 #'
 AddModuleScore.StdAssay <- function(
@@ -262,8 +262,8 @@ AddModuleScore.StdAssay <- function(
   return(features.scores.use)
 }
 
-#' 
-#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#'
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters
 #' when \code{k = TRUE}; ignored if \code{k = FALSE}.
 #' @export
 #' @concept utilities
@@ -271,7 +271,7 @@ AddModuleScore.StdAssay <- function(
 #' @method AddModuleScore Assay
 #'
 #' @importFrom ggplot2 cut_number
-#' 
+#'
 AddModuleScore.Assay <- function(
     object,
     features,
@@ -2536,6 +2536,44 @@ OldParamHints <- function(param) {
   )
   return(param.conversion[param])
 }
+
+
+
+# Restore previous seed when needed in `RunLeiden`
+#
+# @param seed old seed
+#
+# @author Benjamin Parks
+# @references from BPCells package
+# https://github.com/bnprks/BPCells/blob/f2026c3509f5e2542f7624bdaf75669d5d45d78b/r/R/utils.R#L18
+#
+
+restore_seed <- function(seed) {
+  if (is.null(seed)) {
+    rm(".Random.seed", envir = globalenv(), inherits = FALSE)
+  } else {
+    assign(".Random.seed", seed, envir = globalenv(), inherits = FALSE)
+  }
+}
+
+
+# Get current seed when needed in `RunLeiden`
+#
+# @param seed current seed
+#
+# @author Benjamin Parks
+# @references from BPCells package
+# https://github.com/bnprks/BPCells/blob/f2026c3509f5e2542f7624bdaf75669d5d45d78b/r/R/utils.R#L10
+#
+
+get_seed <- function() {
+  if (exists(".Random.seed", globalenv(), mode = "integer", inherits = FALSE)) {
+    return(get(".Random.seed", globalenv(), mode = "integer", inherits = FALSE))
+  } else {
+    return(NULL)
+  }
+}
+
 
 # Check if a web resource is available
 #
