@@ -286,7 +286,7 @@ AddModuleScore.Assay <- function(
     slot = 'data',
     ...
 ) {
-  assay.data <- GetAssayData(object = object, slot = slot)
+  assay.data <- GetAssayData(object = object, layer = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
