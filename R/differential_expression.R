@@ -771,7 +771,7 @@ FindMarkers.SCTAssay <- function(
     }
   }
 
-  data.use <-  GetAssayData(object = object, slot = data.slot)
+  data.use <-  GetAssayData(object = object, layer = data.slot)
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
@@ -1081,7 +1081,7 @@ FoldChange.Assay <- function(
   norm.method = NULL,
   ...
 ) {
-  data <- GetAssayData(object = object, slot = slot)
+  data <- GetAssayData(object = object, layer = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
     # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
@@ -1160,7 +1160,7 @@ FoldChange.SCTAssay <- function(
     ...
 ) {
   pseudocount.use <- pseudocount.use %||% 1
-  data <- GetAssayData(object = object, slot = slot)
+  data <- GetAssayData(object = object, layer = slot)
   default.mean.fxn <- function(x) {
     # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
@@ -2211,7 +2211,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
       object = object[[umi.assay]],
       layers = "counts", new = "counts")
   }
-  raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
+  raw_umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")
   corrected_counts <- Matrix(
     nrow = nrow(x = raw_umi),
     ncol = ncol(x = raw_umi),
@@ -2268,11 +2268,11 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   corrected_data <- log1p(x = corrected_counts)
   suppressWarnings({object <- SetAssayData(object = object,
                                            assay = assay,
-                                           slot = "counts",
+                                           layer = "counts",
                                            new.data = corrected_counts)})
   suppressWarnings({object <- SetAssayData(object = object,
                                            assay = assay,
-                                           slot = "data",
+                                           layer = "data",
                                            new.data = corrected_data)})
   SCTResults(object = object[[assay]], slot = "median_umi") <- set_median_umi
   return(object)
