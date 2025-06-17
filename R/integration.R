@@ -208,7 +208,7 @@ FindIntegrationAnchors <- function(
     scale <- FALSE
     if (is.numeric(x = anchor.features)) {
       stop("Please specify the anchor.features to be used. The expected ",
-      "workflow for integratinge assays produced by SCTransform is ",
+      "workflow for integrating assays produced by SCTransform is ",
       "SelectIntegrationFeatures -> PrepSCTIntegration -> ",
       "FindIntegrationAnchors.")
     }
@@ -885,7 +885,7 @@ FindTransferAnchors <- function(
   
   # Select one SCT model based on max num of cells if multiple detected in the ref
   if (normalization.method == "SCT"){
-    model_list <- reference[["SCT"]]@SCTModel.list
+    model_list <- reference[[reference.assay]]@SCTModel.list
     if (length(x = model_list) > 1) {
       model_cell_counts <- sapply(
         X = model_list,
@@ -896,8 +896,8 @@ FindTransferAnchors <- function(
       best_model_index <- which.max(model_cell_counts)
       chosen_model <- model_list[[best_model_index]]
       reference[["SCT"]] <- CreateSCTAssayObject(
-        data = GetAssayData(object = reference[["SCT"]], slot = "data"),
-        scale.data = GetAssayData(object = reference[["SCT"]], slot = "scale.data"),
+        data = LayerData(object = reference, assay = reference.assay, layer = "data"),
+        scale.data = LayerData(object = reference, assay = reference.assay, layer = "scale.data"),
         SCTModel.list = chosen_model
       )
       message("Selected the SCT model fitted on the most cells.")
@@ -6052,22 +6052,6 @@ ValidateParams_FindTransferAnchors <- function(
   if (normalization.method != "SCT") {
     recompute.residuals <- FALSE
     ModifyParam(param = "recompute.residuals", value = recompute.residuals)
-  }
-  
-  # Added check for preventing SCT and RNA assay mixing 
-  if (normalization.method == "SCT") {
-    if (IsSCT(assay = reference[[reference.assay]]) && !IsSCT(assay = query[[query.assay]])) {
-      stop(
-        "Reference assay is SCT, but query assay is RNA. ",
-        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
-      )
-    }
-    if (!IsSCT(assay = reference[[reference.assay]]) && IsSCT(assay = query[[query.assay]])) {
-      stop(
-        "Reference assay is RNA, but query assay is SCT. ",
-        "Mixing SCT and non-SCT in FindTransferAnchors is not supported."
-      )
-    }
   }
   
   if (recompute.residuals) {
