@@ -4240,14 +4240,14 @@ FindVariableFeatures.Assay <- function(
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
   if (selection.method == "vst") {
-    data <- GetAssayData(object = object, slot = "counts")
+    data <- LayerData(object = object, layer = "counts")
     # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
     if (IsMatrixEmpty(x = data)) {
       warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
-      data <- GetAssayData(object = object, slot = "data")
+      data <- LayerData(object = object, layer = "data")
     }
   } else {
-    data <- GetAssayData(object = object, slot = "data")
+    data <- LayerData(object = object, layer = "data")
   }
   hvf.info <- FindVariableFeatures(
     object = data,
@@ -4748,17 +4748,13 @@ NormalizeData.Assay <- function(
   verbose = TRUE,
   ...
 ) {
-  object <- SetAssayData(
-    object = object,
-    slot = 'data',
-    new.data = NormalizeData(
-      object = GetAssayData(object = object, slot = 'counts'),
-      normalization.method = normalization.method,
-      scale.factor = scale.factor,
-      verbose = verbose,
-      margin = margin,
-      ...
-    )
+  LayerData(object, layer = "data") <- NormalizeData(
+    object = LayerData(object = object, layer = "counts"),
+    normalization.method = normalization.method,
+    scale.factor = scale.factor,
+    verbose = verbose,
+    margin = margin,
+    ...
   )
   return(object)
 }
@@ -5132,13 +5128,13 @@ ScaleData.Assay <- function(
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
   if (length(x = features) == 0) {
-    features <- rownames(x = GetAssayData(object = object, slot = slot.use))
+    features <- rownames(x = LayerData(object = object, layer = slot.use))
   }
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',
     new.data = ScaleData(
-      object = GetAssayData(object = object, slot = slot.use),
+      object = LayerData(object = object, layer = slot.use),
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
