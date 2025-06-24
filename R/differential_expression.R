@@ -404,7 +404,8 @@ FindConservedMarkers <- function(
       X = markers.combined[, pval.codes, drop = FALSE],
       MARGIN = 1,
       FUN = function(x) {
-        return(meta.method(x)$p)
+        clean_x <- x[!is.na(x) & !is.nan(x)]
+        return(meta.method(clean_x)$p)
       }
     ))
     meta.method.name <- as.character(x = formals()$meta.method)
