@@ -3076,6 +3076,7 @@ BuildNicheAssay <- function(
   results <- kmeans(
     x = t(object[[assay]]@scale.data),
     centers = niches.k,
+    nstart = 30,
     ...
   )
   object[[cluster.name]] <- results[["cluster"]]
