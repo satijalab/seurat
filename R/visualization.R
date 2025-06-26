@@ -3855,6 +3855,183 @@ ISpatialFeaturePlot <- function(
   runGadget(app = ui, server = server)
 }
 
+#' Interactive Spatial Cell Selection Tool
+#'
+#' InteractiveSpatialPlot launches an interactive gadget to lasso-select cells from a 
+#' spatial Seurat object. Currently works only for Visium and SlideSeq data. 
+#' It returns the cell names of the selected subset.
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data
+#' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
+#' @param use.clusters Logical, whether to colour cells by \code{seurat_clusters} if available (default is \code{FALSE})
+#'
+#' @return A character vector of cell names selected via lasso (can then be used to subset the object)
+#'
+#' @keywords internal
+#'
+#' @examples
+#' \dontrun{
+#' selected_cells <- InteractiveSpatialPlot(object = brain, use.clusters = TRUE)
+#' }
+#'
+InteractiveSpatialPlot <- function(
+  object,
+  image = NULL,
+  image.scale = "lowres",
+  group.by = NULL,
+  alpha = 1.0
+) {
+  image <- image %||% DefaultImage(object)
+
+  #Check if image exists and is retrievable
+  #Usually anterior1 for Visium V2 objects, or image for Slideseq objects
+  if (!image %in% names(object@images)) {
+    stop("Image '", image, "' not found. Available image(s): ", paste(names(object@images), collapse = ", "))
+  }
+
+  image_obj <- object[[image]]
+
+  #Detect image type based on slot names
+  if ("boundaries" %in% slotNames(image_obj)) {
+    type <- "visium"
+  } else if ("coordinates" %in% slotNames(image_obj)) {
+    type <- "slideseq"
+  } else {
+    stop("Cannot determine image type: expected 'boundaries' (Visium) or 'coordinates' (Slide-seq).")
+  }
+
+  #Extract spatial coordinates from image centroids or coordinates
+  if (type == "visium") {
+    if (!"boundaries" %in% slotNames(image_obj)) {
+      stop("Image object does not have a 'boundaries' slot; check if data is truly Visium data")
+    }
+    centroids <- image_obj@boundaries$centroids
+    coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
+    coords$cell <- centroids@cells
+
+    #Apply lowres scale factor to match image pixel dimensions
+    scale.factor <- Seurat::ScaleFactors(image_obj)[[image.scale]]
+    if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
+
+    #Lowres scaling will alter the coordinates; so we store the original coordinates
+    coords$x_raw <- coords$x
+    coords$y_raw <- coords$y
+    coords$x <- coords$x * scale.factor
+    coords$y <- coords$y * scale.factor
+    
+  } else if (type == "slideseq") {
+    #Slide-seq-style image: extract from coordinates slot
+    if (!"coordinates" %in% slotNames(image_obj)) {
+      stop("Image object does not have a 'coordinates' slot; check if data is truly Slide-seq data")
+    }
+    coords <- as.data.frame(image_obj@coordinates)
+    coords$cell <- rownames(coords)
+    colnames(coords)[1:2] <- c("x", "y")
+
+    #Store raw coordinates (no scaling applied)
+    coords$x_raw <- coords$x
+    coords$y_raw <- coords$y
+  }
+
+  meta <- object@meta.data
+
+  #If clusters have already been calculated, visualize them in the interactive plot
+  #Otherwise treat entire image as one simple cluster
+  if (is.null(group.by)) {
+    group.by <- if ("seurat_clusters" %in% colnames(meta)) "seurat_clusters" else "all"
+  }
+  #Assign grouping variable
+  if (group.by != "all") {
+    coords$group <- meta[coords$cell, group.by]
+  } else {
+    coords$group <- "all"
+  }
+
+  #Overlay raster image as base64 if available
+  base64_image <- NULL
+  if (type == "visium" && "image" %in% slotNames(image_obj)) {
+    img_raster <- image_obj@image
+    temp_png <- tempfile(fileext = ".png")
+    png(temp_png, width = dim(img_raster)[2], height = dim(img_raster)[1])
+    grid::grid.raster(img_raster)
+    dev.off()
+    img_bytes <- readBin(temp_png, "raw", file.info(temp_png)$size)
+    base64_image <- paste0("data:image/png;base64,", base64enc::base64encode(img_bytes))
+  }
+
+  #UI layout for interactive lasso gadget
+  ui <- miniPage(
+    gadgetTitleBar("Select a subset of cells"),
+    miniContentPanel(
+      plotlyOutput("plot", height = "100%")
+    )
+  )
+
+  #Capture lasso selections through server function; launch session
+  #Render scatterplot with spatial coordinates (grouped by cell identity/cluster)
+  server <- function(input, output, session) {
+    output$plot <- renderPlotly({
+      #Maintain aspect ratio of original image
+      plt <- plot_ly(
+        data = coords,
+        x = ~y,
+        y = ~x,
+        color = ~group,
+        key = ~cell,
+        text = ~paste("Cell:", cell, "<br>Spot (x, y):", x_raw, ",", y_raw),
+        hoverinfo = "text"
+      ) %>%
+        add_markers(
+          marker = list(size = 5),
+          alpha = alpha,
+          selected = list(marker = list(opacity = 1)),
+          unselected = list(marker = list(opacity = 0.5))
+        )
+
+      #Overlay original tissue image behind points (only for Visium)
+      if (!is.null(base64_image)) {
+        plt <- plt %>% layout(
+          images = list(
+            list(
+              source = base64_image,
+              xref = "x", yref = "y",
+              x = 0,
+              y = 0,
+              sizex = dim(image_obj@image)[2],
+              sizey = dim(image_obj@image)[1],
+              sizing = "stretch",
+              opacity = 0.6,
+              layer = "below"
+            )
+          )
+        )
+      }
+
+      #Default selection is lasso
+      plt <- plt %>% layout(
+        dragmode = "lasso",
+        yaxis = list(autorange = "reversed", scaleanchor = "x", title="x scaled"),
+        xaxis = list(scaleanchor = "y", title="y scaled")
+      )
+      plt
+    })
+
+    #Store selected subset of cells
+    observeEvent(input$done, {
+      selected <- event_data("plotly_selected")
+      selected_cells <- selected$key
+      stopApp(selected_cells)
+    })
+
+    observeEvent(input$cancel, {
+      stopApp(NULL)
+    })
+  }
+
+  #Launch gadget
+  runGadget(ui, server)
+}
+
 #' Visualize spatial clustering and expression data.
 #'
 #' SpatialPlot plots a feature or discrete grouping (e.g. cluster assignments) as
