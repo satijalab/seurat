@@ -442,6 +442,8 @@ SpecificDimPlot <- function(object, ...) {
   funs <- sys.calls()
   name <- as.character(x = funs[[length(x = funs) - 1]])[1]
   name <- tolower(x = gsub(pattern = 'Plot', replacement = '', x = name))
+  # add second gsub to check if Seurat:: is called
+  name <- gsub(pattern = "^seurat::", replacement = "", x = name)
   args <- list('object' = object)
   args <- c(args, list(...))
   reduc <- grep(
