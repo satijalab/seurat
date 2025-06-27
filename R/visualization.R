@@ -3861,6 +3861,11 @@ ISpatialFeaturePlot <- function(
 #' spatial Seurat object. Currently works only for Visium and SlideSeq data. 
 #' It returns the cell names of the selected subset.
 #'
+#' @note This function requires the
+#' \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}} and
+#' \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}} packages
+#' to be installed.
+#' 
 #' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data
 #' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
 #' @param use.clusters Logical, whether to colour cells by \code{seurat_clusters} if available (default is \code{FALSE})
