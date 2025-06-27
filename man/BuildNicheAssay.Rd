@@ -28,8 +28,6 @@ BuildNicheAssay(
 
 \item{neighbors.k}{Number of neighbors to consider for each cell}
 
-\item{niches.k}{Number of clusters to return based on the niche assay}
-
 \item{...}{Extra parameters passed to \code{\link{kmeans}}}
 }
 \value{
@@ -37,7 +35,7 @@ Seurat object containing a new assay
 }
 \description{
 This function will construct a new assay where each feature is a
-cell label. The values represent the sum of a particular cell label
+cell label The values represents the sum of a particular cell label
 neighboring a given cell.
 }
 \concept{clustering}

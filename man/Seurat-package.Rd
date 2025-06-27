@@ -61,6 +61,7 @@ Other contributors:
   \item Longda Jiang \email{ljiang@nygenome.org} (\href{https://orcid.org/0000-0003-4964-6497}{ORCID}) [contributor]
   \item Madeline Kowalski \email{mkowalski@nygenome.org} (\href{https://orcid.org/0000-0002-5655-7620}{ORCID}) [contributor]
   \item Skylar Li \email{sli@nygenome.org} [contributor]
+  \item Brian Zhang \email{brianzhang@nygenome.org} [contributor]
   \item Gesmira Molla \email{gmolla@nygenome.org} (\href{https://orcid.org/0000-0002-8628-5056}{ORCID}) [contributor]
   \item Efthymia Papalexi \email{epapalexi@nygenome.org} (\href{https://orcid.org/0000-0001-5898-694X}{ORCID}) [contributor]
   \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
