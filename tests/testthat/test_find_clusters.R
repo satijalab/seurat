@@ -54,4 +54,6 @@ test_that("Smoke test for `FindClusters`", {
   # which is the default for `FindClusters` so a warning should be raised.
   expect_warning(FindClusters(test_case, algorithm = 4))
   expect_no_warning(FindClusters(test_case, algorithm = 4, random.seed = 1))
+  expect_warning(FindClusters(test_case, algorithm = 4, leiden_method = "igraph"))
+  expect_no_warning(FindClusters(test_case, algorithm = 4, leiden_method = "igraph", random.seed = 1))
 })
