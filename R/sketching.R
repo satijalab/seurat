@@ -453,23 +453,30 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
-  R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
-  if (isTRUE(x = verbose)) {
-    message("Performing random projection")
-  }
-  JL <- as.sparse(x = JLEmbed(
-    nrow = ncol(x = R.inv),
-    ncol = ndims,
-    eps = eps,
-    seed = seed
-  ))
-  Z <- object %*% (R.inv %*% JL)
-  if (inherits(x = Z, what = 'IterableMatrix')) {
-    Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
-                            )$row_stats['mean',]*ncol(x = Z)
-    } else {
-    Z.score <- rowSums(x = Z ^ 2)
-  }
+  A <- diag(x = R)
+  if (any(A == 0)) {
+    bad_elem <- which(A == 0)
+    message(paste0("Found 0 in diagonal of input matrix at ", bad_elem, ". Assigning all cells leverage score of 1"))
+    Z.score <- rep(1, nrow(x = object))
+  } else {
+    R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
+    if (isTRUE(x = verbose)) {
+      message("Performing random projection")
+    }
+    JL <- as.sparse(x = JLEmbed(
+      nrow = ncol(x = R.inv),
+      ncol = ndims,
+      eps = eps,
+      seed = seed
+    ))
+    Z <- object %*% (R.inv %*% JL)
+    if (inherits(x = Z, what = 'IterableMatrix')) {
+      Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
+                              )$row_stats['mean',]*ncol(x = Z)
+      } else {
+      Z.score <- rowSums(x = Z ^ 2)
+      }
+    }
   return(Z.score)
 }
 
