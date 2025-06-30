@@ -3868,8 +3868,7 @@ ISpatialFeaturePlot <- function(
 #' 
 #' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data
 #' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
-#' @param use.clusters Logical, whether to colour cells by \code{seurat_clusters} if available (default is \code{FALSE})
-#'
+#' 
 #' @importFrom grDevices png dev.off
 #' 
 #' @return A character vector of cell names selected via lasso (can then be used to subset the object)

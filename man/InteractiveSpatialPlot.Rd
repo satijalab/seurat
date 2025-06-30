@@ -16,8 +16,6 @@ InteractiveSpatialPlot(
 \item{object}{A \code{\link[SeuratObject]{Seurat}} object with spatial data}
 
 \item{image}{Name of the spatial image stored in the object (default is \code{"anterior1"})}
-
-\item{use.clusters}{Logical, whether to colour cells by \code{seurat_clusters} if available (default is \code{FALSE})}
 }
 \value{
 A character vector of cell names selected via lasso (can then be used to subset the object)
