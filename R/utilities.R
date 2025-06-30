@@ -3026,7 +3026,7 @@ CreateCategoryMatrix <- function(
 #' @param assay Name for spatial neighborhoods assay
 #' @param cluster.name Name of output clusters
 #' @param neighbors.k Number of neighbors to consider for each cell
-#' @param niches.k Number of clusters to return based on the niche assay
+#' @param ... Extra parameters passed to \code{\link{kmeans}}
 #'
 #' @importFrom stats kmeans
 #' @return Seurat object containing a new assay
@@ -3040,7 +3040,8 @@ BuildNicheAssay <- function(
   assay = "niche",
   cluster.name = "niches",
   neighbors.k = 20,
-  niches.k = 4
+  niches.k = 4,
+  ...
 ) {
   # initialize an empty cells x groups binary matrix
   cells <- Cells(object[[fov]])
@@ -3075,7 +3076,8 @@ BuildNicheAssay <- function(
   results <- kmeans(
     x = t(object[[assay]]@scale.data),
     centers = niches.k,
-    nstart = 30
+    nstart = 30,
+    ...
   )
   object[[cluster.name]] <- results[["cluster"]]
 
