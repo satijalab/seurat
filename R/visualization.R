@@ -3871,9 +3871,6 @@ ISpatialFeaturePlot <- function(
 #' @param use.clusters Logical, whether to colour cells by \code{seurat_clusters} if available (default is \code{FALSE})
 #'
 #' @importFrom grDevices png dev.off
-#' @importFrom plotly plotlyOutput renderPlotly add_markers event_data
-#' @importFrom magrittr %>%
-#' @importFrom base64enc base64encode
 #' 
 #' @return A character vector of cell names selected via lasso (can then be used to subset the object)
 #'
@@ -3891,6 +3888,20 @@ InteractiveSpatialPlot <- function(
   group.by = NULL,
   alpha = 1.0
 ) {
+  # Check for required packages
+  if (!requireNamespace("plotly", quietly = TRUE)) {
+    stop("The 'plotly' package must be installed to use InteractiveSpatialPlot().")
+  }
+  if (!requireNamespace("magrittr", quietly = TRUE)) {
+    stop("The 'magrittr' package must be installed to use InteractiveSpatialPlot().")
+  }
+  if (!requireNamespace("base64enc", quietly = TRUE)) {
+    stop("The 'base64enc' package must be installed to use InteractiveSpatialPlot().")
+  }
+
+  # Import pipe operator locally
+  `%>%` <- magrittr::`%>%`
+
   image <- image %||% DefaultImage(object)
 
   #Check if image exists and is retrievable
@@ -3928,7 +3939,7 @@ InteractiveSpatialPlot <- function(
     coords$y_raw <- coords$y
     coords$x <- coords$x * scale.factor
     coords$y <- coords$y * scale.factor
-    
+
   } else if (type == "slideseq") {
     #Slide-seq-style image: extract from coordinates slot
     if (!"coordinates" %in% slotNames(image_obj)) {
@@ -3973,16 +3984,16 @@ InteractiveSpatialPlot <- function(
   ui <- miniPage(
     gadgetTitleBar("Select a subset of cells"),
     miniContentPanel(
-      plotlyOutput("plot", height = "100%")
+      plotly::plotlyOutput("plot", height = "100%")
     )
   )
 
   #Capture lasso selections through server function; launch session
   #Render scatterplot with spatial coordinates (grouped by cell identity/cluster)
   server <- function(input, output, session) {
-    output$plot <- renderPlotly({
+    output$plot <- plotly::renderPlotly({
       #Maintain aspect ratio of original image
-      plt <- plot_ly(
+      plt <- plotly::plot_ly(
         data = coords,
         x = ~y,
         y = ~x,
@@ -3991,7 +4002,7 @@ InteractiveSpatialPlot <- function(
         text = ~paste("Cell:", cell, "<br>Spot (x, y):", x_raw, ",", y_raw),
         hoverinfo = "text"
       ) %>%
-        add_markers(
+        plotly::add_markers(
           marker = list(size = 5),
           alpha = alpha,
           selected = list(marker = list(opacity = 1)),
@@ -4000,7 +4011,7 @@ InteractiveSpatialPlot <- function(
 
       #Overlay original tissue image behind points (only for Visium)
       if (!is.null(base64_image)) {
-        plt <- plt %>% layout(
+        plt <- plt %>% plotly::layout(
           images = list(
             list(
               source = base64_image,
@@ -4018,7 +4029,7 @@ InteractiveSpatialPlot <- function(
       }
 
       #Default selection is lasso
-      plt <- plt %>% layout(
+      plt <- plt %>% plotly::layout(
         dragmode = "lasso",
         yaxis = list(autorange = "reversed", scaleanchor = "x", title="x scaled"),
         xaxis = list(scaleanchor = "y", title="y scaled")
@@ -4028,7 +4039,7 @@ InteractiveSpatialPlot <- function(
 
     #Store selected subset of cells
     observeEvent(input$done, {
-      selected <- event_data("plotly_selected")
+      selected <- plotly::event_data("plotly_selected")
       selected_cells <- selected$key
       stopApp(selected_cells)
     })
