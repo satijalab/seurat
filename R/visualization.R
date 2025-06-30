@@ -3870,6 +3870,11 @@ ISpatialFeaturePlot <- function(
 #' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
 #' @param use.clusters Logical, whether to colour cells by \code{seurat_clusters} if available (default is \code{FALSE})
 #'
+#' @importFrom grDevices png dev.off
+#' @importFrom plotly plotlyOutput renderPlotly add_markers event_data
+#' @importFrom magrittr %>%
+#' @importFrom base64enc base64encode
+#' 
 #' @return A character vector of cell names selected via lasso (can then be used to subset the object)
 #'
 #' @keywords internal
