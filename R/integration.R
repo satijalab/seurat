@@ -896,13 +896,8 @@ FindTransferAnchors <- function(
       best_model_index <- which.max(model_cell_counts)
       chosen_model <- model_list[[best_model_index]]
       reference[["SCT"]] <- CreateSCTAssayObject(
-<<<<<<< HEAD
-        data = LayerData(object = reference, assay = reference.assay, layer = "data"),
-        scale.data = LayerData(object = reference, assay = reference.assay, layer = "scale.data"),
-=======
         data = GetAssayData(object = reference[["SCT"]], layer = "data"),
         scale.data = GetAssayData(object = reference[["SCT"]], layer = "scale.data"),
->>>>>>> fix-slotparameter
         SCTModel.list = chosen_model
       )
       message("Selected the SCT model fitted on the most cells.")
