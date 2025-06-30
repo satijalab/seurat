@@ -286,7 +286,7 @@ AddModuleScore.Assay <- function(
     slot = 'data',
     ...
 ) {
-  assay.data <- GetAssayData(object = object, slot = slot)
+  assay.data <- GetAssayData(object = object, layer = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
@@ -1062,7 +1062,7 @@ GroupCorrelation <- function(
     min.cells = min.cells,
     ngroups = ngroups
   )
-  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], layer = slot))
   data <- data[rowMeans(x = data) != 0, ]
   grp.cors <- apply(
     X = data,
@@ -1172,7 +1172,7 @@ MetaFeature <- function(
 ) {
   cells <- cells %||% colnames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
-  newmat <- GetAssayData(object = object, assay = assay, slot = slot)
+  newmat <- GetAssayData(object = object, assay = assay, layer = slot)
   newmat <- newmat[features, cells]
   if (slot == 'scale.data') {
     newdata <- Matrix::colMeans(newmat)

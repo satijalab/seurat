@@ -523,11 +523,11 @@ ReciprocalProject <- function(
   object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
   data.1 <- GetAssayData(
     object = object.1,
-    slot = slot
+    layer = slot
   )
   data.2 <- GetAssayData(
     object = object.2,
-    slot = slot
+    layer = slot
   )
 
   proj.1 <- ProjectSVD(
@@ -896,8 +896,13 @@ FindTransferAnchors <- function(
       best_model_index <- which.max(model_cell_counts)
       chosen_model <- model_list[[best_model_index]]
       reference[["SCT"]] <- CreateSCTAssayObject(
+<<<<<<< HEAD
         data = LayerData(object = reference, assay = reference.assay, layer = "data"),
         scale.data = LayerData(object = reference, assay = reference.assay, layer = "scale.data"),
+=======
+        data = GetAssayData(object = reference[["SCT"]], layer = "data"),
+        scale.data = GetAssayData(object = reference[["SCT"]], layer = "scale.data"),
+>>>>>>> fix-slotparameter
         SCTModel.list = chosen_model
       )
       message("Selected the SCT model fitted on the most cells.")
@@ -1130,7 +1135,7 @@ FindTransferAnchors <- function(
     if (project.query) {
       projected.lsi <- ProjectSVD(
         reduction = query[[reference.reduction]],
-        data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
+        data = GetAssayData(object = reference, assay = reference.assay, layer = "data"),
         mode = "lsi",
         do.center = FALSE,
         do.scale = FALSE,
@@ -1142,7 +1147,7 @@ FindTransferAnchors <- function(
     } else {
       projected.lsi <- ProjectSVD(
         reduction = reference[[reference.reduction]],
-        data = GetAssayData(object = query, assay = reference.assay, slot = "data"),
+        data = GetAssayData(object = query, assay = reference.assay, layer = "data"),
         mode = "lsi",
         do.center = FALSE,
         do.scale = FALSE,
@@ -1325,7 +1330,7 @@ FindTransferAnchors <- function(
 #' @concept integration
 #'
 GetTransferPredictions <- function(object, assay = "predictions", slot = "data", score.filter = 0.75) {
-  dat <- GetAssayData(object[[assay]], slot = slot)
+  dat <- GetAssayData(object[[assay]], layer = slot)
   predictions <- apply(
     X = dat,
     MARGIN = 2,
@@ -1525,7 +1530,7 @@ IntegrateData <- function(
         data = GetAssayData(
           object = object.list[[i]],
           assay = assay,
-          slot = "scale.data")
+          layer = "scale.data")
         )
       )
     }
@@ -1580,9 +1585,9 @@ IntegrateData <- function(
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
       reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
-        data = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "data"),
+        data = GetAssayData(object = reference.integrated, assay = new.assay.name, layer = "data"),
         scale.data = ScaleData(
-          object = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "scale.data"),
+          object = GetAssayData(object = reference.integrated, assay = new.assay.name, layer = "scale.data"),
           do.scale = FALSE,
           do.center = TRUE,
           verbose = FALSE),
@@ -1602,7 +1607,7 @@ IntegrateData <- function(
     reference.integrated[[active.assay]] <- CreateAssayObject(
       data = GetAssayData(
         object = reference.integrated[[new.assay.name]],
-        slot = 'data'
+        layer = 'data'
       ),
       check.matrix = FALSE
     )
@@ -1772,7 +1777,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data'
+      layer = 'data'
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -2999,11 +3004,11 @@ PrepSCTIntegration <- function(
       scale.data <- GetAssayData(
         object = obj,
         assay = assay[i],
-        slot = 'scale.data'
+        layer = 'scale.data'
       )
       obj <- SetAssayData(
         object = obj,
-        slot = 'scale.data',
+        layer = 'scale.data',
         new.data = scale.data[anchor.features, ],
         assay = assay[i]
       )
@@ -3745,7 +3750,7 @@ AnnotateAnchors.default <- function(
       var <- vars[v]
       var.list <- lapply(X = object.list, FUN = function(x) {
         tryCatch(
-          expr = FetchData(object = x, vars = var, slot = slot[v]),
+          expr = FetchData(object = x, vars = var, layer = slot[v]),
           error = function(e) {
             data.fetched <- as.data.frame(
               x = rep(x = NA, times = ncol(x = x)),
@@ -4020,12 +4025,12 @@ FilterAnchors <- function(
     cn.data1 <- L2Norm(
       mat = as.matrix(x = t(x = GetAssayData(
         object = object[[assay[1]]],
-        slot = slot)[features, nn.cells1])),
+        layer = slot)[features, nn.cells1])),
       MARGIN = 1)
     cn.data2 <- L2Norm(
       mat = as.matrix(x = t(x = GetAssayData(
         object = object[[assay[2]]],
-        slot = slot)[features, nn.cells2])),
+        layer = slot)[features, nn.cells2])),
       MARGIN = 1)
     nn <- NNHelper(
       data = cn.data2[nn.cells2, ],
@@ -4380,17 +4385,17 @@ FindIntegrationMatrix <- function(
     message("Finding integration vectors")
   }
   features.integrate <- features.integrate %||% rownames(
-    x = GetAssayData(object = object, assay = assay, slot = "data")
+    x = GetAssayData(object = object, assay = assay, layer = "data")
   )
   data.use1 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.integrate, nn.cells1]
+    layer = "data")[features.integrate, nn.cells1]
   )
   data.use2 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.integrate, nn.cells2]
+    layer = "data")[features.integrate, nn.cells2]
   )
   anchors1 <- nn.cells1[anchors[, "cell1"]]
   anchors2 <- nn.cells2[anchors[, "cell2"]]
@@ -4580,12 +4585,12 @@ FindWeights <- function(
     } else {
       data.use <- t(x = GetAssayData(
         object = object,
-        slot = 'data',
+        layer = 'data',
         assay = assay)[features, nn.cells1]
       )
       data.use.query <- t(x = GetAssayData(
         object = object,
-        slot = 'data',
+        layer = 'data',
         assay = assay)[features, nn.cells2]
       )
     }
@@ -4605,7 +4610,7 @@ FindWeights <- function(
     if (is.null(x = features)) {
       data.use <- Embeddings(reduction)[nn.cells2, dims]
     } else {
-      data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
+      data.use <- t(x = GetAssayData(object = object, layer = 'data', assay = assay)[features, nn.cells2])
     }
     knn_2_2 <- NNHelper(
       data = data.use[anchors.cells2, ],
@@ -4796,7 +4801,7 @@ MapQueryData <- function(
   )
   reference.integrated <- GetAssayData(
     object = reference,
-    slot = 'data'
+    layer = 'data'
   )[features.to.integrate, ]
   query.corrected[[length(x = query.corrected) + 1]] <- reference.integrated
   all.integrated <- do.call(cbind, query.corrected)
@@ -4894,7 +4899,7 @@ PairwiseIntegrateReference <- function(
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
     ref.obj[[new.assay.name]] <- CreateAssayObject(
-      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
+      data = GetAssayData(ref.obj, layer = 'data')[features.to.integrate, ],
       check.matrix = FALSE
     )
     DefaultAssay(object = ref.obj) <- new.assay.name
@@ -5017,7 +5022,7 @@ PairwiseIntegrateReference <- function(
       eps = eps,
       verbose = verbose
     )
-    integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
+    integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, layer = 'data')[features.to.integrate, ])
     merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
@@ -5028,7 +5033,7 @@ PairwiseIntegrateReference <- function(
   integrated.data <- GetAssayData(
     object = object.list[[as.character(x = ii)]],
     assay = new.assay.name,
-    slot = 'data'
+    layer = 'data'
   )
   integrated.data <- integrated.data[, colnames(x = unintegrated)]
   new.assay <- new(
@@ -5048,8 +5053,8 @@ PairwiseIntegrateReference <- function(
   if (normalization.method == "SCT"){
     unintegrated[[new.assay.name]] <- SetAssayData(
       object = unintegrated[[new.assay.name]],
-      slot = "scale.data",
-      new.data = as.matrix(x = GetAssayData(object = unintegrated[[new.assay.name]], slot = "data"))
+      layer = "scale.data",
+      new.data = as.matrix(x = GetAssayData(object = unintegrated[[new.assay.name]], layer = "data"))
     )
   }
   unintegrated <- SetIntegrationData(
@@ -5200,7 +5205,7 @@ ProjectCellEmbeddings.Assay <- function(
   proj.pca <- ProjectCellEmbeddings(
     query = GetAssayData(
       object = query,
-      slot = slot),
+      layer= slot),
     reference = reference,
     reference.assay = reference.assay,
     reduction = reduction,
@@ -5247,7 +5252,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   )
   query.data <- GetAssayData(
     object = query,
-    slot = "scale.data")[features,]
+    layer = "scale.data")[features,]
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = query.data))
   return(proj.pca)
@@ -5357,7 +5362,7 @@ if (normalization.method == 'SCT') {
     reference.data <- GetAssayData(
       object = reference,
       assay = reference.assay,
-      slot = "data")[features, ]
+      layer = "data")[features, ]
   }
   if (is.null(x = feature.mean)) {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
@@ -5696,7 +5701,7 @@ RunIntegration <- function(
       if (normalization.method == "SCT"){
         # recenter residuals
         centered.resids <- ScaleData(
-          object = GetAssayData(object = merged.obj, assay = assay, slot = "data"),
+          object = GetAssayData(object = merged.obj, assay = assay, layer = "data"),
           do.scale = FALSE,
           do.center = TRUE,
           verbose = FALSE
@@ -5770,7 +5775,7 @@ RunIntegration <- function(
   integrated.matrix <- GetAssayData(
     object = merged.obj,
     assay = new.assay.name,
-    slot = 'data'
+    layer = 'data'
   )
   return(integrated.matrix[, cells2])
 }
@@ -5907,12 +5912,12 @@ TransformDataMatrix <- function(
   data.use1 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.to.integrate, nn.cells1]
+    layer = "data")[features.to.integrate, nn.cells1]
   )
   data.use2 <- t(x = GetAssayData(
     object = object,
     assay = assay,
-    slot = "data")[features.to.integrate, nn.cells2]
+    layer = "data")[features.to.integrate, nn.cells2]
   )
 
   integrated <- IntegrateDataC(integration_matrix = as.sparse(x = integration.matrix),
@@ -6698,7 +6703,7 @@ FindAssayAnchor <- function(
         x[[reduction.name]] <- CreateDimReducObject(
           embeddings = t(GetAssayData(
             object = x,
-            slot = slot,
+            layer = slot,
             assay = assay
           )),
           key = "L_",
@@ -7050,9 +7055,9 @@ FindBridgeAnchor <- function(object.list,
       FUN = function(x) {
      x <- SetAssayData(
        object = x,
-       slot = "scale.data",
+       layer = "scale.data",
        new.data = as.matrix(
-         x = GetAssayData(object = x, slot = "data")
+         x = GetAssayData(object = x, layer = "data")
          ))
      return(x)
      }
@@ -7078,7 +7083,7 @@ FindBridgeAnchor <- function(object.list,
                          ) <- CreateDimReducObject(
                            embeddings = t(GetAssayData(
                              object = object.merge,
-                             slot = 'data'
+                             layer = 'data'
                            )),
                            key = "L_",
                            assay = bridge.assay.name
@@ -7381,7 +7386,7 @@ SparseMeanSd <- function(object,
   assay <- assay%||% DefaultAssay(object)
   features <- features %||% rownames(object[[assay]])
   assay <- assay %||% DefaultAssay(object = object)
-  mat <- GetAssayData(object = object[[assay]], slot = slot)[features,]
+  mat <- GetAssayData(object = object[[assay]], layer = slot)[features,]
   if (class(mat)[1] !='dgCMatrix'){
     stop('Matrix is not sparse')
   }
@@ -7412,7 +7417,7 @@ RunPCA_Sparse <- function(
   verbose = TRUE
 ) {
   features <- features %||% VariableFeatures(object)
-  data <- GetAssayData(object = object, slot = "data")[features,]
+  data <- GetAssayData(object = object, layer = "data")[features,]
   n <- npcs
   args <- list(A = t(data), nv = n)
   args$center <- RowMeanSparse(data)
@@ -7518,7 +7523,7 @@ ProjectDimReduc <- function(query,
     }
     projected.embeddings <- ProjectSVD(
       reduction = reference[[reference.reduction]],
-      data = GetAssayData(object = query, assay = query.assay, slot = "data"),
+      data = GetAssayData(object = query, assay = query.assay, layer = "data"),
       mode = "lsi",
       do.center = FALSE,
       do.scale = FALSE,
@@ -7537,7 +7542,7 @@ ProjectDimReduc <- function(query,
                            features = features,
                            verbose = FALSE)
       )
-      query.mat <- GetAssayData(object = query, slot = 'scale.data')[features,]
+      query.mat <- GetAssayData(object = query, layer = 'scale.data')[features,]
 
       projected.embeddings <- t(
         crossprod(x = Loadings(

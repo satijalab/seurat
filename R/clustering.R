@@ -227,7 +227,7 @@ PredictAssay <- function(
     reference.data <- GetAssayData(
       object = object,
       assay = assay,
-      slot = slot
+      layer = slot
     )
     features <- features %||% VariableFeatures(object = object[[assay]])
     if (length(x = features) == 0) {
@@ -674,7 +674,7 @@ FindNeighbors.Assay <- function(
 ) {
   CheckDots(...)
   features <- features %||% VariableFeatures(object = object)
-  data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
+  data.use <- t(x = GetAssayData(object = object, layer = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
     object = data.use,
     k.param = k.param,
