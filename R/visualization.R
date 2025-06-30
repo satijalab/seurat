@@ -71,6 +71,8 @@ DimHeatmap <- function(
   combine = TRUE
 ) {
   ncol <- ncol %||% ifelse(test = length(x = dims) > 2, yes = 3, no = length(x = dims))
+  #If 'ncol' is not provided, set it to 3 when more than 2 dimensions are requested, 
+  #Otherwise use the number of dimensions as the default
   plots <- vector(mode = 'list', length = length(x = dims))
   assays <- assays %||% DefaultAssay(object = object)
   disp.max <- disp.max %||% ifelse(
