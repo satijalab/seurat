@@ -4240,16 +4240,6 @@ FindVariableFeatures.Assay <- function(
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
   if (selection.method == "vst") {
-<<<<<<< HEAD
-    data <- LayerData(object = object, layer = "counts")
-    # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
-    if (IsMatrixEmpty(x = data)) {
-      warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
-      data <- LayerData(object = object, layer = "data")
-    }
-  } else {
-    data <- LayerData(object = object, layer = "data")
-=======
     data <- GetAssayData(object = object, layer = "counts")
     # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
     if (IsMatrixEmpty(x = data)) {
@@ -4258,7 +4248,6 @@ FindVariableFeatures.Assay <- function(
     }
   } else {
     data <- GetAssayData(object = object, layer = "data")
->>>>>>> fix-slotparameter
   }
   hvf.info <- FindVariableFeatures(
     object = data,
@@ -4759,15 +4748,6 @@ NormalizeData.Assay <- function(
   verbose = TRUE,
   ...
 ) {
-<<<<<<< HEAD
-  LayerData(object, layer = "data") <- NormalizeData(
-    object = LayerData(object = object, layer = "counts"),
-    normalization.method = normalization.method,
-    scale.factor = scale.factor,
-    verbose = verbose,
-    margin = margin,
-    ...
-=======
   object <- SetAssayData(
     object = object,
     layer = 'data',
@@ -4779,7 +4759,6 @@ NormalizeData.Assay <- function(
       margin = margin,
       ...
     )
->>>>>>> fix-slotparameter
   )
   return(object)
 }
@@ -5153,21 +5132,13 @@ ScaleData.Assay <- function(
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
   if (length(x = features) == 0) {
-<<<<<<< HEAD
-    features <- rownames(x = LayerData(object = object, layer = slot.use))
-=======
     features <- rownames(x = GetAssayData(object = object, layer = slot.use))
->>>>>>> fix-slotparameter
   }
   object <- SetAssayData(
     object = object,
     layer = 'scale.data',
     new.data = ScaleData(
-<<<<<<< HEAD
-      object = LayerData(object = object, layer = slot.use),
-=======
       object = GetAssayData(object = object, layer = slot.use),
->>>>>>> fix-slotparameter
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
