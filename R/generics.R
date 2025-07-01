@@ -6,6 +6,28 @@ NULL
 # Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Calculate module scores for feature expression programs in single cells
+#'
+#' Calculate the average expression levels of each program (cluster) on single
+#' cell level, subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the
+#' control features are randomly selected from each bin.
+#'
+#' @param object An object 
+#' @param ... Arguments passed to other methods
+#'
+#' @return Returns a Seurat object with module scores added to object meta data;
+#' each module is stored as \code{name#} for each module program present in
+#' \code{features}
+#'
+#' @references Tirosh et al, Science (2016)
+#'
+#' @export
+#' @concept utilities
+#'
+AddModuleScore <- function(object, ...) {
+  UseMethod(generic = 'AddModuleScore', object = object)
+}
 
 #' Add info to anchor matrix
 #'
@@ -317,7 +339,7 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 #' 
 #' @references Clarkson, K. L. & Woodruff, D. P.
 #' Low-rank approximation and regression in input sparsity time.
-#' JACM 63, 1–45 (2017). \url{https://dl.acm.org/doi/10.1145/3019134};
+#' JACM 63, 1–45 (2017). \doi{10.1145/3019134};
 #'
 #' @export
 #'
@@ -754,6 +776,17 @@ SCTResults <- function(object, ...) {
   UseMethod(generic = 'SCTResults', object = object)
 }
 
+#' Get the Pearson residuals from an sctransform-normalized dataset.
+#' 
+#' @param object An object
+#' @param ... Arguments passed to other methods (not used)
+#'
+#' @rdname FetchResiduals
+#' @export FetchResiduals
+#'
+FetchResiduals <- function(object, ...) {
+  UseMethod(generic = 'FetchResiduals', object = object)
+}
 
 #' @param value new data to set
 #'

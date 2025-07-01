@@ -3629,7 +3629,7 @@ SampleUMI <- function(
 #' replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
 #' \code{ScaleData} workflow by fitting a regularized negative binomial model
 #' per gene and returning:
-#'
+#' 
 #' - A new assay (default name “SCT”), in which:
 #'   - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
 #'     sequencing depth; controlled by \code{do.correct.umi}).
@@ -3640,13 +3640,13 @@ SampleUMI <- function(
 #'
 #' When multiple \code{counts} layers exist (e.g. after \code{split()}),
 #' each layer is modeled independently. A consensus variable‐feature set is
-#' then defined by ranking features by how often they’re called “variable”
+#' then defined by ranking features by how often they’re called “variable” 
 #' across different layers (ties broken by median rank).
-#'
+#' 
 #' By default, \code{sctransform::vst} will drop features expressed in fewer
 #' than five cells. In the multi-layer case, this can lead to consenus
 #' variable-features being excluded from the output's \code{scale.data} when
-#' a feature is "variable" across many layers but sparsely expressed in at
+#' a feature is "variable" across many layers but sparsely expressed in at 
 #' least one.
 #'
 #' @param object A Seurat object or UMI count matrix.
@@ -3702,11 +3702,11 @@ SampleUMI <- function(
 #' @seealso \code{\link[sctransform]{vst}},
 #'   \code{\link[sctransform]{get_residuals}},
 #'   \code{\link[sctransform]{correct_counts}}
-#'
+#' 
 #' @rdname SCTransform
 #' @concept preprocessing
 #' @export
-#'
+#' 
 SCTransform.default <- function(
   object,
   cell.attr,

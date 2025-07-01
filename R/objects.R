@@ -254,7 +254,7 @@ SCTAssay <- setClass(
 #' @concept spatial
 #' @export
 #'
-scalefactors <- function(spot, fiducial, hires, lowres) {
+scalefactors <- function(spot = 1, fiducial = 1, hires = 1, lowres = 1) {
   object <- list(
     spot = spot,
     fiducial = fiducial,
@@ -652,7 +652,7 @@ DietSeurat <- function(
     cells.keep[[assay]] <- colnames(x = object[[assay]] )
   }
   cells.keep <- intersect(colnames(x = object), unlist(cells.keep))
-  if (length(cells.keep) <- ncol(x = object)) {
+  if (length(cells.keep) < ncol(x = object)) {
     object <- subset(object, cells = cells.keep)
   }
   return(object)
@@ -1462,11 +1462,26 @@ Cells.SCTModel <- function(x, ...) {
 #' @export
 #'
 Cells.SCTAssay <- function(x, layer = NA, ...) {
-  layer <- layer %||% levels(x = x)[1L]
-  if (rlang::is_na(x = layer)) {
-    return(colnames(x = x))
+  # If `layer` is `NA` return all cells in the assay via `colnames`.
+  if (rlang::is_na(layer)) {
+    return(colnames(x))
   }
-  return(Cells(x = components(object = x, model = layer)))
+
+  # If `layer` is `NULL` take the name of the first model in the 
+  # assay's `SCTModel.list`.
+  layer <- layer %||% levels(x)[1L]
+
+  # If `layer` is one of the standard layer names, use the underlying matrix
+  # to get the requested cell names.
+  if (layer %in% Layers(x)) {
+    data <- LayerData(x, layer=layer)
+    cells <- colnames(data)
+  } else {
+    # Otherwise, assume that `layer` is the name of an element in `SCTModel.list`.
+    cells <- Cells(components(x, model = layer))  
+  }
+
+  return(cells)
 }
 
 #' @rdname Cells
@@ -2055,7 +2070,7 @@ VariableFeatures.SCTAssay <- function(
   # Is the information already in var.features?
   var.features.existing <- slot(object = object, name = "var.features")
   nfeatures <- nfeatures %||% length(x = var.features.existing) %||% 3000
-  if (is.null(x = layer)) {
+  if (is.null(x = layer) || anyNA(layer)) {
     layer <- levels(x = object)
   }
   if (simplify == TRUE & use.var.features == TRUE & length(var.features.existing) >= nfeatures){
@@ -2116,6 +2131,34 @@ VariableFeatures.SCTAssay <- function(
     names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
   )
   return(features)
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors SlideSeq
+#' @export
+#' @concept spatial
+#'
+ScaleFactors.SlideSeq <- function(object, ...) {
+  # The concept of image scale factors comes from the 10x Visium platform. 
+  # Although SlideSeq has no equivalent, we still want to provide the generic
+  # so that the all of our concrete `SpatialImage` classes implement the same
+  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # to 1.
+  return(scalefactors())
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors STARmap
+#' @export
+#' @concept spatial
+#'
+ScaleFactors.STARmap <- function(object, ...) {
+  # The concept of image scale factors comes from the 10x Visium platform. 
+  # Although STARmap has no equivalent, we still want to provide the generic
+  # so that the all of our concrete `SpatialImage` classes implement the same
+  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # to 1.
+  return(scalefactors())
 }
 
 #' @rdname ScaleFactors
@@ -2322,8 +2365,14 @@ merge.SCTAssay <- function(
         if (inherits(x = assays[[assay]], what = "SCTAssay")) {
           parent.environ <- sys.frame(which = parent.call[1])
           seurat.object <- parent.environ$objects[[assay]]
-          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features,
+          residuals <- suppressWarnings(expr = FetchResiduals(object = seurat.object, features = all.features,
                                                                assay = parent.environ$assay, verbose = FALSE))
+          seurat.object <- SetAssayData(
+            object = seurat.object,
+            assay = parent.environ$assay,
+            slot = "scale.data",
+            new.data = residuals
+          )                                                                
           return(seurat.object[[parent.environ$assay]])
         }
         return(assays[[assay]])

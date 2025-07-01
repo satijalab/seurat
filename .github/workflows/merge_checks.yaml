@@ -1,25 +1,36 @@
-name: Integration Checks
+name: Pre-Merge Checks
 
-# Because `develop` is a protected branch this workflow is triggered when a PR 
-# is opened/updated and again when it is merged.
 on:
-  push:
-    branches: 
-    - develop
-    - master
+  # Trigger the workflow when a PR is opened/updated against the default or
+  # any stable release branch.
   pull_request:
-    branches: 
-    - develop
-    - master
+    branches:
+    - main
+    - '*-stable'
+  # Trigger the workflow when commits are pushed to a stable release branch. 
+  # Because they are protected branches this workflow is effectively triggered 
+  # by three events:
+  # 1. When a stable release branch is initially created/pushed.
+  # 2. When a PR against the default or any stable release branch is opened/updated.
+  # 3. When a PR against the default or any stable release branch is merged.
+  push:
+    branches:
+    - main
+    - '*-stable'
+  # Allow the workflow to be triggered manually.
+  workflow_dispatch:
 
 jobs:
   check-package:
-    runs-on: ubuntu-latest
-    
+    # Override the default job name to differentiate it from similar jobs in 
+    # other workflows.
+    name: "check-package (r2u)"
+
     # Use the `satijalab/seurat-ci` Docker image as the runner environment. 
     # This image is pre-configured with everything required for running
     # integration checks, for more details, see
     # https://hub.docker.com/repository/docker/satijalab/seurat-ci/general.
+    runs-on: ubuntu-latest
     container:
       image: satijalab/seurat-ci:latest
 
@@ -32,7 +43,7 @@ jobs:
       # `littler`, see https://eddelbuettel.github.io/littler/ for details. 
       - name: Install Dependencies
         run: installDeps.r -s
-      
+
       # Run CRAN checks, if any ERRORs or WARNINGs are raised the check fails.
       # Certain tests are skipped when running as CRAN—skip all tests so they
       # can be run together in a subsequent step.
@@ -43,7 +54,7 @@ jobs:
             error_on="warning"
           )
         shell: Rscript {0}
-            
+
       # Because tests weren't included in CRAN checks, run them here.
       - name: Run Tests
         # Run this step even if the previous one failed.
