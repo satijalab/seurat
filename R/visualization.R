@@ -3912,14 +3912,21 @@ InteractiveSpatialPlot <- function(
   image_obj <- object[[image]]
 
   #Detect image type based on slot names
-  if ("boundaries" %in% slotNames(image_obj)) {
+  #Currently supported: VISIUM V2, SLIDESEQ, VIZGEN
+  img_class <- class(image_obj)[1]
+
+  if (img_class %in% c("VisiumV1", "VisiumV2")) {
     type <- "visium"
-  } else if ("coordinates" %in% slotNames(image_obj)) {
+  } else if (img_class == "SlideSeq") {
     type <- "slideseq"
+  } else if (img_class == "FOV") {
+    type <- "vizgen"
   } else {
-    stop("Cannot determine image type: expected 'boundaries' (Visium) or 'coordinates' (Slide-seq).")
+    stop("Unrecognized image class: ", img_class)
   }
 
+
+  print(paste("Image type detected as:", type))
   #Extract spatial coordinates from image centroids or coordinates
   if (type == "visium") {
     if (!"boundaries" %in% slotNames(image_obj)) {
@@ -3951,6 +3958,19 @@ InteractiveSpatialPlot <- function(
     #Store raw coordinates (no scaling applied)
     coords$x_raw <- coords$x
     coords$y_raw <- coords$y
+  } else if (type == "vizgen") {
+    if (!"boundaries" %in% slotNames(image_obj)) {
+      stop("Vizgen FOV missing 'boundaries' slot")
+    }
+
+    centroids <- image_obj@boundaries$centroids
+
+    coords <- as.data.frame(centroids@coords)
+    colnames(coords) <- c("x", "y")
+    coords$cell <- centroids@cells
+
+    coords$x_raw <- coords$x
+    coords$y_raw <- coords$y
   }
 
   meta <- object@meta.data
@@ -3971,6 +3991,15 @@ InteractiveSpatialPlot <- function(
   base64_image <- NULL
   if (type == "visium" && "image" %in% slotNames(image_obj)) {
     img_raster <- image_obj@image
+
+  } else if (type == "vizgen" && 
+            "boundaries" %in% slotNames(image_obj) &&
+            "centroids" %in% slotNames(image_obj@boundaries) &&
+            "image" %in% slotNames(image_obj@boundaries$centroids)) {
+    img_raster <- image_obj@boundaries$centroids@image
+  }
+
+  if (exists("img_raster")) {
     temp_png <- tempfile(fileext = ".png")
     png(temp_png, width = dim(img_raster)[2], height = dim(img_raster)[1])
     grid::grid.raster(img_raster)
