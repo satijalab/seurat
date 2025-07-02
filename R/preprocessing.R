@@ -647,6 +647,9 @@ Load10X_Spatial <- function (
     segmentation.assay.name <- "Segmentations"
     seg.data.dir <- paste0(data.dir, "/segmented_outputs/")
     seg.counts.path <- paste0(seg.data.dir, "filtered_feature_cell_matrix.h5")
+    if (!file.exists(seg.counts.path)) {
+      stop("No cell segmentations found. Is your Visium sample HD?")
+    }
     segmentation.counts <- Read10X_h5(seg.counts.path)
     segmentation.count.cellIDs <- colnames(segmentation.counts)
     #segmentation.image <- Read10X_Image(image.dir = paste0(seg.data.dir, "spatial"), assay = "Segmentations", slice = "slice1.segmentations")
@@ -1437,7 +1440,7 @@ Read10X_Segmentations <- function (image.dir,
   image <- png::readPNG(source = file.path(image.dir, image.name))
   scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir,
                                                              "scalefactors_json.json"))
-  coordinates <- Read10X_GeoJson(data.dir = data.dir)
+  coordinates <- Read10X_HD_GeoJson(data.dir = data.dir, image.dir = image.dir)
   key <- Key(slice, quiet = TRUE)
 
 
@@ -1492,11 +1495,12 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' @export
 #' @concept preprocessing
 #'
-Read10X_GeoJson <- function(data.dir, segmentation.type = "cell", scale.factor = NULL) {
+Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell", scale.factor = NULL) {
   segmentation_polygons <- read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
   if (!is.null(scale.factor)) {
-    scale.factor.path <- file.path(data.dir,"segmented_outputs/spatial/scalefactors_json.json")
-    scale.factors <- jsonlite::fromJSON(scale.factor.path)
+    scale.factors <- Read10X_ScaleFactors(
+      filename = file.path(image.dir, "scalefactors_json.json")
+    )
     segmentation_polygons$geometry <- segmentation_polygons$geometry*scale.factors[[scale.factor]]
   }
 
