@@ -1435,19 +1435,26 @@ Read10X_Segmentations <- function (image.dir,
 {
 
   image <- png::readPNG(source = file.path(image.dir, image.name))
-  scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir, "scalefactors_json.json"))
-  coordinates <- Read10X_GeoJson(data.dir = data.dir, segmentation.type = segmentation.type)
+  scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir,
+                                                             "scalefactors_json.json"))
+  coordinates <- Read10X_GeoJson(data.dir = data.dir)
   key <- Key(slice, quiet = TRUE)
 
+
+  st_coords_df <- as.data.frame(sf::st_coordinates(coordinates))
+  st_coords_df$index <- 1:nrow(st_coords_df)
   st_coords <- merge(
-    as.data.frame(sf::st_coordinates(coordinates)),
+    st_coords_df,
     data.frame(
       cell_id = coordinates$cell_id,
       cell = coordinates$barcodes
     ),
     by.x = 'L2',
-    by.y = 'cell_id'
+    by.y = 'cell_id',
+    all = TRUE
   )
+  st_coords <- st_coords[complete.cases(st_coords), ]
+  st_coords <- st_coords[order(st_coords$index), ]
   st_coords <- st_coords[st_coords$cell %in% cell.names, ]
   image.scale <- ifelse(grepl("lowres", image.name, ignore.case = TRUE), "lowres", "highres")
   fov <- CreateFOV(st_coords,
@@ -3629,7 +3636,7 @@ SampleUMI <- function(
 #' replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
 #' \code{ScaleData} workflow by fitting a regularized negative binomial model
 #' per gene and returning:
-#' 
+#'
 #' - A new assay (default name “SCT”), in which:
 #'   - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
 #'     sequencing depth; controlled by \code{do.correct.umi}).
@@ -3640,13 +3647,13 @@ SampleUMI <- function(
 #'
 #' When multiple \code{counts} layers exist (e.g. after \code{split()}),
 #' each layer is modeled independently. A consensus variable‐feature set is
-#' then defined by ranking features by how often they’re called “variable” 
+#' then defined by ranking features by how often they’re called “variable”
 #' across different layers (ties broken by median rank).
-#' 
+#'
 #' By default, \code{sctransform::vst} will drop features expressed in fewer
 #' than five cells. In the multi-layer case, this can lead to consenus
 #' variable-features being excluded from the output's \code{scale.data} when
-#' a feature is "variable" across many layers but sparsely expressed in at 
+#' a feature is "variable" across many layers but sparsely expressed in at
 #' least one.
 #'
 #' @param object A Seurat object or UMI count matrix.
@@ -3702,11 +3709,11 @@ SampleUMI <- function(
 #' @seealso \code{\link[sctransform]{vst}},
 #'   \code{\link[sctransform]{get_residuals}},
 #'   \code{\link[sctransform]{correct_counts}}
-#' 
+#'
 #' @rdname SCTransform
 #' @concept preprocessing
 #' @export
-#' 
+#'
 SCTransform.default <- function(
   object,
   cell.attr,
