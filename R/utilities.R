@@ -1046,24 +1046,13 @@ GeneSymbolThesarus <- function(
 GroupCorrelation <- function(
   object,
   assay = NULL,
-  slot = deprecated(),
-  layer = "scale.data",
+  slot = "scale.data",
   var = NULL,
   group.assay = NULL,
   min.cells = 5,
   ngroups = 6,
   do.plot = TRUE
 ) {
-
-  if (is_present(arg = slot)) {
-    deprecate_soft(
-      when = '5.3.0',
-      what = 'GroupCorrelation(slot = )',
-      with = 'GroupCorrelation(layer = )'
-    )
-    layer <- slot
-  }
-
   assay <- assay %||% DefaultAssay(object = object)
   group.assay <- group.assay %||% assay
   var <- var %||% paste0("nCount_", group.assay)
@@ -1073,7 +1062,7 @@ GroupCorrelation <- function(
     min.cells = min.cells,
     ngroups = ngroups
   )
-  data <- as.matrix(x = LayerData(object = object[[assay]], layer = slot))
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
   data <- data[rowMeans(x = data) != 0, ]
   grp.cors <- apply(
     X = data,
