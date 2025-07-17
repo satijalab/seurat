@@ -3872,7 +3872,7 @@ ISpatialFeaturePlot <- function(
 #' @importFrom grDevices png dev.off
 #' 
 #' @return A character vector of cell names selected via lasso (can then be used to subset the object)
-#'
+#' @export
 #' @keywords internal
 #'
 #' @examples
