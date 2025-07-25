@@ -119,6 +119,7 @@ Suggests:
     S4Vectors,
     sf (>= 1.0.0),
     SingleCellExperiment,
+    spam,
     SummarizedExperiment,
     testthat,
     VGAM
@@ -146,5 +147,6 @@ Collate:
     'preprocessing5.R'
     'roxygen.R'
     'sketching.R'
+    'spam-integration.R'
     'tree.R'
     'utilities.R'

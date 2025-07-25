@@ -72,6 +72,17 @@ NULL
 
 setClassUnion(name = 'V3Matrix', members = c('matrix', 'dgCMatrix'))
 
+# Define spam matrix support if available
+if (requireNamespace("spam", quietly = TRUE)) {
+  tryCatch({
+    setClassUnion(name = 'LargeMatrix', members = c('matrix', 'dgCMatrix', 'spam'))
+  }, error = function(e) {
+    setClassUnion(name = 'LargeMatrix', members = c('matrix', 'dgCMatrix'))
+  })
+} else {
+  setClassUnion(name = 'LargeMatrix', members = c('matrix', 'dgCMatrix'))
+}
+
 AttachDeps <- function(deps) {
   for (d in deps) {
     if (!paste0('package:', d) %in% search()) {
