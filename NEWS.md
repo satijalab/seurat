@@ -1,6 +1,11 @@
 # Unreleased
 
 ## Changes
+- Added experimental support for ultra-large sparse matrices using the `spam` package, enabling analysis of datasets exceeding the 2^31 element limit of standard `dgCMatrix` objects ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Enhanced matrix handling functions (`RowMeanSparse`, `RowSumSparse`, `RowVarSparse`) to support `spam` matrices with 64-bit indexing
+- Updated `FindVariableFeatures`, `NormalizeData`, and other core functions to work with `spam` matrices for ultra-large dataset analysis
+- Added `CheckMatrixSize()` utility function to detect when matrices exceed `dgCMatrix` limits and suggest `spam` alternatives
+- Created comprehensive documentation and examples for using `spam` matrices with Seurat workflows
 
 # Seurat 5.3.0
 
