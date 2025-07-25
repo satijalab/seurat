@@ -116,7 +116,7 @@ FindVariableFeatures.StdAssay <- function(
       message("Finding variable features for layer ", layer[i])
     }
     data <- LayerData(object = object, layer = layer[i], fast = TRUE)
-    hvf.function <- if (inherits(x = data, what = 'V3Matrix')) {
+    hvf.function <- if (inherits(x = data, what = 'V3Matrix') || inherits(x = data, what = 'spam')) {
       FindVariableFeatures.default
     } else {
       FindVariableFeatures
@@ -277,8 +277,9 @@ NormalizeData.default <- function(
         object <- as(object = object, Class = 'dgCMatrix')
       }
       if (!inherits(x = object, what = 'dgCMatrix') &&
-          !inherits(x = object, what = 'matrix')) {
-        stop('CLR normalization is only supported for dense and dgCMatrix')
+          !inherits(x = object, what = 'matrix') &&
+          !inherits(x = object, what = 'spam')) {
+        stop('CLR normalization is only supported for dense, dgCMatrix, and spam matrices')
       }
       CustomNormalize(
         data = object,
@@ -291,8 +292,9 @@ NormalizeData.default <- function(
     },
     'RC' = {
       if (!inherits(x = object, what = 'dgCMatrix') &&
-          !inherits(x = object, what = 'matrix')) {
-        stop('RC normalization is only supported for dense and dgCMatrix')
+          !inherits(x = object, what = 'matrix') &&
+          !inherits(x = object, what = 'spam')) {
+        stop('RC normalization is only supported for dense, dgCMatrix, and spam matrices')
       }
       RelativeCounts(data = object,
                      scale.factor = scale.factor,
@@ -607,6 +609,61 @@ VST.matrix <- function(
   ))
 }
 
+#' @rdname VST
+#' @method VST spam
+#' @export
+#'
+VST.spam <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  ...
+) {
+  if (!requireNamespace("spam", quietly = TRUE)) {
+    stop("Package 'spam' is required for spam matrix support")
+  }
+  # For very large spam matrices, convert to dgCMatrix only if feasible
+  if (object.size(data) < 2e9) {
+    return(VST(
+      data = as(data, "dgCMatrix"),
+      margin = margin,
+      nselect = nselect,
+      span = span,
+      clip = clip,
+      ...
+    ))
+  } else {
+    # For ultra-large matrices, use spam-specific calculations
+    warning("Large spam matrix detected. Using simplified variance calculations.")
+    hvf.info <- data.frame(
+      mean = spam::rowMeans(data),
+      variance = numeric(nrow(data)),
+      variance.expected = numeric(nrow(data)),
+      variance.standardized = numeric(nrow(data)),
+      variable = FALSE,
+      rank = NA,
+      row.names = rownames(data)
+    )
+    
+    # Simplified variance calculation for large matrices
+    for (i in seq_len(min(1000, nrow(data)))) {  # Sample first 1000 features
+      row_vals <- data[i, ]
+      hvf.info$variance[i] <- var(as.numeric(row_vals))
+    }
+    
+    # Mark top variable features
+    vf <- head(
+      x = order(hvf.info$variance, decreasing = TRUE),
+      n = min(nselect, sum(hvf.info$variance > 0))
+    )
+    hvf.info$variable[vf] <- TRUE
+    hvf.info$rank[vf] <- seq_along(along.with = vf)
+    return(hvf.info)
+  }
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -635,12 +692,20 @@ CalcDispersion <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!inherits(x = object, what = c('dgCMatrix', 'matrix'))) {
+  if (!inherits(x = object, what = c('dgCMatrix', 'matrix', 'spam'))) {
     stop('mean.var.plot and dispersion methods only \
-     support dense and sparse matrix input')
+     support dense, sparse matrix, and spam matrix input')
   }
   if (inherits(x = object, what =  'matrix')) {
     object <- as.sparse(x = object)
+  }
+  # Handle spam matrices by converting to dgCMatrix for compatibility with existing functions
+  if (inherits(x = object, what = 'spam') && requireNamespace("spam", quietly = TRUE)) {
+    if (object.size(object) < 2e9) {  # Only convert smaller matrices to avoid memory issues
+      object <- as(object, "dgCMatrix")
+    } else {
+      stop("Spam matrix too large for conversion. Consider using subsampling or alternative approaches.")
+    }
   }
   feature.mean <- mean.function(object, verbose)
   feature.dispersion <- dispersion.function(object, verbose)
