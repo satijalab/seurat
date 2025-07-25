@@ -100,6 +100,7 @@ Suggests:
     data.table,
     DESeq2,
     DelayedArray,
+    DelayedMatrixStats,
     enrichR,
     GenomicRanges,
     GenomeInfoDb,
@@ -138,6 +139,7 @@ Collate:
     'visualization.R'
     'convenience.R'
     'data.R'
+    'delayed-integration.R'
     'differential_expression.R'
     'dimensional_reduction.R'
     'integration.R'

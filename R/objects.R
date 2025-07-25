@@ -1455,6 +1455,61 @@ as.sparse.spam <- function(x, ...) {
   return(as(object = x, Class = 'dgCMatrix'))
 }
 
+#' @rdname as.sparse
+#' @method as.sparse DelayedMatrix
+#' @export
+#'
+as.sparse.DelayedMatrix <- function(x, ...) {
+  if (!requireNamespace("DelayedArray", quietly = TRUE)) {
+    stop("Package 'DelayedArray' is required for DelayedMatrix support")
+  }
+  
+  # Check if matrix is small enough to convert to memory
+  total_elements <- length(x)
+  memory_limit <- 1e8  # 100M elements
+  
+  if (total_elements > memory_limit) {
+    warning(
+      "DelayedMatrix is very large (", total_elements, " elements). ",
+      "Converting to sparse format may consume significant memory. ",
+      "Consider working with DelayedMatrix directly for memory efficiency.",
+      call. = FALSE
+    )
+  }
+  
+  # For HDF5Matrix, try to preserve sparsity if possible
+  if (inherits(x, "HDF5Matrix") && requireNamespace("HDF5Array", quietly = TRUE)) {
+    # Check if the underlying data is sparse
+    if (methods::is(x, "SparseArraySeed") || 
+        any(grepl("sparse", class(x), ignore.case = TRUE))) {
+      # Try to maintain sparsity
+      return(as(x, "dgCMatrix"))
+    }
+  }
+  
+  # For other DelayedMatrix types, convert to dgCMatrix
+  # This will realize the matrix in memory
+  return(as(x, "dgCMatrix"))
+}
+
+#' Convert to DelayedMatrix
+#'
+#' Convert matrices to DelayedMatrix for memory-efficient operations
+#'
+#' @param x Input matrix (matrix, dgCMatrix, or other matrix-like object)
+#' @param ... Additional arguments passed to DelayedArray constructor
+#'
+#' @return A DelayedMatrix object
+#' @export
+#' @concept objects
+#'
+as.DelayedMatrix <- function(x, ...) {
+  if (!requireNamespace("DelayedArray", quietly = TRUE)) {
+    stop("Package 'DelayedArray' is required for DelayedMatrix support")
+  }
+  return(DelayedArray::DelayedArray(x, ...))
+}
+
 
 #' Get Cell Names
 #'
@@ -3340,4 +3395,611 @@ ValidateDataForMerge <- function(assay, slot) {
     mat <- as.sparse(x = mat)
   }
   return(mat)
+}
+
+#' Process Multiple 10X Datasets in Parallel
+#'
+#' Creates Seurat objects from multiple 10X Genomics datasets in parallel,
+#' with support for memory-efficient matrix formats for large datasets.
+#'
+#' @param data_dir Base directory containing the 10X datasets
+#' @param sample_dirs Vector of sample directory names within data_dir (optional, auto-detected if NULL)
+#' @param matrix_subdir Subdirectory within each sample containing the matrix files
+#'   (default: "filtered_feature_bc_matrix")
+#' @param matrix_format Preferred matrix format: "auto", "sparse", "delayed", or "spam"
+#' @param mc.cores Number of cores for parallel processing (default: detectCores())
+#' @param save_file Optional file path to save the result using qs format
+#' @param nthreads Number of threads for saving/loading (default: 10)
+#' @param verbose Whether to print progress messages (default: TRUE)
+#' @param read10x.args Additional arguments passed to Read10X function
+#' @param ... Additional arguments passed to CreateSeuratObject
+#'
+#' @return Named list of Seurat objects
+#'
+#' @export
+#' @concept objects
+#'
+#' @examples
+#' \dontrun{
+#' # Process multiple 10X datasets
+#' samples <- c("sample1", "sample2", "sample3")
+#' seurat_list <- ProcessMultiple10X(
+#'   data_dir = "/path/to/data/",
+#'   sample_dirs = samples,
+#'   matrix_format = "sparse",
+#'   save_file = "processed_samples.qs"
+#' )
+#' 
+#' # For very large datasets, use DelayedArray for memory efficiency
+#' seurat_list <- ProcessMultiple10X(
+#'   data_dir = "/path/to/data/",
+#'   sample_dirs = samples,
+#'   matrix_format = "delayed"
+#' )
+#' 
+#' # Pass custom arguments to Read10X function
+#' seurat_list <- ProcessMultiple10X(
+#'   data_dir = "/path/to/data/",
+#'   sample_dirs = samples,
+#'   read10x.args = list(gene.column = 2, unique.features = TRUE),
+#'   min.cells = 3,
+#'   min.features = 200
+#' )
+#' }
+#'
+ProcessMultiple10X <- function(
+  data_dir,
+  sample_dirs = NULL,
+  matrix_subdir = "filtered_feature_bc_matrix",
+  matrix_format = "auto",
+  mc.cores = NULL,
+  save_file = NULL,
+  nthreads = 10,
+  verbose = TRUE,
+  read10x.args = list(),
+  ...
+) {
+  # Check dependencies
+  if (!requireNamespace("parallel", quietly = TRUE)) {
+    stop("Package 'parallel' is required for parallel processing")
+  }
+  
+  # Auto-detect sample directories if not provided
+  if (is.null(sample_dirs)) {
+    if (verbose) {
+      message("Auto-detecting sample directories in: ", data_dir)
+    }
+    sample_dirs <- Detect10XSamples(
+      data_dir = data_dir,
+      matrix_subdir = matrix_subdir,
+      verbose = verbose
+    )
+  }
+  
+  # Set default cores
+  if (is.null(mc.cores)) {
+    mc.cores <- parallel::detectCores()
+  }
+  
+  if (verbose) {
+    message("Processing ", length(sample_dirs), " samples using ", mc.cores, " cores...")
+  }
+  
+  # Construct full paths
+  paths <- file.path(data_dir, sample_dirs, matrix_subdir)
+  
+  # Check that paths exist
+  missing_paths <- paths[!file.exists(paths)]
+  if (length(missing_paths) > 0) {
+    stop("The following paths do not exist:\n", 
+         paste(missing_paths, collapse = "\n"))
+  }
+  
+  # Define processing function
+  process_sample <- function(path) {
+    tryCatch({
+      if (verbose) {
+        message("Processing: ", path)
+      }
+      
+      # Read 10X data using Seurat's Read10X function
+      read10x_args <- c(list(data.dir = path), read10x.args)
+      counts <- do.call(Read10X, read10x_args)
+      
+      # Handle multiple data types (e.g., Gene Expression + Antibody Capture)
+      if (is.list(counts)) {
+        if (verbose) {
+          message("  Multiple data types found: ", paste(names(counts), collapse = ", "))
+        }
+        # Use Gene Expression data as primary, or first available
+        if ("Gene Expression" %in% names(counts)) {
+          counts <- counts[["Gene Expression"]]
+        } else {
+          counts <- counts[[1]]
+          if (verbose) {
+            message("  Using ", names(counts)[1], " as primary data")
+          }
+        }
+      }
+      
+      # Validate the loaded data
+      if (is.null(counts) || (is.matrix(counts) && all(dim(counts) == 0))) {
+        stop("No data loaded from ", path)
+      }
+      
+      if (verbose) {
+        message("  Loaded matrix: ", nrow(counts), " features x ", ncol(counts), " cells")
+      }
+      
+      # Optimize matrix format based on size and user preference
+      if (matrix_format != "auto") {
+        counts <- OptimizeMatrixFormat(counts, prefer_format = matrix_format)
+        if (verbose) {
+          message("  Optimized to format: ", class(counts)[1])
+        }
+      }
+      
+      # Extract sample name from path
+      sample_name <- basename(dirname(path))
+      
+      # Create Seurat object
+      seurat_obj <- CreateSeuratObject(
+        counts = counts,
+        project = sample_name,
+        ...
+      )
+      
+      if (verbose) {
+        message("Completed: ", sample_name, " (", ncol(seurat_obj), " cells, ", 
+                nrow(seurat_obj), " features)")
+      }
+      
+      return(seurat_obj)
+      
+    }, error = function(e) {
+      warning("Failed to process ", path, ": ", e$message)
+      return(NULL)
+    })
+  }
+  
+  # Process samples in parallel
+  if (mc.cores > 1 && .Platform$OS.type != "windows") {
+    # Use mclapply on Unix-like systems
+    seurat_list <- parallel::mclapply(
+      X = paths,
+      FUN = process_sample,
+      mc.cores = mc.cores,
+      mc.preschedule = FALSE
+    )
+  } else {
+    # Use lapply for Windows or single core
+    if (verbose && .Platform$OS.type == "windows") {
+      message("Note: Using sequential processing on Windows")
+    }
+    seurat_list <- lapply(X = paths, FUN = process_sample)
+  }
+  
+  # Remove failed samples
+  failed_samples <- sapply(seurat_list, is.null)
+  if (any(failed_samples)) {
+    warning("Failed to process ", sum(failed_samples), " samples")
+    seurat_list <- seurat_list[!failed_samples]
+    sample_dirs <- sample_dirs[!failed_samples]
+  }
+  
+  # Name the list
+  names(seurat_list) <- sample_dirs
+  
+  if (verbose) {
+    message("Successfully processed ", length(seurat_list), " samples")
+  }
+  
+  # Save if requested
+  if (!is.null(save_file)) {
+    if (requireNamespace("qs", quietly = TRUE)) {
+      if (verbose) {
+        message("Saving to: ", save_file)
+      }
+      qs::qsave(x = seurat_list, file = save_file, nthreads = nthreads)
+    } else {
+      warning("Package 'qs' not available. Saving with base R saveRDS instead.")
+      saveRDS(seurat_list, file = gsub("\\.qs$", ".rds", save_file))
+    }
+  }
+  
+  return(seurat_list)
+}
+
+#' Load Processed 10X Data
+#'
+#' Load previously processed and saved 10X datasets using qs format for fast I/O.
+#'
+#' @param file Path to the saved file (.qs or .rds format)
+#' @param nthreads Number of threads for loading (default: 10)
+#'
+#' @return Named list of Seurat objects
+#'
+#' @export
+#' @concept objects
+#'
+#' @examples
+#' \dontrun{
+#' # Load previously saved data
+#' seurat_list <- Load10XData("processed_samples.qs")
+#' }
+#'
+Load10XData <- function(file, nthreads = 10) {
+  if (!file.exists(file)) {
+    stop("File does not exist: ", file)
+  }
+  
+  if (grepl("\\.qs$", file) && requireNamespace("qs", quietly = TRUE)) {
+    return(qs::qread(file = file, nthreads = nthreads))
+  } else {
+    # Fallback to base R
+    return(readRDS(file))
+  }
+}
+
+#' Create Multiple Seurat Objects from 10X Data
+#'
+#' Simplified function that replicates the manual workflow for creating
+#' multiple Seurat objects from 10X CellRanger outputs in parallel.
+#' This function directly replaces the manual mclapply + Read10X workflow.
+#'
+#' @param data_dir Base directory containing the sample subdirectories
+#' @param list_data Vector of sample directory names (optional, auto-detected if NULL)
+#' @param matrix_subdir Subdirectory containing matrix files (default: "filtered_feature_bc_matrix")
+#' @param mc.cores Number of cores for parallel processing ("auto" for automatic, or integer; default: "auto")
+#' @param save_file Path to save the result using qs format (optional)
+#' @param nthreads Number of threads for qs save (default: 10)
+#' @param ... Additional arguments passed to CreateSeuratObject
+#'
+#' @return Named list of Seurat objects (equivalent to your manual workflow)
+#'
+#' @export
+#' @concept objects
+#'
+#' @examples
+#' \dontrun{
+#' # Replace this manual workflow:
+#' # paths <- paste0(data_dir, list_data, "/filtered_feature_bc_matrix/")
+#' # seurat_objects <- mclapply(X = paths, 
+#' #                      FUN = function(paths){
+#' #                        CreateSeuratObject(counts = Read10X(data.dir = paths), 
+#' #                                          project = str_split(paths, pattern = "/")[[1]][7])
+#' #                      },
+#' #                      mc.cores = detectCores())
+#' # names(seurat_objects) <- str_split(paths, pattern = "/", simplify = T)[, 7]
+#' # qsave(x = seurat_objects, file = "processed_samples.qs", nthreads = 10)
+#' 
+#' # Or auto-detect all samples (like Ph2_8Gy1, Ph2_8Gy2, etc.):
+#' seurat_objects <- CreateMultipleSeurat(
+#'   data_dir = "/Volumes/BIPN/CEA_FAR/Chicheportiche_scRNASeq/cellranger/",
+#'   save_file = "all_samples.qs"
+#' )
+#' }
+#'
+CreateMultipleSeurat <- function(
+  data_dir,
+  list_data = NULL,
+  matrix_subdir = "filtered_feature_bc_matrix",
+  mc.cores = "auto",
+  save_file = NULL,
+  nthreads = 10,
+  ...
+) {
+  # Check dependencies
+  if (!requireNamespace("parallel", quietly = TRUE)) {
+    stop("Package 'parallel' is required for parallel processing")
+  }
+  
+  # Ensure data_dir ends with /
+  if (!endsWith(data_dir, "/")) {
+    data_dir <- paste0(data_dir, "/")
+  }
+  
+  # Auto-detect samples if not provided
+  if (is.null(list_data)) {
+    message("Auto-detecting sample directories...")
+    all_dirs <- list.dirs(data_dir, full.names = FALSE, recursive = FALSE)
+    
+    if (length(all_dirs) == 0) {
+      stop("No subdirectories found in: ", data_dir)
+    }
+    
+    # Find valid 10X directories
+    list_data <- character(0)
+    for (dir_name in all_dirs) {
+      matrix_path <- file.path(data_dir, dir_name, matrix_subdir)
+      required_files <- c("matrix.mtx.gz", "barcodes.tsv.gz", "features.tsv.gz")
+      
+      if (dir.exists(matrix_path) && 
+          all(file.exists(file.path(matrix_path, required_files)))) {
+        list_data <- c(list_data, dir_name)
+        message("  Found: ", dir_name)
+      }
+    }
+    
+    if (length(list_data) == 0) {
+      stop("No valid 10X samples found in: ", data_dir)
+    }
+    
+    message("Found ", length(list_data), " samples: ", paste(list_data, collapse = ", "))
+  }
+  
+  # Create paths using file.path for robust cross-platform path handling
+  paths <- file.path(data_dir, list_data, matrix_subdir)
+  
+  # Ensure paths are properly formatted and exist
+  paths <- normalizePath(paths, mustWork = FALSE)  # Normalize but don't require existence yet
+  missing_paths <- paths[!dir.exists(paths)]
+  if (length(missing_paths) > 0) {
+    stop("The following matrix directories do not exist:\n", 
+         paste(missing_paths, collapse = "\n"))
+  }
+  
+  # Auto-determine optimal mc.cores based on data size
+  if (mc.cores == "auto") {
+    # Estimate data size based on matrix.mtx.gz file sizes
+    total_size_gb <- 0
+    for (path in paths) {
+      mtx_file <- file.path(path, "matrix.mtx.gz")
+      if (file.exists(mtx_file)) {
+        file_size_gb <- file.size(mtx_file) / (1024^3)
+        # Estimate memory needed for Read10X processing (compressed → sparse matrix)
+        estimated_mem_gb <- file_size_gb * 8  # Conservative estimate for peak memory
+        total_size_gb <- total_size_gb + estimated_mem_gb
+      }
+    }
+    
+    # Get available RAM
+    available_ram_gb <- tryCatch({
+      if (Sys.info()["sysname"] == "Darwin") {
+        as.numeric(system("sysctl -n hw.memsize", intern = TRUE)) / (1024^3)
+      } else if (Sys.info()["sysname"] == "Linux") {
+        mem_info <- readLines("/proc/meminfo")[1]
+        as.numeric(gsub(".*?(\\d+).*", "\\1", mem_info)) / (1024^2)
+      } else {
+        8  # Default for Windows/other
+      }
+    }, error = function(e) 8)
+    
+    # Calculate optimal cores based on memory constraints
+    max_cores <- parallel::detectCores()
+    if (total_size_gb * 1.5 < available_ram_gb) {
+      # Data fits well in RAM - use all cores
+      optimal_cores <- max_cores
+      message("Using ", optimal_cores, " cores for parallel Read10X processing")
+    } else if (total_size_gb * 2 < available_ram_gb) {
+      # Moderate fit - use 75% of cores
+      optimal_cores <- max(1, as.integer(max_cores * 0.9))
+      message("Moderate data size, using ", optimal_cores, " cores to balance speed and memory")
+    } else {
+      # Large data - use fewer cores to avoid memory pressure
+      optimal_cores <- max(1, as.integer(max_cores * 0.5))
+      message("Large data detected, using ", optimal_cores, " cores to manage memory usage")
+    }
+    mc.cores <- optimal_cores
+  }
+  
+  # Process using mclapply exactly like the manual version
+  seurat_objects <- parallel::mclapply(
+    X = paths, 
+    FUN = function(path) {
+      # Extract project name from path - get parent directory of matrix_subdir
+      project_name <- basename(dirname(path))  # Get sample directory name directly
+      
+      # Create Seurat object
+      CreateSeuratObject(
+        counts = Read10X(data.dir = path), 
+        project = project_name,
+        ...
+      )
+    },
+    mc.cores = mc.cores
+  )
+  
+  # Set names using list_data directly (more reliable than path parsing)
+  names(seurat_objects) <- list_data
+  
+  # Save using qs if requested
+  if (!is.null(save_file)) {
+    message("Saving ", length(seurat_objects), " Seurat objects to ", save_file)
+    
+    if (requireNamespace("qs", quietly = TRUE)) {
+      qs::qsave(x = seurat_objects, file = save_file, nthreads = nthreads)
+    } else {
+      warning("Package 'qs' not available. Saving with base R saveRDS instead.")
+      saveRDS(seurat_objects, file = gsub("\\.qs$", ".rds", save_file))
+    }
+  }
+  
+  return(seurat_objects)
+}
+
+#' Get Soup Groups for SoupX
+#' 
+#' Performs standard Seurat preprocessing to generate cluster groups for SoupX decontamination.
+#' This includes normalization, variable feature selection, scaling, PCA, neighbor finding,
+#' and clustering at high resolution.
+#'
+#' @param sobj A Seurat object
+#' @return A vector of cluster assignments for each cell
+#' @export
+get_soup_groups <- function(sobj) {
+  sobj <- NormalizeData(sobj, verbose = FALSE)
+  sobj <- FindVariableFeatures(object = sobj, nfeatures = 3000, verbose = FALSE, selection.method = 'vst')
+  sobj <- ScaleData(sobj, verbose = FALSE)
+  sobj <- RunPCA(sobj, verbose = FALSE)
+  sobj <- FindNeighbors(sobj, dims = 1:30, verbose = FALSE)
+  sobj <- FindClusters(sobj, resolution = 2, verbose = FALSE, random.seed = 1234)
+  return(sobj@meta.data[['seurat_clusters']])
+}
+
+#' Add Soup Groups to Seurat Object
+#' 
+#' Adds cluster-based soup groups to a Seurat object for SoupX decontamination.
+#'
+#' @param sobj A Seurat object
+#' @return The Seurat object with soup_group metadata added
+#' @export
+add_soup_groups <- function(sobj) {
+  sobj$soup_group <- get_soup_groups(sobj)
+  return(sobj)
+}
+
+#' SoupX Decontamination
+#' 
+#' Performs SoupX decontamination on a Seurat object by comparing filtered and raw count matrices.
+#' Tries multiple parameter combinations with increasing flexibility if initial attempts fail.
+#'
+#' @param sobj A Seurat object with soup_group metadata
+#' @param data_dir Base directory containing the raw_feature_bc_matrix subdirectories
+#' @param tfidfMin Minimum TF-IDF threshold for gene selection (default: 0.05)
+#' @param soupQuantile Quantile for soup estimation (default: 0.6)
+#' @return The Seurat object with decontaminated counts and original counts preserved
+#' @export
+make_soup <- function(sobj, data_dir, tfidfMin = 0.05, soupQuantile = 0.6) {
+  message("Traitement de : ", unique(sobj$orig.ident))
+  
+  path <- file.path(data_dir, unique(sobj$orig.ident), "raw_feature_bc_matrix")
+  message("Lecture des données depuis : ", path)
+  
+  raw <- Read10X(data.dir = path)
+  if (ncol(raw) == 0 || nrow(raw) == 0) stop("Raw matrix is empty — vérifier le dossier de lecture.")
+  
+  rna_counts <- GetAssayData(sobj, layer = "counts", assay = "RNA")
+  sc_base <- SoupChannel(tod = raw, toc = rna_counts)
+  
+  sobj$soup_group <- get_soup_groups(sobj)
+  n_groups <- length(unique(sobj$soup_group))
+  if (n_groups <= 1) message("Seulement ", n_groups, " groupe(s) détecté(s) — estimation peu fiable.")
+  
+  sc_base <- setClusters(sc_base, sobj$soup_group)
+
+  # Étape 1 : paramètres par défaut
+  sc <- tryCatch({
+    message("Tentative : autoEstCont() avec paramètres par défaut")
+    autoEstCont(sc_base, doPlot = FALSE)
+  }, error = function(e) {
+    invisible(NULL)
+  })
+
+  # Étape 2 : paramètres souples
+  if (is.null(sc)) {
+    sc <- tryCatch({
+      message("Tentative : autoEstCont() avec seuils plus souples")
+      autoEstCont(sc_base, doPlot = FALSE, tfidfMin = tfidfMin, soupQuantile = soupQuantile)
+    }, error = function(e) {
+      invisible(NULL)
+    })
+  }
+
+  # Étape 3 : forçage
+  if (is.null(sc)) {
+    sc <- tryCatch({
+      message("Dernière tentative : autoEstCont() avec forceAccept = TRUE")
+      autoEstCont(sc_base, doPlot = FALSE, tfidfMin = tfidfMin, soupQuantile = soupQuantile, forceAccept = TRUE)
+    }, error = function(e) {
+      invisible(NULL)
+    })
+  }
+
+  # Échec total
+  if (is.null(sc)) {
+    message("Annulation du nettoyage pour ", unique(sobj$orig.ident))
+    return(sobj)
+  }
+
+  # Nettoyage des comptes
+  out <- adjustCounts(sc, roundToInt = TRUE)
+
+  # Sauvegarde des raw counts originaux
+  sobj[["original.counts"]] <- CreateAssayObject(counts = rna_counts)
+  sobj[["RNA"]] <- CreateAssayObject(counts = out)
+
+  return(sobj)
+}
+
+#' Run SoupX Decontamination on Seurat Objects
+#' 
+#' Performs complete SoupX decontamination workflow on a single Seurat object or a list of Seurat objects.
+#' This function adds soup groups, then applies SoupX decontamination using both
+#' parallel processing for group assignment and sequential processing for decontamination.
+#'
+#' @param seurat_input Either a single Seurat object or a list of Seurat objects to process
+#' @param data_dir Base directory containing the raw_feature_bc_matrix subdirectories
+#' @param mc.cores Number of cores for parallel processing of soup groups (default: detectCores())
+#' @param tfidfMin Minimum TF-IDF threshold for gene selection (default: 0.05)
+#' @param soupQuantile Quantile for soup estimation (default: 0.6)
+#' @param save_file Optional file path to save results using qs (default: NULL)
+#' @param nthreads Number of threads for qs save (default: 10)
+#' @return If input is a single Seurat object, returns a single Seurat object. If input is a list, returns a list of Seurat objects with SoupX decontamination applied
+#' @export
+RunSoupX <- function(seurat_input, 
+                     data_dir, 
+                     mc.cores = parallel::detectCores(), 
+                     tfidfMin = 0.05, 
+                     soupQuantile = 0.6,
+                     save_file = NULL,
+                     nthreads = 10) {
+  
+  if (!requireNamespace("SoupX", quietly = TRUE)) {
+    stop("Package 'SoupX' is required for this function. Please install it with: install.packages('SoupX')")
+  }
+  
+  # Déterminer si l'entrée est un seul objet Seurat ou une liste
+  is_single_object <- inherits(seurat_input, "Seurat")
+  
+  if (is_single_object) {
+    # Cas d'un seul objet Seurat
+    seurat_list <- list(seurat_input)
+    message("Starting SoupX decontamination for 1 Seurat object")
+  } else if (is.list(seurat_input)) {
+    # Cas d'une liste d'objets Seurat
+    seurat_list <- seurat_input
+    message("Starting SoupX decontamination for ", length(seurat_list), " Seurat objects")
+  } else {
+    stop("seurat_input must be either a Seurat object or a list of Seurat objects")
+  }
+  
+  # Étape 1: Ajouter les groupes soup en parallèle
+  message("Step 1/2: Adding soup groups using ", mc.cores, " cores...")
+  seurat_list <- parallel::mclapply(seurat_list, add_soup_groups, mc.cores = mc.cores)
+  
+  # Étape 2: Appliquer SoupX séquentiellement (pour éviter les conflits d'I/O)
+  message("Step 2/2: Applying SoupX decontamination...")
+  seurat_list <- lapply(X = seurat_list, FUN = function(sobj) {
+    make_soup(sobj = sobj, 
+              data_dir = data_dir, 
+              tfidfMin = tfidfMin, 
+              soupQuantile = soupQuantile)
+  })
+  
+  # Sauvegarde optionnelle
+  if (!is.null(save_file)) {
+    # Ajouter "_soupx" avant l'extension du fichier
+    file_parts <- tools::file_path_sans_ext(save_file)
+    file_ext <- tools::file_ext(save_file)
+    soupx_save_file <- paste0(file_parts, "_soupx.", file_ext)
+    
+    message("Saving ", length(seurat_list), " processed Seurat objects to ", soupx_save_file)
+    
+    if (requireNamespace("qs", quietly = TRUE)) {
+      qs::qsave(x = seurat_list, file = soupx_save_file, nthreads = nthreads)
+    } else {
+      warning("Package 'qs' not available. Saving with base R saveRDS instead.")
+      saveRDS(seurat_list, file = gsub("\\.qs$", ".rds", soupx_save_file))
+    }
+  }
+  
+  message("SoupX decontamination completed")
+  
+  # Retourner le bon format selon l'entrée
+  if (is_single_object) {
+    return(seurat_list[[1]])  # Retourner un seul objet Seurat
+  } else {
+    return(seurat_list)  # Retourner la liste
+  }
 }

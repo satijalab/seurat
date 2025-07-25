@@ -17,6 +17,7 @@ NULL
 CheckMatrixSize <- function(nrows, ncols, nnz = NULL) {
   max_elements <- 2^31 - 1
   total_elements <- as.numeric(nrows) * as.numeric(ncols)
+  memory_threshold <- 1e8  # 100 million elements for memory warning
   
   if (!is.null(nnz) && nnz > max_elements) {
     warning(
@@ -37,6 +38,15 @@ CheckMatrixSize <- function(nrows, ncols, nnz = NULL) {
       call. = FALSE
     )
     return(TRUE)
+  }
+  
+  # Suggest DelayedArray for memory-efficient operations on large datasets
+  if (total_elements > memory_threshold) {
+    message(
+      "Large matrix detected (", nrows, " x ", ncols, " = ", total_elements, 
+      " elements). For memory-efficient operations, consider using DelayedArray matrices. ",
+      "See ?DelayedArray::DelayedArray for details."
+    )
   }
   
   return(FALSE)
@@ -2706,6 +2716,15 @@ RowMeanSparse <- function(mat) {
   if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
     return(spam::rowMeans(mat))
   }
+  
+  # Handle DelayedArray matrices for low-memory systems
+  if (inherits(mat, "DelayedArray") && requireNamespace("DelayedArray", quietly = TRUE)) {
+    if (requireNamespace("DelayedMatrixStats", quietly = TRUE)) {
+      return(DelayedMatrixStats::rowMeans2(mat))
+    } else {
+      return(DelayedArray::rowMeans(mat))
+    }
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_mean_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2726,6 +2745,15 @@ RowSumSparse <- function(mat) {
   # Handle spam matrices
   if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
     return(spam::rowSums(mat))
+  }
+  
+  # Handle DelayedArray matrices for low-memory systems
+  if (inherits(mat, "DelayedArray") && requireNamespace("DelayedArray", quietly = TRUE)) {
+    if (requireNamespace("DelayedMatrixStats", quietly = TRUE)) {
+      return(DelayedMatrixStats::rowSums2(mat))
+    } else {
+      return(DelayedArray::rowSums(mat))
+    }
   }
   mat <- RowSparseCheck(mat = mat)
   output <- row_sum_dgcmatrix(
@@ -2764,6 +2792,18 @@ RowVarSparse <- function(mat) {
       return(vars)
     }
   }
+  
+  # Handle DelayedArray matrices for low-memory systems
+  if (inherits(mat, "DelayedArray") && requireNamespace("DelayedArray", quietly = TRUE)) {
+    if (requireNamespace("DelayedMatrixStats", quietly = TRUE)) {
+      # Use DelayedMatrixStats for memory-efficient calculations
+      return(DelayedMatrixStats::rowVars(mat))
+    } else {
+      # Fallback to block processing
+      return(DelayedArray::rowVars(mat))
+    }
+  }
+  
   mat <- RowSparseCheck(mat = mat)
   output <- row_var_dgcmatrix(
     x = slot(object = mat, name = "x"),

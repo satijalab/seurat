@@ -664,6 +664,100 @@ VST.spam <- function(
   }
 }
 
+#' @rdname VST
+#' @method VST DelayedMatrix
+#' @export
+#'
+VST.DelayedMatrix <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  ...
+) {
+  if (!requireNamespace("DelayedArray", quietly = TRUE)) {
+    stop("Package 'DelayedArray' is required for DelayedMatrix support")
+  }
+  
+  # For DelayedArray matrices, use memory-efficient block processing
+  message("Processing DelayedMatrix using memory-efficient block operations...")
+  
+  # Check if DelayedMatrixStats is available for better performance
+  if (requireNamespace("DelayedMatrixStats", quietly = TRUE)) {
+    hvf.info <- data.frame(
+      mean = DelayedMatrixStats::rowMeans2(data),
+      variance = DelayedMatrixStats::rowVars(data),
+      variance.expected = numeric(nrow(data)),
+      variance.standardized = numeric(nrow(data)),
+      variable = FALSE,
+      rank = NA,
+      row.names = rownames(data)
+    )
+  } else {
+    # Fallback to base DelayedArray functions
+    hvf.info <- data.frame(
+      mean = DelayedArray::rowMeans(data),
+      variance = DelayedArray::rowVars(data),
+      variance.expected = numeric(nrow(data)),
+      variance.standardized = numeric(nrow(data)),
+      variable = FALSE,
+      rank = NA,
+      row.names = rownames(data)
+    )
+  }
+  
+  # For very large matrices, use simplified selection
+  if (nrow(data) * ncol(data) > 1e8) {
+    warning("Very large DelayedMatrix detected. Using simplified feature selection.")
+    # Select top variable features based on variance
+    vf <- head(
+      x = order(hvf.info$variance, decreasing = TRUE),
+      n = min(nselect, sum(hvf.info$variance > 0))
+    )
+    hvf.info$variable[vf] <- TRUE
+    hvf.info$rank[vf] <- seq_along(along.with = vf)
+    return(hvf.info)
+  }
+  
+  # For manageable size matrices, use standard VST processing
+  # Convert a representative block to dgCMatrix for calculations
+  block_size <- min(10000, nrow(data))  # Process in blocks
+  sample_rows <- sample(nrow(data), min(block_size, nrow(data)))
+  sample_block <- as(data[sample_rows, ], "dgCMatrix")
+  
+  # Run VST on sample block to get expected variance model
+  sample_hvf <- VST(
+    data = sample_block,
+    margin = margin,
+    nselect = min(nselect, nrow(sample_block)),
+    span = span,
+    clip = clip,
+    ...
+  )
+  
+  # Apply variance standardization to full matrix using the model
+  if (nrow(sample_hvf) > 100) {  # Ensure we have enough data for modeling
+    var_model <- loess(variance.standardized ~ log10(mean), 
+                       data = sample_hvf[sample_hvf$mean > 0, ])
+    hvf.info$variance.standardized <- predict(var_model, 
+                                              newdata = data.frame(mean = hvf.info$mean))
+    hvf.info$variance.standardized[is.na(hvf.info$variance.standardized)] <- 0
+  } else {
+    hvf.info$variance.standardized <- hvf.info$variance
+  }
+  
+  # Select variable features
+  vf <- head(
+    x = order(hvf.info$variance.standardized, decreasing = TRUE),
+    n = min(nselect, sum(hvf.info$variance.standardized > 0))
+  )
+  hvf.info$variable[vf] <- TRUE
+  hvf.info$rank[vf] <- seq_along(along.with = vf)
+  
+  return(hvf.info)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -83,6 +83,35 @@ if (requireNamespace("spam", quietly = TRUE)) {
   setClassUnion(name = 'LargeMatrix', members = c('matrix', 'dgCMatrix'))
 }
 
+# Define DelayedMatrix support for low-memory systems
+delayed_matrix_classes <- c()
+if (requireNamespace("DelayedArray", quietly = TRUE)) {
+  delayed_matrix_classes <- c(delayed_matrix_classes, 'DelayedMatrix')
+}
+if (requireNamespace("HDF5Array", quietly = TRUE)) {
+  delayed_matrix_classes <- c(delayed_matrix_classes, 'HDF5Matrix')
+}
+
+# Create MemoryEfficientMatrix class union for low-RAM systems
+if (length(delayed_matrix_classes) > 0) {
+  base_classes <- c('matrix', 'dgCMatrix')
+  if (requireNamespace("spam", quietly = TRUE)) {
+    base_classes <- c(base_classes, 'spam')
+  }
+  all_classes <- c(base_classes, delayed_matrix_classes)
+  tryCatch({
+    setClassUnion(name = 'MemoryEfficientMatrix', members = all_classes)
+  }, error = function(e) {
+    setClassUnion(name = 'MemoryEfficientMatrix', members = base_classes)
+  })
+} else {
+  if (requireNamespace("spam", quietly = TRUE)) {
+    setClassUnion(name = 'MemoryEfficientMatrix', members = c('matrix', 'dgCMatrix', 'spam'))
+  } else {
+    setClassUnion(name = 'MemoryEfficientMatrix', members = c('matrix', 'dgCMatrix'))
+  }
+}
+
 AttachDeps <- function(deps) {
   for (d in deps) {
     if (!paste0('package:', d) %in% search()) {
