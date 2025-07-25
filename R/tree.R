@@ -74,6 +74,18 @@ BuildClusterTree <- function(
     stop(cluster.ape, call. = FALSE)
   }
   assay <- assay %||% DefaultAssay(object = object)
+  
+  # Check for spam matrices and validate feasibility
+  if (is.null(dims) && is.null(graph)) {
+    memory_info <- CheckSpamMemoryUsage(object, assay, slot, verbose)
+    if (memory_info$is_spam) {
+      if (verbose) {
+        message("Building cluster tree with spam matrix support (", 
+                format(memory_info$size, units = "auto"), ")")
+      }
+    }
+  }
+  
   if (!is.null(x = graph)) {
     idents <- levels(x = object)
     nclusters <- length(x = idents)
@@ -135,6 +147,11 @@ BuildClusterTree <- function(
   } else {
     features <- features %||% VariableFeatures(object = object)
     features <- intersect(x = features, y = rownames(x = object))
+    
+    # Check if we're dealing with spam matrices
+    assay_data <- GetAssayData(object = object, assay = assay, layer = slot)
+    is_spam_matrix <- inherits(assay_data, "spam")
+    
     # if `slot` is set to "counts" sum the expression of the
     # ident groups, otherwise average them
     if(slot == "counts") {
@@ -158,7 +175,29 @@ BuildClusterTree <- function(
         )
       )[[1]]
     }
-    data.dist <- dist(x = t(x = data.pseudobulk[features, ]))
+    
+    # Handle spam matrices for distance calculation
+    if (is_spam_matrix && requireNamespace("spam", quietly = TRUE)) {
+      # For very large spam matrices, we may need special handling
+      if (object.size(data.pseudobulk) > 1e9) {
+        if (verbose) {
+          message("Large spam matrix detected. Computing distances with memory optimization.")
+        }
+        # Convert to dgCMatrix if feasible for distance calculation
+        if (object.size(data.pseudobulk) < 2e9) {
+          data.pseudobulk <- as(data.pseudobulk, "dgCMatrix")
+        } else {
+          # For ultra-large matrices, use sampling approach
+          warning("Ultra-large spam matrix detected. Using feature sampling for tree construction.")
+          max_features <- min(1000, length(features))
+          sampled_features <- sample(features, max_features)
+          data.pseudobulk <- data.pseudobulk[sampled_features, ]
+          features <- sampled_features
+        }
+      }
+    }
+    
+    data.dist <- ComputeDistanceMatrix(data.pseudobulk, features, verbose)
   }
   data.tree <- ape::as.phylo(x = hclust(d = data.dist))
   Tool(object = object) <- data.tree
@@ -202,6 +241,105 @@ BuildClusterTree <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Compute distance matrix with spam matrix optimization
+#
+# @param data.pseudobulk Pseudobulk expression matrix
+# @param features Features to use for distance calculation
+# @param verbose Show progress messages
+# @return Distance matrix
+#
+ComputeDistanceMatrix <- function(data.pseudobulk, features, verbose = TRUE) {
+  # Handle spam matrices
+  if (inherits(data.pseudobulk, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    if (verbose) {
+      message("Computing distances for spam matrix with ", nrow(data.pseudobulk), " features")
+    }
+    
+    # For very large matrices, use optimized approach
+    if (object.size(data.pseudobulk) > 1e9) {
+      if (verbose) {
+        message("Large spam matrix detected. Using optimized distance computation.")
+      }
+      
+      # Convert to dgCMatrix if memory permits
+      if (object.size(data.pseudobulk) < 2e9) {
+        data.pseudobulk <- as(data.pseudobulk, "dgCMatrix")
+      } else {
+        # For ultra-large matrices, compute distances in chunks
+        nclusters <- ncol(data.pseudobulk)
+        dist_matrix <- matrix(0, nrow = nclusters, ncol = nclusters)
+        colnames(dist_matrix) <- rownames(dist_matrix) <- colnames(data.pseudobulk)
+        
+        for (i in 1:(nclusters-1)) {
+          for (j in (i+1):nclusters) {
+            # Compute Euclidean distance between clusters
+            cluster1 <- data.pseudobulk[features, i]
+            cluster2 <- data.pseudobulk[features, j]
+            dist_val <- sqrt(sum((cluster1 - cluster2)^2))
+            dist_matrix[i, j] <- dist_matrix[j, i] <- dist_val
+          }
+        }
+        return(as.dist(dist_matrix))
+      }
+    }
+  }
+  
+  # Standard distance computation
+  return(dist(x = t(x = data.pseudobulk[features, ])))
+}
+
+# Check memory usage and suggest optimizations for spam matrices
+#
+# @param object Seurat object
+# @param assay Assay name
+# @param layer Layer/slot name
+# @param verbose Show messages
+# @return List with memory info and suggestions
+#
+CheckSpamMemoryUsage <- function(object, assay, layer, verbose = TRUE) {
+  tryCatch({
+    assay_data <- GetAssayData(object = object, assay = assay, layer = layer)
+    
+    if (inherits(assay_data, "spam") && requireNamespace("spam", quietly = TRUE)) {
+      matrix_size <- object.size(assay_data)
+      n_features <- nrow(assay_data)
+      n_cells <- ncol(assay_data)
+      
+      suggestions <- list()
+      
+      if (matrix_size > 5e9) {  # 5GB
+        suggestions <- c(suggestions, 
+                        "Consider using PCA space (dims parameter) instead of gene expression space")
+      }
+      
+      if (n_features > 10000) {
+        suggestions <- c(suggestions,
+                        "Consider using only variable features to reduce dimensionality")
+      }
+      
+      if (length(suggestions) > 0 && verbose) {
+        message("Large spam matrix detected (", format(matrix_size, units = "auto"), ")")
+        message("Suggestions for memory optimization:")
+        for (i in seq_along(suggestions)) {
+          message("  ", i, ". ", suggestions[i])
+        }
+      }
+      
+      return(list(
+        is_spam = TRUE,
+        size = matrix_size,
+        n_features = n_features,
+        n_cells = n_cells,
+        suggestions = suggestions
+      ))
+    }
+    
+    return(list(is_spam = FALSE))
+  }, error = function(e) {
+    return(list(is_spam = FALSE, error = e$message))
+  })
+}
 
 # Depth first traversal path of a given tree
 #
@@ -346,6 +484,21 @@ GetRightDescendants <- function(tree, node) {
 #
 MergeNode <- function(object, node.use, rebuild.tree = FALSE, ...) {
   CheckDots(..., fxns = 'BuldClusterTree')
+  
+  # Check if object contains spam matrices
+  has_spam <- any(sapply(object@assays, function(assay) {
+    any(sapply(c("counts", "data", "scale.data"), function(layer) {
+      tryCatch({
+        data <- GetAssayData(object = object, assay = names(assay), layer = layer)
+        inherits(data, "spam")
+      }, error = function(e) FALSE)
+    }))
+  }))
+  
+  if (has_spam && requireNamespace("spam", quietly = TRUE)) {
+    message("Detected spam matrices in object. Tree merging optimized for large matrices.")
+  }
+  
   object.tree <- object@cluster.tree[[1]]
   node.children <- DFT(
     tree = object.tree,

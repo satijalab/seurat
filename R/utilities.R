@@ -7,6 +7,51 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Check if matrix size exceeds dgCMatrix limits and suggest spam alternative
+#
+# @param nrows Number of rows
+# @param ncols Number of columns
+# @param nnz Number of non-zero elements (optional)
+# @return logical indicating if matrix is too large for dgCMatrix
+#
+CheckMatrixSize <- function(nrows, ncols, nnz = NULL) {
+  max_elements <- 2^31 - 1
+  total_elements <- as.numeric(nrows) * as.numeric(ncols)
+  memory_threshold <- 1e8  # 100 million elements for memory warning
+  
+  if (!is.null(nnz) && nnz > max_elements) {
+    warning(
+      "Matrix has ", nnz, " non-zero elements, exceeding dgCMatrix limit of ", 
+      max_elements, ". Consider using spam matrices for ultra-large datasets. ",
+      "See ?spam::spam for details.", 
+      call. = FALSE
+    )
+    return(TRUE)
+  }
+  
+  if (total_elements > max_elements) {
+    warning(
+      "Matrix dimensions (", nrows, " x ", ncols, " = ", total_elements, 
+      " elements) exceed dgCMatrix limit of ", max_elements, 
+      ". Consider using spam matrices for ultra-large datasets. ",
+      "See ?spam::spam for details.",
+      call. = FALSE
+    )
+    return(TRUE)
+  }
+  
+  # Suggest DelayedArray for memory-efficient operations on large datasets
+  if (total_elements > memory_threshold) {
+    message(
+      "Large matrix detected (", nrows, " x ", ncols, " = ", total_elements, 
+      " elements). For memory-efficient operations, consider using DelayedArray matrices. ",
+      "See ?DelayedArray::DelayedArray for details."
+    )
+  }
+  
+  return(FALSE)
+}
+
 #' Add Azimuth Results
 #'
 #' Add mapping and prediction scores, UMAP embeddings, and imputed assay (if
@@ -137,13 +182,12 @@ AddAzimuthScores <- function(object, filename) {
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
-#' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
 #' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Seurat
 #'
 #' @examples
 #' \dontrun{
@@ -174,7 +218,7 @@ AddAzimuthScores <- function(object, filename) {
 #' head(x = pbmc_small[])
 #' }
 #'
-AddModuleScore <- function(
+AddModuleScore.Seurat <- function(
   object,
   features,
   pool = NULL,
@@ -194,13 +238,106 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
+  features.scores.use <- AddModuleScore(object = object[[assay]],
+                                        features = features,
+                                        kmeans.obj = object@kmeans.obj,
+                                        pool = pool,
+                                        nbin = nbin,
+                                        ctrl = ctrl,
+                                        k = k,
+                                        name = name,
+                                        seed = seed,
+                                        search = search,
+                                        slot = slot,
+                                        ...)
+  object[[colnames(x = features.scores.use)]] <- features.scores.use
+  CheckGC()
+  DefaultAssay(object = object) <- assay.old
+  return(object)
+}
+
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
+#' 
+#' @references Tirosh et al, Science (2016)
+#'
+AddModuleScore.StdAssay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  layer_names <- Layers(object, search = slot)
+  input_list <- lapply(
+    layer_names,
+    function(layer_name) {
+      layer_data <- LayerData(object, layer = layer_name)
+      layer_object <- CreateAssayObject(layer_data)
+      return (layer_object)
+    }
+  )
+  output_list <- lapply(
+    input_list,
+    function(input) {
+      AddModuleScore(object = input,
+                     features = features,
+                     kmeans.obj = kmeans.obj,
+                     pool = pool,
+                     nbin = nbin,
+                     ctrl = ctrl,
+                     k = k,
+                     name = name,
+                     seed = seed,
+                     search = search,
+                     slot = slot,
+                     ...)
+    }
+  )
+  features.scores.use <- do.call(rbind,output_list)
+  return(features.scores.use)
+}
+
+#' 
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters 
+#' when \code{k = TRUE}; ignored if \code{k = FALSE}.
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Assay
+#'
+#' @importFrom ggplot2 cut_number
+#' 
+AddModuleScore.Assay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  assay.data <- GetAssayData(object = object, slot = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
     features <- list()
-    for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
-      features[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
+    for (i in as.numeric(x = names(x = table(kmeans.obj[[1]]$cluster)))) {
+      features[[i]] <- names(x = which(x = kmeans.obj[[1]]$cluster == i))
     }
     cluster.length <- length(x = features)
   } else {
@@ -320,10 +457,7 @@ AddModuleScore <- function(
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
-  object[[colnames(x = features.scores.use)]] <- features.scores.use
-  CheckGC()
-  DefaultAssay(object = object) <- assay.old
-  return(object)
+  return(features.scores.use)
 }
 
 #' Aggregated feature expression by identity class
@@ -986,7 +1120,7 @@ GroupCorrelation <- function(
   grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
   grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
   colnames(x = grp.cors) <- c(paste0(var, "_cor"), "feature.grp")
-  object[[assay]][] <- grp.cors
+  object[[assay]] <- AddMetaData(object[[assay]], grp.cors)
   if (isTRUE(x = do.plot)) {
     print(GroupCorrelationPlot(
       object = object,
@@ -1171,11 +1305,31 @@ PercentageFeatureSet <- function(
   assay = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  if (!is.null(x = features) && !is.null(x = pattern)) {
-    warn(message = "Both pattern and features provided. Pattern is being ignored.")
+  if (!is.null(x = features))  {
+    if (!is.null(x = pattern)) {
+      warning(
+        paste(
+          "Both `features` and `pattern` were provided;",
+          "`pattern` will be ignored."
+        )
+      )
+    }
+
+    available_features <- Features(object[[assay]])
+    missing_features <- setdiff(features, available_features)
+    if (length(missing_features) > 0) {
+      warning(
+        paste(
+          "The following features are not found in the",
+          paste0("'", assay, "'"),
+          "assay:",
+          paste(paste0("'", missing_features, "'"), collapse = ", ")
+        )
+      )
+    }
   }
   percent.featureset <- list()
-  layers <- Layers(object = object, search = "counts")
+  layers <- Layers(object = object, assay = assay, search = "counts")
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
     features.layer <- features %||% grep(
@@ -1185,6 +1339,7 @@ PercentageFeatureSet <- function(
     layer.data <- LayerData(object = object,
                             assay = assay,
                             layer = layer)
+    features.layer <- intersect(features.layer, rownames(layer.data))
     layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
     layer.perc <- layer.sums / object[[]][colnames(layer.data), paste0("nCount_", assay)] * 100
     percent.featureset[[i]] <- layer.perc
@@ -1204,7 +1359,7 @@ PercentageFeatureSet <- function(
 #' @param object Seurat object
 #' @param method Whether to 'average' (default) or 'aggregate' expression levels
 #' @param assay  The name of the passed assay - used primarily for warning/error messages
-#' @param category.matrix A matrix defining groupings for pseudobulk expression 
+#' @param category.matrix A matrix defining groupings for pseudobulk expression
 #' calculations; each column represents an identity class, and each row a sample
 #' @param features Features to analyze. Default is all features in the assay
 #' @param layer Layer(s) to user; if multiple are given, assumed to follow
@@ -1217,7 +1372,6 @@ PercentageFeatureSet <- function(
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
 #' @rdname PseudobulkExpression
-#' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #' @concept utilities
 #'
@@ -1351,10 +1505,10 @@ PseudobulkExpression.StdAssay <- function(
 
 #' @param assays Which assays to use. Default is all assays
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, "ident", "replicate", 
+#' @param group.by Categories for grouping (e.g, "ident", "replicate",
 #' "celltype"); "ident" by default
 #' @param add.ident (Deprecated) See group.by
-#' @param method The method used for calculating pseudobulk expression; one of: 
+#' @param method The method used for calculating pseudobulk expression; one of:
 #' "average" or "aggregate"
 #' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
 #' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
@@ -1455,26 +1609,28 @@ PseudobulkExpression.Seurat <- function(
     group.by <- colnames(x = data)[which(num.levels > 1)]
     data <- data[, which(num.levels > 1), drop = F]
   }
-  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
-  #check if column names are numeric
-  col.names <- colnames(category.matrix)
-  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
-    col.names <- ifelse(
-      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
-      paste0("g", col.names),
-      col.names
-    )
-    colnames(category.matrix) <- col.names
-    inform(
-      message = paste0("First group.by variable `", group.by[1],
-      "` starts with a number, appending `g` to ensure valid variable names"),
-      .frequency = "regularly",
-      .frequency_id = "PseudobulkExpression"
-    )
-  }
-
   data.return <- list()
   for (i in 1:length(x = assays)) {
+    data_sub <- data[intersect(rownames(data),Cells(object[[assays[i]]])),,drop=FALSE]
+    category.matrix <- CreateCategoryMatrix(labels = data_sub, method = method)
+    #check if column names are numeric
+    col.names <- colnames(category.matrix)
+    if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+      col.names <- ifelse(
+        !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+        paste0("g", col.names),
+        col.names
+      )
+      colnames(category.matrix) <- col.names
+      inform(
+        message = paste0("First group.by variable `", group.by[1],
+        "` starts with a number, appending `g` to ensure valid variable names"),
+        .frequency = "regularly",
+        .frequency_id = "PseudobulkExpression"
+      )
+    }
+
+
     data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
@@ -1525,6 +1681,8 @@ PseudobulkExpression.Seurat <- function(
         ) <- NormalizeData(
           as.matrix(x = data.return[[1]]),
           normalization.method = normalization.method,
+          scale.factor = scale.factor,
+          margin = margin,
           verbose = verbose
         )
       }
@@ -2554,6 +2712,19 @@ RemoveLastField <- function(string, delim = "_") {
 # @return A vector of row mean
 #
 RowMeanSparse <- function(mat) {
+  # Handle spam matrices
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    return(spam::rowMeans(mat))
+  }
+  
+  # Handle DelayedArray matrices for low-memory systems
+  if (inherits(mat, "DelayedArray") && requireNamespace("DelayedArray", quietly = TRUE)) {
+    if (requireNamespace("DelayedMatrixStats", quietly = TRUE)) {
+      return(DelayedMatrixStats::rowMeans2(mat))
+    } else {
+      return(DelayedArray::rowMeans(mat))
+    }
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_mean_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2571,6 +2742,19 @@ RowMeanSparse <- function(mat) {
 # @return A vector of row sum
 #
 RowSumSparse <- function(mat) {
+  # Handle spam matrices
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    return(spam::rowSums(mat))
+  }
+  
+  # Handle DelayedArray matrices for low-memory systems
+  if (inherits(mat, "DelayedArray") && requireNamespace("DelayedArray", quietly = TRUE)) {
+    if (requireNamespace("DelayedMatrixStats", quietly = TRUE)) {
+      return(DelayedMatrixStats::rowSums2(mat))
+    } else {
+      return(DelayedArray::rowSums(mat))
+    }
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_sum_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2588,6 +2772,38 @@ RowSumSparse <- function(mat) {
 # @return A vector of row variance
 #
 RowVarSparse <- function(mat) {
+  # Handle spam matrices
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    # Calculate variance using spam matrix operations
+    means <- spam::rowMeans(mat)
+    n <- ncol(mat)
+    # For spam matrices, convert to dgCMatrix for variance calculation if needed
+    if (object.size(mat) < 2e9) {  # Only convert smaller matrices
+      mat_sparse <- as(mat, "dgCMatrix")
+      return(RowVarSparse(mat_sparse))
+    } else {
+      # For very large matrices, use spam operations
+      vars <- numeric(nrow(mat))
+      for (i in seq_len(nrow(mat))) {
+        row_vals <- mat[i, ]
+        vars[i] <- sum((row_vals - means[i])^2) / (n - 1)
+      }
+      names(vars) <- rownames(mat)
+      return(vars)
+    }
+  }
+  
+  # Handle DelayedArray matrices for low-memory systems
+  if (inherits(mat, "DelayedArray") && requireNamespace("DelayedArray", quietly = TRUE)) {
+    if (requireNamespace("DelayedMatrixStats", quietly = TRUE)) {
+      # Use DelayedMatrixStats for memory-efficient calculations
+      return(DelayedMatrixStats::rowVars(mat))
+    } else {
+      # Fallback to block processing
+      return(DelayedArray::rowVars(mat))
+    }
+  }
+  
   mat <- RowSparseCheck(mat = mat)
   output <- row_var_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2605,6 +2821,10 @@ RowVarSparse <- function(mat) {
 # @return A dgCMatrix
 #
 RowSparseCheck <- function(mat) {
+  # Handle spam matrices - they are already sparse and compatible
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    return(mat)
+  }
   if (!inherits(x = mat, what = "sparseMatrix")) {
     stop("Input should be sparse matrix")
   } else if (!is(object = mat, class2 = "dgCMatrix")) {
@@ -2913,7 +3133,7 @@ CreateCategoryMatrix <- function(
 #' @param assay Name for spatial neighborhoods assay
 #' @param cluster.name Name of output clusters
 #' @param neighbors.k Number of neighbors to consider for each cell
-#' @param niches.k Number of clusters to return based on the niche assay
+#' @param ... Extra parameters passed to \code{\link{kmeans}}
 #'
 #' @importFrom stats kmeans
 #' @return Seurat object containing a new assay
@@ -2927,7 +3147,8 @@ BuildNicheAssay <- function(
   assay = "niche",
   cluster.name = "niches",
   neighbors.k = 20,
-  niches.k = 4
+  niches.k = 4,
+  ...
 ) {
   # initialize an empty cells x groups binary matrix
   cells <- Cells(object[[fov]])
@@ -2940,7 +3161,7 @@ BuildNicheAssay <- function(
   )
   rownames(cell.type.mtx) <- cells
   colnames(cell.type.mtx) <- groups
-  # populate the binary matrix 
+  # populate the binary matrix
   cells.idx <- seq_along(cells)
   group.idx <- match(group.labels, groups)
   cell.type.mtx[cbind(cells.idx, group.idx)] <- 1
@@ -2962,7 +3183,8 @@ BuildNicheAssay <- function(
   results <- kmeans(
     x = t(object[[assay]]@scale.data),
     centers = niches.k,
-    nstart = 30
+    nstart = 30,
+    ...
   )
   object[[cluster.name]] <- results[["cluster"]]
 

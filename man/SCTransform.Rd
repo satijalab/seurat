@@ -101,81 +101,104 @@ SCTransform(object, ...)
 )
 }
 \arguments{
-\item{object}{UMI counts matrix}
+\item{object}{A Seurat object or UMI count matrix.}
 
-\item{...}{Additional parameters passed to \code{sctransform::vst}}
+\item{...}{Additional arguments passed to \code{sctransform::vst}.}
 
-\item{cell.attr}{A metadata with cell attributes}
+\item{cell.attr}{Optional metadata frame (cells × attributes).}
 
-\item{reference.SCT.model}{If not NULL, compute residuals for the object
-using the provided SCT model; supports only log_umi as the latent variable.
-If residual.features are not specified, compute for the top variable.features.n
-specified in the model which are also present in the object. If
-residual.features are specified, the variable features of the resulting SCT
-assay are set to the top variable.features.n in the model.}
+\item{reference.SCT.model}{Pre‐fitted SCT model (supports only \code{log_umi}
+as latent variable). If provided, computes residuals via that model. When
+\code{residual.features} is NULL, uses the model’s top
+\code{variable.features.n}; otherwise, sets the assay’s variable features
+to \code{residual.features}.}
 
-\item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
+\item{do.correct.umi}{Logical; if TRUE (default), stores corrected UMIs in
+\code{counts}.}
 
-\item{ncells}{Number of subsampling cells used to build NB regression; default is 5000}
+\item{ncells}{Integer; number of cells to subsample when fitting NB
+regression (default: 5000).}
 
-\item{residual.features}{Genes to calculate residual features for; default is NULL (all genes).
-If specified, will be set to VariableFeatures of the returned object.}
+\item{residual.features}{Character vector of genes to compute residuals for.
+Default NULL (all genes). If set, these become the assay’s variable
+features.}
 
-\item{variable.features.n}{Use this many features as variable features after
-ranking by residual variance; default is 3000. Only applied if residual.features is not set.}
+\item{variable.features.n}{Integer; when \code{residual.features} is NULL,
+select this many top features by residual variance (default: 3000).}
 
-\item{variable.features.rv.th}{Instead of setting a fixed number of variable features,
-use this residual variance cutoff; this is only used when \code{variable.features.n}
-is set to NULL; default is 1.3. Only applied if residual.features is not set.}
+\item{variable.features.rv.th}{Numeric; if \code{variable.features.n} is NULL,
+select features exceeding this residual‐variance threshold (default: 1.3).}
 
-\item{vars.to.regress}{Variables to regress out in a second non-regularized linear}
+\item{vars.to.regress}{Character vector of metadata columns (e.g.
+\code{percent.mito}) to regress out in a second, non‐regularized model.}
 
-\item{latent.data}{Extra data to regress out, should be cells x latent data
-regression. For example, percent.mito. Default is NULL}
+\item{latent.data}{Numeric matrix (cells × latent covariates) to regress out.}
 
-\item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
+\item{do.scale}{Logical; if TRUE, scale residuals to unit variance
+(default: FALSE).}
 
-\item{do.center}{Whether to center residuals to have mean zero; default is TRUE}
+\item{do.center}{Logical; if TRUE, center residuals to mean zero
+(default: TRUE).}
 
-\item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
-where n is the number of cells}
+\item{clip.range}{Numeric vector of length 2; range to clip residuals
+(default \code{c(-sqrt(n/30), sqrt(n/30))}, with n = number of cells).}
 
-\item{vst.flavor}{When set to 'v2' sets method = glmGamPoi_offset, n_cells=2000,
-and exclude_poisson = TRUE which causes the model to learn theta and intercept
-only besides excluding poisson genes from learning and regularization}
+\item{vst.flavor}{Character; if \code{"v2"}, uses \code{method = "glmGamPoi_offset"},
+\code{n_cells = 2000}, and \code{exclude_poisson = TRUE} to fit \eqn{\theta} and
+intercept only.}
 
-\item{conserve.memory}{If set to TRUE the residual matrix for all genes is never
-created in full; useful for large data sets, but will take longer to run;
-this will also set return.only.var.genes to TRUE; default is FALSE}
+\item{conserve.memory}{Logical; if TRUE, never builds the full residual
+matrix (slower but memory‐efficient; forces \code{return.only.var.genes=TRUE};
+default: FALSE).}
 
-\item{return.only.var.genes}{If set to TRUE the scale.data matrices in output assay are
-subset to contain only the variable genes; default is TRUE}
+\item{return.only.var.genes}{Logical; if TRUE (default), \code{scale.data}
+is subset to variable features only.}
 
-\item{seed.use}{Set a random seed. By default, sets the seed to 1448145. Setting
-NULL will not set a seed.}
+\item{seed.use}{Integer; random seed for reproducibility (default: 1448145).
+Set to NULL to skip setting a seed.}
 
-\item{verbose}{Whether to print messages and progress bars}
+\item{verbose}{Logical; whether to print progress messages (default: TRUE).}
 
 \item{assay}{Name of assay to pull the count data from; default is 'RNA'}
 
 \item{new.assay.name}{Name for the new assay containing the normalized data; default is 'SCT'}
 }
 \value{
-Returns a Seurat object with a new assay (named SCT by default) with
-counts being (corrected) counts, data being log1p(counts), scale.data being
-pearson residuals; sctransform::vst intermediate results are saved in misc
-slot of the new assay.
+A Seurat object with a new \code{SCT} assay containing:
+\code{counts} (corrected UMIs), \code{data} (log1p counts), and
+\code{scale.data} (Pearson residuals), plus \code{misc} for intermediate
+\code{vst} outputs.
 }
 \description{
-This function calls sctransform::vst. The sctransform package is available at
-https://github.com/satijalab/sctransform.
-Use this function as an alternative to the NormalizeData,
-FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-(named SCT by default) with counts being (corrected) counts, data being log1p(counts),
-scale.data being pearson residuals; sctransform::vst intermediate results are saved
-in misc slot of new assay.
+Perform a variance‐stabilizing transformation on UMI counts using
+\code{sctransform::vst} (https://github.com/satijalab/sctransform). This
+replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
+\code{ScaleData} workflow by fitting a regularized negative binomial model
+per gene and returning:
+}
+\details{
+- A new assay (default name “SCT”), in which:
+  - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
+    sequencing depth; controlled by \code{do.correct.umi}).
+  - \code{data}: \code{log1p} of corrected counts.
+  - \code{scale.data}: Pearson residuals from the fitted NB model (optionally
+    centered and/or scaled).
+  - \code{misc}: intermediate outputs from \code{sctransform::vst}.
+
+When multiple \code{counts} layers exist (e.g. after \code{split()}),
+each layer is modeled independently. A consensus variable‐feature set is
+then defined by ranking features by how often they’re called “variable” 
+across different layers (ties broken by median rank).
+
+By default, \code{sctransform::vst} will drop features expressed in fewer
+than five cells. In the multi-layer case, this can lead to consenus
+variable-features being excluded from the output's \code{scale.data} when
+a feature is "variable" across many layers but sparsely expressed in at 
+least one.
 }
 \seealso{
-\code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
+\code{\link[sctransform]{vst}},
+  \code{\link[sctransform]{get_residuals}},
+  \code{\link[sctransform]{correct_counts}}
 }
 \concept{preprocessing}

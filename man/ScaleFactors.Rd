@@ -3,13 +3,19 @@
 \name{ScaleFactors}
 \alias{ScaleFactors}
 \alias{scalefactors}
+\alias{ScaleFactors.SlideSeq}
+\alias{ScaleFactors.STARmap}
 \alias{ScaleFactors.VisiumV1}
 \alias{ScaleFactors.VisiumV2}
 \title{Get image scale factors}
 \usage{
 ScaleFactors(object, ...)
 
-scalefactors(spot, fiducial, hires, lowres)
+scalefactors(spot = 1, fiducial = 1, hires = 1, lowres = 1)
+
+\method{ScaleFactors}{SlideSeq}(object, ...)
+
+\method{ScaleFactors}{STARmap}(object, ...)
 
 \method{ScaleFactors}{VisiumV1}(object, ...)
 

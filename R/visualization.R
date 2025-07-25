@@ -132,7 +132,7 @@ DimHeatmap <- function(
     object = object,
     vars = features.keyed,
     cells = unique(x = unlist(x = cells)),
-    slot = slot
+    layer = slot
   )
   data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
   data.limits <- c(min(data.all), max(data.all))
@@ -265,7 +265,7 @@ DoHeatmap <- function(
     no = 6
   )
   # make sure features are present
-  possible.features <- rownames(x = GetAssayData(object = object, slot = slot))
+  possible.features <- Features(object,layer = slot)
   if (any(!features %in% possible.features)) {
     bad.features <- features[!features %in% possible.features]
     features <- features[features %in% possible.features]
@@ -590,6 +590,8 @@ RidgePlot <- function(
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 # default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 # number of points exceed 100,000.
+#' @param raster.dpi the dpi for raster layer, default is 300.
+#' See \code{\link[ggrastr]{rasterize}} for more info.
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -628,7 +630,8 @@ VlnPlot <- function(
   fill.by = 'feature',
   flip = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = 300
 ) {
   if (is_present(arg = slot)) {
     deprecate_soft(
@@ -697,7 +700,8 @@ VlnPlot <- function(
     fill.by = fill.by,
     flip = flip,
     add.noise = add.noise,
-    raster = raster
+    raster = raster,
+    raster.dpi = raster.dpi
   ))
 }
 
@@ -1189,7 +1193,7 @@ FeaturePlot <- function(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
-    slot = slot
+    layer = slot
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
@@ -1697,7 +1701,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   )
   # Prepare plotting data
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  plot.data <- FetchData(object = object, vars = c(dims, feature), slot = slot)
+  plot.data <- FetchData(object = object, vars = c(dims, feature), layer = slot)
   # Shiny server
   server <- function(input, output, session) {
     plot.env <- reactiveValues(
@@ -1768,7 +1772,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
         expr = FetchData(
           object = object,
           vars = c(dims, feature.keyed),
-          slot = slot
+          layer = slot
         ),
         warning = function(...) {
           return(plot.env$data)
@@ -2035,7 +2039,7 @@ FeatureScatter <- function(
     object = object,
     vars = c(feature1, feature2, group.by),
     cells = cells,
-    slot = slot
+    layer = slot
   )
   if (!grepl(pattern = feature1, x = names(x = data)[1])) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
@@ -3768,7 +3772,7 @@ ISpatialFeaturePlot <- function(
     object = object,
     vars = feature,
     cells = cells.use,
-    slot = slot
+    layer = slot
   )
   plot.data <- cbind(coords, feature.data)
   server <- function(input, output, session) {
@@ -3818,7 +3822,7 @@ ISpatialFeaturePlot <- function(
             object = object,
             vars = paste0(Key(object = object[[input$assay]]), feature.use),
             cells = cells.use,
-            slot = slot
+            layer = slot
           )
           colnames(x = feature.data) <- feature.use
           plot.env$data <- cbind(coords, feature.data)
@@ -4700,7 +4704,7 @@ GroupCorrelationPlot <- function(
   cor = "nCount_RNA_cor"
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  data <- object[[assay]][c(feature.group, cor)]
+  data <- object[[assay]][[c(feature.group, cor)]]
   data <- data[complete.cases(data), ]
   colnames(x = data) <- c('grp', 'cor')
   data$grp <- as.character(data$grp)
@@ -6726,7 +6730,8 @@ ExIPlot <- function(
   fill.by = NULL,
   flip = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 ) {
   if (is_present(arg = slot)) {
     layer <- layer %||% slot
@@ -6762,7 +6767,7 @@ ExIPlot <- function(
       y = cells
     )
   }
-  data <- FetchData(object = object, vars = features, slot = layer, cells = cells)
+  data <- FetchData(object = object, vars = features, layer = layer, cells = cells)
   pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   data <- data[cells, , drop = FALSE]
@@ -6836,7 +6841,8 @@ ExIPlot <- function(
         alpha = alpha,
         log = log,
         add.noise = add.noise,
-        raster = raster
+        raster = raster,
+        raster.dpi = raster.dpi
       ))
     }
   )
@@ -8411,6 +8417,8 @@ SingleDimPlot <- function(
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
+#' @param raster.dpi the dpi for raster layer, default is 300.
+#' See \code{\link[ggrastr]{rasterize}} for more info.
 #'
 #' @return A ggplot-based Expression-by-Identity plot
 #'
@@ -8439,7 +8447,8 @@ SingleExIPlot <- function(
   seed.use = 42,
   log = FALSE,
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 ) {
    if (!is.null(x = raster) && isTRUE(x = raster)){
     if (!PackageCheck('ggrastr', error = FALSE)) {
@@ -8519,7 +8528,7 @@ SingleExIPlot <- function(
       )
       if (is.null(x = split)) {
         if (isTRUE(x = raster)) {
-          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE))
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE), dpi = raster.dpi)
         } else {
           jitter <- geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
         }
@@ -8530,7 +8539,7 @@ SingleExIPlot <- function(
             size = pt.size,
             alpha = alpha,
             show.legend = FALSE
-          ))
+          ), dpi = raster.dpi)
         } else {
           jitter <- geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),

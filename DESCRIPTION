@@ -1,7 +1,9 @@
 Package: Seurat
-Version: 5.2.1
+Version: 5.3.1.0000
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
+Author: Rahul Satija [aut, cre], Andrew Butler [ctb], Saket Choudhary [ctb], David Collins [ctb], Charlotte Darby [ctb], Jeff Farrell [ctb], Isabella Grabski [ctb], Christoph Hafemeister [ctb], Yuhan Hao [ctb], Austin Hartman [ctb], Paul Hoffman [ctb], Jaison Jain [ctb], Longda Jiang [ctb], Madeline Kowalski [ctb], Skylar Li [ctb], Gesmira Molla [ctb], Efthymia Papalexi [ctb], Patrick Roelli [ctb], Karthik Shekhar [ctb], Avi Srivastava [ctb], Tim Stuart [ctb], Kristof Torkenczy [ctb], Shiwei Zheng [ctb], Satija Lab and Collaborators [fnd]
+Maintainer: Rahul Satija <seurat@nygenome.org>
 Authors@R: c(
   person(given = "Andrew", family = "Butler", email = "abutler@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0003-3608-0463")),
   person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
@@ -94,10 +96,12 @@ Suggests:
     arrow,
     Biobase,
     BiocGenerics,
+    BiocParallel,
     BPCells,
     data.table,
     DESeq2,
     DelayedArray,
+    DelayedMatrixStats,
     enrichR,
     GenomicRanges,
     GenomeInfoDb,
@@ -119,6 +123,7 @@ Suggests:
     S4Vectors,
     sf (>= 1.0.0),
     SingleCellExperiment,
+    spam,
     SummarizedExperiment,
     testthat,
     VGAM
@@ -135,6 +140,7 @@ Collate:
     'visualization.R'
     'convenience.R'
     'data.R'
+    'delayed-integration.R'
     'differential_expression.R'
     'dimensional_reduction.R'
     'integration.R'
@@ -146,5 +152,6 @@ Collate:
     'preprocessing5.R'
     'roxygen.R'
     'sketching.R'
+    'spam-integration.R'
     'tree.R'
     'utilities.R'

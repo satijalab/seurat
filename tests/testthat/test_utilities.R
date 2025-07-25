@@ -92,7 +92,7 @@ test_that("AverageExpression handles features properly", {
   expect_equal(rownames(avg.scale), features)
 })
 
-test_that("AverageExpression with return.seurat", {
+test_that("AverageExpression with return.seurat behaves as expected", {
   # counts
   avg.counts <- AverageExpression(object, layer = "counts", return.seurat = TRUE, verbose = FALSE)
   avg.counts.calc <- object[['RNA']]$counts %*% category.matrix.avg
@@ -147,22 +147,143 @@ test_that("AverageExpression with return.seurat", {
   expect_equal(unname(as.matrix(LayerData(avg.scale[["RNA"]], layer = "scale.data"))), unname(as.matrix(avg.scale.mat)))
 })
 
-test.dat <- LayerData(object = object, layer = "data")
+test_that("Aggregate Expression correctly sums counts", {
+  test.obj <- CreateSeuratObject(
+    counts = pbmc.test,
+    min.cells = 10,
+    min.features = 30,
+    meta.data = meta.data
+  )
+  # test normalization method
+  aggregate.obj <- AggregateExpression(test.obj, assay = "RNA", group.by = "a", return.seurat = TRUE,
+                                       normalization.method = "CLR")
+  aggregate.counts.calc <- object[['RNA']]$counts %*% category.matrix.sum
+  #test that counts are indeed equal to average counts
+  expect_equivalent(
+    as.matrix(aggregate.obj[['RNA']]$counts),
+    as.matrix(aggregate.counts.calc),
+    tolerance = 1e-6
+  )
+})
+
+test_that("Aggregate Expression return.seurat=TRUE returns normalized data", {
+  test.obj <- CreateSeuratObject(
+    counts = pbmc.test,
+    min.cells = 10,
+    min.features = 30,
+    meta.data = meta.data
+  )
+  # test normalization method
+  aggregate.obj <- AggregateExpression(test.obj, assay = "RNA", group.by = "a", return.seurat = TRUE,
+                                       normalization.method = "CLR")
+  aggregate.obj.2 <- NormalizeData(aggregate.obj, normalization.method = "CLR")
+  expect_equal(as.matrix(LayerData(aggregate.obj, assay = "RNA", layer = "data")),
+               as.matrix(LayerData(aggregate.obj.2, assay = "RNA", layer = "data"))
+  )
+  # test margin
+  aggregate.obj <- AggregateExpression(test.obj, assay = "RNA", group.by = "a", return.seurat = TRUE,
+                                       margin = 2, normalization.method = "CLR" )
+  aggregate.obj.2 <- NormalizeData(aggregate.obj, margin = 2, normalization.method = "CLR")
+  expect_equal(as.matrix(LayerData(aggregate.obj, assay = "RNA", layer = "data")),
+               as.matrix(LayerData(aggregate.obj.2, assay = "RNA", layer = "data"))
+  )
+  # test scale.factor
+  aggregate.obj <- AggregateExpression(test.obj, assay = "RNA", group.by = "a", return.seurat = TRUE)
+  aggregate.obj.2 <- NormalizeData(aggregate.obj)
+  expect_equal(as.matrix(LayerData(aggregate.obj, assay = "RNA", layer = "data")),
+               as.matrix(LayerData(aggregate.obj.2, assay = "RNA", layer = "data")))
+  # test scale.factor
+  aggregate.obj <- AggregateExpression(test.obj, assay = "RNA", group.by = "a", return.seurat = TRUE,
+                                       scale.factor = 1e6)
+  aggregate.obj.2 <- NormalizeData(aggregate.obj, scale.factor = 1e6)
+  expect_equal(as.matrix(LayerData(aggregate.obj, assay = "RNA", layer = "data")),
+               as.matrix(LayerData(aggregate.obj.2, assay = "RNA", layer = "data"))
+  )
+})
+
+test_that("Aggregate Expression with return.seurat=TRUE returns normalized data in multi-assay case", {
+  test.obj <- CreateSeuratObject(
+    counts = pbmc.test,
+    min.cells = 10,
+    min.features = 30,
+    meta.data = meta.data
+  )
+  test.obj[['RNA2']] <- CreateAssay5Object(counts = pbmc.test,  min.cells = 10,
+                                          min.features = 30)
+  # test normalization method
+  aggregate.obj <- AggregateExpression(test.obj,  group.by = "a", return.seurat = TRUE,
+                                       normalization.method = "CLR")
+  aggregate.obj.2 <- NormalizeData(aggregate.obj, assay = "RNA2", normalization.method = "CLR")
+  expect_equal(as.matrix(LayerData(aggregate.obj, assay = "RNA2", layer = "data")),
+               as.matrix(LayerData(aggregate.obj.2, assay = "RNA2", layer = "data"))
+  )
+  # test margin
+  aggregate.obj <- AggregateExpression(test.obj, group.by = "a", return.seurat = TRUE,
+                                       margin = 2, normalization.method = "CLR" )
+  aggregate.obj.2 <- NormalizeData(aggregate.obj, assay = "RNA2", margin = 2, normalization.method = "CLR")
+  expect_equal(as.matrix(LayerData(aggregate.obj, assay = "RNA2", layer = "data")),
+               as.matrix(LayerData(aggregate.obj.2, assay = "RNA2", layer = "data"))
+  )
+  # test scale.factor
+  aggregate.obj <- AggregateExpression(test.obj,group.by = "a", return.seurat = TRUE,
+                                       scale.factor = 1e6)
+  aggregate.obj.2 <- NormalizeData(aggregate.obj, assay = "RNA2", scale.factor = 1e6)
+  expect_equal(as.matrix(LayerData(aggregate.obj, assay = "RNA2", layer = "data")),
+               as.matrix(LayerData(aggregate.obj.2, assay = "RNA2", layer = "data"))
+  )
+})
+
+test_that("Aggregate Expression return.seurat=TRUE keeps group.by variables as meta data", {
+  test.obj <- CreateSeuratObject(
+    counts = pbmc.test,
+    min.cells = 10,
+    min.features = 30,
+    meta.data = meta.data
+  )
+  test.obj$b <- rep(as.factor(c('c', 'd', 'e')), length.out = ncol(test.obj))
+  aggregate.obj <- AggregateExpression(test.obj,  group.by = c("a", "b"), return.seurat = TRUE)
+  expect_true(all(c("a", "b", "orig.ident") %in% colnames(aggregate.obj[[]])))
+})
+
+test_that("Aggregate Expression return.seurat=TRUE passes arguments to CreateSeuratObject", {
+  test.obj <- CreateSeuratObject(
+    counts = pbmc.test,
+    min.cells = 10,
+    min.features = 30,
+    meta.data = meta.data
+  )
+  test.obj$b <- rep(as.factor(c('c', 'd', 'e')), length.out = ncol(test.obj))
+  # check that min.cells works
+  aggregate.obj <- AggregateExpression(test.obj,  group.by = c("a", "b"), return.seurat = TRUE,
+                                       min.cells = 5)
+  aggregate.obj.2 <- CreateSeuratObject(counts = aggregate.obj[['RNA']]$counts, min.cells=5)
+  expect_equal(nrow(LayerData(aggregate.obj, layer = "counts")),
+               nrow(LayerData(aggregate.obj.2, layer = "counts"))
+               )
+  # check that min.features works
+  aggregate.obj <- AggregateExpression(test.obj,  group.by = c("a", "b"), return.seurat = TRUE,
+                                       min.features = 50)
+  aggregate.obj.2 <- CreateSeuratObject(counts = aggregate.obj[['RNA']]$counts, min.features=50)
+  expect_equal(ncol(LayerData(aggregate.obj, layer = "counts")),
+               ncol(LayerData(aggregate.obj.2, layer = "counts"))
+  )
+})
+
+test.dat <- LayerData(object = object, layer = "data")[, 1:10]
 rownames(x = test.dat) <- paste0("test-", rownames(x = test.dat))
 suppressWarnings(object[["TEST"]] <- CreateAssayObject(data = test.dat))
-
 test_that("AverageExpression with multiple assays", {
   avg.test <- AverageExpression(object = object, assays = "TEST", layer = "data")
   expect_equal(names(x = avg.test), "TEST")
   expect_equal(length(x = avg.test), 1)
   expect_equivalent(
     avg.test[[1]]['test-KHDRBS1', 1:3],
-    c(a = 10.329153, b = 92.287109, c = 5.620942),
+    c(a = 20.66116, b = 751.54445, c = 38.31418),
     tolerance = 1e-6
   )
   expect_equivalent(
     avg.test[[1]]['test-DNAJB1', 1:3] ,
-    c(a = 42.32240, b = 15.94807, c = 15.96319),
+    c(a = 230.50887, b = 50.50505, c = 65.35948),
     tolerance = 1e-6
   )
   avg.all <- AverageExpression(object = object, layer = "data")
@@ -289,5 +410,35 @@ test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
   expect_equal(
     LayerData(left, layer = "scale.data"),
     LayerData(left, layer = "scale.data")
+  )
+})
+
+test_that("AddModuleScore works in the multi-layer case", {
+  cd_features <- list(c('CD79B','CD79A','CD3D','CD2','CD3E','CD7',
+                        'CD14','CD68','CD247'))
+  object1 <- AddModuleScore(object = object,
+                            features = cd_features,
+                            ctrl = 5,
+                            name = 'CD_Features')
+  
+  split_object <- SplitObject(object, split.by = 'a')
+  split_object1 <- AddModuleScore(object = split_object[[1]],
+                                  features = cd_features,
+                                  ctrl = 5,
+                                  name = 'CD_Features')
+  
+  object2 <- split(object, f = object$a)
+  object2 <- AddModuleScore(object = object2,
+                            features = cd_features,
+                            ctrl = 5,
+                            name = 'CD_Features')
+  
+  expect_equal(
+    object2$CD_Features1[object2$a=='a'],
+    split_object1$CD_Features1
+  )
+  
+  expect_false(
+    all(object1$CD_Features1 == object2$CD_Features1)
   )
 })

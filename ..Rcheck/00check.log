@@ -1,0 +1,36 @@
+* using log directory ‘/Users/benjamin/seurat/..Rcheck’
+* using R version 4.5.1 (2025-06-13)
+* using platform: aarch64-apple-darwin24.4.0
+* R was compiled by
+    Apple clang version 17.0.0 (clang-1700.0.13.3)
+    GNU Fortran (Homebrew GCC 15.1.0) 15.1.0
+* running under: macOS Sequoia 15.5
+* using session charset: UTF-8
+* using options ‘--no-tests --no-manual --no-build-vignettes’
+* checking for file ‘./DESCRIPTION’ ... OK
+* this is package ‘Seurat’ version ‘5.3.1.0000’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... ERROR
+Packages required but not available:
+  'SeuratObject', 'cowplot', 'fastDummies', 'fitdistrplus', 'future',
+  'future.apply', 'generics', 'ggplot2', 'ggrepel', 'ggridges', 'httr',
+  'ica', 'igraph', 'irlba', 'leidenbase', 'lifecycle', 'lmtest',
+  'matrixStats', 'miniUI', 'patchwork', 'pbapply', 'plotly', 'png',
+  'progressr', 'RANN', 'RColorBrewer', 'RcppAnnoy', 'RcppHNSW',
+  'reticulate', 'ROCR', 'RSpectra', 'Rtsne', 'scales', 'scattermore',
+  'sctransform', 'shiny', 'spatstat.explore', 'spatstat.geom',
+  'tibble', 'uwot', 'RcppEigen', 'RcppProgress'
+
+Packages suggested but not available for checking:
+  'ape', 'arrow', 'Biobase', 'BiocGenerics', 'BPCells', 'data.table',
+  'DESeq2', 'DelayedArray', 'enrichR', 'GenomicRanges', 'GenomeInfoDb',
+  'glmGamPoi', 'ggrastr', 'harmony', 'hdf5r', 'IRanges', 'limma',
+  'MAST', 'metap', 'mixtools', 'monocle', 'presto', 'rsvd', 'R.utils',
+  'Rfast2', 'rtracklayer', 'S4Vectors', 'sf', 'SingleCellExperiment',
+  'spam', 'SummarizedExperiment', 'testthat', 'VGAM'
+
+See section ‘The DESCRIPTION file’ in the ‘Writing R Extensions’
+manual.
+* DONE
+Status: 1 ERROR

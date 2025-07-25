@@ -1,3 +1,39 @@
+# Unreleased
+
+## Changes
+- Added experimental support for ultra-large sparse matrices using the `spam` package, enabling analysis of datasets exceeding the 2^31 element limit of standard `dgCMatrix` objects ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Enhanced matrix handling functions (`RowMeanSparse`, `RowSumSparse`, `RowVarSparse`) to support `spam` matrices with 64-bit indexing
+- Updated `FindVariableFeatures`, `NormalizeData`, and other core functions to work with `spam` matrices for ultra-large dataset analysis
+- Added `CheckMatrixSize()` utility function to detect when matrices exceed `dgCMatrix` limits and suggest `spam` alternatives
+- Created comprehensive documentation and examples for using `spam` matrices with Seurat workflows
+- Added `CreateMultipleSeurat()` function for automated batch processing of 10X Genomics data with intelligent resource optimization and auto-detection of sample directories
+- Added SoupX integration functions: `RunSoupX()`, `make_soup()`, `add_soup_groups()`, and `get_soup_groups()` for automated doublet decontamination with support for both single objects and lists
+- Added doublet detection functions: `RunscDblFinder()` for scDblFinder-based detection and `RunDoubletFinder()` for DoubletFinder-based detection with optimized parameter selection
+- Enhanced DelayedArray/HDF5Array support with `OptimizeMatrixFormat()` for memory-efficient processing of ultra-large datasets
+- **Significantly optimized `Read10X()` function performance:** Integrated `data.table::fread` for faster I/O operations, vectorized file path construction, optimized suffix stripping, and improved memory efficiency. These enhancements provide 2-10x speedup for loading 10X Genomics data while maintaining full backward compatibility
+
+
+
+# Seurat 5.3.0
+
+## Changes
+- Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))
+- Fixed bugs in `FindSpatiallyVariableFeatures`; deprecated the `slot` parameter in favor of `layer` ([#9836](https://github.com/satijalab/seurat/pull/9836))
+- Extended `FindTransferAnchors`'s `reference` argument to accept SCT inputs containing more than one SCT model; in this case, the reference model that was fit against the largest number of cells is used ([#9833](https://github.com/satijalab/seurat/pull/9833))
+- Extended `FindTransferAnchors`'s `query` argument to accept multi-layer inputs; updated `MappingScore` to support multi-layer query inputs ([#9832](https://github.com/satijalab/seurat/pull/9832))
+- Updated `LeverageScore.default` to convert `BPCells::IterableMatrix` inputs with less than 7500 cells into a sparse matrix before performing the calculation ([#9831](https://github.com/satijalab/seurat/pull/9831))
+- Dropped `VariableFeatures` setter from `SketchData` ([#9830](https://github.com/satijalab/seurat/pull/9830))
+- Extended `Cells.SCTAssay`'s `layer` argument accept slot names: `"counts"`, `"data"`, `"scale.data"`; enabled compatibility with `SketchData`/`LeverageScore`([#9830](https://github.com/satijalab/seurat/pull/9830))
+- Updated `SCTransform.StdAssay` to simplify and speed up the method ([#9828](https://github.com/satijalab/seurat/pull/9828))
+- Updated `AddModuleScore` to support multi-layer inputs ([#9826](https://github.com/satijalab/seurat/pull/9826))
+- Fixed `PseudobulkExpression` to work with `Seurat` inputs containing more than one assay ([9824](https://github.com/satijalab/seurat/pull/9824))
+- Added `RunICA.StdAssay` ([#9825](https://github.com/satijalab/seurat/pull/9825))
+- Updated `HarmonyIntegration` to call `harmony::RunHarmony` in favor of the deprecated `harmony::HarmonyMatrix` ([#9789](https://github.com/satijalab/seurat/pull/9789)) 
+- Added `raster.dpi` parameter to `VlnPlot` ([#9665](https://github.com/satijalab/seurat/pull/9665))
+- Fixed `SpatialDimPlot(..., interactive = TRUE)` to support `SlideSeq` and `STARmap` input types; added `ScaleFactors.SlideSeq` & `ScaleFactors.STARmap` generics ([#9691](https://github.com/satijalab/seurat/pull/9691))
+- Fixed `PercentageFeatureSet` so that the `assay` parameter is always respected; fixed `PercentageFeatureSet` to raise a warning if any `features` are absent in the specified `assay` instead of throwing an error ([#9686](https://github.com/satijalab/seurat/pull/9686))
+- Fixed `GroupCorrelation` and `GroupCorrelationPlot` to be compatible with `SeuratObject` >= 5.0.0 ([#9625](https://github.com/satijalab/seurat/pull/9625))
+
 # Seurat 5.2.1 (2025-01-23)
 
 ## Changes
