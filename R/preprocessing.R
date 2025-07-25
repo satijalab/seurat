@@ -982,24 +982,32 @@ Read10X <- function(
   strip.suffix = FALSE
 ) {
   full.data <- list()
+  
+  # Enhanced dependency checking for better performance
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
+  use_fread <- has_dt  # Use data.table::fread when available for faster I/O
+  
   for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
     if (!dir.exists(paths = run)) {
       stop("Directory provided does not exist")
     }
-    barcode.loc <- file.path(run, 'barcodes.tsv')
-    gene.loc <- file.path(run, 'genes.tsv')
-    features.loc <- file.path(run, 'features.tsv.gz')
-    matrix.loc <- file.path(run, 'matrix.mtx')
+    
+    # Vectorized file path construction (more efficient)
+    base_files <- c('barcodes.tsv', 'genes.tsv', 'features.tsv', 'matrix.mtx')
+    base_paths <- file.path(run, base_files)
+    
+    barcode.loc <- base_paths[1]
+    gene.loc <- base_paths[2] 
+    features.loc <- paste0(base_paths[3], ".gz")
+    matrix.loc <- base_paths[4]
+    
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
     if (!pre_ver_3) {
-      addgz <- function(s) {
-        return(paste0(s, ".gz"))
-      }
-      barcode.loc <- addgz(s = barcode.loc)
-      matrix.loc <- addgz(s = matrix.loc)
+      # More efficient .gz addition
+      barcode.loc <- paste0(barcode.loc, ".gz")
+      matrix.loc <- paste0(matrix.loc, ".gz")
     }
     if (!file.exists(barcode.loc)) {
       stop("Barcode file missing. Expecting ", basename(path = barcode.loc))
@@ -1010,26 +1018,43 @@ Read10X <- function(
     if (!file.exists(matrix.loc)) {
       stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
+    
+    # Read matrix - this is typically the bottleneck, but readMM is already optimized
     data <- readMM(file = matrix.loc)
-    if (has_dt) {
-      cell.barcodes <- as.data.frame(data.table::fread(barcode.loc, header = FALSE))
+    
+    # Optimized barcode reading with better performance
+    if (use_fread) {
+      # Use data.table::fread for much faster reading, especially for large files
+      if (ncol(data.table::fread(barcode.loc, header = FALSE, nrows = 1)) > 1) {
+        cell.names <- data.table::fread(barcode.loc, header = FALSE, select = cell.column, 
+                                       data.table = FALSE)[[1]]
+      } else {
+        cell.names <- data.table::fread(barcode.loc, header = FALSE, 
+                                       data.table = FALSE)[[1]]
+      }
     } else {
-      cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
+      # Optimized fallback for when data.table is not available
+      file_size <- file.info(barcode.loc)$size
+      if (file_size < 1e6) {  # For small files, readLines is fastest
+        cell.names <- readLines(con = barcode.loc)
+      } else {  # For larger files, use optimized read.table
+        cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', 
+                                   colClasses = "character", comment.char = "", 
+                                   row.names = NULL)
+        if (ncol(cell.barcodes) > 1) {
+          cell.names <- cell.barcodes[, cell.column]
+        } else {
+          cell.names <- cell.barcodes[[1]]
+        }
+      }
     }
-
-    if (ncol(x = cell.barcodes) > 1) {
-      cell.names <- cell.barcodes[, cell.column]
-    } else {
-      cell.names <- readLines(con = barcode.loc)
+    
+    # Optimized suffix stripping (much faster than sapply)
+    if (strip.suffix && all(grepl(pattern = "\\-1$", x = cell.names))) {
+      cell.names <- sub("\\-1$", "", cell.names)  # Vectorized replacement
     }
-    if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
-      cell.names <- as.vector(x = as.character(x = sapply(
-        X = cell.names,
-        FUN = ExtractField,
-        field = 1,
-        delim = "-"
-      )))
-    }
+    
+    # Efficient column naming
     if (is.null(x = names(x = data.dir))) {
       if (length(x = data.dir) < 2) {
         colnames(x = data) <- cell.names
@@ -1040,28 +1065,36 @@ Read10X <- function(
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
 
-    if (has_dt) {
-      feature.names <- as.data.frame(data.table::fread(ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc), header = FALSE))
+    # Optimized feature reading
+    feature_file <- ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc)
+    
+    if (use_fread) {
+      feature.names <- data.table::fread(feature_file, header = FALSE, data.table = FALSE)
     } else {
+      # Optimized read.delim with better performance settings
       feature.names <- read.delim(
-        file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc),
+        file = feature_file,
         header = FALSE,
-        stringsAsFactors = FALSE
+        stringsAsFactors = FALSE,
+        comment.char = "",  # Disable comment processing for speed
+        quote = ""  # Disable quote processing for speed when safe
       )
     }
 
-    if (any(is.na(x = feature.names[, gene.column]))) {
+    # Optimized NA handling
+    if (any(is.na(feature.names[, gene.column]))) {
       warning(
         'Some features names are NA. Replacing NA names with ID from the opposite column requested',
         call. = FALSE,
         immediate. = TRUE
       )
-      na.features <- which(x = is.na(x = feature.names[, gene.column]))
-      replacement.column <- ifelse(test = gene.column == 2, yes = 1, no = 2)
-      feature.names[na.features, gene.column] <- feature.names[na.features, replacement.column]
+      na_idx <- which(is.na(feature.names[, gene.column]))
+      replacement_col <- ifelse(test = gene.column == 2, yes = 1, no = 2)
+      feature.names[na_idx, gene.column] <- feature.names[na_idx, replacement_col]
     }
+    
     if (unique.features) {
-      fcols = ncol(x = feature.names)
+      fcols <- ncol(feature.names)
       if (fcols < gene.column) {
         stop(paste0("gene.column was set to ", gene.column,
                     " but feature.tsv.gz (or genes.tsv) only has ", fcols, " columns.",

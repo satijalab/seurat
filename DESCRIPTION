@@ -96,6 +96,7 @@ Suggests:
     arrow,
     Biobase,
     BiocGenerics,
+    BiocParallel,
     BPCells,
     data.table,
     DESeq2,

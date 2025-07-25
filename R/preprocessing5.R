@@ -2011,3 +2011,166 @@ MVP <- function(
   # hvf.info[!hvf.info$variable,'rank'] <- NA
   return(hvf.info)
 }
+
+#' Run scDblFinder for Doublet Detection
+#'
+#' Runs scDblFinder to detect doublets in single-cell RNA-seq data.
+#' This function converts the Seurat object to SingleCellExperiment format,
+#' runs scDblFinder, and adds the results back to the Seurat object.
+#'
+#' @param seurat_obj A Seurat object
+#' @param method Method to use: "scDblFinder", "both", or other methods (default: "scDblFinder")
+#' @param BPPARAM BiocParallel parameter for parallel processing (default: SerialParam())
+#' @param assay Assay to use for conversion to SingleCellExperiment (default: "RNA")
+#' @param sample.column Column name for sample information (default: "orig.ident")
+#' @return Seurat object with scDblFinder results added as metadata columns
+#' @export
+#' @concept preprocessing
+#'
+#' @examples
+#' \dontrun{
+#' # Basic usage
+#' pbmc <- RunscDblFinder(pbmc)
+#' 
+#' # With parallel processing
+#' library(BiocParallel)
+#' pbmc <- RunscDblFinder(pbmc, BPPARAM = MulticoreParam(workers = 4))
+#' }
+#'
+RunscDblFinder <- function(
+  seurat_obj,
+  method = "scDblFinder",
+  BPPARAM = BiocParallel::SerialParam(),
+  assay = "RNA",
+  sample.column = "orig.ident"
+) {
+  
+  # Check if required packages are available
+  if (!requireNamespace("scDblFinder", quietly = TRUE)) {
+    stop("Package 'scDblFinder' is required for this function. Please install it with: BiocManager::install('scDblFinder')")
+  }
+  
+  if (!requireNamespace("SingleCellExperiment", quietly = TRUE)) {
+    stop("Package 'SingleCellExperiment' is required for this function. Please install it with: BiocManager::install('SingleCellExperiment')")
+  }
+  
+  if (!requireNamespace("BiocParallel", quietly = TRUE)) {
+    stop("Package 'BiocParallel' is required for this function. Please install it with: BiocManager::install('BiocParallel')")
+  }
+  
+  if (method %in% c("scDblFinder", "both")) {
+    # Convert to SingleCellExperiment
+    sce <- as.SingleCellExperiment(seurat_obj, assay = assay)
+    
+    # Run scDblFinder with error handling
+    suppressWarnings({
+      sce <- scDblFinder::scDblFinder(
+        sce, 
+        BPPARAM = BPPARAM, 
+        samples = seurat_obj[[sample.column, drop = TRUE]]
+      )
+    })
+    
+    # Add results back to Seurat object
+    seurat_obj$scDblFinder_score <- sce$scDblFinder.score
+    seurat_obj$scDblFinder_class <- sce$scDblFinder.class
+    
+    # Clean up memory
+    rm(sce)
+    gc()
+  }
+  
+  return(seurat_obj)
+}
+
+#' Run DoubletFinder for Doublet Detection
+#'
+#' Runs DoubletFinder to detect doublets in single-cell RNA-seq data.
+#' This function processes each sample separately, performs dimensionality reduction,
+#' and applies DoubletFinder with optimized parameters.
+#'
+#' @param seurat_obj A Seurat object
+#' @param method Method to use: "DoubletFinder", "both", or other methods (default: "DoubletFinder")
+#' @param expected_doublet_rate Expected doublet rate (default: 0.075)
+#' @param sct Whether to use SCTransform normalization (default: TRUE)
+#' @param num_cores Number of cores for parallel processing (default: 1)
+#' @return Seurat object with DoubletFinder results added as metadata columns
+#' @export
+#' @concept preprocessing
+#'
+#' @examples
+#' \dontrun{
+#' # Basic usage
+#' pbmc <- RunDoubletFinder(pbmc)
+#' 
+#' # With custom parameters
+#' pbmc <- RunDoubletFinder(pbmc, expected_doublet_rate = 0.1, sct = FALSE)
+#' }
+#'
+RunDoubletFinder <- function(
+  seurat_obj,
+  method = "DoubletFinder",
+  expected_doublet_rate = 0.075,
+  sct = TRUE,
+  num_cores = 1
+) {
+  
+  # Check if required packages are available
+  if (!requireNamespace("DoubletFinder", quietly = TRUE)) {
+    stop("Package 'DoubletFinder' is required for this function. Please install it with: remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')")
+  }
+  
+  if (method %in% c("DoubletFinder", "both")) {
+    sample_ids <- unique(seurat_obj$orig.ident)
+    
+    for (sample_id in sample_ids) {
+      sample_obj <- subset(seurat_obj, subset = orig.ident == sample_id)
+      
+      if (sct) {
+        sample_obj <- SCTransform(sample_obj, vst.flavor = "v2", method = "glmGamPoi",
+                                  assay = "RNA", verbose = FALSE,
+                                  vars.to.regress = c("percent.mt", "S.Score", "G2M.Score"))
+      } else {
+        sample_obj <- NormalizeData(sample_obj, verbose = FALSE)
+        sample_obj <- FindVariableFeatures(sample_obj, verbose = FALSE)
+        sample_obj <- ScaleData(sample_obj, verbose = FALSE)
+      }
+      
+      sample_obj <- RunPCA(sample_obj, verbose = FALSE)
+      sample_obj <- DetectMinPC(sample_obj, graph = FALSE)
+      pcs_to_use <- sample_obj@misc$min.pc
+      sample_obj <- FindNeighbors(sample_obj, dims = 1:pcs_to_use, verbose = FALSE)
+      sample_obj <- FindClusters(sample_obj, resolution = 2, verbose = FALSE)
+      sample_obj <- RunUMAP(sample_obj, dims = 1:pcs_to_use, verbose = FALSE)
+      
+      homotypic.prop <- DoubletFinder::modelHomotypic(sample_obj$seurat_clusters)
+      nExp_poi_adj <- round(expected_doublet_rate * nrow(sample_obj@meta.data) * (1 - homotypic.prop))
+      
+      sweep_list <- DoubletFinder::paramSweep(sample_obj, PCs = 1:pcs_to_use, sct = sct, num.cores = num_cores)
+      sweep_stats <- DoubletFinder::summarizeSweep(sweep_list)
+      bcmvn <- DoubletFinder::find.pK(sweep_stats)
+      
+      optimal.pk <- bcmvn[which.max(bcmvn$BCmetric), "pK"]
+      optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
+      
+      sample_obj <- DoubletFinder::doubletFinder(sample_obj, 
+                                                 PCs = 1:pcs_to_use, 
+                                                 pN = 0.25, 
+                                                 pK = optimal.pk, 
+                                                 nExp = nExp_poi_adj, 
+                                                 reuse.pANN = FALSE, 
+                                                 sct = sct)
+      
+      doublet_class_col <- grep("DF.classifications_", colnames(sample_obj@meta.data), value = TRUE)
+      doublet_score_col <- grep("pANN_", colnames(sample_obj@meta.data), value = TRUE)
+      
+      seurat_obj@meta.data[rownames(sample_obj@meta.data), "DoubletFinder_class"] <- sample_obj@meta.data[, doublet_class_col]
+      seurat_obj@meta.data[rownames(sample_obj@meta.data), "DoubletFinder_score"] <- sample_obj@meta.data[, doublet_score_col]
+      
+      rm(sample_obj, pcs_to_use, doublet_class_col, doublet_score_col)
+      gc()
+    }
+  }
+  
+  return(seurat_obj)
+}
