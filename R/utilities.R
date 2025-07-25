@@ -7,6 +7,41 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Check if matrix size exceeds dgCMatrix limits and suggest spam alternative
+#
+# @param nrows Number of rows
+# @param ncols Number of columns
+# @param nnz Number of non-zero elements (optional)
+# @return logical indicating if matrix is too large for dgCMatrix
+#
+CheckMatrixSize <- function(nrows, ncols, nnz = NULL) {
+  max_elements <- 2^31 - 1
+  total_elements <- as.numeric(nrows) * as.numeric(ncols)
+  
+  if (!is.null(nnz) && nnz > max_elements) {
+    warning(
+      "Matrix has ", nnz, " non-zero elements, exceeding dgCMatrix limit of ", 
+      max_elements, ". Consider using spam matrices for ultra-large datasets. ",
+      "See ?spam::spam for details.", 
+      call. = FALSE
+    )
+    return(TRUE)
+  }
+  
+  if (total_elements > max_elements) {
+    warning(
+      "Matrix dimensions (", nrows, " x ", ncols, " = ", total_elements, 
+      " elements) exceed dgCMatrix limit of ", max_elements, 
+      ". Consider using spam matrices for ultra-large datasets. ",
+      "See ?spam::spam for details.",
+      call. = FALSE
+    )
+    return(TRUE)
+  }
+  
+  return(FALSE)
+}
+
 #' Add Azimuth Results
 #'
 #' Add mapping and prediction scores, UMAP embeddings, and imputed assay (if
@@ -2667,6 +2702,10 @@ RemoveLastField <- function(string, delim = "_") {
 # @return A vector of row mean
 #
 RowMeanSparse <- function(mat) {
+  # Handle spam matrices
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    return(spam::rowMeans(mat))
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_mean_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2684,6 +2723,10 @@ RowMeanSparse <- function(mat) {
 # @return A vector of row sum
 #
 RowSumSparse <- function(mat) {
+  # Handle spam matrices
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    return(spam::rowSums(mat))
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_sum_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2701,6 +2744,26 @@ RowSumSparse <- function(mat) {
 # @return A vector of row variance
 #
 RowVarSparse <- function(mat) {
+  # Handle spam matrices
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    # Calculate variance using spam matrix operations
+    means <- spam::rowMeans(mat)
+    n <- ncol(mat)
+    # For spam matrices, convert to dgCMatrix for variance calculation if needed
+    if (object.size(mat) < 2e9) {  # Only convert smaller matrices
+      mat_sparse <- as(mat, "dgCMatrix")
+      return(RowVarSparse(mat_sparse))
+    } else {
+      # For very large matrices, use spam operations
+      vars <- numeric(nrow(mat))
+      for (i in seq_len(nrow(mat))) {
+        row_vals <- mat[i, ]
+        vars[i] <- sum((row_vals - means[i])^2) / (n - 1)
+      }
+      names(vars) <- rownames(mat)
+      return(vars)
+    }
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_var_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2718,6 +2781,10 @@ RowVarSparse <- function(mat) {
 # @return A dgCMatrix
 #
 RowSparseCheck <- function(mat) {
+  # Handle spam matrices - they are already sparse and compatible
+  if (inherits(mat, "spam") && requireNamespace("spam", quietly = TRUE)) {
+    return(mat)
+  }
   if (!inherits(x = mat, what = "sparseMatrix")) {
     stop("Input should be sparse matrix")
   } else if (!is(object = mat, class2 = "dgCMatrix")) {
