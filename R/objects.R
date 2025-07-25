@@ -1444,6 +1444,17 @@ as.sparse.IterableMatrix <- function(x, ...) {
   return(as(object = x, Class = 'dgCMatrix'))
 }
 
+#' @method as.sparse spam
+#' @export
+#'
+as.sparse.spam <- function(x, ...) {
+  if (!requireNamespace("spam", quietly = TRUE)) {
+    stop("Package 'spam' is required for spam matrix support")
+  }
+  # Convert spam matrix to dgCMatrix
+  return(as(object = x, Class = 'dgCMatrix'))
+}
+
 
 #' Get Cell Names
 #'
