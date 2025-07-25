@@ -650,7 +650,7 @@ VST.spam <- function(
     # Simplified variance calculation for large matrices
     for (i in seq_len(min(1000, nrow(data)))) {  # Sample first 1000 features
       row_vals <- data[i, ]
-      hvf.info$variance[i] <- var(as.numeric(row_vals))
+      hvf.info$variance[i] <- var(as.numeric(as.vector(row_vals)))
     }
     
     # Mark top variable features
