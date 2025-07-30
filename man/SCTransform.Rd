@@ -187,13 +187,13 @@ per gene and returning:
 
 When multiple \code{counts} layers exist (e.g. after \code{split()}),
 each layer is modeled independently. A consensus variable‐feature set is
-then defined by ranking features by how often they’re called “variable” 
+then defined by ranking features by how often they’re called “variable”
 across different layers (ties broken by median rank).
 
 By default, \code{sctransform::vst} will drop features expressed in fewer
 than five cells. In the multi-layer case, this can lead to consenus
 variable-features being excluded from the output's \code{scale.data} when
-a feature is "variable" across many layers but sparsely expressed in at 
+a feature is "variable" across many layers but sparsely expressed in at
 least one.
 }
 \seealso{

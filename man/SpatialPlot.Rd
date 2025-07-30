@@ -37,7 +37,8 @@ SpatialPlot(
   do.identify = FALSE,
   identify.ident = NULL,
   do.hover = FALSE,
-  information = NULL
+  information = NULL,
+  plot_segmentations = FALSE
 )
 
 SpatialDimPlot(
@@ -63,7 +64,8 @@ SpatialDimPlot(
   stroke = NA,
   label.box = TRUE,
   interactive = FALSE,
-  information = NULL
+  information = NULL,
+  plot_segmentations = FALSE
 )
 
 SpatialFeaturePlot(
@@ -84,7 +86,8 @@ SpatialFeaturePlot(
   shape = 21,
   stroke = NA,
   interactive = FALSE,
-  information = NULL
+  information = NULL,
+  plot_segmentations = FALSE
 )
 }
 \arguments{
@@ -180,6 +183,8 @@ session, see \code{\link{ISpatialDimPlot}} or
 \item{identify.ident}{DEPRECATED}
 
 \item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
+
+\item{plot_segmentations}{Define whether plot should plot centroids or segmentations}
 }
 \value{
 If \code{do.identify}, either a vector of cells selected or the object
