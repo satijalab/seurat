@@ -3870,9 +3870,6 @@ ISpatialFeaturePlot <- function(
 #' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
 #' 
 #' @importFrom grDevices png dev.off
-#' @importFrom magrittr %>%
-#' @importFrom base64enc base64encode
-#' @importFrom sp coordinates
 #' 
 #' @return A character vector of cell names selected via lasso (can then be used to subset the object)
 #'
@@ -9408,6 +9405,9 @@ SingleSpatialPlot <- function(
       data$cell <- rownames(data)
       data.sf <- st_as_sf(data, coords = c("x", "y"), crs = NA)
 
+      # Import pipe operator locally
+      `%>%` <- magrittr::`%>%`
+
       data.coords <- data.sf %>%
         mutate(x = sf::st_coordinates(.)[, 1],
               y = sf::st_coordinates(.)[, 2]) %>%
@@ -9419,7 +9419,11 @@ SingleSpatialPlot <- function(
       sf.cleaned <- sf.merged %>% filter(!is.na(x))
 
       #Extract centroids from VisiumV2, update sf.cleaned to match centroids
-      coords <-sp::coordinates(image@boundaries$centroids)
+      if (!requireNamespace("sp", quietly = TRUE)) {
+        stop("The 'sp' package is required but not installed.")
+      }
+      coordinates <- sp::coordinates
+      coords <- coordinates(image@boundaries$centroids)
       barcodes <- image@boundaries$centroids@cells
       rownames(coords) <- barcodes
 
