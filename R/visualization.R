@@ -3870,6 +3870,9 @@ ISpatialFeaturePlot <- function(
 #' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
 #' 
 #' @importFrom grDevices png dev.off
+#' @importFrom magrittr %>%
+#' @importFrom base64enc base64encode
+#' @importFrom sp coordinates
 #' 
 #' @return A character vector of cell names selected via lasso (can then be used to subset the object)
 #'

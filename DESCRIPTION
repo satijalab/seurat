@@ -94,6 +94,7 @@ Imports:
 Suggests:
     ape,
     arrow,
+    base64enc,
     Biobase,
     BiocGenerics,
     BPCells,
@@ -110,6 +111,7 @@ Suggests:
     IRanges,
     limma,
     MAST,
+    magrittr,
     metap,
     mixtools,
     monocle,
@@ -120,6 +122,7 @@ Suggests:
     rtracklayer,
     S4Vectors,
     sf (>= 1.0.0),
+    sp,
     SingleCellExperiment,
     SummarizedExperiment,
     testthat,

@@ -3026,6 +3026,7 @@ CreateCategoryMatrix <- function(
 #' @param assay Name for spatial neighborhoods assay
 #' @param cluster.name Name of output clusters
 #' @param neighbors.k Number of neighbors to consider for each cell
+#' @param niches.k Number of niches to cluster
 #' @param ... Extra parameters passed to \code{\link{kmeans}}
 #'
 #' @importFrom stats kmeans
