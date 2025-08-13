@@ -2430,12 +2430,24 @@ ReadXenium <- function(
           if(!inherits(cell_seg, "try-error")) { break }
         }
 
-        if(!exists('cell_seg') || inherits(cell_seg, "try-error") || length(intersect(names(col.use), colnames(cell_seg))) != 2) {
-          warning('cells did not contain a segmentation_method column. Skipping...', call. = FALSE, immediate. = TRUE)
+        if (!exists("cell_seg") || inherits(cell_seg, "try-error")) {
+          warning("cells did not contain a segmentation_method column. Skipping...", call. = FALSE, immediate. = TRUE)
           NULL
         } else {
-          cell_seg <- cell_seg[, names(col.use)]
-          colnames(cell_seg) <- col.use
+          #Attempt to add default segmentation_method if nuclei/cell boundary files are provided 
+          message("Cell_seg columns: ", paste(colnames(cell_seg), collapse = ", "))
+          if (!"segmentation_method" %in% colnames(cell_seg)) {
+            message("Adding default segmentation_method = 'cell'")
+            cell_seg$segmentation_method <- "cell"
+          }
+
+          #Try to detect unique cell identifier
+          if (!"cell_id" %in% colnames(cell_seg)) {
+            stop("Missing required column: cell_id")
+          }
+
+          cell_seg <- cell_seg[, c("cell_id", "segmentation_method")]
+          colnames(cell_seg) <- c("cell", "segmentation_method")
 
           cell_seg$cell <- binary_to_string(cell_seg$cell)
 
@@ -4240,14 +4252,14 @@ FindVariableFeatures.Assay <- function(
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
   if (selection.method == "vst") {
-    data <- GetAssayData(object = object, layer = "counts")
+    data <- LayerData(object = object, layer = "counts")
     # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
     if (IsMatrixEmpty(x = data)) {
       warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
-      data <- GetAssayData(object = object, layer = "data")
+      data <- LayerData(object = object, layer = "data")
     }
   } else {
-    data <- GetAssayData(object = object, layer = "data")
+    data <- LayerData(object = object, layer = "data")
   }
   hvf.info <- FindVariableFeatures(
     object = data,
@@ -4748,17 +4760,13 @@ NormalizeData.Assay <- function(
   verbose = TRUE,
   ...
 ) {
-  object <- SetAssayData(
-    object = object,
-    layer = 'data',
-    new.data = NormalizeData(
-      object = GetAssayData(object = object, layer = 'counts'),
-      normalization.method = normalization.method,
-      scale.factor = scale.factor,
-      verbose = verbose,
-      margin = margin,
-      ...
-    )
+  LayerData(object, layer = "data") <- NormalizeData(
+    object = LayerData(object = object, layer = "counts"),
+    normalization.method = normalization.method,
+    scale.factor = scale.factor,
+    verbose = verbose,
+    margin = margin,
+    ...
   )
   return(object)
 }
@@ -5132,13 +5140,13 @@ ScaleData.Assay <- function(
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
   if (length(x = features) == 0) {
-    features <- rownames(x = GetAssayData(object = object, layer = slot.use))
+    features <- rownames(x = LayerData(object = object, layer = slot.use))
   }
   object <- SetAssayData(
     object = object,
     layer = 'scale.data',
     new.data = ScaleData(
-      object = GetAssayData(object = object, layer = slot.use),
+      object = LayerData(object = object, layer = slot.use),
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
