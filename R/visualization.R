@@ -9481,7 +9481,7 @@ SingleSpatialPlot <- function(
             linewidth = stroke
           ) +
           scale_fill_viridis_d(option = "plasma", alpha = 0.5) +
-          coord_sf(xlim = c(0, image.width), ylim = c(0, image.height), expand = FALSE) +
+          coord_sf() +
           theme_void()
       }
     },
