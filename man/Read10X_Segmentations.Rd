@@ -8,8 +8,8 @@ Read10X_Segmentations(
   image.dir,
   data.dir,
   image.name = "tissue_lowres_image.png",
-  assay = "Segmentations",
-  slice = "slice1.segmentations",
+  assay = "Spatial.Polygons",
+  slice = "slice1.polygons",
   segmentation.type = "cell",
   cell.names
 )

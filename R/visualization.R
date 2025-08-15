@@ -3872,7 +3872,7 @@ ISpatialFeaturePlot <- function(
 #' @importFrom grDevices png dev.off
 #' 
 #' @return A character vector of cell names selected via lasso (can then be used to subset the object)
-#'
+#' @export
 #' @keywords internal
 #'
 #' @examples
@@ -4418,6 +4418,13 @@ SpatialPlot <- function(
         coordinates[coord_idx, ],
         data[data_idx, features[j], drop = FALSE]
       )
+
+      #Check if object contains a sf slot (attached via Load10X_Spatial)
+      #If so, use sf-geometry based rendering 
+      use_geom_sf <- (inherits(image.use, "VisiumV2") &&
+                      !is.null(image.use@boundaries$segmentation) &&
+                      "sf.data" %in% slotNames(image.use@boundaries$segmentation))
+
       #WARNING: The dataframe creation step takes a long time
       plot <- SingleSpatialPlot(
         data = cbind(
@@ -4441,15 +4448,8 @@ SpatialPlot <- function(
         },
         geom = if (inherits(x = image.use, what = "STARmap")) {
           'poly'
-
-        #If object has segmentation boundaries, is compatible with sf geometry-based rendering 
-        } else if (
-          #Check if object contains a sf slot (attached via Load10X_Spatial)
-          #If so, use sf-geometry based rendering 
-          inherits(image.use, "VisiumV2") &&
-          !is.null(image.use@boundaries$segmentation) &&
-          "sf.data" %in% slotNames(image.use@boundaries$segmentation)
-        ) {
+        } else if (use_geom_sf) {
+          # Use sf for both segmentations and centroids when sf data is available
           "sf"
         } else {
           "spatial"
@@ -4481,6 +4481,10 @@ SpatialPlot <- function(
           ),
           geom = if (inherits(x = image.use, what = "STARmap")) {
             'GeomPolygon'
+          } else if (use_geom_sf && plot_segmentations) {
+            'GeomSf'
+          } else if (use_geom_sf && !plot_segmentations) {
+            'GeomPoint'
           } else {
             'GeomSpatial'
           },
@@ -4502,7 +4506,10 @@ SpatialPlot <- function(
           theme(plot.title = element_text(hjust = 0.5)) +
           NoLegend()
       }
-
+      if (use_geom_sf && plot_segmentations && !is.null(group.by)) {
+        # Add legend guides to show filled squares next to labels when plotting segmentations
+        plot <- plot + guides(fill = guide_legend(override.aes = list(alpha = 1, color = "black", linewidth = 0.2, size = 2)))
+      }
       # Plot multiple images depending on keep.scale
       if (!(is.null(x = keep.scale)) && !inherits(x = data[, features[j]], "factor")) {
         plot <- suppressMessages(plot & scale_fill_gradientn(colors = SpatialColors(n = 100), limits = c(NA, max.feature.value)))
@@ -6007,16 +6014,25 @@ LabelClusters <- function(
   ...
 ) {
   xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
-  if (!id %in% colnames(x = plot$data)) {
+  plot_data <- plot$data
+  if (geom == "GeomSf") {
+    # For sf, data is within the layers slot, not the data slot
+    geom_layers <- which(sapply(plot$layers, function(layer) class(layer$geom)[1] == "GeomSf"))
+    if (length(geom_layers) > 0 && !is.null(plot$layers[[geom_layers[1]]]$data)) {
+      plot_data <- plot$layers[[geom_layers[1]]]$data
+    }
+  }
+  if (!id %in% colnames(x = plot_data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
-  if (!is.null(x = split.by) && !split.by %in% colnames(x = plot$data)) {
-    warning("Cannot find splitting variable ", id, " in plotting data")
+  if (!is.null(x = split.by) && !split.by %in% colnames(x = plot_data)) {
+    warning("Cannot find splitting variable ", split.by, " in plotting data")
     split.by <- NULL
   }
-  data <- plot$data[, c(xynames, id, split.by)]
-  possible.clusters <- as.character(x = na.omit(object = unique(x = data[, id])))
-  groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
+  data <- plot_data[, c(xynames, id, split.by)]
+  id_values <- if (inherits(data, "sf")) data[[id]] else data[, id]
+  possible.clusters <- as.character(x = na.omit(object = unique(x = id_values)))
+  groups <- clusters %||% possible.clusters
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
@@ -6034,15 +6050,25 @@ LabelClusters <- function(
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
-      data.use <- data[data[, id] == group, , drop = FALSE]
+      data.use <- if (inherits(data, "sf")) data[data[[id]] == group, , drop = FALSE] else data[data[, id] == group, , drop = FALSE]
       data.medians <- if (!is.null(x = split.by)) {
         do.call(
           what = 'rbind',
           args = lapply(
             X = unique(x = data.use[, split.by]),
             FUN = function(split) {
+              split_by_values <- if (inherits(data.use, "sf")) data.use[[split.by]] == split else data.use[, split.by] == split
+              split_data <- data.use[split_by_values == split, , drop = FALSE]
+              # Extract coordinates
+              if (inherits(split_data, "sf")) {
+                st_agr(split_data) <- "constant" # Set attr-geom relationship to avoid warnings
+                coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(split_data)))
+                names(coord_data) <- xynames[1:2]
+              } else {
+                coord_data <- data.use[data.use[, split.by] == split, xynames, drop = FALSE]
+              }
               medians <- apply(
-                X = data.use[data.use[, split.by] == split, xynames, drop = FALSE],
+                X = coord_data,
                 MARGIN = 2,
                 FUN = median,
                 na.rm = TRUE
@@ -6054,8 +6080,16 @@ LabelClusters <- function(
           )
         )
       } else {
+        # Extract coordinates
+        if (inherits(data.use, "sf")) {
+          st_agr(data.use) <- "constant"  # Set attr-geom relationship to avoid warnings
+          coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(data.use)))
+          names(coord_data) <- xynames[1:2]
+        } else {
+          coord_data <- data.use[, xynames, drop = FALSE]
+        }
         as.data.frame(x = t(x = apply(
-          X = data.use[, xynames, drop = FALSE],
+          X = coord_data,
           MARGIN = 2,
           FUN = median,
           na.rm = TRUE
@@ -6068,17 +6102,28 @@ LabelClusters <- function(
   )
   if (position == "nearest") {
     labels.loc <- lapply(X = labels.loc, FUN = function(x) {
-      group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
-      nearest.point <- nn2(data = group.data[, 1:2], query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
-      x[1:2] <- group.data[nearest.point, 1:2]
+      # Handle sf data subsetting for nearest point calculation
+      if (inherits(data, "sf")) {
+        group.data <- data[as.character(data[[id]]) == as.character(x[3]), ]
+        st_agr(group.data) <- "constant"  # Set attr-geom relationship to avoid warnings
+        group.data <- data.frame(sf::st_coordinates(sf::st_centroid(group.data)))
+        names(group.data) <- xynames[1:2]
+      } else {
+        group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
+      }
+      coord_matrix <- as.matrix(group.data[, 1:2])
+      nearest.point <- nn2(data = coord_matrix, query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
+      x[1:2] <- coord_matrix[nearest.point, ]
       return(x)
     })
   }
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
-  labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
+  # Safe handling of factor levels for sf data
+  data_levels <- if (inherits(data, "sf")) levels(data[[id]]) else levels(data[, id])
+  labels.loc[, id] <- factor(x = labels.loc[, id], levels = data_levels)
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
-    stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
+    stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = unique(x = labels.loc[, id])), ").")
   }
   names(x = labels) <- groups
   for (group in groups) {
@@ -6091,7 +6136,7 @@ LabelClusters <- function(
       mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
       show.legend = FALSE,
       ...
-    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
+    )
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
@@ -7244,6 +7289,11 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   } else {
     x <- as_label(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)
     y <- as_label(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)
+  }
+  # Handle GeomSf case where x/y are NULL because coordinates are in geometry
+  if (geom == "GeomSf") {
+    x <- "x"  # Default coordinate names for sf objects
+    y <- "y"
   }
   return(list('x' = x, 'y' = y))
 }
