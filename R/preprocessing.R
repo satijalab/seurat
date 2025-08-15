@@ -557,17 +557,25 @@ Load10X_Spatial <- function (
   # if bin.size is not set but data.dir points to a folder with binned data
   if (is.null(bin.size) & file.exists(paste0(data.dir, "/binned_outputs"))) {
     # point bin.size to the "standard" set - i.e. everything in the default
-    # output except the 8 um binning because it's a memory hog
+    # output except the 2 um binning because it's a memory hog
     bin.size <- c(16, 8)
   }
 
-  load.segmentations <- FALSE
+  # Seurat object to return
+  object <- NULL
 
-  # if bin.size is specified
-  if(!is.null(bin.size)) {
-    # ignore polygons for now when naming assays and slices
+  bin.size.numeric <- bin.size
+
+  if (!is.null(bin.size)) {
+    # Store numeric bin sizes - these are used to load binned outputs
     bin.size.numeric <- as.numeric(bin.size[bin.size != "polygons"])
+  }
 
+  # Set flag to indicate if segmentations should be loaded
+  load.segmentations <- length(bin.size.numeric) != length(bin.size)
+
+  # If bin.size is specified and binned outputs need to be loaded
+  if(!is.null(bin.size.numeric)) {
     # convert bin.size to a character vector and pad values to three digits
     bin.size.pretty <- paste0(sprintf("%03d", bin.size.numeric), "um")
     # point data.dirs to the specified binnings
@@ -586,10 +594,6 @@ Load10X_Spatial <- function (
     # and keep the assay/slice names unchanged
     assay.names <- assay
     slice.names <- slice
-  }
-
-  if ("polygons" %in% bin.size) {
-    load.segmentations <- TRUE
   }
 
   # read in counts matrices from specified h5 files
@@ -634,8 +638,8 @@ Load10X_Spatial <- function (
       .assay,
       .slice
     ) {
-	    # align the image's identifiers with the object's
-	    .image <- .image[Cells(.object)]
+      # align the image's identifiers with the object's
+      .image <- .image[Cells(.object)]
       # add the image to the corresponding Seurat instance
       .object[[.slice]] <- .image
       return (.object)
@@ -650,8 +654,8 @@ Load10X_Spatial <- function (
     object.list[[1]],
     y = object.list[-1]
   )
-
-  # Possibly make this into a new function
+  
+  # If segmentations need to be loaded
   if (load.segmentations) {
     segmentation.assay.name <- paste0(assay, ".Polygons")
     seg.data.dir <- file.path(data.dir, "segmented_outputs")
@@ -695,6 +699,10 @@ Load10X_Spatial <- function (
     # Get sf data
     sf_data <- visium.segmentation@boundaries$segmentation@sf.data
 
+    # Set the attribute-geometry relationship to constant
+    # See https://r-spatial.github.io/sf/reference/sf.html#details
+    st_agr(sf_data) <- "constant"
+
     # Create a dataframe from sf data to hold centroids
     centroids_obj <- visium.segmentation@boundaries$centroids
     centroid_coords <- sf::st_coordinates(sf::st_centroid(sf_data))
@@ -731,8 +739,12 @@ Load10X_Spatial <- function (
     # Add the Visium object with segmentations to the Seurat object holding counts
     segmentation.object[[paste0(slice, ".polygons")]] <- visium.segmentation
 
-    # Add the segmentation object to the main Seurat object
-    object <- merge(x = object, y = segmentation.object)
+    # Merge segmented outputs into the object containing binned outputs, if it exists
+    if (!is.null(object)) {
+      object <- merge(x = object, y = segmentation.object)
+    } else {
+      object <- segmentation.object
+    }
     DefaultAssay(object = object) <- segmentation.assay.name
   }
 
