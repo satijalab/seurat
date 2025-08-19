@@ -574,8 +574,11 @@ Load10X_Spatial <- function (
   # Set flag to indicate if segmentations should be loaded
   load.segmentations <- length(bin.size.numeric) != length(bin.size)
 
+  # read h5 files if bin.size is NULL (occurs when no /binned_outputs directory exists) or if bin.size contains numeric values
+  load.binned.outputs <- is.null(bin.size) || (!is.null(bin.size.numeric) && length(bin.size.numeric) > 0)
+
   # If bin.size is specified and binned outputs need to be loaded
-  if(!is.null(bin.size.numeric)) {
+  if(!is.null(bin.size.numeric) && length(bin.size.numeric) > 0) {
     # convert bin.size to a character vector and pad values to three digits
     bin.size.pretty <- paste0(sprintf("%03d", bin.size.numeric), "um")
     # point data.dirs to the specified binnings
@@ -596,66 +599,69 @@ Load10X_Spatial <- function (
     slice.names <- slice
   }
 
-  # read in counts matrices from specified h5 files
-  counts.paths <- lapply(data.dirs, file.path, filename)
-  counts.list <- lapply(counts.paths, Read10X_h5, ...)
-  # maybe convert Cell identifiers to uppercase
-  if (to.upper) {
-    rownames(counts) <- lapply(rownames(counts), toupper)
-  }
+  # read the h5 files in the top-level / binned output directory
+  if(load.binned.outputs) {
+    # read in counts matrices from specified h5 files
+    counts.paths <- lapply(data.dirs, file.path, filename)
+    counts.list <- lapply(counts.paths, Read10X_h5, ...)
+    # maybe convert Cell identifiers to uppercase
+    if (to.upper) {
+      rownames(counts) <- lapply(rownames(counts), toupper)
+    }
 
-  if (is.null(image)) {
-    # read in the corresponding images and coordinate mappings
-    image.list <- mapply(
-      Read10X_Image,
-      file.path(data.dirs, "spatial"),
-      assay = assay.names,
-      slice = slice.names,
-      MoreArgs = list(filter.matrix = filter.matrix)
-    )
-  } else {
-    # make sure any passed images are in a vector
-    image.list <- c(image)
-  }
-
-  # check that for each counts matrix there is a corresponding image
-  if (length(image.list) != length(counts.list)) {
-    stop(
-      paste0(
-        "The number of images does not match the number of counts matrices. ",
-        "Ensure each spatial dataset has a corresponding image."
+    if (is.null(image)) {
+      # read in the corresponding images and coordinate mappings
+      image.list <- mapply(
+        Read10X_Image,
+        file.path(data.dirs, "spatial"),
+        assay = assay.names,
+        slice = slice.names,
+        MoreArgs = list(filter.matrix = filter.matrix)
       )
+    } else {
+      # make sure any passed images are in a vector
+      image.list <- c(image)
+    }
+
+    # check that for each counts matrix there is a corresponding image
+    if (length(image.list) != length(counts.list)) {
+      stop(
+        paste0(
+          "The number of images does not match the number of counts matrices. ",
+          "Ensure each spatial dataset has a corresponding image."
+        )
+      )
+    }
+
+    # for each counts matrix, build a Seurat object
+    object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+    # associate each counts matrix with its corresponding image
+    object.list <- mapply(
+      function(
+        .object,
+        .image,
+        .assay,
+        .slice
+      ) {
+        # align the image's identifiers with the object's
+        .image <- .image[Cells(.object)]
+        # add the image to the corresponding Seurat instance
+        .object[[.slice]] <- .image
+        return (.object)
+      },
+      object.list,
+      image.list,
+      assay.names,
+      slice.names
+    )
+    # merge the Seurat instances - each assay should have unique Cell identifiers
+    object <- merge(
+      object.list[[1]],
+      y = object.list[-1]
     )
   }
-
-  # for each counts matrix, build a Seurat object
-  object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
-  # associate each counts matrix with its corresponding image
-  object.list <- mapply(
-    function(
-      .object,
-      .image,
-      .assay,
-      .slice
-    ) {
-      # align the image's identifiers with the object's
-      .image <- .image[Cells(.object)]
-      # add the image to the corresponding Seurat instance
-      .object[[.slice]] <- .image
-      return (.object)
-    },
-    object.list,
-    image.list,
-    assay.names,
-    slice.names
-  )
-  # merge the Seurat instances - each assay should have unique Cell identifiers
-  object <- merge(
-    object.list[[1]],
-    y = object.list[-1]
-  )
   
-  # If segmentations need to be loaded
+  # read segmentation data if requested
   if (load.segmentations) {
     segmentation.assay.name <- paste0(assay, ".Polygons")
     seg.data.dir <- file.path(data.dir, "segmented_outputs")
