@@ -286,7 +286,7 @@ AddModuleScore.Assay <- function(
     slot = 'data',
     ...
 ) {
-  assay.data <- GetAssayData(object = object, slot = slot)
+  assay.data <- GetAssayData(object = object, layer = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
@@ -1062,7 +1062,7 @@ GroupCorrelation <- function(
     min.cells = min.cells,
     ngroups = ngroups
   )
-  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], layer = slot))
   data <- data[rowMeans(x = data) != 0, ]
   grp.cors <- apply(
     X = data,
@@ -1172,7 +1172,7 @@ MetaFeature <- function(
 ) {
   cells <- cells %||% colnames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
-  newmat <- GetAssayData(object = object, assay = assay, slot = slot)
+  newmat <- GetAssayData(object = object, assay = assay, layer = slot)
   newmat <- newmat[features, cells]
   if (slot == 'scale.data') {
     newdata <- Matrix::colMeans(newmat)
@@ -3026,7 +3026,8 @@ CreateCategoryMatrix <- function(
 #' @param assay Name for spatial neighborhoods assay
 #' @param cluster.name Name of output clusters
 #' @param neighbors.k Number of neighbors to consider for each cell
-#' @param niches.k Number of clusters to return based on the niche assay
+#' @param niches.k Number of niche clusters to construct
+#' @param ... Extra parameters passed to \code{\link{kmeans}}
 #'
 #' @importFrom stats kmeans
 #' @return Seurat object containing a new assay
@@ -3040,7 +3041,8 @@ BuildNicheAssay <- function(
   assay = "niche",
   cluster.name = "niches",
   neighbors.k = 20,
-  niches.k = 4
+  niches.k = 4,
+  ...
 ) {
   # initialize an empty cells x groups binary matrix
   cells <- Cells(object[[fov]])
@@ -3075,7 +3077,8 @@ BuildNicheAssay <- function(
   results <- kmeans(
     x = t(object[[assay]]@scale.data),
     centers = niches.k,
-    nstart = 30
+    nstart = 30,
+    ...
   )
   object[[cluster.name]] <- results[["cluster"]]
 

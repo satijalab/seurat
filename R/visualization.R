@@ -270,14 +270,14 @@ DoHeatmap <- function(
     bad.features <- features[!features %in% possible.features]
     features <- features[features %in% possible.features]
     if(length(x = features) == 0) {
-      stop("No requested features found in the ", slot, " slot for the ", assay, " assay.")
+      stop("No requested features found in the ", slot, " layer for the ", assay, " assay.")
     }
     warning("The following features were omitted as they were not found in the ", slot,
-            " slot for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
+            " layer for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
   }
   data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
     object = object,
-    slot = slot)[features, cells, drop = FALSE])))
+    layer = slot)[features, cells, drop = FALSE])))
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -1613,7 +1613,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   }
   features <- sort(x = rownames(x = GetAssayData(
     object = object,
-    slot = slot,
+    layer = slot,
     assay = assay
   )))
   assays.use <- vapply(
@@ -1621,7 +1621,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
     FUN = function(x) {
       return(!IsMatrixEmpty(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = x
       )))
     },
@@ -1720,7 +1720,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = assay
       )))
       feature.use <- ifelse(
@@ -3689,7 +3689,7 @@ ISpatialFeaturePlot <- function(
   }
   features <- sort(x = rownames(x = GetAssayData(
     object = object,
-    slot = slot,
+    layer = slot,
     assay = assay
   )))
   feature.label <- 'Feature to visualize'
@@ -3698,7 +3698,7 @@ ISpatialFeaturePlot <- function(
     FUN = function(x) {
       return(!IsMatrixEmpty(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = x
       )))
     },
@@ -3791,7 +3791,7 @@ ISpatialFeaturePlot <- function(
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = assay
       )))
       feature.use <- ifelse(
@@ -3853,6 +3853,203 @@ ISpatialFeaturePlot <- function(
     })
   }
   runGadget(app = ui, server = server)
+}
+
+#' Interactive Spatial Cell Selection Tool
+#'
+#' InteractiveSpatialPlot launches an interactive gadget to lasso-select cells from a 
+#' spatial Seurat object. Currently works only for Visium and SlideSeq data. 
+#' It returns the cell names of the selected subset.
+#'
+#' @note This function requires the
+#' \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}} and
+#' \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}} packages
+#' to be installed.
+#' 
+#' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data
+#' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
+#' 
+#' @importFrom grDevices png dev.off
+#' 
+#' @return A character vector of cell names selected via lasso (can then be used to subset the object)
+#' @export
+#' @keywords internal
+#'
+#' @examples
+#' \dontrun{
+#' selected_cells <- InteractiveSpatialPlot(object = brain, use.clusters = TRUE)
+#' }
+#'
+InteractiveSpatialPlot <- function(
+  object,
+  image = NULL,
+  image.scale = "lowres",
+  group.by = NULL,
+  alpha = 1.0
+) {
+  # Check for required packages
+  if (!requireNamespace("plotly", quietly = TRUE)) {
+    stop("The 'plotly' package must be installed to use InteractiveSpatialPlot().")
+  }
+  if (!requireNamespace("magrittr", quietly = TRUE)) {
+    stop("The 'magrittr' package must be installed to use InteractiveSpatialPlot().")
+  }
+  if (!requireNamespace("base64enc", quietly = TRUE)) {
+    stop("The 'base64enc' package must be installed to use InteractiveSpatialPlot().")
+  }
+
+  # Import pipe operator locally
+  `%>%` <- magrittr::`%>%`
+
+  image <- image %||% DefaultImage(object)
+
+  #Check if image exists and is retrievable
+  #Usually anterior1 for Visium V2 objects, or image for Slideseq objects
+  if (!image %in% names(object@images)) {
+    stop("Image '", image, "' not found. Available image(s): ", paste(names(object@images), collapse = ", "))
+  }
+
+  image_obj <- object[[image]]
+
+  #Detect image type based on slot names
+  if ("boundaries" %in% slotNames(image_obj)) {
+    type <- "visium"
+  } else if ("coordinates" %in% slotNames(image_obj)) {
+    type <- "slideseq"
+  } else {
+    stop("Cannot determine image type: expected 'boundaries' (Visium) or 'coordinates' (Slide-seq).")
+  }
+
+  #Extract spatial coordinates from image centroids or coordinates
+  if (type == "visium") {
+    if (!"boundaries" %in% slotNames(image_obj)) {
+      stop("Image object does not have a 'boundaries' slot; check if data is truly Visium data")
+    }
+    centroids <- image_obj@boundaries$centroids
+    coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
+    coords$cell <- centroids@cells
+
+    #Apply lowres scale factor to match image pixel dimensions
+    scale.factor <- Seurat::ScaleFactors(image_obj)[[image.scale]]
+    if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
+
+    #Lowres scaling will alter the coordinates; so we store the original coordinates
+    coords$x_raw <- coords$x
+    coords$y_raw <- coords$y
+    coords$x <- coords$x * scale.factor
+    coords$y <- coords$y * scale.factor
+
+  } else if (type == "slideseq") {
+    #Slide-seq-style image: extract from coordinates slot
+    if (!"coordinates" %in% slotNames(image_obj)) {
+      stop("Image object does not have a 'coordinates' slot; check if data is truly Slide-seq data")
+    }
+    coords <- as.data.frame(image_obj@coordinates)
+    coords$cell <- rownames(coords)
+    colnames(coords)[1:2] <- c("x", "y")
+
+    #Store raw coordinates (no scaling applied)
+    coords$x_raw <- coords$x
+    coords$y_raw <- coords$y
+  }
+
+  meta <- object@meta.data
+
+  #If clusters have already been calculated, visualize them in the interactive plot
+  #Otherwise treat entire image as one simple cluster
+  if (is.null(group.by)) {
+    group.by <- if ("seurat_clusters" %in% colnames(meta)) "seurat_clusters" else "all"
+  }
+  #Assign grouping variable
+  if (group.by != "all") {
+    coords$group <- meta[coords$cell, group.by]
+  } else {
+    coords$group <- "all"
+  }
+
+  #Overlay raster image as base64 if available
+  base64_image <- NULL
+  if (type == "visium" && "image" %in% slotNames(image_obj)) {
+    img_raster <- image_obj@image
+    temp_png <- tempfile(fileext = ".png")
+    png(temp_png, width = dim(img_raster)[2], height = dim(img_raster)[1])
+    grid::grid.raster(img_raster)
+    dev.off()
+    img_bytes <- readBin(temp_png, "raw", file.info(temp_png)$size)
+    base64_image <- paste0("data:image/png;base64,", base64enc::base64encode(img_bytes))
+  }
+
+  #UI layout for interactive lasso gadget
+  ui <- miniPage(
+    gadgetTitleBar("Select a subset of cells"),
+    miniContentPanel(
+      plotly::plotlyOutput("plot", height = "100%")
+    )
+  )
+
+  #Capture lasso selections through server function; launch session
+  #Render scatterplot with spatial coordinates (grouped by cell identity/cluster)
+  server <- function(input, output, session) {
+    output$plot <- plotly::renderPlotly({
+      #Maintain aspect ratio of original image
+      plt <- plotly::plot_ly(
+        data = coords,
+        x = ~y,
+        y = ~x,
+        color = ~group,
+        key = ~cell,
+        text = ~paste("Cell:", cell, "<br>Spot (x, y):", x_raw, ",", y_raw),
+        hoverinfo = "text"
+      ) %>%
+        plotly::add_markers(
+          marker = list(size = 5),
+          alpha = alpha,
+          selected = list(marker = list(opacity = 1)),
+          unselected = list(marker = list(opacity = 0.5))
+        )
+
+      #Overlay original tissue image behind points (only for Visium)
+      if (!is.null(base64_image)) {
+        plt <- plt %>% plotly::layout(
+          images = list(
+            list(
+              source = base64_image,
+              xref = "x", yref = "y",
+              x = 0,
+              y = 0,
+              sizex = dim(image_obj@image)[2],
+              sizey = dim(image_obj@image)[1],
+              sizing = "stretch",
+              opacity = 0.6,
+              layer = "below"
+            )
+          )
+        )
+      }
+
+      #Default selection is lasso
+      plt <- plt %>% plotly::layout(
+        dragmode = "lasso",
+        yaxis = list(autorange = "reversed", scaleanchor = "x", title="x scaled"),
+        xaxis = list(scaleanchor = "y", title="y scaled")
+      )
+      plt
+    })
+
+    #Store selected subset of cells
+    observeEvent(input$done, {
+      selected <- plotly::event_data("plotly_selected")
+      selected_cells <- selected$key
+      stopApp(selected_cells)
+    })
+
+    observeEvent(input$cancel, {
+      stopApp(NULL)
+    })
+  }
+
+  #Launch gadget
+  runGadget(ui, server)
 }
 
 #' Visualize spatial clustering and expression data.
@@ -6931,7 +7128,7 @@ FeaturePalettes <- list(
 #' @importFrom Matrix rowMeans rowSums
 #
 GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
-  cm <- GetAssayData(object = object[[assay]], slot = "counts")
+  cm <- GetAssayData(object = object[[assay]], layer = "counts")
   # subset to keep only genes detected in at least min.cells cells
   cm <- cm[rowSums(cm > 0) >= min.cells, ]
   # use the geometric mean of the features to group them
