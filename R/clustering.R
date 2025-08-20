@@ -227,7 +227,7 @@ PredictAssay <- function(
     reference.data <- GetAssayData(
       object = object,
       assay = assay,
-      slot = slot
+      layer = slot
     )
     features <- features %||% VariableFeatures(object = object[[assay]])
     if (length(x = features) == 0) {
@@ -490,12 +490,11 @@ FindClusters.Seurat <- function(
     verbose = verbose,
     ...
   )
-  cluster.name <- cluster.name %||%
-    paste(
-      graph.name,
-      names(x = clustering.results),
-      sep = '_'
-    )
+
+  # Add cluster names to clustering results
+  default.cluster.name <- paste(graph.name, names(clustering.results), sep = "_")
+  cluster.name <- cluster.name %||% default.cluster.name
+  
   names(x = clustering.results) <- cluster.name
   # object <- AddMetaData(object = object, metadata = clustering.results)
   # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
@@ -513,7 +512,15 @@ FindClusters.Seurat <- function(
     }
   )
   Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
-  object[['seurat_clusters']] <- Idents(object = object)
+
+  # If cluster name is NULL, default cluster name is used (seurat_clusters) when assigning factor levels
+  # Otherwise, use cluster name provided by user
+  if (cluster.name == default.cluster.name) { 
+    object[['seurat_clusters']] <- Idents(object = object)
+  } else {
+    object[[cluster.name]] <- Idents(object = object)
+  }
+
   cmd <- LogSeuratCommand(object = object, return.command = TRUE)
   slot(object = cmd, name = 'assay.used') <- DefaultAssay(object = object[[graph.name]])
   object[[slot(object = cmd, name = 'name')]] <- cmd
@@ -685,7 +692,7 @@ FindNeighbors.Assay <- function(
 ) {
   CheckDots(...)
   features <- features %||% VariableFeatures(object = object)
-  data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
+  data.use <- t(x = GetAssayData(object = object, layer = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
     object = data.use,
     k.param = k.param,

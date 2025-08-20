@@ -11,7 +11,8 @@ BuildNicheAssay(
   assay = "niche",
   cluster.name = "niches",
   neighbors.k = 20,
-  niches.k = 4
+  niches.k = 4,
+  ...
 )
 }
 \arguments{
@@ -27,7 +28,9 @@ BuildNicheAssay(
 
 \item{neighbors.k}{Number of neighbors to consider for each cell}
 
-\item{niches.k}{Number of clusters to return based on the niche assay}
+\item{niches.k}{Number of niche clusters to construct}
+
+\item{...}{Extra parameters passed to \code{\link{kmeans}}}
 }
 \value{
 Seurat object containing a new assay
