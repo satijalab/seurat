@@ -1,7 +1,7 @@
 # Unreleased
 
 ## Changes
-
+- Fixed 'DimPlot' bug where metadata columns named 'PC_1', 'UMAP_1' etc override reduction embeddings
 # Seurat 5.3.0
 
 ## Changes
