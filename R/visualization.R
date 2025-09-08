@@ -9512,7 +9512,12 @@ SingleSpatialPlot <- function(
                 ymin = 0,
                 ymax = image.height
               ) +
-            geom_point(shape = 21, stroke = stroke, size=pt.size.factor, aes_string(fill = col.by, alpha = alpha.by)) +
+            geom_point(
+                shape = 21, 
+                stroke = stroke, 
+                size=pt.size.factor, 
+                aes_string(fill = col.by, alpha = alpha.by)
+              ) +
             coord_fixed() +
             xlab("x") +
             ylab("y") +
@@ -9527,7 +9532,12 @@ SingleSpatialPlot <- function(
                 ymin = 0,
                 ymax = image.height
               ) +
-            geom_point(shape = 21, stroke = stroke, size=pt.size.factor, aes_string(fill = col.by), alpha = if (is.null(pt.alpha)) 1 else pt.alpha) +
+              geom_point(shape = 21, 
+              stroke = stroke, 
+              size=pt.size.factor, 
+              aes_string(fill = col.by), 
+              alpha = if (is.null(pt.alpha)) 1 else pt.alpha
+            ) +
             coord_fixed() +
             xlab("x") +
             ylab("y") +
@@ -9552,7 +9562,7 @@ SingleSpatialPlot <- function(
               color = "black",
               linewidth = stroke
             ) +
-            scale_fill_viridis_d(option = "plasma", alpha = 0.5) +
+            scale_fill_viridis_d(option = "plasma") +
             coord_sf() +
             theme_void()
         }else{
@@ -9572,7 +9582,7 @@ SingleSpatialPlot <- function(
               color = "black",
               linewidth = stroke
             ) +
-            scale_fill_viridis_d(option = "plasma", alpha = 0.5) +
+            scale_fill_viridis_d(option = "plasma") +
             coord_sf() +
             theme_void()
         }
