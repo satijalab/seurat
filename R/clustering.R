@@ -476,7 +476,7 @@ FindClusters.Seurat <- function(
   # Add cluster names to clustering results
   default.cluster.name <- paste(graph.name, names(clustering.results), sep = "_")
   cluster.name <- cluster.name %||% default.cluster.name
-  
+
   names(x = clustering.results) <- cluster.name
   # object <- AddMetaData(object = object, metadata = clustering.results)
   # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
@@ -497,7 +497,7 @@ FindClusters.Seurat <- function(
 
   # If cluster name is NULL, default cluster name is used (seurat_clusters) when assigning factor levels
   # Otherwise, use cluster name provided by user
-  if (cluster.name == default.cluster.name) { 
+  if (isTRUE(x = all(cluster.name %in% default.cluster.name))) {
     object[['seurat_clusters']] <- Idents(object = object)
   } else {
     object[[cluster.name]] <- Idents(object = object)
@@ -1658,10 +1658,10 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #'
 #' Returns a vector of partition indices.
 #'
-#' @param object An adjacency matrix or adjacency list. 
+#' @param object An adjacency matrix or adjacency list.
 #' @param method DEPRECATED.
 #' @param partition.type Type of partition to use for Leiden algorithm.
-#' Defaults to "RBConfigurationVertexPartition", see 
+#' Defaults to "RBConfigurationVertexPartition", see
 #' https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.
 #' @param initial.membership Passed to the `initial_membership` parameter
 #' of `leidenbase::leiden_find_partition`.
@@ -1676,10 +1676,10 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #'
 #' @export
-#' 
+#'
 #' @rdname RunLeiden
 #' @concept clustering
-#' 
+#'
 RunLeiden <- function(
   object,
   method = deprecated(),
@@ -1699,8 +1699,8 @@ RunLeiden <- function(
   n.iter = 10
 ) {
   # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
-  # greater than 0 (or NULL) but the default value for `FindClusters` is 0. 
-  # If `random.seed` is 0 or less, throw a warning and reset the value to 1. 
+  # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
+  # If `random.seed` is 0 or less, throw a warning and reset the value to 1.
    if (!is.null(random.seed) && random.seed <= 0) {
     warning(
       paste0(
@@ -1715,21 +1715,21 @@ RunLeiden <- function(
   # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
   # _requires_ an `igraph` input, so the parameter no longer makes sense. The
   # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
-  # really matter. 
+  # really matter.
   if (is_present(method)) {
     deprecate_soft(
       when = "5.2.0",
       what = "RunLeiden(method)"
     )
   }
-  
+
   # Convert `object` into an `igraph`.
   # If `object` is already an `igraph` no conversion is necessary.
-  if (inherits(object, what = "igraph")) { 
+  if (inherits(object, what = "igraph")) {
     input <- object
   # Otherwise, if `object` is a list, assume it is an adjacency list...
   } else if (inherits(object, what = "list")) {
-    # And convert it to an `igraph` with the appropriate method. 
+    # And convert it to an `igraph` with the appropriate method.
     input <- graph_from_adj_list(object)
   # Or, if `object` is a matrix...
   } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
@@ -1739,7 +1739,7 @@ RunLeiden <- function(
     }
     # And then convert it to an graph.
     input <- graph_from_adjacency_matrix(object, weighted = TRUE)
-  # Throw an error if `object` is of an unknown type. 
+  # Throw an error if `object` is of an unknown type.
   } else {
     stop(
       "Method for Leiden not found for class", class(object),
