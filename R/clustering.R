@@ -497,7 +497,7 @@ FindClusters.Seurat <- function(
 
   # If cluster name is NULL, default cluster name is used (seurat_clusters) when assigning factor levels
   # Otherwise, use cluster name provided by user
-  if (all(cluster.name %in% default.cluster.name)) {
+  if (isTRUE(x = all(cluster.name %in% default.cluster.name))) {
     object[['seurat_clusters']] <- Idents(object = object)
   } else {
     object[[cluster.name]] <- Idents(object = object)
