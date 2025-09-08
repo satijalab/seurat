@@ -494,7 +494,7 @@ FindClusters.Seurat <- function(
   # Add cluster names to clustering results
   default.cluster.name <- paste(graph.name, names(clustering.results), sep = "_")
   cluster.name <- cluster.name %||% default.cluster.name
-  
+
   names(x = clustering.results) <- cluster.name
   # object <- AddMetaData(object = object, metadata = clustering.results)
   # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
@@ -515,7 +515,7 @@ FindClusters.Seurat <- function(
 
   # If cluster name is NULL, default cluster name is used (seurat_clusters) when assigning factor levels
   # Otherwise, use cluster name provided by user
-  if (cluster.name == default.cluster.name) { 
+  if (isTRUE(x = all(cluster.name %in% default.cluster.name))) {
     object[['seurat_clusters']] <- Idents(object = object)
   } else {
     object[[cluster.name]] <- Idents(object = object)
@@ -1763,7 +1763,6 @@ RunLeiden <- function(
     on.exit(restore_seed(prev_seed), add = TRUE)
     set.seed(random.seed)
   }
-
 
   # Convert `object` into an `igraph`.
   # If `object` is already an `igraph` no conversion is necessary.
