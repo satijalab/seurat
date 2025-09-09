@@ -8,7 +8,8 @@ Read10X_HD_GeoJson(
   data.dir,
   image.dir,
   segmentation.type = "cell",
-  scale.factor = NULL
+  scale.factor = NULL,
+  image
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ Read10X_HD_GeoJson(
 \item{segmentation.type}{Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used}
 
 \item{scale.factor}{If scaling the segmentations coordinates for the associated tissue image. "lowres" or "highres"}
+
+\item{image}{Either tissue_lowres_image.png or tissue_hires_image.png read in when previously loading segmentations}
 }
 \value{
 A FOV

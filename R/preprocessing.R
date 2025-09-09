@@ -1542,7 +1542,7 @@ Read10X_Segmentations <- function (image.dir,
                                                              "scalefactors_json.json"))
   key <- Key(slice, quiet = TRUE)
 
-  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, image.dir = image.dir, scale.factor = "lowres")
+  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, image.dir = image.dir, scale.factor = "lowres", image = image)
 
   # Create a Segmentation object based on sf, populate sf.data and polygons
   segmentation <- CreateSegmentation(sf.data)
@@ -1590,13 +1590,14 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' @param image.dir Path to the directory with spatial GeoJSON data
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
 #' @param scale.factor If scaling the segmentations coordinates for the associated tissue image. "lowres" or "highres"
+#' @param image Either tissue_lowres_image.png or tissue_hires_image.png read in when previously loading segmentations
 #'
 #' @return A FOV
 #'
 #' @export
 #' @concept preprocessing
 #'
-Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell", scale.factor = NULL) {
+Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell", scale.factor = NULL, image) {
   segmentation_polygons <- read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
   if (!is.null(scale.factor)) {
     scale.factors <- Read10X_ScaleFactors(
@@ -1604,6 +1605,19 @@ Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell", 
     )
     segmentation_polygons$geometry <- segmentation_polygons$geometry*scale.factors[[scale.factor]]
   }
+
+  # Read in the tissue image
+  # Retrieve image coordinates for use in point scaling 
+  image.height <- dim(image)[1] 
+  
+  segmentation_polygons$geometry <- lapply(
+    segmentation_polygons$geometry,
+    function(geom) {
+      coords <- geom[[1]]
+      coords[,2] <- image.height - coords[,2]
+      st_polygon(list(coords))
+    }
+  ) %>% st_sfc(crs = st_crs(segmentation_polygons))
 
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
   segmentation_polygons
