@@ -9501,73 +9501,63 @@ SingleSpatialPlot <- function(
       #Plot (currently independently of switch/case)
       if(!plot_segmentations){
         #If plot_segmentations FALSE, then plot just the centroids from sf data
-        if(is.null(pt.alpha)){
+        
+        if (is.null(pt.alpha)) {
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
-          ggplot(sf.cleaned, aes(x = x, y = y)) +
-            annotation_custom(
-                grob = image.grob,
-                xmin = 0,
-                xmax = image.width,
-                ymin = 0,
-                ymax = image.height
-              ) +
-            geom_point(
-                shape = 21, 
-                stroke = stroke, 
-                size=pt.size.factor, 
-                aes_string(fill = col.by, alpha = alpha.by)
-              ) +
-            coord_fixed() +
-            xlab("x") +
-            ylab("y") +
-            theme_minimal()
-        }else{
+          geom_point_layer <- geom_point(
+            shape = 21, 
+            stroke = stroke, 
+            size = pt.size.factor, 
+            aes_string(fill = col.by, alpha = alpha.by)
+          )
+        } else {
           #If pt.alpha is indeed provided, then use that to define alpha
-          ggplot(sf.cleaned, aes(x = x, y = y)) +
-            annotation_custom(
-                grob = image.grob,
-                xmin = 0,
-                xmax = image.width,
-                ymin = 0,
-                ymax = image.height
-              ) +
-              geom_point(shape = 21, 
-              stroke = stroke, 
-              size=pt.size.factor, 
-              aes_string(fill = col.by), 
-              alpha = if (is.null(pt.alpha)) 1 else pt.alpha
-            ) +
-            coord_fixed() +
-            xlab("x") +
-            ylab("y") +
-            theme_minimal()
+          geom_point_layer <- geom_point(
+            shape = 21,
+            stroke = stroke,
+            size = pt.size.factor,
+            aes_string(fill = col.by), 
+            alpha = if (is.null(pt.alpha)) 1 else pt.alpha
+          )
         }
+        ggplot(sf.cleaned, aes(x = x, y = y)) +
+          annotation_custom(
+              grob = image.grob,
+              xmin = 0,
+              xmax = image.width,
+              ymin = 0,
+              ymax = image.height
+            ) +
+          geom_point_layer +
+          coord_fixed() +
+          xlab("x") +
+          ylab("y") +
+          theme_minimal()
+      
       }else{
         #If plot_segmentations TRUE, then use geometry data stored in sf to plot cell polygons
-        if(is.null(pt.alpha)){
+        
+        if (is.null(pt.alpha)) {
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
-          ggplot() +
-            annotation_custom(
-              grob = image.grob,
-              xmin = 0,
-              xmax = image.width,
-              ymin = 0,
-              ymax = image.height
-            ) +
-            geom_sf(
-              data = sf.cleaned,
-              aes_string(fill = col.by, alpha = alpha.by),
-              color = "black",
-              linewidth = stroke
-            ) +
-            scale_fill_viridis_d(option = "plasma") +
-            coord_sf() +
-            theme_void()
-        }else{
+          geom_sf_layer <- geom_sf(
+            data = sf.cleaned,
+            aes_string(fill = col.by, alpha = alpha.by),
+            color = "black",
+            linewidth = stroke
+          )
+        } else {
           #If pt.alpha is indeed provided, then use that to define alpha
-          ggplot() +
+          geom_sf_layer <- geom_sf(
+            data = sf.cleaned,
+            aes_string(fill = col.by),
+            alpha = if (is.null(pt.alpha)) 1 else pt.alpha,
+            color = "black",
+            linewidth = stroke
+          ) 
+        }
+        ggplot() +
             annotation_custom(
               grob = image.grob,
               xmin = 0,
@@ -9575,17 +9565,10 @@ SingleSpatialPlot <- function(
               ymin = 0,
               ymax = image.height
             ) +
-            geom_sf(
-              data = sf.cleaned,
-              aes_string(fill = col.by),
-              alpha = if (is.null(pt.alpha)) 1 else pt.alpha,
-              color = "black",
-              linewidth = stroke
-            ) +
+            geom_sf_layer +
             scale_fill_viridis_d(option = "plasma") +
             coord_sf() +
             theme_void()
-        }
       }
     },
     'poly' = {
