@@ -9444,7 +9444,10 @@ SingleSpatialPlot <- function(
         height = unit(1, "npc"),
         interpolate = FALSE
       )
-
+      # Retrieve image dimensions for later use (flipping image)
+      image.height <- dim(image@image)[1]
+      image.width <- dim(image@image)[2]
+      
       # Retrieve the sf data stored in the Visium V2 object 
       # Merge it with data dataframe which contains ident and gene expression information 
       sf.data = image@boundaries$segmentation@sf.data
