@@ -9,7 +9,7 @@ Read10X_HD_GeoJson(
   image.dir,
   segmentation.type = "cell",
   scale.factor = NULL,
-  image
+  image.height
 )
 }
 \arguments{
@@ -21,7 +21,7 @@ Read10X_HD_GeoJson(
 
 \item{scale.factor}{If scaling the segmentations coordinates for the associated tissue image. "lowres" or "highres"}
 
-\item{image}{Either tissue_lowres_image.png or tissue_hires_image.png read in when previously loading segmentations}
+\item{image.height}{The pixel height of either tissue_lowres_image.png or tissue_hires_image.png read in when previously loading segmentations}
 }
 \value{
 A FOV
