@@ -9500,7 +9500,27 @@ SingleSpatialPlot <- function(
       sf.cleaned <- st_sf(sf.cleaned %>% st_drop_geometry(), geometry = st_sfc(geom_flipped, crs = st_crs(NA)))
       #Plot (currently independently of switch/case)
       if(!plot_segmentations){
-        #Plot just the centroids as points
+        #If plot_segmentations FALSE, then plot just the centroids from sf data
+        
+        if (is.null(pt.alpha)) {
+          #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
+          #Use alpha.by instead of pt.alpha
+          geom_point_layer <- geom_point(
+            shape = 21, 
+            stroke = stroke, 
+            size = pt.size.factor, 
+            aes_string(fill = col.by, alpha = alpha.by)
+          )
+        } else {
+          #If pt.alpha is indeed provided, then use that to define alpha
+          geom_point_layer <- geom_point(
+            shape = 21,
+            stroke = stroke,
+            size = pt.size.factor,
+            aes_string(fill = col.by), 
+            alpha = if (is.null(pt.alpha)) 1 else pt.alpha
+          )
+        }
         ggplot(sf.cleaned, aes(x = x, y = y)) +
           annotation_custom(
               grob = image.grob,
@@ -9509,30 +9529,46 @@ SingleSpatialPlot <- function(
               ymin = 0,
               ymax = image.height
             ) +
-          geom_point(shape = 21, stroke = stroke, size=pt.size.factor, aes_string(fill = col.by), alpha = if (is.null(pt.alpha)) 1 else pt.alpha) +
+          geom_point_layer +
           coord_fixed() +
           xlab("x") +
           ylab("y") +
           theme_minimal()
+      
       }else{
-        ggplot() +
-          annotation_custom(
-            grob = image.grob,
-            xmin = 0,
-            xmax = image.width,
-            ymin = 0,
-            ymax = image.height
-          ) +
-          geom_sf(
+        #If plot_segmentations TRUE, then use geometry data stored in sf to plot cell polygons
+        
+        if (is.null(pt.alpha)) {
+          #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
+          #Use alpha.by instead of pt.alpha
+          geom_sf_layer <- geom_sf(
+            data = sf.cleaned,
+            aes_string(fill = col.by, alpha = alpha.by),
+            color = "black",
+            linewidth = stroke
+          )
+        } else {
+          #If pt.alpha is indeed provided, then use that to define alpha
+          geom_sf_layer <- geom_sf(
             data = sf.cleaned,
             aes_string(fill = col.by),
             alpha = if (is.null(pt.alpha)) 1 else pt.alpha,
             color = "black",
             linewidth = stroke
-          ) +
-          scale_fill_viridis_d(option = "plasma", alpha = 0.5) +
-          coord_sf() +
-          theme_void()
+          ) 
+        }
+        ggplot() +
+            annotation_custom(
+              grob = image.grob,
+              xmin = 0,
+              xmax = image.width,
+              ymin = 0,
+              ymax = image.height
+            ) +
+            geom_sf_layer +
+            scale_fill_viridis_d(option = "plasma") +
+            coord_sf() +
+            theme_void()
       }
     },
     'poly' = {
