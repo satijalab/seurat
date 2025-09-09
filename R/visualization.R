@@ -9447,7 +9447,7 @@ SingleSpatialPlot <- function(
       # Retrieve image dimensions for later use (flipping image)
       image.height <- dim(image@image)[1]
       image.width <- dim(image@image)[2]
-
+      
       # Retrieve the sf data stored in the Visium V2 object 
       # Merge it with data dataframe which contains ident and gene expression information 
       sf.data = image@boundaries$segmentation@sf.data
@@ -9486,18 +9486,8 @@ SingleSpatialPlot <- function(
 
       # Update x and y in sf.cleaned
       sf.cleaned$x[match_idx] <- coords[coord_idx, 1]
-      sf.cleaned$y[match_idx] <- image.height - coords[coord_idx, 2]
+      sf.cleaned$y[match_idx] <- coords[coord_idx, 2]
 
-      #Flip the Y coords of polygon geometries
-      geom_flipped <- lapply(st_geometry(sf.cleaned), function(poly) {
-        if (inherits(poly, "POLYGON")) {
-          st_polygon(list(cbind(poly[[1]][, 1], image.height - poly[[1]][, 2])))
-        } else {
-          poly 
-        }
-      })
-
-      sf.cleaned <- st_sf(sf.cleaned %>% st_drop_geometry(), geometry = st_sfc(geom_flipped, crs = st_crs(NA)))
       #Plot (currently independently of switch/case)
       if(!plot_segmentations){
         #If plot_segmentations FALSE, then plot just the centroids from sf data
