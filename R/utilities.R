@@ -1561,7 +1561,7 @@ PseudobulkExpression.Seurat <- function(
         paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")
       )
     )
-    group.by <- colnames(x = data)[which(num.levels > 1)]
+    group.by <- rev(colnames(x = data)[which(num.levels > 1)])
     data <- data[, which(num.levels > 1), drop = F]
   }
   data.return <- list()
