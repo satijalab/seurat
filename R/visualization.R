@@ -2041,10 +2041,10 @@ FeatureScatter <- function(
     cells = cells,
     layer = slot
   )
-  if (!grepl(pattern = feature1, x = names(x = data)[1], fixed=TRUE)) {
+  if (!grepl(pattern = feature1, x = names(x = data)[1], fixed = TRUE)) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
   }
-  if (!grepl(pattern = feature2, x = names(x = data)[2])) {
+  if (!grepl(pattern = feature2, x = names(x = data)[2], fixed = TRUE)) {
     abort(message = paste("Feature 2", sQuote(x = feature2), "not found"))
   }
   feature1 <-  names(x = data)[1]
@@ -8000,7 +8000,6 @@ globalVariables(names = '..density..', package = 'Seurat')
 #' @return A ggplot2 object
 #'
 #' @importFrom stats cor
-#' @importFrom rlang .data
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot aes_string geom_point labs scale_color_brewer
