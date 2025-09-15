@@ -26,7 +26,7 @@ and the image data in a subdirectory called \code{spatial}}
 
 \item{slice}{Name for the stored image of the tissue slice}
 
-\item{bin.size}{Specifies the bin sizes to read in - defaults to c(16, 8)}
+\item{bin.size}{Specifies the bin sizes to read in, can include "polygons" to load segmentations. Defaults to c(16, 8)}
 
 \item{filter.matrix}{Only keep spots that have been determined to be over
 tissue}
