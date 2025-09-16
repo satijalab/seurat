@@ -483,7 +483,7 @@ HTOHeatmap <- function(
     feature.order = rev(x = singlet.ids),
     cell.order = names(x = sort(x = Idents(object = object))),
     group.by = Idents(object = object)
-  ) + guides(color = FALSE)
+  ) + guides(color = "none")
   return(plot)
 }
 
@@ -650,7 +650,7 @@ VlnPlot <- function(
   if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
     warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
   }
-  assay.name <- DefaultAssay(object)
+  assay.name <- assay %||% DefaultAssay(object = object)
   if (is.null(layer.set) & is.null(layer) ) {
     warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.',
             call. = FALSE, immediate. = TRUE)
@@ -8136,7 +8136,7 @@ SingleCorPlot <- function(
       #   data = density
       # ) +
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
-      guides(fill = FALSE)
+      guides(fill = "none")
   }
   position <- NULL
   if (jitter) {
@@ -8174,7 +8174,7 @@ SingleCorPlot <- function(
     }
     plot <- plot + cols.scale
     if (!is.null(x = rows.highlight)) {
-      plot <- plot + guides(color = FALSE)
+      plot <- plot + guides(color = "none")
     }
   }
   plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
