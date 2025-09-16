@@ -1074,6 +1074,11 @@ Read10X <- function(
     if (ncol(x = feature.names) > 2) {
       data_types <- factor(x = feature.names$V3)
       lvls <- levels(x = data_types)
+      if ("Protein Expression" %in% lvls) {
+        message("Xenium protein expression detected, but no scaling factor",
+                " is supplied with the MEX matrices (vs HDF5). The loaded",
+                " matrix is scaled by a constant from the original values.")
+      }
       if (length(x = lvls) > 1 && length(x = full.data) == 0) {
         message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
       }
@@ -1157,6 +1162,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     shp <- infile[[paste0(genome, '/shape')]]
     features <- infile[[paste0(genome, '/', feature_slot)]][]
     barcodes <- infile[[paste0(genome, '/barcodes')]]
+
     sparse.mat <- sparseMatrix(
       i = indices[] + 1,
       p = indptr[],
@@ -1188,6 +1194,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
           simplify = FALSE,
           USE.NAMES = TRUE
         )
+
+        # Apply scaling factor that was used when serializing.
+        if ("Protein Expression" %in% types.unique) {
+          if ("protein_scaling_factor" %in% hdf5r::h5attr_names(infile)) {
+            apply_scaling_factor <- 1.0 / hdf5r::h5attr(infile, "protein_scaling_factor")
+            message("Scaling 'Protein Expression' by ", apply_scaling_factor)
+            sparse.mat[["Protein Expression"]] <- sparse.mat[["Protein Expression"]] * apply_scaling_factor
+          }
+        }
       }
     }
     output[[genome]] <- sparse.mat
@@ -1263,8 +1278,8 @@ Read10X_Image <- function(
       image = image
     )
 
-    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the 
-    # `spot.radius` slot and instead calculates the value on the fly, but we 
+    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the
+    # `spot.radius` slot and instead calculates the value on the fly, but we
     # can populate the static slot in case it's depended on.
     visium.v1@spot.radius <- Radius(visium.v1)
 
