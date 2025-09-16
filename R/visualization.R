@@ -2042,10 +2042,10 @@ FeatureScatter <- function(
     cells = cells,
     layer = slot
   )
-  if (!grepl(pattern = feature1, x = names(x = data)[1])) {
+  if (!grepl(pattern = feature1, x = names(x = data)[1], fixed = TRUE)) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
   }
-  if (!grepl(pattern = feature2, x = names(x = data)[2])) {
+  if (!grepl(pattern = feature2, x = names(x = data)[2], fixed = TRUE)) {
     abort(message = paste("Feature 2", sQuote(x = feature2), "not found"))
   }
   feature1 <-  names(x = data)[1]
@@ -8055,6 +8055,18 @@ SingleCorPlot <- function(
     x = colnames(x = data),
     fixed = TRUE
   )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = ')',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = '(',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
   if (ncol(x = data) < 2) {
     msg <- "Too few variables passed"
     if (ncol(x = data) == 1) {
@@ -8093,7 +8105,7 @@ SingleCorPlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
-  ) +
+    ) +
     labs(
       x = orig.names[1],
       y = orig.names[2],
@@ -8961,11 +8973,11 @@ SingleRasterMap <- function(
   if (!is.null(x = feature.order)) {
     data$Feature <- factor(x = data$Feature, levels = unique(x = feature.order))
   }
-  if (!is.null(x = cell.order)) {
-    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
-  }
   if (!is.null(x = group.by)) {
     data$Identity <- group.by[data$Cell]
+  }
+  if (!is.null(x = cell.order)) {
+    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
   }
   limits <- limits %||% c(min(data$Expression), max(data$Expression))
   if (length(x = limits) != 2 || !is.numeric(x = limits)) {
