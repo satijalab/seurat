@@ -693,8 +693,8 @@ Add_10X_CellTypes <- function(data.dir, object) {
 #' Load a 10x Genomics Single Cell Experiment into a \code{Seurat} object
 #'
 #' @inheritParams Read10X
-#' @inheritParams SeuratObject::CreateSeuratObject If multiome 10x data the
-#' assay param will not be used. The names of each assay contained in the matrix are used.
+#' @inheritParams SeuratObject::CreateSeuratObject 
+#' @note If multiome 10x data the assay param will not be used. The names of each assay contained in the matrix are used.
 #' @param data.dir Directory containing the H5 file specified by \code{filename}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param to.upper Converts all feature names to upper case. This can provide an
