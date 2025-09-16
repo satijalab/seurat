@@ -659,7 +659,6 @@ Load10X_Spatial <- function (
 #'
 #' @importFrom utils read.csv
 #' @importFrom tibble rownames_to_column column_to_rownames
-#' @importFrom base file.path file.exists merge
 #'
 #' @examples
 #' \dontrun{
