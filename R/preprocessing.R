@@ -693,7 +693,7 @@ Add_10X_CellTypes <- function(data.dir, object) {
 #' Load a 10x Genomics Single Cell Experiment into a \code{Seurat} object
 #'
 #' @inheritParams Read10X
-#' @inheritParams SeuratObject::CreateSeuratObject 
+#' @inheritParams SeuratObject::CreateSeuratObject
 #' @note If multiome 10x data the assay param will not be used. The names of each assay contained in the matrix are used.
 #' @param data.dir Directory containing the H5 file specified by \code{filename}
 #' @param filename Name of H5 file containing the feature barcode matrix
@@ -735,11 +735,13 @@ Load10X <- function(data.dir, filename = "filtered_feature_bc_matrix.h5",
 
   counts <- Read10X_h5(counts.path, ...)
 
-  if (to.upper) {
-    counts <- imap(counts, ~{
-      rownames(.x) <- toupper(rownames(.x))
-      .x
+  if (is.list(counts)) {
+    counts <- lapply(counts, function(mat) {
+      rownames(mat) <- toupper(rownames(mat))
+      mat
     })
+  } else {
+    rownames(counts) <- toupper(rownames(counts))
   }
 
   if (is.list(counts)) {
@@ -1394,8 +1396,8 @@ Read10X_Image <- function(
       image = image
     )
 
-    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the 
-    # `spot.radius` slot and instead calculates the value on the fly, but we 
+    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the
+    # `spot.radius` slot and instead calculates the value on the fly, but we
     # can populate the static slot in case it's depended on.
     visium.v1@spot.radius <- Radius(visium.v1)
 
@@ -3651,7 +3653,7 @@ SampleUMI <- function(
 #' replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
 #' \code{ScaleData} workflow by fitting a regularized negative binomial model
 #' per gene and returning:
-#' 
+#'
 #' - A new assay (default name “SCT”), in which:
 #'   - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
 #'     sequencing depth; controlled by \code{do.correct.umi}).
@@ -3662,13 +3664,13 @@ SampleUMI <- function(
 #'
 #' When multiple \code{counts} layers exist (e.g. after \code{split()}),
 #' each layer is modeled independently. A consensus variable‐feature set is
-#' then defined by ranking features by how often they’re called “variable” 
+#' then defined by ranking features by how often they’re called “variable”
 #' across different layers (ties broken by median rank).
-#' 
+#'
 #' By default, \code{sctransform::vst} will drop features expressed in fewer
 #' than five cells. In the multi-layer case, this can lead to consenus
 #' variable-features being excluded from the output's \code{scale.data} when
-#' a feature is "variable" across many layers but sparsely expressed in at 
+#' a feature is "variable" across many layers but sparsely expressed in at
 #' least one.
 #'
 #' @param object A Seurat object or UMI count matrix.
@@ -3724,11 +3726,11 @@ SampleUMI <- function(
 #' @seealso \code{\link[sctransform]{vst}},
 #'   \code{\link[sctransform]{get_residuals}},
 #'   \code{\link[sctransform]{correct_counts}}
-#' 
+#'
 #' @rdname SCTransform
 #' @concept preprocessing
 #' @export
-#' 
+#'
 SCTransform.default <- function(
   object,
   cell.attr,
@@ -4688,7 +4690,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     verbose = verbose,
     ...
   )
-  
+
   object <- LogSeuratCommand(object)
 
   return(object)
