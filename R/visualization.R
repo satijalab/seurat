@@ -633,7 +633,6 @@ VlnPlot <- function(
   raster = NULL,
   raster.dpi = 300
 ) {
-  DefaultAssay(object = object) <- assay
   if (is_present(arg = slot)) {
     deprecate_soft(
       when = '5.0.0',
@@ -651,7 +650,7 @@ VlnPlot <- function(
   if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
     warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
   }
-  assay.name <- DefaultAssay(object)
+  assay.name <- assay %||% DefaultAssay(object = object)
   if (is.null(layer.set) & is.null(layer) ) {
     warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.',
             call. = FALSE, immediate. = TRUE)
