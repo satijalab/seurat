@@ -1353,7 +1353,7 @@ RunUMAP.default <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
-  uwot.approx_pow = TRUE,
+  uwot.approx_pow = FALSE,
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1769,7 +1769,8 @@ RunUMAP.Neighbor <- function(
 #' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 #' right adjoint functor.
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
-#' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}; see \code{\link[uwot]{umap}} for more details
+#' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
+#' \code{\link[uwot]{umap}} for more details.
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
 #' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
@@ -1835,7 +1836,7 @@ RunUMAP.Seurat <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
-  uwot.approx_pow = TRUE,
+  uwot.approx_pow = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,

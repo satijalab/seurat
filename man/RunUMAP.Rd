@@ -31,6 +31,7 @@ RunUMAP(object, ...)
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -94,6 +95,7 @@ RunUMAP(object, ...)
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -181,6 +183,9 @@ automatically as determined by min. dist and spread. Parameter of differentiable
 right adjoint functor.}
 
 \item{uwot.sgd}{Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details}
+
+\item{uwot.approx_pow}{Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
+\code{\link[uwot]{umap}} for more details.}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed}
