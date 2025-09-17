@@ -483,7 +483,7 @@ HTOHeatmap <- function(
     feature.order = rev(x = singlet.ids),
     cell.order = names(x = sort(x = Idents(object = object))),
     group.by = Idents(object = object)
-  ) + guides(color = FALSE)
+  ) + guides(color = "none")
   return(plot)
 }
 
@@ -650,7 +650,7 @@ VlnPlot <- function(
   if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
     warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
   }
-  assay.name <- DefaultAssay(object)
+  assay.name <- assay %||% DefaultAssay(object = object)
   if (is.null(layer.set) & is.null(layer) ) {
     warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.',
             call. = FALSE, immediate. = TRUE)
@@ -836,8 +836,8 @@ ColorDimSplit <- function(
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is \code{NULL} which
 #' automatically rasterizes if plotting more than 100,000 cells
-#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
-#' Default is c(512, 512).
+#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore(). Default is c(512, 512).
+#' @param label.size.cutoff Clusters with fewer cells than the cutoff are not labeled (replaced with ' ' label)
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -888,7 +888,8 @@ DimPlot <- function(
   ncol = NULL,
   combine = TRUE,
   raster = NULL,
-  raster.dpi = c(512, 512)
+  raster.dpi = c(512, 512),
+  label.size.cutoff = 0
 ) {
   if (!is_integerish(x = dims, n = 2L, finite = TRUE) || !all(dims > 0L)) {
     abort(message = "'dims' must be a two-length integer vector")
@@ -906,6 +907,21 @@ DimPlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
+  
+  if (label & (label.size.cutoff > 0)) {
+    labels <- FetchData(object, group.by)
+    for(i in seq_along(group.by)) {
+      grouping_var <- group.by[i]
+      label_table <- table(labels[,grouping_var])
+      invalid_labels <- names(which(label_table < label.size.cutoff))
+      labels[, i] <- as.character(labels[,i])
+      labels[which(labels[,grouping_var] %in% invalid_labels),grouping_var] <- ' '
+      colnames(labels)[i] <- paste0(colnames(labels)[i], "_filtered")
+    }
+    object <- AddMetaData(object,labels)
+    group.by <- colnames(labels)
+  }
+  
   data <- FetchData(
     object = object,
     vars = c(dims, group.by),
@@ -2041,10 +2057,10 @@ FeatureScatter <- function(
     cells = cells,
     layer = slot
   )
-  if (!grepl(pattern = feature1, x = names(x = data)[1])) {
+  if (!grepl(pattern = feature1, x = names(x = data)[1], fixed = TRUE)) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
   }
-  if (!grepl(pattern = feature2, x = names(x = data)[2])) {
+  if (!grepl(pattern = feature2, x = names(x = data)[2], fixed = TRUE)) {
     abort(message = paste("Feature 2", sQuote(x = feature2), "not found"))
   }
   feature1 <-  names(x = data)[1]
@@ -8277,6 +8293,18 @@ SingleCorPlot <- function(
     x = colnames(x = data),
     fixed = TRUE
   )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = ')',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = '(',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
   if (ncol(x = data) < 2) {
     msg <- "Too few variables passed"
     if (ncol(x = data) == 1) {
@@ -8315,7 +8343,7 @@ SingleCorPlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
-  ) +
+    ) +
     labs(
       x = orig.names[1],
       y = orig.names[2],
@@ -8347,7 +8375,7 @@ SingleCorPlot <- function(
       #   data = density
       # ) +
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
-      guides(fill = FALSE)
+      guides(fill = "none")
   }
   position <- NULL
   if (jitter) {
@@ -8385,7 +8413,7 @@ SingleCorPlot <- function(
     }
     plot <- plot + cols.scale
     if (!is.null(x = rows.highlight)) {
-      plot <- plot + guides(color = FALSE)
+      plot <- plot + guides(color = "none")
     }
   }
   plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
@@ -9183,11 +9211,11 @@ SingleRasterMap <- function(
   if (!is.null(x = feature.order)) {
     data$Feature <- factor(x = data$Feature, levels = unique(x = feature.order))
   }
-  if (!is.null(x = cell.order)) {
-    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
-  }
   if (!is.null(x = group.by)) {
     data$Identity <- group.by[data$Cell]
+  }
+  if (!is.null(x = cell.order)) {
+    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
   }
   limits <- limits %||% c(min(data$Expression), max(data$Expression))
   if (length(x = limits) != 2 || !is.numeric(x = limits)) {
