@@ -62,7 +62,7 @@ CalcPerturbSig <- function(
   }
   features <- features %||% VariableFeatures(object = object[[assay]])
   if (length(x = features) == 0) {
-    features <- rownames(x = GetAssayData(object = object[[assay]], slot = slot))
+    features <- rownames(x = GetAssayData(object = object[[assay]], layer= slot))
   }
   if (! is.null(x = split.by)) {
     Idents(object = object) <-  split.by
@@ -798,7 +798,7 @@ RunMixscape <- function(
           message("  ", gene)
         }
         de.genes <- prtb_markers[[s]][[gene]]
-        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells, drop = FALSE]
+        dat <- GetAssayData(object = object[[assay]], layer = "data")[de.genes, all.cells, drop = FALSE]
         if (slot == "scale.data") {
           dat <- ScaleData(object = dat, features = de.genes, verbose = FALSE)
         }
@@ -1224,7 +1224,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   all_diff <- all_diff[, colnames(x = object[[assay]]), drop = FALSE]
   new.assay <- CreateAssayObject(
     data = rbind(
-      GetAssayData(object = object[[assay]], slot = "data"),
+      GetAssayData(object = object[[assay]], layer = "data"),
       all_diff
     ),
     min.cells = 0,
@@ -1233,8 +1233,8 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   )
   new.assay <- SetAssayData(
     object = new.assay,
-    slot = "scale.data",
-    new.data = GetAssayData(object = object[[assay]], slot = "scale.data")
+    layer = "scale.data",
+    new.data = GetAssayData(object = object[[assay]], layer= "scale.data")
   )
   object[[assay]] <- new.assay
   Idents(object = object) <- old.idents
@@ -1258,7 +1258,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
 #' @importFrom Matrix sparseMatrix colSums
 #'
 PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neighbors, verbose) {
-  nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, slot = slot)[features, nt_cells, drop = FALSE]))
+  nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, layer= slot)[features, nt_cells, drop = FALSE]))
   mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   # new_expr <- mysapply(X = all_cells, FUN = function(i) {
   #   index <- Indices(object = neighbors)[i, ]
@@ -1277,7 +1277,7 @@ PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neig
   new_expr <- log1p(x = new_expr)
   rownames(x = new_expr) <- rownames(x = nt_data)
   colnames(x = new_expr) <- all_cells
-  diff <- new_expr - as.matrix(GetAssayData(object = object, slot = slot, assay = assay)[features, colnames(x = new_expr), drop = FALSE])
+  diff <- new_expr - as.matrix(GetAssayData(object = object, layer = slot, assay = assay)[features, colnames(x = new_expr), drop = FALSE])
   return(diff)
 }
 

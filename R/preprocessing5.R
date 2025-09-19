@@ -1088,13 +1088,13 @@ CreateSCTAssay <- function(vst.out,  do.correct.umi, residual.type, clip.range){
   # put log1p transformed counts in data
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'data',
-    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+    layer = 'data',
+    new.data = log1p(x = GetAssayData(object = assay.out, layer = 'counts'))
   )
   scale.data <- vst.out$y
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'scale.data',
+    layer = 'scale.data',
     new.data = scale.data
   )
   vst.out$y <- NULL
@@ -1432,7 +1432,7 @@ FetchResiduals.SCTAssay <- function(
     )
   }
 
-  existing.data <- GetAssayData(object, slot = "scale.data")
+  existing.data <- GetAssayData(object, layer = "scale.data")
   all.features <- union(x = rownames(x = existing.data), y = features)
   new.scale <- matrix(
     data = NA,
@@ -1519,7 +1519,7 @@ FetchResidualSCTModel <- function(
   }
   existing.scale.data <- NULL
   if (is.null(x=reference.SCT.model)){
-    existing.scale.data <- suppressWarnings(GetAssayData(object, slot = "scale.data"))
+    existing.scale.data <- suppressWarnings(GetAssayData(object, layer = "scale.data"))
   }
   scale.data.cells <- colnames(x = existing.scale.data)
   scale.data.cells.common <- intersect(scale.data.cells, layer.cells)
@@ -1540,7 +1540,7 @@ FetchResidualSCTModel <- function(
 
   if (is.null(x = reference.SCT.model) & length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
     existing_features <- names(x = which(x = ! apply(
-      X = GetAssayData(object, slot = "scale.data")[, model.cells],
+      X = GetAssayData(object, layer = "scale.data")[, model.cells],
       MARGIN = 1,
       FUN = anyNA)
     ))
@@ -1699,7 +1699,7 @@ FetchResidualSCTModel <- function(
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
-    old_residuals <- GetAssayData(object, slot = "scale.data")[old.features, model.cells, drop = FALSE]
+    old_residuals <- GetAssayData(object, layer = "scale.data")[old.features, model.cells, drop = FALSE]
     new_residual <- rbind(new_residual, old_residuals)[new_features, ]
   }
   return(new_residual)

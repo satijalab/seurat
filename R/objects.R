@@ -426,7 +426,7 @@ CreateSCTAssayObject <- function(
     min.features = min.features
   )
   if (!is.null(scale.data)) {
-    assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
+    assay <- SetAssayData(object = assay, layer = "scale.data", new.data = scale.data)
   }
 
   slot(object = assay, name = "assay.orig") <- umi.assay
@@ -940,7 +940,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = x)
   # make variables, then run `newCellDataSet`
   # create cellData counts
-  counts <- GetAssayData(object = x, assay = assay, slot = "counts")
+  counts <- GetAssayData(object = x, assay = assay, layer = "counts")
   # metadata
   cell.metadata <- x[[]]
   feature.metadata <- x[[assay]][[]]
@@ -1233,7 +1233,7 @@ as.Seurat.SingleCellExperiment <- function(
       list(CreateAssayObject(counts = mats$counts))
     } else {
       a <- CreateAssayObject(counts = mats$counts)
-      a <- SetAssayData(object = a, slot = 'data', new.data = mats$data)
+      a <- SetAssayData(object = a, layer = 'data', new.data = mats$data)
       list(a)
     }
     names(x = assays) <- assay
@@ -1331,10 +1331,10 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   experiments <- list()
   for (assayn in assay) {
     assays <- list(
-      counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-      logcounts = GetAssayData(object = x, assay = assayn, slot = "data")
+      counts = GetAssayData(object = x, assay = assayn, layer = "counts"),
+      logcounts = GetAssayData(object = x, assay = assayn, layer = "data")
     )
-    scaledata_a <- GetAssayData(object = x, assay = assayn, slot = "scale.data")
+    scaledata_a <- GetAssayData(object = x, assay = assayn, layer = "scale.data")
     if (isTRUE(x = all.equal(
       target = dim(x = assays[["counts"]]),
       current = dim(x = scaledata_a))
@@ -2355,7 +2355,7 @@ merge.SCTAssay <- function(
           X = assays,
           FUN = function(assay) {
       if (inherits(x = assay, what = "SCTAssay")) {
-        return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
+        return(rownames(x = GetAssayData(object = assay, layer= "scale.data")))
       }
     })
     )
@@ -2370,7 +2370,7 @@ merge.SCTAssay <- function(
           seurat.object <- SetAssayData(
             object = seurat.object,
             assay = parent.environ$assay,
-            slot = "scale.data",
+            layer = "scale.data",
             new.data = residuals
           )                                                                
           return(seurat.object[[parent.environ$assay]])
@@ -2418,7 +2418,7 @@ merge.SCTAssay <- function(
     })
   }
   scale.data <- lapply(X = assays, FUN = function(x) {
-    dat <- GetAssayData(object = x, slot = "scale.data")
+    dat <- GetAssayData(object = x, layer = "scale.data")
     if (ncol(x = dat) == 0) {
       dat <- matrix(ncol = ncol(x = x))
     }
@@ -2447,7 +2447,7 @@ merge.SCTAssay <- function(
     })
   }
   scale.data <- do.call(what = cbind, args = scale.data)
-  combined.assay <- SetAssayData(object = combined.assay, slot = "scale.data", new.data = scale.data)
+  combined.assay <- SetAssayData(object = combined.assay, layer= "scale.data", new.data = scale.data)
   model.list <- unlist(x = lapply(
     X = assays,
     FUN = slot,
@@ -3307,11 +3307,11 @@ UpdateSlots <- function(object) {
 #' @importFrom Matrix Matrix
 #
 ValidateDataForMerge <- function(assay, slot) {
-  mat <- GetAssayData(object = assay, slot = slot)
+  mat <- GetAssayData(object = assay, layer = slot)
   if (any(dim(x = mat) == c(0, 0))) {
     slots.to.check <- setdiff(x = c("counts", "data", "scale.data"), y = slot)
     for (ss in slots.to.check) {
-      data.dims <- dim(x = GetAssayData(object = assay, slot = ss))
+      data.dims <- dim(x = GetAssayData(object = assay, layer = ss))
       data.slot <- ss
       if (!any(data.dims == c(0, 0))) {
         break
@@ -3324,7 +3324,7 @@ ValidateDataForMerge <- function(assay, slot) {
       data = 0,
       nrow = data.dims[1],
       ncol = data.dims[2],
-      dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
+      dimnames = dimnames(x = GetAssayData(object = assay, layer= data.slot))
     )
     mat <- as.sparse(x = mat)
   }

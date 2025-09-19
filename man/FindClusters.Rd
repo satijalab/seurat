@@ -16,6 +16,8 @@ FindClusters(object, ...)
   resolution = 0.8,
   method = deprecated(),
   algorithm = 1,
+  leiden_method = c("leidenbase", "igraph"),
+  leiden_objective_function = c("modularity", "CPM"),
   n.start = 10,
   n.iter = 10,
   random.seed = 0,
@@ -36,6 +38,8 @@ FindClusters(object, ...)
   resolution = 0.8,
   method = NULL,
   algorithm = 1,
+  leiden_method = c("leidenbase", "igraph"),
+  leiden_objective_function = c("modularity", "CPM"),
   n.start = 10,
   n.iter = 10,
   random.seed = 0,
@@ -67,6 +71,13 @@ of `leidenbase::leiden_find_partition`.}
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 algorithm; 4 = Leiden algorithm).}
+
+\item{leiden_method}{Chose between leidenbase or igraph packages for running leiden.
+Default is "leidenbase"}
+
+\item{leiden_objective_function}{objective function to use if `leiden_method = "igraph"`.
+See \code{\link[igraph]{cluster_leiden}} for more information.
+Default is "modularity".}
 
 \item{n.start}{Number of random starts.}
 

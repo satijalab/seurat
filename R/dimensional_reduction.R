@@ -92,7 +92,7 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
+  data.use <- GetAssayData(object = object, assay = assay, layer = "scale.data")[reduc.features, ]
   rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
   weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
   fake.vals.raw <- my.lapply(
@@ -293,7 +293,7 @@ ProjectDim <- function(
   assay <- assay %||% DefaultAssay(object = redeuc)
   data.use <- GetAssayData(
     object = object[[assay]],
-    slot = "scale.data"
+    layer = "scale.data"
   )
   if (do.center) {
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
@@ -593,16 +593,16 @@ RunCCA.Seurat <- function(
   }
   nfeatures <- length(x = features)
   if (!(rescale)) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "scale.data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "scale.data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "scale.data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "scale.data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features, ]
     data2 <- data.use2[features, ]
   }
   if (rescale) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features,]
@@ -651,7 +651,7 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, layer = "scale.data")
   ## combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
@@ -1854,7 +1854,7 @@ RunUMAP.Seurat <- function(
   }
 
   if (!is.null(x = features)) {
-    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, layer = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
@@ -2437,7 +2437,7 @@ PrepDR <- function(
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
   }
-  data.use <- GetAssayData(object = object, slot = slot)
+  data.use <- GetAssayData(object = object, layer = slot)
   if (nrow(x = data.use ) == 0 && slot == "scale.data") {
     stop("Data has not been scaled. Please run ScaleData and retry")
   }
