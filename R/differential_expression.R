@@ -84,7 +84,7 @@ FindAllMarkers <- function(
     }
     idents.all <- sort(x = unique(x = Idents(object = object)))
   } else {
-    if (!PackageCheck('ape', error = FALSE)) {
+    if (!requireNamespace("ape", quietly = TRUE)) {
       stop(cluster.ape, call. = FALSE)
     }
     if (!is.null(group.by)) {
@@ -259,7 +259,7 @@ FindConservedMarkers <- function(
   verbose = TRUE,
   ...
 ) {
-  metap.installed <- PackageCheck("metap", error = FALSE)
+  metap.installed <- requireNamespace("metap", quietly = TRUE)
   if (!metap.installed[1]) {
     stop(
       "Please install the metap package to use FindConservedMarkers.",
@@ -683,7 +683,7 @@ FindMarkers.Assay <- function(
   if (length(x = Layers(object = object, search = slot)) > 1) {
     stop(slot, " layers are not joined. Please run JoinLayers")
   }
-  data.use <-  GetAssayData(object = object, slot = data.slot)
+  data.use <- LayerData(object = object, layer = data.slot)
   fc.results <- FoldChange(
     object = object,
     slot = fc.slot,
@@ -771,7 +771,7 @@ FindMarkers.SCTAssay <- function(
     }
   }
 
-  data.use <-  GetAssayData(object = object, slot = data.slot)
+  data.use <- LayerData(object = object, layer = data.slot)
   # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
@@ -1081,7 +1081,7 @@ FoldChange.Assay <- function(
   norm.method = NULL,
   ...
 ) {
-  data <- GetAssayData(object = object, slot = slot)
+  data <- LayerData(object = object, layer = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
     # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
@@ -1160,7 +1160,7 @@ FoldChange.SCTAssay <- function(
     ...
 ) {
   pseudocount.use <- pseudocount.use %||% 1
-  data <- GetAssayData(object = object, slot = slot)
+  data <- LayerData(object = object, layer = slot)
   default.mean.fxn <- function(x) {
     # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
@@ -1448,7 +1448,7 @@ DESeq2DETest <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!PackageCheck('DESeq2', error = FALSE)) {
+  if (!requireNamespace("DESeq2", quietly=TRUE)) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
   CheckDots(..., fxns = 'DESeq2::results')
@@ -1902,7 +1902,7 @@ MASTDETest <- function(
   ...
 ) {
   # Check for MAST
-  if (!PackageCheck('MAST', error = FALSE)) {
+  if (!requireNamespace("MAST", quietly = TRUE)) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
@@ -2211,7 +2211,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
       object = object[[umi.assay]],
       layers = "counts", new = "counts")
   }
-  raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
+  raw_umi <- LayerData(object = object, assay = umi.assay, layer = "counts")
   corrected_counts <- Matrix(
     nrow = nrow(x = raw_umi),
     ncol = ncol(x = raw_umi),
@@ -2445,8 +2445,8 @@ WilcoxDETest <- function(
     yes = FALSE,
     no = TRUE
   )
-  presto.check <- PackageCheck("presto", error = FALSE)
-  limma.check <- PackageCheck("limma", error = FALSE)
+  presto.check <- requireNamespace("presto", quietly = TRUE)
+  limma.check <- requireNamespace("limma", quietly = TRUE)
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"

@@ -132,7 +132,7 @@ DimHeatmap <- function(
     object = object,
     vars = features.keyed,
     cells = unique(x = unlist(x = cells)),
-    slot = slot
+    layer = slot
   )
   data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
   data.limits <- c(min(data.all), max(data.all))
@@ -1021,6 +1021,7 @@ DimPlot <- function(
 #' }
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
+#' @param stroke.size Adjust stroke (outline) size of points
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
 #' to split by cell identity
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
@@ -1085,6 +1086,7 @@ FeaturePlot <- function(
   },
   pt.size = NULL,
   alpha = 1,
+  stroke.size = NULL,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -1193,7 +1195,7 @@ FeaturePlot <- function(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
-    slot = slot
+    layer = slot
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
@@ -1347,6 +1349,7 @@ FeaturePlot <- function(
         order = order,
         pt.size = pt.size,
         alpha = alpha,
+        stroke.size = stroke.size,
         cols = cols.use,
         shape.by = shape.by,
         label = FALSE,
@@ -1701,7 +1704,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   )
   # Prepare plotting data
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  plot.data <- FetchData(object = object, vars = c(dims, feature), slot = slot)
+  plot.data <- FetchData(object = object, vars = c(dims, feature), layer = slot)
   # Shiny server
   server <- function(input, output, session) {
     plot.env <- reactiveValues(
@@ -1772,7 +1775,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
         expr = FetchData(
           object = object,
           vars = c(dims, feature.keyed),
-          slot = slot
+          layer = slot
         ),
         warning = function(...) {
           return(plot.env$data)
@@ -2039,7 +2042,7 @@ FeatureScatter <- function(
     object = object,
     vars = c(feature1, feature2, group.by),
     cells = cells,
-    slot = slot
+    layer = slot
   )
   if (!grepl(pattern = feature1, x = names(x = data)[1])) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
@@ -3772,7 +3775,7 @@ ISpatialFeaturePlot <- function(
     object = object,
     vars = feature,
     cells = cells.use,
-    slot = slot
+    layer = slot
   )
   plot.data <- cbind(coords, feature.data)
   server <- function(input, output, session) {
@@ -3822,7 +3825,7 @@ ISpatialFeaturePlot <- function(
             object = object,
             vars = paste0(Key(object = object[[input$assay]]), feature.use),
             cells = cells.use,
-            slot = slot
+            layer = slot
           )
           colnames(x = feature.data) <- feature.use
           plot.env$data <- cbind(coords, feature.data)
@@ -6767,7 +6770,7 @@ ExIPlot <- function(
       y = cells
     )
   }
-  data <- FetchData(object = object, vars = features, slot = layer, cells = cells)
+  data <- FetchData(object = object, vars = features, layer = layer, cells = cells)
   pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   data <- data[cells, , drop = FALSE]
