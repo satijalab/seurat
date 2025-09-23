@@ -1037,6 +1037,7 @@ DimPlot <- function(
 #' }
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
+#' @param stroke.size Adjust stroke (outline) size of points
 #' @param split.by A factor in object metadata to split the plot by, pass 'ident'
 #' to split by cell identity
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
@@ -1101,6 +1102,7 @@ FeaturePlot <- function(
   },
   pt.size = NULL,
   alpha = 1,
+  stroke.size = NULL,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -1363,6 +1365,7 @@ FeaturePlot <- function(
         order = order,
         pt.size = pt.size,
         alpha = alpha,
+        stroke.size = stroke.size,
         cols = cols.use,
         shape.by = shape.by,
         label = FALSE,
