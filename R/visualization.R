@@ -4065,7 +4065,7 @@ InteractiveSpatialPlot <- function(
         type = "scattergl", # Use WebGL for performance with large datasets
         mode = "markers",
         marker = list(size = 2), # Smaller point size for dense plots
-        text = ~hover,           # Show hover info (cell + coordinates)
+        text = ~hover,           # Show hover info (cellid + coordinates)
         hoverinfo = "text",
         alpha = alpha            # Global transparency
       )
@@ -4089,7 +4089,8 @@ InteractiveSpatialPlot <- function(
         )
       }
 
-      # Lock axes to same scale and reverse y for image alignment; set lasso mode
+      # Lock axes to same scale and reverse y for image alignment 
+      # Set lasso mode
       plt <- plt %>% plotly::layout(
         dragmode = "lasso",
         yaxis = list(autorange = "reversed", scaleanchor = "x", title = "x scaled"),
