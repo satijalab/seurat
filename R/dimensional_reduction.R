@@ -780,7 +780,7 @@ RunICA.Assay <- function(
   return(reduction.data)
 }
 
-#' @param layer The layer in `assay` to use when running independant component 
+#' @param layer The layer in `assay` to use when running independant component
 #' analysis.
 #'
 #' @rdname RunICA
@@ -822,7 +822,7 @@ RunICA.StdAssay <- function(
     reduction.key = reduction.key,
     seed.use = seed.use,
     ...
-    
+
   )
   return(reduction.data)
 }
@@ -1324,7 +1324,7 @@ RunTSNE.Seurat <- function(
 }
 
 #' @importFrom reticulate py_module_available py_set_seed import
-#' @importFrom uwot umap umap_transform
+#' @importFrom uwot umap umap2 umap_transform
 #' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
@@ -1502,15 +1502,52 @@ RunUMAP.default <- function(
         )
       }
     },
-    'uwot-predict' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
+    'uwot2' = {
+      if (is.list(x = object)) {
+        umap2(
+          X = NULL,
+          nn_method = object,
+          n_threads = nbrOfWorkers(),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
         )
-        metric <- 'cosine'
+      } else {
+        umap2(
+          X = object,
+          n_threads = nbrOfWorkers(),
+          n_neighbors = as.integer(x = n.neighbors),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
+        )
       }
+    },
+    'uwot-predict' = {
       if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
         stop(
           "If running projection UMAP, please pass a DimReduc object with the model stored to reduction.model.",
@@ -1723,8 +1760,8 @@ RunUMAP.Neighbor <- function(
 #' @param slot The slot used to pull data for when using \code{features}. data slot is by default.
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
-#'   \item{\code{uwot}:}{Runs umap via the uwot R package}
-#'   \item{\code{uwot-learn}:}{Runs umap via the uwot R package and return the learned umap model}
+#'   \item{\code{uwot}:}{Runs umap via the uwot R package \code{\link[uwot]{umap}}}
+#'   \item{\code{uwot2}:}{Runs umap2 via the uwot R package \code{\link[uwot]{umap2}}}
 #'   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 #' }
 #' @param n.neighbors This determines the number of neighboring points used in
