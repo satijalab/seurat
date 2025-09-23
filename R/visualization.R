@@ -270,14 +270,14 @@ DoHeatmap <- function(
     bad.features <- features[!features %in% possible.features]
     features <- features[features %in% possible.features]
     if(length(x = features) == 0) {
-      stop("No requested features found in the ", slot, " slot for the ", assay, " assay.")
+      stop("No requested features found in the ", slot, " layer for the ", assay, " assay.")
     }
     warning("The following features were omitted as they were not found in the ", slot,
-            " slot for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
+            " layer for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
   }
   data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
     object = object,
-    slot = slot)[features, cells, drop = FALSE])))
+    layer = slot)[features, cells, drop = FALSE])))
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -483,7 +483,7 @@ HTOHeatmap <- function(
     feature.order = rev(x = singlet.ids),
     cell.order = names(x = sort(x = Idents(object = object))),
     group.by = Idents(object = object)
-  ) + guides(color = FALSE)
+  ) + guides(color = "none")
   return(plot)
 }
 
@@ -650,7 +650,7 @@ VlnPlot <- function(
   if (is.null(layer) && length(layer.set) == 1 && layer.set == 'scale.data'){
     warning('Default search for "data" layer yielded no results; utilizing "scale.data" layer instead.')
   }
-  assay.name <- DefaultAssay(object)
+  assay.name <- assay %||% DefaultAssay(object = object)
   if (is.null(layer.set) & is.null(layer) ) {
     warning('Default search for "data" layer in "', assay.name, '" assay yielded no results; utilizing "counts" layer instead.',
             call. = FALSE, immediate. = TRUE)
@@ -836,8 +836,8 @@ ColorDimSplit <- function(
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is \code{NULL} which
 #' automatically rasterizes if plotting more than 100,000 cells
-#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
-#' Default is c(512, 512).
+#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore(). Default is c(512, 512).
+#' @param label.size.cutoff Clusters with fewer cells than the cutoff are not labeled (replaced with ' ' label)
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -888,7 +888,8 @@ DimPlot <- function(
   ncol = NULL,
   combine = TRUE,
   raster = NULL,
-  raster.dpi = c(512, 512)
+  raster.dpi = c(512, 512),
+  label.size.cutoff = 0
 ) {
   if (!is_integerish(x = dims, n = 2L, finite = TRUE) || !all(dims > 0L)) {
     abort(message = "'dims' must be a two-length integer vector")
@@ -906,6 +907,21 @@ DimPlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
+  
+  if (label & (label.size.cutoff > 0)) {
+    labels <- FetchData(object, group.by)
+    for(i in seq_along(group.by)) {
+      grouping_var <- group.by[i]
+      label_table <- table(labels[,grouping_var])
+      invalid_labels <- names(which(label_table < label.size.cutoff))
+      labels[, i] <- as.character(labels[,i])
+      labels[which(labels[,grouping_var] %in% invalid_labels),grouping_var] <- ' '
+      colnames(labels)[i] <- paste0(colnames(labels)[i], "_filtered")
+    }
+    object <- AddMetaData(object,labels)
+    group.by <- colnames(labels)
+  }
+  
   data <- FetchData(
     object = object,
     vars = c(dims, group.by),
@@ -1616,7 +1632,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   }
   features <- sort(x = rownames(x = GetAssayData(
     object = object,
-    slot = slot,
+    layer = slot,
     assay = assay
   )))
   assays.use <- vapply(
@@ -1624,7 +1640,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
     FUN = function(x) {
       return(!IsMatrixEmpty(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = x
       )))
     },
@@ -1723,7 +1739,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = assay
       )))
       feature.use <- ifelse(
@@ -2044,10 +2060,10 @@ FeatureScatter <- function(
     cells = cells,
     layer = slot
   )
-  if (!grepl(pattern = feature1, x = names(x = data)[1])) {
+  if (!grepl(pattern = feature1, x = names(x = data)[1], fixed = TRUE)) {
     abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
   }
-  if (!grepl(pattern = feature2, x = names(x = data)[2])) {
+  if (!grepl(pattern = feature2, x = names(x = data)[2], fixed = TRUE)) {
     abort(message = paste("Feature 2", sQuote(x = feature2), "not found"))
   }
   feature1 <-  names(x = data)[1]
@@ -3692,7 +3708,7 @@ ISpatialFeaturePlot <- function(
   }
   features <- sort(x = rownames(x = GetAssayData(
     object = object,
-    slot = slot,
+    layer = slot,
     assay = assay
   )))
   feature.label <- 'Feature to visualize'
@@ -3701,7 +3717,7 @@ ISpatialFeaturePlot <- function(
     FUN = function(x) {
       return(!IsMatrixEmpty(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = x
       )))
     },
@@ -3794,7 +3810,7 @@ ISpatialFeaturePlot <- function(
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
         object = object,
-        slot = slot,
+        layer = slot,
         assay = assay
       )))
       feature.use <- ifelse(
@@ -3856,6 +3872,245 @@ ISpatialFeaturePlot <- function(
     })
   }
   runGadget(app = ui, server = server)
+}
+
+#' Interactive Spatial Cell Selection Tool
+#'
+#' Launch an interactive gadget for lasso-based cell selection from a spatial Seurat object.
+#' Supports Visium, SlideSeq, and Vizgen data. Returns the cell names of the selected subset,
+#' suitable for downstream subsetting or analysis.
+#'
+#' @note This function requires the
+#'   \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}},
+#'   \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}},
+#'   and \href{https://cran.r-project.org/package=base64enc}{\pkg{base64enc}} packages
+#'   to be installed. It also requires \pkg{shiny} and \pkg{miniUI} for the interactive UI.
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data.
+#' @param image Name of the spatial image stored in the object. If \code{NULL}, uses the default image for the object.
+#' @param image.scale Character. Which image scaling factor to use for spatial coordinate transformation (\code{"lowres"} by default).
+#' @param group.by Metadata variable (column name) to use for coloring cell points (e.g., cluster assignment). If \code{NULL}, uses \code{"seurat_clusters"} if available, otherwise all cells are grouped together.
+#' @param alpha Numeric transparency value for cell points (default \code{1.0}).
+#' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
+#'
+#' @importFrom grDevices png dev.off
+#'
+#' @return A character vector of cell names selected via lasso, which can be used to subset the object.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' selected_cells <- InteractiveSpatialPlot(object = brain)
+#' selected_cells <- InteractiveSpatialPlot(object = brain, overlay_image = FALSE)
+#' }
+InteractiveSpatialPlot <- function(
+  object,
+  image = NULL,
+  image.scale = "lowres",
+  group.by = NULL,
+  alpha = 1.0,
+  overlay_image = TRUE
+) {
+  # Check for required packages, stop with clear message if missing
+  if (!requireNamespace("plotly", quietly = TRUE)) {
+    stop("The 'plotly' package must be installed to use InteractiveSpatialPlot().")
+  }
+  if (!requireNamespace("magrittr", quietly = TRUE)) {
+    stop("The 'magrittr' package must be installed to use InteractiveSpatialPlot().")
+  }
+  if (!requireNamespace("base64enc", quietly = TRUE)) {
+    stop("The 'base64enc' package must be installed to use InteractiveSpatialPlot().")
+  }
+
+  # Import magrittr pipe locally
+  `%>%` <- magrittr::`%>%`
+
+  # Use provided image name or fallback to default
+  image <- image %||% DefaultImage(object)
+
+  # Sanity check: requested image must exist in the object
+  if (!image %in% names(object@images)) {
+    stop("Image '", image, "' not found. Available image(s): ", paste(names(object@images), collapse = ", "))
+  }
+
+  # Retrieve the spatial image object
+  image_obj <- object[[image]]
+
+  # Determine image technology type (Visium, SlideSeq, or Vizgen)
+  img_class <- class(image_obj)[1]
+  if (img_class %in% c("VisiumV1", "VisiumV2")) {
+    type <- "visium"
+  } else if (img_class == "SlideSeq") {
+    type <- "slideseq"
+  } else if (img_class == "FOV") {
+    type <- "vizgen"
+  } else {
+    stop("Unrecognized image class: ", img_class)
+  }
+
+  # Extract and scale cell coordinates according to image type
+  if (type == "visium") {
+    # For Visium: coordinates stored in centroids, need scaling
+    if (!"boundaries" %in% slotNames(image_obj)) {
+      stop("Image object does not have a 'boundaries' slot; check if data is truly Visium data")
+    }
+    centroids <- image_obj@boundaries$centroids
+    coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
+    coords$cell <- centroids@cells
+
+    # Scale coordinates to match image pixel units
+    scale.factor <- Seurat::ScaleFactors(image_obj)[[image.scale]]
+    if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
+
+    coords$x_raw <- coords$x  # Store original, unscaled x
+    coords$y_raw <- coords$y  # Store original, unscaled y
+    coords$x <- coords$x * scale.factor
+    coords$y <- coords$y * scale.factor
+
+  } else if (type == "slideseq") {
+    # For Slide-seq: coordinates are stored directly
+    if (!"coordinates" %in% slotNames(image_obj)) {
+      stop("Image object does not have a 'coordinates' slot; check if data is truly Slide-seq data")
+    }
+    coords <- as.data.frame(image_obj@coordinates)
+    coords$cell <- rownames(coords)
+    colnames(coords)[1:2] <- c("x", "y")
+    coords$x_raw <- coords$x
+    coords$y_raw <- coords$y
+
+  } else if (type == "vizgen") {
+    # For Vizgen: coordinates in centroids
+    if (!"boundaries" %in% slotNames(image_obj)) {
+      stop("Vizgen FOV missing 'boundaries' slot")
+    }
+    centroids <- image_obj@boundaries$centroids
+    coords <- as.data.frame(centroids@coords)
+    colnames(coords) <- c("x", "y")
+    coords$cell <- centroids@cells
+    coords$x_raw <- coords$x
+    coords$y_raw <- coords$y
+  }
+
+  # Get cell-level metadata for grouping/labeling
+  meta <- object@meta.data
+
+  # If group.by not given, use 'seurat_clusters' if available; otherwise group all together
+  if (is.null(group.by)) {
+    group.by <- if ("seurat_clusters" %in% colnames(meta)) "seurat_clusters" else "all"
+  }
+  # Assign group/cluster for coloring the plot
+  if (group.by != "all") {
+    coords$group <- meta[coords$cell, group.by]
+  } else {
+    coords$group <- "all"
+  }
+
+  # Compose hover text: show cell name, original (x, y) coordinates, rounded for clarity
+  coords$hover <- paste0(
+    "Cell: ", coords$cell,
+    "<br>x: ", round(coords$x_raw, 1),
+    ", y: ", round(coords$y_raw, 1)
+  )
+
+  # Prepare background tissue image as a base64-encoded PNG (if available and enabled)
+  base64_image <- NULL
+  img_width <- NULL
+  img_height <- NULL
+  if (overlay_image) {
+    # Only attempt to overlay image if compatible type and slot present
+    if (type == "visium" && "image" %in% slotNames(image_obj)) {
+      img_raster <- image_obj@image
+    } else if (
+      type == "vizgen" && 
+      "boundaries" %in% slotNames(image_obj) &&
+      "centroids" %in% slotNames(image_obj@boundaries) &&
+      "image" %in% slotNames(image_obj@boundaries$centroids)
+    ) {
+      img_raster <- image_obj@boundaries$centroids@image
+    }
+    # Convert the raster image array to base64 PNG (for embedding in plotly)
+    if (exists("img_raster")) {
+      img_width <- dim(img_raster)[2]
+      img_height <- dim(img_raster)[1]
+      temp_png <- tempfile(fileext = ".png")
+      png(temp_png, width = img_width, height = img_height)
+      grid::grid.raster(img_raster)
+      dev.off()
+      img_bytes <- readBin(temp_png, "raw", file.info(temp_png)$size)
+      base64_image <- paste0("data:image/png;base64,", base64enc::base64encode(img_bytes))
+    }
+  }
+
+  # Set up the gadget UI with a plotly output area
+  ui <- miniPage(
+    gadgetTitleBar("Select a subset of cells"),
+    miniContentPanel(
+      plotly::plotlyOutput("plot", height = "100%")
+    )
+  )
+
+  # Shiny gadget server logic for interactive plot and lasso selection
+  server <- function(input, output, session) {
+    # Render the interactive plotly scattergl plot
+    output$plot <- plotly::renderPlotly({
+      plt <- plotly::plot_ly(
+        data = coords,
+        x = ~y,          # Plot y on x axis to match Seurat/ggplot conventions
+        y = ~x,          # Plot x on y axis (this handles flipped axes)
+        color = ~group,  # Color by group/cluster if available
+        key = ~cell,     # Store cell names for selection retrieval
+        type = "scattergl", # Use WebGL for performance with large datasets
+        mode = "markers",
+        marker = list(size = 2), # Smaller point size for dense plots
+        text = ~hover,           # Show hover info (cellid + coordinates)
+        hoverinfo = "text",
+        alpha = alpha            # Global transparency
+      )
+
+      # Overlay the tissue image as background if available
+      if (!is.null(base64_image)) {
+        plt <- plt %>% plotly::layout(
+          images = list(
+            list(
+              source = base64_image,
+              xref = "x", yref = "y", # Anchor to data coordinates
+              x = 0,
+              y = 0,
+              sizex = img_width,
+              sizey = img_height,
+              sizing = "stretch",
+              opacity = 0.6,
+              layer = "below"
+            )
+          )
+        )
+      }
+
+      # Lock axes to same scale and reverse y for image alignment 
+      # Set lasso mode
+      plt <- plt %>% plotly::layout(
+        dragmode = "lasso",
+        yaxis = list(autorange = "reversed", scaleanchor = "x", title = "x scaled"),
+        xaxis = list(scaleanchor = "y", title = "y scaled")
+      )
+      plt
+    })
+
+    # When user clicks "Done", retrieve lasso selection and close gadget
+    observeEvent(input$done, {
+      selected <- plotly::event_data("plotly_selected")
+      selected_cells <- selected$key
+      stopApp(selected_cells)
+    })
+
+    # When user clicks "Cancel", exit gadget and return NULL
+    observeEvent(input$cancel, {
+      stopApp(NULL)
+    })
+  }
+
+  # Launch the interactive gadget
+  runGadget(ui, server)
 }
 
 #' Visualize spatial clustering and expression data.
@@ -6934,7 +7189,7 @@ FeaturePalettes <- list(
 #' @importFrom Matrix rowMeans rowSums
 #
 GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
-  cm <- GetAssayData(object = object[[assay]], slot = "counts")
+  cm <- GetAssayData(object = object[[assay]], layer = "counts")
   # subset to keep only genes detected in at least min.cells cells
   cm <- cm[rowSums(cm > 0) >= min.cells, ]
   # use the geometric mean of the features to group them
@@ -8057,6 +8312,18 @@ SingleCorPlot <- function(
     x = colnames(x = data),
     fixed = TRUE
   )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = ')',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = '(',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
   if (ncol(x = data) < 2) {
     msg <- "Too few variables passed"
     if (ncol(x = data) == 1) {
@@ -8095,7 +8362,7 @@ SingleCorPlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
-  ) +
+    ) +
     labs(
       x = orig.names[1],
       y = orig.names[2],
@@ -8127,7 +8394,7 @@ SingleCorPlot <- function(
       #   data = density
       # ) +
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
-      guides(fill = FALSE)
+      guides(fill = "none")
   }
   position <- NULL
   if (jitter) {
@@ -8165,7 +8432,7 @@ SingleCorPlot <- function(
     }
     plot <- plot + cols.scale
     if (!is.null(x = rows.highlight)) {
-      plot <- plot + guides(color = FALSE)
+      plot <- plot + guides(color = "none")
     }
   }
   plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
@@ -8963,11 +9230,11 @@ SingleRasterMap <- function(
   if (!is.null(x = feature.order)) {
     data$Feature <- factor(x = data$Feature, levels = unique(x = feature.order))
   }
-  if (!is.null(x = cell.order)) {
-    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
-  }
   if (!is.null(x = group.by)) {
     data$Identity <- group.by[data$Cell]
+  }
+  if (!is.null(x = cell.order)) {
+    data$Cell <- factor(x = data$Cell, levels = unique(x = cell.order))
   }
   limits <- limits %||% c(min(data$Expression), max(data$Expression))
   if (length(x = limits) != 2 || !is.numeric(x = limits)) {

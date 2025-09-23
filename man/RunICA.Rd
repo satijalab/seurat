@@ -106,7 +106,7 @@ the number for the dimension names.}
 
 \item{features}{Features to compute ICA on}
 
-\item{layer}{The layer in `assay` to use when running independant component 
+\item{layer}{The layer in `assay` to use when running independant component
 analysis.}
 }
 \description{
