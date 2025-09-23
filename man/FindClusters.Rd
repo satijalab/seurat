@@ -72,7 +72,7 @@ of `leidenbase::leiden_find_partition`.}
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 algorithm; 4 = Leiden algorithm).}
 
-\item{leiden_method}{Chose between leidenbase or igraph packages for running leiden.
+\item{leiden_method}{Choose from the leidenbase ("leidenbase") or igraph ("igraph") packages for running leiden.
 Default is "leidenbase"}
 
 \item{leiden_objective_function}{objective function to use if `leiden_method = "igraph"`.

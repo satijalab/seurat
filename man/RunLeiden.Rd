@@ -24,7 +24,7 @@ RunLeiden(
 
 \item{method}{DEPRECATED.}
 
-\item{leiden_method}{Chose between leidenbase or igraph packages for running leiden.
+\item{leiden_method}{Choose from the leidenbase ("leidenbase") or igraph ("igraph") packages for running leiden.
 Default is "leidenbase"}
 
 \item{partition.type}{Type of partition to use for Leiden algorithm.

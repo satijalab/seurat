@@ -284,7 +284,7 @@ PredictAssay <- function(
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm).
-#' @param leiden_method Chose between leidenbase or igraph packages for running leiden.
+#' @param leiden_method Choose from the leidenbase ("leidenbase") or igraph ("igraph") packages for running leiden.
 #' Default is "leidenbase"
 #' @param leiden_objective_function objective function to use if `leiden_method = "igraph"`.
 #' See \code{\link[igraph]{cluster_leiden}} for more information.
@@ -1678,7 +1678,7 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #'
 #' @param object An adjacency matrix or adjacency list.
 #' @param method DEPRECATED.
-#' @param leiden_method Chose between leidenbase or igraph packages for running leiden.
+#' @param leiden_method Choose from the leidenbase ("leidenbase") or igraph ("igraph") packages for running leiden.
 #' Default is "leidenbase"
 #' @param partition.type Type of partition to use for Leiden algorithm.
 #' Defaults to "RBConfigurationVertexPartition", see
