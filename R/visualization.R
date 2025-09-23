@@ -3873,87 +3873,105 @@ ISpatialFeaturePlot <- function(
 
 #' Interactive Spatial Cell Selection Tool
 #'
-#' InteractiveSpatialPlot launches an interactive gadget to lasso-select cells from a 
-#' spatial Seurat object. Currently works only for Visium and SlideSeq data. 
-#' It returns the cell names of the selected subset.
+#' Launch an interactive gadget for lasso-based cell selection from a spatial Seurat object.
+#' Supports Visium, SlideSeq, and Vizgen data. Returns the cell names of the selected subset,
+#' suitable for downstream subsetting or analysis.
 #'
 #' @note This function requires the
-#' \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}} and
-#' \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}} packages
-#' to be installed.
-#' 
-#' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data
-#' @param image Name of the spatial image stored in the object (default is \code{"anterior1"})
-#' 
+#'   \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}},
+#'   \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}},
+#'   and \href{https://cran.r-project.org/package=base64enc}{\pkg{base64enc}} packages
+#'   to be installed. It also requires \pkg{shiny} and \pkg{miniUI} for the interactive UI.
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data.
+#' @param image Name of the spatial image stored in the object. If \code{NULL}, uses the default image for the object.
+#' @param image.scale Character. Which image scaling factor to use for spatial coordinate transformation (\code{"lowres"} by default).
+#' @param group.by Metadata variable (column name) to use for coloring cell points (e.g., cluster assignment). If \code{NULL}, uses \code{"seurat_clusters"} if available, otherwise all cells are grouped together.
+#' @param alpha Numeric transparency value for cell points (default \code{1.0}).
+#' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
+#'
+#' @importFrom plotly plot_ly renderPlotly event_data layout plotlyOutput
+#' @importFrom magrittr %>%
+#' @importFrom base64enc base64encode
+#' @importFrom grid grid.raster
 #' @importFrom grDevices png dev.off
-#' 
-#' @return A character vector of cell names selected via lasso (can then be used to subset the object)
+#' @importFrom miniUI miniPage miniContentPanel gadgetTitleBar
+#' @importFrom shiny runGadget stopApp observeEvent
+#'
+#' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
-#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
-#' selected_cells <- InteractiveSpatialPlot(object = brain, use.clusters = TRUE)
+#' selected_cells <- InteractiveSpatialPlot(object = brain)
+#' selected_cells <- InteractiveSpatialPlot(object = brain, overlay_image = FALSE)
 #' }
-#'
 InteractiveSpatialPlot <- function(
   object,
   image = NULL,
   image.scale = "lowres",
   group.by = NULL,
-  alpha = 1.0
+  alpha = 1.0,
+  overlay_image = TRUE
 ) {
-  # Check required external packages
-  required_packages <- c("plotly", "magrittr", "base64enc")
-  for (pkg in required_packages) {
-    if (!requireNamespace(pkg, quietly = TRUE)) {
-      stop("The '", pkg, "' package must be installed to use InteractiveSpatialPlot().")
-    }
+  # Check for required packages, stop with clear message if missing
+  if (!requireNamespace("plotly", quietly = TRUE)) {
+    stop("The 'plotly' package must be installed to use InteractiveSpatialPlot().")
   }
-  
+  if (!requireNamespace("magrittr", quietly = TRUE)) {
+    stop("The 'magrittr' package must be installed to use InteractiveSpatialPlot().")
+  }
+  if (!requireNamespace("base64enc", quietly = TRUE)) {
+    stop("The 'base64enc' package must be installed to use InteractiveSpatialPlot().")
+  }
+
+  # Import magrittr pipe locally
   `%>%` <- magrittr::`%>%`
+
+  # Use provided image name or fallback to default
   image <- image %||% DefaultImage(object)
-  
-  # Validate image exists
+
+  # Sanity check: requested image must exist in the object
   if (!image %in% names(object@images)) {
-    stop("Image '", image, "' not found. Available image(s): ", 
-         paste(names(object@images), collapse = ", "))
+    stop("Image '", image, "' not found. Available image(s): ", paste(names(object@images), collapse = ", "))
   }
-  
+
+  # Retrieve the spatial image object
   image_obj <- object[[image]]
-  
-  # Determine image type
+
+  # Determine image technology type (Visium, SlideSeq, or Vizgen)
   img_class <- class(image_obj)[1]
-  type <- switch(img_class,
-    "VisiumV1" = , "VisiumV2" = "visium",
-    "SlideSeq" = "slideseq", 
-    "FOV" = "vizgen",
+  if (img_class %in% c("VisiumV1", "VisiumV2")) {
+    type <- "visium"
+  } else if (img_class == "SlideSeq") {
+    type <- "slideseq"
+  } else if (img_class == "FOV") {
+    type <- "vizgen"
+  } else {
     stop("Unrecognized image class: ", img_class)
-  )
-  print(paste("Image type detected as:", type))
-  
-  # Extract cell coordinates
-  # Default scale factor (no scaling) is 1
-  scale.factor <- 1  
-  
+  }
+
+  # Extract and scale cell coordinates according to image type
   if (type == "visium") {
+    # For Visium: coordinates stored in centroids, need scaling
     if (!"boundaries" %in% slotNames(image_obj)) {
       stop("Image object does not have a 'boundaries' slot; check if data is truly Visium data")
     }
     centroids <- image_obj@boundaries$centroids
     coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
     coords$cell <- centroids@cells
-    
-    # Apply scaling for Visium
+
+    # Scale coordinates to match image pixel units
     scale.factor <- Seurat::ScaleFactors(image_obj)[[image.scale]]
     if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
-    
-    coords$x_raw <- coords$x
-    coords$y_raw <- coords$y
+
+    coords$x_raw <- coords$x  # Store original, unscaled x
+    coords$y_raw <- coords$y  # Store original, unscaled y
     coords$x <- coords$x * scale.factor
     coords$y <- coords$y * scale.factor
-    
+
   } else if (type == "slideseq") {
+    # For Slide-seq: coordinates are stored directly
     if (!"coordinates" %in% slotNames(image_obj)) {
       stop("Image object does not have a 'coordinates' slot; check if data is truly Slide-seq data")
     }
@@ -3962,8 +3980,9 @@ InteractiveSpatialPlot <- function(
     colnames(coords)[1:2] <- c("x", "y")
     coords$x_raw <- coords$x
     coords$y_raw <- coords$y
-    
+
   } else if (type == "vizgen") {
+    # For Vizgen: coordinates in centroids
     if (!"boundaries" %in% slotNames(image_obj)) {
       stop("Vizgen FOV missing 'boundaries' slot")
     }
@@ -3974,123 +3993,125 @@ InteractiveSpatialPlot <- function(
     coords$x_raw <- coords$x
     coords$y_raw <- coords$y
   }
-  
+
+  # Get cell-level metadata for grouping/labeling
+  meta <- object@meta.data
+
+  # If group.by not given, use 'seurat_clusters' if available; otherwise group all together
   if (is.null(group.by)) {
-    group.by <- if ("seurat_clusters" %in% colnames(object@meta.data)) "seurat_clusters" else "all"
+    group.by <- if ("seurat_clusters" %in% colnames(meta)) "seurat_clusters" else "all"
   }
-  
+  # Assign group/cluster for coloring the plot
   if (group.by != "all") {
-    coords$group <- object@meta.data[coords$cell, group.by]
+    coords$group <- meta[coords$cell, group.by]
   } else {
     coords$group <- "all"
   }
-  
-  # Validate background image
+
+  # Compose hover text: show cell name, original (x, y) coordinates, rounded for clarity
+  coords$hover <- paste0(
+    "Cell: ", coords$cell,
+    "<br>x: ", round(coords$x_raw, 1),
+    ", y: ", round(coords$y_raw, 1)
+  )
+
+  # Prepare background tissue image as a base64-encoded PNG (if available and enabled)
   base64_image <- NULL
-  img_available <- (type == "visium" && "image" %in% slotNames(image_obj)) ||
-                   (type == "vizgen" && "boundaries" %in% slotNames(image_obj) &&
-                    "centroids" %in% slotNames(image_obj@boundaries) &&
-                    "image" %in% slotNames(image_obj@boundaries$centroids))
-  
-  if (img_available) {
-    img_raster <- if (type == "visium") image_obj@image else image_obj@boundaries$centroids@image
-    
-    temp_png <- tempfile(fileext = ".png")
-    png(temp_png, width = dim(img_raster)[2], height = dim(img_raster)[1])
-    grid::grid.raster(img_raster)
-    dev.off()
-    
-    img_bytes <- readBin(temp_png, "raw", file.info(temp_png)$size)
-    base64_image <- paste0("data:image/png;base64,", base64enc::base64encode(img_bytes))
+  img_width <- NULL
+  img_height <- NULL
+  if (overlay_image) {
+    # Only attempt to overlay image if compatible type and slot present
+    if (type == "visium" && "image" %in% slotNames(image_obj)) {
+      img_raster <- image_obj@image
+    } else if (
+      type == "vizgen" && 
+      "boundaries" %in% slotNames(image_obj) &&
+      "centroids" %in% slotNames(image_obj@boundaries) &&
+      "image" %in% slotNames(image_obj@boundaries$centroids)
+    ) {
+      img_raster <- image_obj@boundaries$centroids@image
+    }
+    # Convert the raster image array to base64 PNG (for embedding in plotly)
+    if (exists("img_raster")) {
+      img_width <- dim(img_raster)[2]
+      img_height <- dim(img_raster)[1]
+      temp_png <- tempfile(fileext = ".png")
+      png(temp_png, width = img_width, height = img_height)
+      grid::grid.raster(img_raster)
+      dev.off()
+      img_bytes <- readBin(temp_png, "raw", file.info(temp_png)$size)
+      base64_image <- paste0("data:image/png;base64,", base64enc::base64encode(img_bytes))
+    }
   }
-  
+
+  # Set up the gadget UI with a plotly output area
   ui <- miniPage(
     gadgetTitleBar("Select a subset of cells"),
     miniContentPanel(
       plotly::plotlyOutput("plot", height = "100%")
     )
   )
-  
+
+  # Shiny gadget server logic for interactive plot and lasso selection
   server <- function(input, output, session) {
+    # Render the interactive plotly scattergl plot
     output$plot <- plotly::renderPlotly({
-      
-      # Create base plot
       plt <- plotly::plot_ly(
         data = coords,
-        x = ~y, y = ~x,  
-        color = ~group,
-        key = ~cell,
-        text = ~paste("Cell:", cell, "<br>Spot (x, y):", x_raw, ",", y_raw),
-        hoverinfo = "text"
-      ) %>%
-        plotly::add_markers(
-          marker = list(size = 5),
-          alpha = alpha,
-          selected = list(marker = list(opacity = 1)),
-          unselected = list(marker = list(opacity = 0.5))
-        )
-      
-      # Add background image overlay if available
+        x = ~y,          # Plot y on x axis to match Seurat/ggplot conventions
+        y = ~x,          # Plot x on y axis (this handles flipped axes)
+        color = ~group,  # Color by group/cluster if available
+        key = ~cell,     # Store cell names for selection retrieval
+        type = "scattergl", # Use WebGL for performance with large datasets
+        mode = "markers",
+        marker = list(size = 2), # Smaller point size for dense plots
+        text = ~hover,           # Show hover info (cell + coordinates)
+        hoverinfo = "text",
+        alpha = alpha            # Global transparency
+      )
+
+      # Overlay the tissue image as background if available
       if (!is.null(base64_image)) {
         plt <- plt %>% plotly::layout(
-          images = list(list(
-            source = base64_image,
-            xref = "x", yref = "y",
-            x = 0, y = 0,
-            sizex = dim(img_raster)[2],
-            sizey = dim(img_raster)[1],
-            sizing = "stretch",
-            opacity = 0.6,
-            layer = "below"
-          ))
-        )
-      }
-      
-      if (type == "visium") {
-        x_labels <- pretty(coords$y_raw)
-        y_labels <- pretty(coords$x_raw)
-        x_positions <- x_labels * scale.factor
-        y_positions <- y_labels * scale.factor
-        
-        plt <- plt %>% plotly::layout(
-          dragmode = "lasso",
-          yaxis = list(
-            autorange = "reversed", 
-            scaleanchor = "x", 
-            title = "x (original coordinates)",
-            tickvals = y_positions,
-            ticktext = y_labels
-          ),
-          xaxis = list(
-            scaleanchor = "y", 
-            title = "y (original coordinates)", 
-            tickvals = x_positions,
-            ticktext = x_labels
+          images = list(
+            list(
+              source = base64_image,
+              xref = "x", yref = "y", # Anchor to data coordinates
+              x = 0,
+              y = 0,
+              sizex = img_width,
+              sizey = img_height,
+              sizing = "stretch",
+              opacity = 0.6,
+              layer = "below"
+            )
           )
         )
-      } else {
-        plt <- plt %>% plotly::layout(
-          dragmode = "lasso",
-          yaxis = list(autorange = "reversed", scaleanchor = "x", title = "x"),
-          xaxis = list(scaleanchor = "y", title = "y")
-        )
       }
-      
+
+      # Lock axes to same scale and reverse y for image alignment; set lasso mode
+      plt <- plt %>% plotly::layout(
+        dragmode = "lasso",
+        yaxis = list(autorange = "reversed", scaleanchor = "x", title = "x scaled"),
+        xaxis = list(scaleanchor = "y", title = "y scaled")
+      )
       plt
     })
-    
-    # Handle selection events
+
+    # When user clicks "Done", retrieve lasso selection and close gadget
     observeEvent(input$done, {
       selected <- plotly::event_data("plotly_selected")
       selected_cells <- selected$key
       stopApp(selected_cells)
     })
-    
+
+    # When user clicks "Cancel", exit gadget and return NULL
     observeEvent(input$cancel, {
       stopApp(NULL)
     })
   }
-  
+
+  # Launch the interactive gadget
   runGadget(ui, server)
 }
 
