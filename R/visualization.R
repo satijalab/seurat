@@ -3890,13 +3890,7 @@ ISpatialFeaturePlot <- function(
 #' @param alpha Numeric transparency value for cell points (default \code{1.0}).
 #' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
 #'
-#' @importFrom plotly plot_ly renderPlotly event_data layout plotlyOutput
-#' @importFrom magrittr %>%
-#' @importFrom base64enc base64encode
-#' @importFrom grid grid.raster
 #' @importFrom grDevices png dev.off
-#' @importFrom miniUI miniPage miniContentPanel gadgetTitleBar
-#' @importFrom shiny runGadget stopApp observeEvent
 #'
 #' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
