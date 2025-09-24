@@ -128,7 +128,7 @@ CalcPerturbSig <- function(
 #' positive DE genes.If false, only positive DE gene will be displayed.
 #' @param max.genes Maximum number of genes to use as input to enrichR.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param p.val.cutoff Cutoff to select DE genes.
 #' @param cols A list of colors to use for barplots.
@@ -162,8 +162,8 @@ DEenrichRPlot <- function(
   return.gene.list = FALSE,
   ...
 ) {
-  enrichr.installed <- PackageCheck("enrichR", error = FALSE)
-  if (!enrichr.installed[1]) {
+  enrichr.installed <- is_installed('enrichR')
+  if (isFALSE(x = enrichr.installed)) {
     stop(
       "Please install the enrichR package to use DEenrichRPlot",
       "\nThis can be accomplished with the following command: ",
@@ -371,7 +371,7 @@ MixscapeLDA <- function(
 #' @param npcs Number of principle components to use.
 #' @param verbose Print progress bar.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @return Returns a list of the first 10 PCs from each projection.
 #'
@@ -698,8 +698,8 @@ RunMixscape <- function(
   fine.mode.labels = "guide_ID",
   prtb.type = "KO"
 ) {
-  mixtools.installed <- PackageCheck("mixtools", error = FALSE)
-  if (!mixtools.installed[1]) {
+  mmixtools.installed <- is_installed('mixtools')
+  if (isFALSE(x = mixtools.installed)) {
     stop("Please install the mixtools package to use RunMixscape",
          "\nThis can be accomplished with the following command: ",
          "\n----------------------------------------",
@@ -872,7 +872,7 @@ RunMixscape <- function(
 #' @param max.genes Total number of DE genes to plot.
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout
 #' probability from highest to lowest score.
