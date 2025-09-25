@@ -3891,6 +3891,7 @@ ISpatialFeaturePlot <- function(
 #' @param image.scale Character. Which image scaling factor to use for spatial coordinate transformation (\code{"lowres"} by default).
 #' @param group.by Metadata variable (column name) to use for coloring cell points (e.g., cluster assignment). If \code{NULL}, uses \code{"seurat_clusters"} if available, otherwise all cells are grouped together.
 #' @param alpha Numeric transparency value for cell points (default \code{1.0}).
+#' @param pt.size.factor Numeric scaling factor for point size (default \code{1.0}).
 #' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
 #'
 #' @importFrom grDevices png dev.off
@@ -3909,6 +3910,7 @@ InteractiveSpatialPlot <- function(
   image.scale = "lowres",
   group.by = NULL,
   alpha = 1.0,
+  pt.size.factor = 1.0,
   overlay_image = TRUE
 ) {
   # Check for required packages, stop with clear message if missing
@@ -4050,7 +4052,7 @@ InteractiveSpatialPlot <- function(
     scaled_range <- range(scaled_coords, na.rm = TRUE)
     raw_range <- range(raw_coords, na.rm = TRUE)
     
-    # Create nice tick positions in the raw coordinate space
+    # Create tick positions in the raw coordinate space
     raw_ticks <- pretty(raw_range, n = n_ticks)
     
     # Calculate corresponding scaled positions
@@ -4085,7 +4087,7 @@ InteractiveSpatialPlot <- function(
         key = ~cell,     # Store cell names for selection retrieval
         type = "scattergl", # Use WebGL for performance with large datasets
         mode = "markers",
-        marker = list(size = 2), # Smaller point size for dense plots
+        marker = list(size = 2 * pt.size.factor), # Default pt size is 2
         text = ~hover,           # Show hover info (cellid + coordinates)
         hoverinfo = "text",
         alpha = alpha            # Global transparency
