@@ -504,6 +504,8 @@ GetResidual <- function(
 #' analyses require comparisons between human and mouse gene names for example.
 #' @param image \code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is
 #' passed in it should be co-indexed with \code{`bin.size`}
+#' @param segmentation.type Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
+#' Defaults to "cell".
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
@@ -531,6 +533,7 @@ Load10X_Spatial <- function (
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
+  segmentation.type = NULL,
   ...
 ) {
   # if more than one directory is passed in
@@ -692,11 +695,19 @@ Load10X_Spatial <- function (
     # Holds barcode names
     segmentation.counts.cell.ids <- colnames(segmentation.counts)
 
+    # Check segmentation type
+    if (is.null(segmentation.type)) {
+      segmentation.type <- "cell"
+    } else if (length(segmentation.type) != 1 || !(segmentation.type %in% c("cell", "nucleus"))) {
+      stop("segmentation.type must be either 'cell' or 'nucleus'")
+    }
+
     # Read the Visium (V2) object with segmentations loaded
     visium.segmentation <- Read10X_Segmentations(
       image.dir = file.path(seg.data.dir, "spatial"),
       data.dir = data.dir,
-      cell.names = segmentation.counts.cell.ids
+      cell.names = segmentation.counts.cell.ids,
+      segmentation.type = segmentation.type
     )
 
     # Holds the segmentation object
@@ -1543,7 +1554,11 @@ Read10X_Segmentations <- function (image.dir,
                                                              "scalefactors_json.json"))
   key <- Key(slice, quiet = TRUE)
 
-  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, image.dir = image.dir, scale.factor = "lowres", image.height = image.height)
+  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
+                                image.dir = image.dir, 
+                                scale.factor = "lowres", 
+                                image.height = image.height,
+                                segmentation.type = segmentation.type)
 
   # Create a Segmentation object based on sf, populate sf.data and polygons
   segmentation <- CreateSegmentation(sf.data)
