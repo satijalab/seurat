@@ -4823,16 +4823,16 @@ DotPlot <- function(
     splits.use <- unlist(x = lapply(
       X = data.plot$id,
       FUN = function(x)
-      sub(
-        paste0(".*_(",
-               paste(sort(unique(x = splits), decreasing = TRUE),
-                     collapse = '|'
-                     ),")$"),
-        "\\1",
-        x
+        sub(
+          paste0(".*_(",
+                 paste(sort(unique(x = splits), decreasing = TRUE),
+                       collapse = '|'
+                 ),")$"),
+          "\\1",
+          x
         )
-      )
-      )
+    )
+    )
     data.plot$colors <- mapply(
       FUN = function(color, value) {
         return(colorRampPalette(colors = c('grey', color))(20)[value])
@@ -4854,8 +4854,8 @@ DotPlot <- function(
       levels = unique(x = feature.groups)
     )
   }
-  plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
-    geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
+  plot <- ggplot(data = data.plot, mapping = aes(x = .data$features.plot, y = .data$id)) +
+    geom_point(mapping = aes(size = .data$pct.exp, color = .data[[color.by]])) +
     scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
     guides(size = guide_legend(title = 'Percent Expressed')) +
@@ -4866,7 +4866,7 @@ DotPlot <- function(
     theme_cowplot()
   if (!is.null(x = feature.groups)) {
     plot <- plot + facet_grid(
-      facets = ~feature.groups,
+      rows = ~feature.groups,
       scales = "free_x",
       space = "free_x",
       switch = "y"
