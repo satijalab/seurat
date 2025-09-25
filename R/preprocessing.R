@@ -506,6 +506,7 @@ GetResidual <- function(
 #' passed in it should be co-indexed with \code{`bin.size`}
 #' @param segmentation.type Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
 #' Defaults to "cell".
+#' @param image.name Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
@@ -533,6 +534,7 @@ Load10X_Spatial <- function (
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
+  image.name = "tissue_lowres_image.png",
   segmentation.type = NULL,
   ...
 ) {
@@ -619,6 +621,7 @@ Load10X_Spatial <- function (
         file.path(data.dirs, "spatial"),
         assay = assay.names,
         slice = slice.names,
+        image.name = image.name,
         MoreArgs = list(filter.matrix = filter.matrix)
       )
     } else {
@@ -707,6 +710,7 @@ Load10X_Spatial <- function (
       image.dir = file.path(seg.data.dir, "spatial"),
       data.dir = data.dir,
       cell.names = segmentation.counts.cell.ids,
+      image.name = image.name,
       segmentation.type = segmentation.type
     )
 
@@ -1554,9 +1558,13 @@ Read10X_Segmentations <- function (image.dir,
                                                              "scalefactors_json.json"))
   key <- Key(slice, quiet = TRUE)
 
+  # Pass proper scale.factor based on whether image is lowres or hires
+  # We assume if not lowres it is hires - image has been validated above
+  scale.factor <- if (grepl("lowres", image.name)) "lowres" else "hires"
+
   sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
                                 image.dir = image.dir, 
-                                scale.factor = "lowres", 
+                                scale.factor = scale.factor, 
                                 image.height = image.height,
                                 segmentation.type = segmentation.type)
 
