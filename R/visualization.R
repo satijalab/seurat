@@ -4041,6 +4041,30 @@ InteractiveSpatialPlot <- function(
     }
   }
 
+  # Calculate custom axis tick positions and labels to show original coordinates
+  # This is necessary as points are downscaled to fit on the tissue image 
+  # However, to best retain their original spatial orientation, we plot
+  # the original coordinate scale on the axis
+  create_axis_ticks <- function(scaled_coords, raw_coords, n_ticks = 6) {
+    # Get range of scaled and raw coordinates
+    scaled_range <- range(scaled_coords, na.rm = TRUE)
+    raw_range <- range(raw_coords, na.rm = TRUE)
+    
+    # Create nice tick positions in the raw coordinate space
+    raw_ticks <- pretty(raw_range, n = n_ticks)
+    
+    # Calculate corresponding scaled positions
+    # Linear interpolation from raw to scaled coordinates
+    scale_factor <- diff(scaled_range) / diff(raw_range)
+    scaled_ticks <- (raw_ticks - raw_range[1]) * scale_factor + scaled_range[1]
+    
+    return(list(tickvals = scaled_ticks, ticktext = as.character(raw_ticks)))
+  }
+  
+  # Create custom axis ticks for both x and y axes
+  x_ticks <- create_axis_ticks(coords$x, coords$x_raw)
+  y_ticks <- create_axis_ticks(coords$y, coords$y_raw)
+
   # Set up the gadget UI with a plotly output area
   ui <- miniPage(
     gadgetTitleBar("Select a subset of cells"),
@@ -4087,11 +4111,22 @@ InteractiveSpatialPlot <- function(
       }
 
       # Lock axes to same scale and reverse y for image alignment 
-      # Set lasso mode
+      # Set lasso mode and custom axis labels
       plt <- plt %>% plotly::layout(
         dragmode = "lasso",
-        yaxis = list(autorange = "reversed", scaleanchor = "x", title = "x scaled"),
-        xaxis = list(scaleanchor = "y", title = "y scaled")
+        yaxis = list(
+          autorange = "reversed", 
+          scaleanchor = "x", 
+          title = "x",
+          tickvals = x_ticks$tickvals,
+          ticktext = x_ticks$ticktext
+        ),
+        xaxis = list(
+          scaleanchor = "y", 
+          title = "y",
+          tickvals = y_ticks$tickvals,
+          ticktext = y_ticks$ticktext
+        )
       )
       plt
     })
