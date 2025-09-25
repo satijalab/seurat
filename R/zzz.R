@@ -15,7 +15,6 @@
 #' is_na
 #' is_quosure
 #' is_scalar_integerish
-#' is_installed
 #' quo_get_env
 #' quo_get_expr
 #' warn

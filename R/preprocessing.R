@@ -660,7 +660,7 @@ Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
 ) {
-  if (isFALSE(x = is_installed('hdf5r'))) {
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   file.path = paste0(data.dir,"/", filename)
@@ -1127,7 +1127,7 @@ Read10X <- function(
 #' @concept preprocessing
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (isFALSE(x = is_installed('hdf5r'))) {
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
@@ -1316,7 +1316,7 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
   # if the coordinate mappings are in a parquet file
   if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
-    if (isFALSE(x = is_installed('arrow'))) {
+    if (isFALSE(x = requireNamespace('arrow', quietly = TRUE))) {
       stop("Please install arrow to read parquet files")
     }
 
@@ -1437,7 +1437,7 @@ ReadAkoya <- function(
   filter = 'DAPI|Blank|Empty',
   inform.quant = c('mean', 'total', 'min', 'max', 'std')
 ) {
-  if (isFALSE(x = is_installed('data.table'))) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
   # Check arguments
@@ -2010,7 +2010,7 @@ ReadNanostring <- function(
   subset.counts.matrix = NULL,
   cell.mols.only = TRUE
 ) {
-  if (isFALSE(x = is_installed('data.table'))) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
 
@@ -2746,7 +2746,7 @@ ReadVitessce <- function(
   type = c('segmentations', 'centroids'),
   filter = NA_character_
 ) {
-  if (isFALSE(x = is_installed('jsonlite'))) {
+  if (isFALSE(x = requireNamespace('jsonlite', quietly = TRUE))) {
     stop("Please install 'jsonlite' for this function")
   }
   type <- match.arg(arg = type, several.ok = TRUE)
@@ -2963,7 +2963,7 @@ ReadVizgen <- function(
   z = 3L
 ) {
   # TODO: handle multiple segmentations per z-plane
-  if (isFALSE(x = is_installed('data.table'))) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
   # hdf5r is only used for loading polygon boundaries
@@ -3418,10 +3418,10 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
     message("Computing Moran's I")
     mysapply <- pbsapply
   }
-  Rfast2.installed <- is_installed('Rfast2')
+  Rfast2.installed <- requireNamespace('Rfast2', quietly = TRUE)
   if (isTRUE(x = Rfast2.installed)) {
     MyMoran <- Rfast2::moranI
-  } else if (isFALSE(x = is_installed('ape'))) {
+  } else if (isFALSE(x = requireNamespace('ape', quietly = TRUE))) {
     stop(
       "'RunMoransI' requires either Rfast2 or ape to be installed",
       call. = FALSE

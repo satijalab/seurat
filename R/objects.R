@@ -932,7 +932,7 @@ TopNeighbors <- function(object, cell, n = 5) {
 #'
 as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
   CheckDots(...)
-  if (isFALSE(x = is_installed('monocle'))) {
+  if (isFALSE(x = requireNamespace('monocle', quietly = TRUE))) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
     stop("Seurat can only convert to/from Monocle v2.X objects")
@@ -1025,7 +1025,7 @@ as.Seurat.CellDataSet <- function(
   ...
 ) {
   CheckDots(...)
-  if (isFALSE(x = is_installed('monocle'))) {
+  if (isFALSE(x = requireNamespace('monocle', quietly = TRUE))) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
     stop("Seurat can only convert to/from Monocle v2.X objects")
@@ -1174,7 +1174,7 @@ as.Seurat.SingleCellExperiment <- function(
   ...
 ) {
   CheckDots(...)
-  if (isFALSE(x = is_installed('SingleCellExperiment'))) {
+  if (isFALSE(x = requireNamespace('SingleCellExperiment', quietly = TRUE))) {
     stop(
       "Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object.",
       "\nhttps://bioconductor.org/packages/SingleCellExperiment/",
@@ -1318,7 +1318,7 @@ as.Seurat.SingleCellExperiment <- function(
 #'
 as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   CheckDots(...)
-  if (isFALSE(x = is_installed('SingleCellExperiment'))) {
+  if (isFALSE(x = requireNamespace('SingleCellExperiment', quietly = TRUE))) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object")
   }
   assay <- assay %||% Assays(object = x)
