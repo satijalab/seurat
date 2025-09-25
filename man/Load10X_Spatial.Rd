@@ -13,6 +13,8 @@ Load10X_Spatial(
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
+  image.name = "tissue_lowres_image.png",
+  segmentation.type = NULL,
   ...
 )
 }
@@ -36,6 +38,11 @@ analyses require comparisons between human and mouse gene names for example.}
 
 \item{image}{\code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is
 passed in it should be co-indexed with \code{`bin.size`}}
+
+\item{image.name}{Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png}
+
+\item{segmentation.type}{Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
+Defaults to "cell".}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }
