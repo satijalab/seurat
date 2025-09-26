@@ -10,6 +10,7 @@ InteractiveSpatialPlot(
   image.scale = "lowres",
   group.by = NULL,
   alpha = 1,
+  pt.size.factor = 1,
   overlay_image = TRUE
 )
 }
@@ -23,6 +24,8 @@ InteractiveSpatialPlot(
 \item{group.by}{Metadata variable (column name) to use for coloring cell points (e.g., cluster assignment). If \code{NULL}, uses \code{"seurat_clusters"} if available, otherwise all cells are grouped together.}
 
 \item{alpha}{Numeric transparency value for cell points (default \code{1.0}).}
+
+\item{pt.size.factor}{Numeric scaling factor for point size (default \code{1.0}).}
 
 \item{overlay_image}{Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).}
 }
