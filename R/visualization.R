@@ -9444,6 +9444,11 @@ SingleSpatialPlot <- function(
         height = unit(1, "npc"),
         interpolate = FALSE
       )
+
+      # Retrieve scale factor from specified image scale ("lowres"/"hires")
+      scale.factor <- ScaleFactors(image)[[image.scale]]
+      if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
+
       # Retrieve image dimensions for later use (flipping image)
       image.height <- dim(image@image)[1]
       image.width <- dim(image@image)[2]
@@ -9451,6 +9456,18 @@ SingleSpatialPlot <- function(
       # Retrieve the sf data stored in the Visium V2 object 
       # Merge it with data dataframe which contains ident and gene expression information 
       sf.data = image@boundaries$segmentation@sf.data
+
+      # Scale geometry to match image scale
+      sf.data$geometry <- sf.data$geometry * scale.factor
+
+      # Transform geometry to match image coordinates
+      sf.data$geometry <- lapply(sf.data$geometry,
+                                function(geom) {
+                                  coords <- geom[[1]]
+                                  coords[,2] <- image.height - coords[,2]
+                                  st_polygon(list(coords))
+                                }) %>% st_sfc(crs = st_crs(sf.data))
+
       #Create sf object from data (POINTS), and extract xy
       data$cell <- rownames(data)
       data.sf <- st_as_sf(data, coords = c("x", "y"), crs = NA)
@@ -9485,8 +9502,9 @@ SingleSpatialPlot <- function(
       coord_idx <- match(common_cells, rownames(coords))
 
       # Update x and y in sf.cleaned
-      sf.cleaned$x[match_idx] <- coords[coord_idx, 1]
-      sf.cleaned$y[match_idx] <- coords[coord_idx, 2]
+      # Apply scaling and transform y axis to match image coordinate system
+      sf.cleaned$x[match_idx] <- coords[coord_idx, 1] * scale.factor
+      sf.cleaned$y[match_idx] <- image.height - (coords[coord_idx, 2] * scale.factor)
 
       #Plot (currently independently of switch/case)
       if(!plot_segmentations){

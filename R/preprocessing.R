@@ -709,7 +709,6 @@ Load10X_Spatial <- function (
     visium.segmentation <- Read10X_Segmentations(
       image.dir = file.path(seg.data.dir, "spatial"),
       data.dir = data.dir,
-      cell.names = segmentation.counts.cell.ids,
       image.name = image.name,
       segmentation.type = segmentation.type
     )
@@ -1534,7 +1533,6 @@ Read10X_ScaleFactors <- function(filename) {
 #' @param assay Name of assay to associate segmentations to
 #' @param slice Name of the slice to associate the segmentations to
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
-#' @param cell.names Names of the cells from the matrix.h5
 #'
 #'
 #' @return A VisiumV2 object with segmentations
@@ -1547,13 +1545,10 @@ Read10X_Segmentations <- function (image.dir,
                                    image.name = "tissue_lowres_image.png",
                                    assay = "Spatial.Polygons",
                                    slice = "slice1.polygons",
-                                   segmentation.type = "cell",
-                                   cell.names
-)
-{
+                                   segmentation.type = "cell") {
 
   image <- png::readPNG(source = file.path(image.dir, image.name))
-  image.height <- dim(image)[1] 
+
   scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir,
                                                              "scalefactors_json.json"))
   key <- Key(slice, quiet = TRUE)
@@ -1563,9 +1558,7 @@ Read10X_Segmentations <- function (image.dir,
   scale.factor <- if (grepl("lowres", image.name)) "lowres" else "hires"
 
   sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
-                                image.dir = image.dir, 
-                                scale.factor = scale.factor, 
-                                image.height = image.height,
+                                image.dir = image.dir,
                                 segmentation.type = segmentation.type)
 
   # Create a Segmentation object based on sf, populate sf.data and polygons
@@ -1613,31 +1606,23 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' @param data.dir Path to the directory containing matrix data
 #' @param image.dir Path to the directory with spatial GeoJSON data
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
-#' @param scale.factor If scaling the segmentations coordinates for the associated tissue image. "lowres" or "highres"
-#' @param image.height The pixel height of either tissue_lowres_image.png or tissue_hires_image.png read in when previously loading segmentations
 #'
 #' @return A FOV
 #'
 #' @export
 #' @concept preprocessing
 #'
-Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell", scale.factor = NULL, image.height) {
+Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell") {
   segmentation_polygons <- read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
-  if (!is.null(scale.factor)) {
-    scale.factors <- Read10X_ScaleFactors(
-      filename = file.path(image.dir, "scalefactors_json.json")
-    )
-    segmentation_polygons$geometry <- segmentation_polygons$geometry*scale.factors[[scale.factor]]
-  }
   
+  # Restructure sf geometry for downstream compatibility
   segmentation_polygons$geometry <- lapply(
     segmentation_polygons$geometry,
     function(geom) {
       coords <- geom[[1]]
-      coords[,2] <- image.height - coords[,2]
       st_polygon(list(coords))
     }
-  ) %>% st_sfc(crs = st_crs(segmentation_polygons))
+  ) %>% st_sfc(crs = st_crs(NA))
 
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
   segmentation_polygons
