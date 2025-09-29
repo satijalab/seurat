@@ -10,8 +10,7 @@ Read10X_Segmentations(
   image.name = "tissue_lowres_image.png",
   assay = "Spatial.Polygons",
   slice = "slice1.polygons",
-  segmentation.type = "cell",
-  cell.names
+  segmentation.type = "cell"
 )
 }
 \arguments{
@@ -26,8 +25,6 @@ Read10X_Segmentations(
 \item{slice}{Name of the slice to associate the segmentations to}
 
 \item{segmentation.type}{Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used}
-
-\item{cell.names}{Names of the cells from the matrix.h5}
 }
 \value{
 A VisiumV2 object with segmentations
