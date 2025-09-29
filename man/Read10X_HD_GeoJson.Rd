@@ -4,13 +4,7 @@
 \alias{Read10X_HD_GeoJson}
 \title{Load 10X Genomics GeoJson}
 \usage{
-Read10X_HD_GeoJson(
-  data.dir,
-  image.dir,
-  segmentation.type = "cell",
-  scale.factor = NULL,
-  image.height
-)
+Read10X_HD_GeoJson(data.dir, image.dir, segmentation.type = "cell")
 }
 \arguments{
 \item{data.dir}{Path to the directory containing matrix data}
@@ -18,10 +12,6 @@ Read10X_HD_GeoJson(
 \item{image.dir}{Path to the directory with spatial GeoJSON data}
 
 \item{segmentation.type}{Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used}
-
-\item{scale.factor}{If scaling the segmentations coordinates for the associated tissue image. "lowres" or "highres"}
-
-\item{image.height}{The pixel height of either tissue_lowres_image.png or tissue_hires_image.png read in when previously loading segmentations}
 }
 \value{
 A FOV
