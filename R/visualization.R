@@ -9025,7 +9025,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @importFrom rlang is_na
 #' @importFrom SeuratObject %NA% %!NA%
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 aes_string geom_point geom_polygon ggplot guides
+#' @importFrom ggplot2 geom_point geom_polygon ggplot guides
 #' guide_legend scale_alpha_manual scale_color_manual scale_fill_brewer
 #' scale_fill_manual
 #'
@@ -9105,11 +9105,11 @@ SingleImagePlot <- function(
   # Assemble plot
   plot <- ggplot(
     data = data %NA% NULL,
-    mapping = aes_string(
-      x = 'y',
-      y = 'x',
-      alpha = 'boundary',
-      fill = col.by %NA% NULL
+    mapping = aes(
+      x = .data[['y']],
+      y = .data[['x']],
+      alpha = .data[['boundary']],
+      fill = .data[[col.by]] %NA% NULL
     )
   )
   if (!is_na(x = data)) {
@@ -9120,7 +9120,7 @@ SingleImagePlot <- function(
           border.size <- 0.3
         }
         geom_polygon(
-          mapping = aes_string(group = 'cell'),
+          mapping = aes(group = .data[['cell']]),
           color = border.color,
           size = border.size
         )
@@ -9181,7 +9181,7 @@ SingleImagePlot <- function(
         )
       }
       plot <- plot + geom_point(
-        mapping = aes_string(fill = NULL, alpha = NULL, color = "molecule"),
+        mapping = aes(fill = NULL, alpha = NULL, color = .data[["molecule"]]),
         data = molecules,
         size = mols.size,
         alpha = mols.alpha,
