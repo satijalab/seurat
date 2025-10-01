@@ -4939,7 +4939,7 @@ DotPlot <- function(
 #' @return A ggplot object
 #'
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string geom_point labs element_line
+#' @importFrom ggplot2 ggplot geom_point labs element_line
 #' @export
 #' @concept visualization
 #'
@@ -4958,7 +4958,7 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
   }
   stdev <- 'Standard Deviation'
   plot <- ggplot(data = data.frame(dims = 1:ndims, stdev = data.use[1:ndims])) +
-    geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
+    geom_point(mapping = aes(x = .data[['dims']], y = .data[['stdev']])) +
     labs(
       x = gsub(
         pattern = '_$',
