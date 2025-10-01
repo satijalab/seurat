@@ -8656,7 +8656,7 @@ SingleDimPlot <- function(
       mapping = aes(
         x = .data[[dims[1]]],
         y = .data[[dims[2]]],
-        color = .data[[paste0("`", col.by, "`")]],
+        color = .data[[col.by]],
         shape = .data[[shape.by]],
         alpha = .data[[alpha.by]]
       ),
@@ -8669,7 +8669,7 @@ SingleDimPlot <- function(
       mapping = aes(
         x = .data[[dims[1]]],
         y = .data[[dims[2]]],
-        color = .data[[paste0("`", col.by, "`")]],
+        color = .data[[col.by]],
         shape = .data[[shape.by]],
         alpha = .data[[alpha.by]]
       ),
