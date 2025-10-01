@@ -693,7 +693,7 @@ Load10X_Spatial <- function (
     }
 
     # Read raw counts matrix
-    segmentation.counts <- Read10X_h5(seg.counts.path)
+    segmentation.counts <- Read10X_h5(seg.counts.path, ...)
 
     # Holds barcode names
     segmentation.counts.cell.ids <- colnames(segmentation.counts)
