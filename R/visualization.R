@@ -9331,7 +9331,7 @@ SingleRasterMap <- function(
 #' @return A ggplot2 object
 #'
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
+#' @importFrom ggplot2 ggplot coord_fixed geom_point xlim ylim
 #' coord_cartesian labs theme_void theme scale_fill_brewer
 #'
 #' @keywords internal
@@ -9377,11 +9377,11 @@ SingleSpatialPlot <- function(
     levels(x = data$ident) <- c(order, setdiff(x = levels(x = data$ident), y = order))
     data <- data[order(data$ident), ]
   }
-  plot <- ggplot(data = data, aes_string(
-    x = colnames(x = data)[2],
-    y = colnames(x = data)[1],
-    fill = col.by,
-    alpha = alpha.by
+  plot <- ggplot(data = data, aes(
+    x = .data[[colnames(x = data)[2]]],
+    y = .data[[colnames(x = data)[1]]],
+    fill = .data[[col.by]],
+    alpha = .data[[alpha.by]]
   ))
   plot <- switch(
     EXPR = geom,
@@ -9422,11 +9422,11 @@ SingleSpatialPlot <- function(
             )
           )
         ),
-        mapping = aes_string(grob = 'grob'),
+        mapping = aes(grob = .data[['grob']]),
         x = 0.5,
         y = 0.5
       ) +
-        geom_point(mapping = aes_string(color = col.by)) +
+        geom_point(mapping = aes(color = .data[[col.by]])) +
         xlim(0, ncol(x = image)) +
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)
@@ -9445,7 +9445,7 @@ SingleSpatialPlot <- function(
       )
       plot + geom_polygon(
         data = data,
-        mapping = aes_string(fill = col.by, group = 'cell')
+        mapping = aes(fill = .data[[col.by]], group = .data[['cell']])
       ) + coord_fixed() + theme_cowplot()
 
     },
