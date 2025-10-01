@@ -5003,7 +5003,7 @@ GroupCorrelationPlot <- function(
   data <- data[complete.cases(data), ]
   colnames(x = data) <- c('grp', 'cor')
   data$grp <- as.character(data$grp)
-  plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +
+  plot <- ggplot(data = data, aes(x = .data[["grp"]], y = .data[["cor"]], fill = .data[["grp"]])) +
     geom_boxplot() +
     theme_cowplot() +
     scale_fill_manual(values = rev(x = brewer_pal(palette = 'YlOrRd')(n = 7))) +
