@@ -8651,6 +8651,7 @@ SingleDimPlot <- function(
   }
 
   # Modify optional parameters to work with tidyeval
+  # see https://github.com/tidyverse/ggplot2/issues/6208
   # see https://github.com/tidyverse/ggplot2/pull/6215/commits/eaeee6d75cc60118919ca4a06a04cd4549af123c
   optional  <- list(shape = shape.by, alpha = alpha.by)
   is_symbol <- lengths(optional) > 0
