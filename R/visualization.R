@@ -8650,6 +8650,12 @@ SingleDimPlot <- function(
     alpha.by <- NULL
   }
 
+  # Modify optional parameters to work with tidyeval
+  # see https://github.com/tidyverse/ggplot2/pull/6215/commits/eaeee6d75cc60118919ca4a06a04cd4549af123c
+  optional  <- list(shape = shape.by, alpha = alpha.by)
+  is_symbol <- lengths(optional) > 0
+  optional  <- c(rlang::data_syms(optional[is_symbol]), optional[!is_symbol])
+
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
     plot + geom_scattermore(
@@ -8657,8 +8663,7 @@ SingleDimPlot <- function(
         x = .data[[dims[1]]],
         y = .data[[dims[2]]],
         color = .data[[col.by]],
-        shape = .data[[shape.by]],
-        alpha = .data[[alpha.by]]
+        !!!optional
       ),
       pointsize = pt.size,
       alpha = alpha,
@@ -8670,8 +8675,7 @@ SingleDimPlot <- function(
         x = .data[[dims[1]]],
         y = .data[[dims[2]]],
         color = .data[[col.by]],
-        shape = .data[[shape.by]],
-        alpha = .data[[alpha.by]]
+        !!!optional
       ),
       size = pt.size,
       alpha = alpha,
