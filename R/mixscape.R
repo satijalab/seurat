@@ -128,7 +128,7 @@ CalcPerturbSig <- function(
 #' positive DE genes.If false, only positive DE gene will be displayed.
 #' @param max.genes Maximum number of genes to use as input to enrichR.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param p.val.cutoff Cutoff to select DE genes.
 #' @param cols A list of colors to use for barplots.
@@ -371,7 +371,7 @@ MixscapeLDA <- function(
 #' @param npcs Number of principle components to use.
 #' @param verbose Print progress bar.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @return Returns a list of the first 10 PCs from each projection.
 #'
@@ -872,7 +872,7 @@ RunMixscape <- function(
 #' @param max.genes Total number of DE genes to plot.
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout
 #' probability from highest to lowest score.
@@ -888,7 +888,7 @@ RunMixscape <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
 #' @export
 #' @concept mixscape
 #'
@@ -1004,7 +1004,7 @@ MixscapeHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
 #' geom_density theme_classic
 #' @export
 #' @concept mixscape
@@ -1040,7 +1040,7 @@ PlotPerturbScore <- function(
       nm = c(gd, target.gene.ident)
     )
 
-    p <- ggplot(data = prtb_score, mapping = aes_string(x = "pvec", color = "gene")) +
+    p <- ggplot(data = prtb_score, mapping = aes(x = .data[["pvec"]], color = .data[["gene"]])) +
       geom_density() + theme_classic()
     top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
     prtb_score$y.jitter <- prtb_score$pvec
@@ -1059,7 +1059,7 @@ PlotPerturbScore <- function(
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(data = prtb_score, aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
@@ -1071,7 +1071,7 @@ PlotPerturbScore <- function(
     else{
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(data = prtb_score, aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
@@ -1089,7 +1089,7 @@ PlotPerturbScore <- function(
     #add mixscape identities
     prtb_score$mix <- object[[mixscape.class]][prtb_score$cell.bc,]
 
-    p <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+    p <- ggplot(data = prtb_score, aes(x = .data[["pvec"]], color = .data[["mix"]])) +
       geom_density() + theme_classic()
 
     top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
@@ -1117,10 +1117,10 @@ PlotPerturbScore <- function(
 
     if(is.null(split.by) == FALSE){
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
-      p2 <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+      p2 <- ggplot(data = prtb_score, aes(x = .data[["pvec"]], color = .data[["mix"]])) +
         scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) + +
         theme_classic() +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
@@ -1133,7 +1133,7 @@ PlotPerturbScore <- function(
     else{
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(data = prtb_score, aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
