@@ -4635,7 +4635,7 @@ BarcodeInflectionsPlot <- function(object) {
       aes(xintercept = .data[['rank']]),
       linetype = "dashed",
       colour = 'grey60',
-      size = 0.5
+      linewidth = 0.5
     ) +
     geom_vline(
       data = inflection_points,
