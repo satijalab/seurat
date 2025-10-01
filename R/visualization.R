@@ -8525,7 +8525,7 @@ SingleCorPlot <- function(
 #'
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot aes_string geom_point labs guides scale_color_brewer
+#' @importFrom ggplot2 ggplot geom_point labs guides scale_color_brewer
 #' scale_color_manual element_rect guide_legend discrete_scale
 #'
 #' @keywords internal
@@ -8653,12 +8653,12 @@ SingleDimPlot <- function(
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
     plot + geom_scattermore(
-      mapping = aes_string(
-        x = dims[1],
-        y = dims[2],
-        color = paste0("`", col.by, "`"),
-        shape = shape.by,
-        alpha = alpha.by
+      mapping = aes(
+        x = .data[[dims[1]]],
+        y = .data[[dims[2]]],
+        color = .data[[paste0("`", col.by, "`")]],
+        shape = .data[[shape.by]],
+        alpha = .data[[alpha.by]]
       ),
       pointsize = pt.size,
       alpha = alpha,
@@ -8666,12 +8666,12 @@ SingleDimPlot <- function(
     )
   } else {
     plot + geom_point(
-      mapping = aes_string(
-        x = dims[1],
-        y = dims[2],
-        color = paste0("`", col.by, "`"),
-        shape = shape.by,
-        alpha = alpha.by
+      mapping = aes(
+        x = .data[[dims[1]]],
+        y = .data[[dims[2]]],
+        color = .data[[paste0("`", col.by, "`")]],
+        shape = .data[[shape.by]],
+        alpha = .data[[alpha.by]]
       ),
       size = pt.size,
       alpha = alpha,
