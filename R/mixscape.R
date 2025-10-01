@@ -247,14 +247,14 @@ DEenrichRPlot <- function(
 
     if (isTRUE(x = balanced)) {
 
-      p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
+      p2 <- ggplot(data = neg.er, aes(x = .data[["term"]], y = .data[["log10pval"]])) +
         geom_bar(stat = "identity", fill = "indianred2") +
         coord_flip() + xlab("Pathway") +
         scale_fill_manual(values = cols, drop = FALSE) +
         ylab("-log10(pval)") +
         ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
         theme_classic() +
-        geom_text(aes_string(label = "term", y = 0),
+        geom_text(aes(label = .data[["term"]], y = 0),
                   size = 5,
                   color = "black",
                   position = position_dodge(1),
@@ -271,14 +271,14 @@ DEenrichRPlot <- function(
   }
 
   else {
-  p <- ggplot(data = pos.er, aes_string(x = "term", y = "log10pval")) +
+  p <- ggplot(data = pos.er, aes(x = .data[["term"]], y = .data[["log10pval"]])) +
     geom_bar(stat = "identity", fill = "dodgerblue") +
     coord_flip() + xlab("Pathway") +
     scale_fill_manual(values = cols, drop = FALSE) +
     ylab("-log10(pval)") +
     ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) +
     theme_classic() +
-    geom_text(aes_string(label = "term", y = 0),
+    geom_text(aes(label = .data[["term"]], y = 0),
               size = 5,
               color = "black",
               position = position_dodge(1),
@@ -288,14 +288,14 @@ DEenrichRPlot <- function(
           axis.ticks.y = element_blank())
   if (isTRUE(x = balanced)) {
 
-    p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
+    p2 <- ggplot(data = neg.er, aes(x = .data[["term"]], y = .data[["log10pval"]])) +
       geom_bar(stat = "identity", fill = "indianred2") +
       coord_flip() + xlab("Pathway") +
       scale_fill_manual(values = cols, drop = FALSE) +
       ylab("-log10(pval)") +
       ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
       theme_classic() +
-      geom_text(aes_string(label = "term", y = 0),
+      geom_text(aes(label = .data[["term"]], y = 0),
                 size = 5,
                 color = "black",
                 position = position_dodge(1),
