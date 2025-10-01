@@ -6023,7 +6023,7 @@ Intensity <- function(color) {
 #'
 #' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
-#' @importFrom ggplot2 aes_string geom_text geom_label layer_scales
+#' @importFrom ggplot2 geom_text geom_label layer_scales
 #' @importFrom RANN nn2
 #'
 #' @export
@@ -6130,7 +6130,7 @@ LabelClusters <- function(
     geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
     plot <- plot + geom.use(
       data = labels.loc,
-      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
+      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[[id]]),
       show.legend = FALSE,
       ...
     ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
@@ -6138,7 +6138,7 @@ LabelClusters <- function(
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
       data = labels.loc,
-      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
+      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]]),
       show.legend = FALSE,
       ...
     )
