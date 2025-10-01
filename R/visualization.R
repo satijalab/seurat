@@ -8831,7 +8831,7 @@ SingleExIPlot <- function(
     EXPR = type,
     'violin' = {
       x <- 'ident'
-      y <- paste0("`", feature, "`")
+      y <- data_sym(feature)
       xlab <- 'Identity'
       ylab <- axis.label
       geom <- list(
@@ -8865,7 +8865,7 @@ SingleExIPlot <- function(
       axis.scale <- ylim
     },
     'ridge' = {
-      x <- paste0("`", feature, "`")
+      x <- data_sym(feature)
       y <- 'ident'
       xlab <- axis.label
       ylab <- 'Identity'
@@ -8885,7 +8885,7 @@ SingleExIPlot <- function(
   )
   plot <- ggplot(
     data = data,
-    mapping = aes(x = .data[[x]], y = .data[[y]], fill = .data[[fill]])[c(2, 3, 1)]
+    mapping = aes(x = .data[[x]], y = !!y, fill = .data[[fill]])[c(2, 3, 1)]
   ) +
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
     theme_cowplot() +
