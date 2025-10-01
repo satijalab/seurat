@@ -5171,7 +5171,7 @@ PlotClusterTree <- function(object, direction = "downwards", ...) {
 #'
 #' @importFrom patchwork wrap_plots
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string geom_point labs
+#' @importFrom ggplot2 ggplot geom_point labs
 #' @export
 #' @concept visualization
 #'
@@ -5226,7 +5226,7 @@ VizDimLoadings <- function(
       data.plot$feature <- factor(x = rownames(x = data.plot), levels = rownames(x = data.plot))
       plot <- ggplot(
         data = data.plot,
-        mapping = aes_string(x = colnames(x = data.plot)[1], y = 'feature')
+        mapping = aes(x = .data[[paste0(Key(object = object[[reduction]]), i)]], y = .data[['feature']])
       ) +
         geom_point(col = col) +
         labs(y = NULL) + theme_cowplot()
