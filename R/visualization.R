@@ -8732,7 +8732,7 @@ SingleDimPlot <- function(
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter
+#' @importFrom ggplot2 ggplot theme labs geom_violin geom_jitter
 #' ylim position_jitterdodge scale_fill_manual scale_y_log10 scale_x_log10
 #' scale_y_discrete scale_x_continuous waiver
 #' @importFrom cowplot theme_cowplot
@@ -8880,7 +8880,7 @@ SingleExIPlot <- function(
   )
   plot <- ggplot(
     data = data,
-    mapping = aes_string(x = x, y = y, fill = fill)[c(2, 3, 1)]
+    mapping = aes(x = .data[[x]], y = .data[[y]], fill = .data[[fill]])[c(2, 3, 1)]
   ) +
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
     theme_cowplot() +
