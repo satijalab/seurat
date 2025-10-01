@@ -2,6 +2,19 @@
 
 ## Changes
 
+- Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium or SlideSeq data)
+- Added `label.size.cutoff` parameter to `DimPlot` to allow users to label only clusters above a certain size
+- Added option to use `cluster_leiden` from `igraph` when running Leiden clustering ([#9931](https://github.com/satijalab/seurat/pull/9931))
+- Added option to use `umap2` from `uwot` when running UMAP ([#9918](https://github.com/satijalab/seurat/pull/9918))
+- Updated `PseudobulkExpression` to acccount for the case that a category passed to `group.by` has only one value
+- Updated `VlnPlot` to use assay passed to the function if specified
+- Updated `FeatureScatter` to allow gene names with parentheses to be plotted
+- Updated `SingleRasterMap` to store object metadata correctly
+- Made minor edit to description of section running `DoHeatmap` in PBMC3K guided tutorial vignette
+- Updated `FindClusters` to order cluster factor levels correctly when assigning a custom cluster name
+- Updated `FindConservedMarkers` to remove NA values
+- Updated visualization functions to avoid `ggplot2::guides()` deprecation warnings
+
 # Seurat 5.3.0
 
 ## Changes
