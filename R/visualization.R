@@ -8297,7 +8297,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 #' @importFrom stats cor
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot aes_string geom_point labs scale_color_brewer
+#' @importFrom ggplot2 ggplot geom_point labs scale_color_brewer
 #' scale_color_manual guides stat_density2d aes scale_fill_continuous
 #' @importFrom scattermore geom_scattermore
 #'
@@ -8398,7 +8398,7 @@ SingleCorPlot <- function(
   }
   plot <- ggplot(
     data = data,
-    mapping = aes_string(x = names.plot[1], y = names.plot[2])
+    mapping = aes(x = .data[[names.plot[1]]], y = .data[[names.plot[2]]])
     ) +
     labs(
       x = orig.names[1],
@@ -8442,14 +8442,14 @@ SingleCorPlot <- function(
   if (!is.null(x = col.by)) {
     if (raster) {
       plot <- plot + geom_scattermore(
-        mapping = aes_string(color = 'colors'),
+        mapping = aes(color = .data[['colors']]),
         position = position,
         pointsize = pt.size,
         pixels = raster.dpi
       )
     } else {
       plot <- plot + geom_point(
-        mapping = aes_string(color = 'colors'),
+        mapping = aes(color = .data[['colors']]),
         position = position,
         size = pt.size
       )
@@ -8475,7 +8475,7 @@ SingleCorPlot <- function(
   plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
   if (!is.null(x = span)) {
     plot <- plot + geom_smooth(
-      mapping = aes_string(x = names.plot[1], y = names.plot[2]),
+      mapping = aes(x = .data[[names.plot[1]]], y = .data[[names.plot[2]]]),
       method = 'loess',
       span = span
     )
