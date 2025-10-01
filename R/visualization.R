@@ -220,7 +220,7 @@ DimHeatmap <- function(
 #' @importFrom stats median
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
-#' ggplot_build aes_string geom_text
+#' ggplot_build geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
 #' @concept visualization
@@ -401,7 +401,7 @@ DoHeatmap <- function(
         plot <- plot + geom_text(
           stat = "identity",
           data = label.x.pos,
-          aes_string(label = 'group', x = 'label.x.pos'),
+          aes(label = .data[['group']], x = .data[['label.x.pos']]),
           y = y.max + y.max * 0.03 * 0.5 + vjust,
           angle = angle,
           hjust = hjust,
