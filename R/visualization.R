@@ -7819,7 +7819,7 @@ MakeLabels <- function(data) {
 #' @importFrom utils globalVariables
 #' @importFrom stats rnorm dist hclust
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string facet_grid theme labs geom_rect
+#' @importFrom ggplot2 ggplot facet_grid theme labs geom_rect
 #' geom_violin geom_jitter ylim position_jitterdodge scale_fill_manual
 #' scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous
 #' scale_y_continuous waiver
@@ -7959,7 +7959,7 @@ MultiExIPlot <- function(
   }
   plot <- ggplot(
     data = data,
-    mapping = aes_string(x = x, y = y, fill = fill.by)[c(2, 3, 1)]
+    mapping = aes(x = .data[[x]], y = .data[[y]], fill = .data[[fill.by]])[c(2, 3, 1)]
   ) +
     labs(x = x.label, y = y.label, fill = NULL) +
     theme_cowplot()
