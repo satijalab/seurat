@@ -9242,7 +9242,7 @@ SinglePolyPlot <- function(data, group.by, ...) {
 #'
 #' @return A ggplot2 object
 #
-#' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
+#' @importFrom ggplot2 ggplot geom_raster scale_fill_gradient
 #' scale_fill_gradientn theme element_blank labs geom_point guides
 #' guide_legend geom_tile
 #'
@@ -9279,14 +9279,14 @@ SingleRasterMap <- function(
   }
   my_geom <- ifelse(test = raster, yes = geom_raster, no = geom_tile)
   plot <- ggplot(data = data) +
-    my_geom(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
+    my_geom(mapping = aes(x = .data[['Cell']], y = .data[['Feature']], fill = .data[['Expression']])) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
     scale_fill_gradientn(limits = limits, colors = colors, na.value = "white") +
     labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +
     WhiteBackground() + NoAxes(keep.text = TRUE)
   if (!is.null(x = group.by)) {
     plot <- plot + geom_point(
-      mapping = aes_string(x = 'Cell', y = 'Feature', color = 'Identity'),
+      mapping = aes(x = .data[['Cell']], y = .data[['Feature']], color = .data[['Identity']]),
       alpha = 0
     ) +
       guides(color = guide_legend(override.aes = list(alpha = 1)))
