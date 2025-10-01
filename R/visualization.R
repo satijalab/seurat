@@ -5052,7 +5052,7 @@ GroupCorrelationPlot <- function(
 #'
 #' @importFrom stats qunif
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 ggplot aes_string stat_qq labs xlim ylim
+#' @importFrom ggplot2 ggplot stat_qq labs xlim ylim
 #' coord_flip geom_abline guides guide_legend
 #' @importFrom cowplot theme_cowplot
 #'
@@ -5101,7 +5101,7 @@ JackStrawPlot <- function(
   if (length(x = cols) < length(x = dims)) {
     stop("Not enough colors for the number of dims selected")
   }
-  gp <- ggplot(data = data.plot, mapping = aes_string(sample = 'Value', color = 'PC.Score')) +
+  gp <- ggplot(data = data.plot, mapping = aes(sample = .data[['Value']], color = .data[['PC.Score']])) +
     stat_qq(distribution = qunif) +
     labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
     scale_color_manual(values = cols) +
