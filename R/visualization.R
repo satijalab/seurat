@@ -4589,7 +4589,7 @@ SpatialPlot <- function(
 #'
 #' @importFrom methods slot
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot geom_line geom_vline aes_string
+#' @importFrom ggplot2 ggplot geom_line geom_vline
 #'
 #' @export
 #' @concept visualization
@@ -4622,27 +4622,27 @@ BarcodeInflectionsPlot <- function(object) {
   ## Make the plot
   plot <- ggplot(
     data = barcode_distribution,
-    mapping = aes_string(
-      x = 'rank',
-      y = barcode_var,
-      group = group_var,
-      colour = group_var
+    mapping = aes(
+      x = .data[['rank']],
+      y = .data[[barcode_var]],
+      group = .data[[group_var]],
+      colour = .data[[group_var]]
     )
   ) +
     geom_line() +
     geom_vline(
       data = threshold_values,
-      aes_string(xintercept = 'rank'),
+      aes(xintercept = .data[['rank']]),
       linetype = "dashed",
       colour = 'grey60',
       size = 0.5
     ) +
     geom_vline(
       data = inflection_points,
-      mapping = aes_string(
-        xintercept = 'rank',
-        group = group_var,
-        colour = group_var
+      mapping = aes(
+        xintercept = .data[['rank']],
+        group = .data[[group_var]],
+        colour = .data[[group_var]]
       ),
       linetype = "dashed"
     ) +
