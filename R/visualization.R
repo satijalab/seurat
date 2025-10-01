@@ -4891,8 +4891,8 @@ DotPlot <- function(
       levels = unique(x = feature.groups)
     )
   }
-  plot <- ggplot(data = data.plot, mapping = aes(x = .data[[features.plot]], y = .data[[id]])) +
-    geom_point(mapping = aes(size = .data[[pct.exp]], color = .data[[color.by]])) +
+  plot <- ggplot(data = data.plot, mapping = aes(x = .data[["features.plot"]], y = .data[["id"]])) +
+    geom_point(mapping = aes(size = .data[["pct.exp"]], color = .data[[color.by]])) +
     scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
     guides(size = guide_legend(title = 'Percent Expressed')) +
