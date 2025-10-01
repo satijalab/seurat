@@ -5257,7 +5257,7 @@ VizDimLoadings <- function(
 #' @return A ggplot object
 #'
 #' @importFrom png readPNG
-#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster ggtitle
+#' @importFrom ggplot2 ggplot_build ggsave ggplot geom_blank annotation_raster ggtitle
 #'
 #' @export
 #' @concept visualization
@@ -5292,7 +5292,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
   file.remove(tmpfile)
   blank <- ggplot(
     data = plot$data,
-    mapping = aes_string(x = xyparams$x, y = xyparams$y)
+    mapping = aes(x = .data[[xyparams$x]], y = .data[[xyparams$y]])
   ) + geom_blank()
   blank <- blank + plot$theme + ggtitle(label = title)
   blank <- blank + annotation_raster(
