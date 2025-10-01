@@ -2013,7 +2013,7 @@ CellScatter <- function(
 #'
 #' @return A ggplot object
 #'
-#' @importFrom ggplot2 geom_smooth aes_string facet_wrap vars sym labs
+#' @importFrom ggplot2 geom_smooth facet_wrap vars sym labs
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
