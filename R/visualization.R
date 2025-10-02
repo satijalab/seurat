@@ -9364,8 +9364,9 @@ SingleSpatialPlot <- function(
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
   }
+  col.by.plot <- col.by %iff% rlang::data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
   col.by <- col.by %iff% paste0("`", col.by, "`")
-  alpha.by <- alpha.by %iff% paste0("`", alpha.by, "`")
+  alpha.by <- alpha.by %iff% rlang::data_sym(alpha.by)
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
@@ -9383,8 +9384,8 @@ SingleSpatialPlot <- function(
   plot <- ggplot(data = data, aes(
     x = .data[[colnames(x = data)[2]]],
     y = .data[[colnames(x = data)[1]]],
-    fill = .data[[col.by]],
-    alpha = .data[[alpha.by]]
+    fill = !!col.by.plot,
+    alpha = !!alpha.by
   ))
   plot <- switch(
     EXPR = geom,
