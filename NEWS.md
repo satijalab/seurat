@@ -1,3 +1,40 @@
+# Unreleased
+
+## Changes
+
+- Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium or SlideSeq data)
+- Added `label.size.cutoff` parameter to `DimPlot` to allow users to label only clusters above a certain size
+- Added option to use `cluster_leiden` from `igraph` when running Leiden clustering ([#9931](https://github.com/satijalab/seurat/pull/9931))
+- Added option to use `umap2` from `uwot` when running UMAP ([#9918](https://github.com/satijalab/seurat/pull/9918))
+- Updated `PseudobulkExpression` to acccount for the case that a category passed to `group.by` has only one value
+- Updated `VlnPlot` to use assay passed to the function if specified
+- Updated `FeatureScatter` to allow gene names with parentheses to be plotted
+- Updated `SingleRasterMap` to store object metadata correctly
+- Made minor edit to description of section running `DoHeatmap` in PBMC3K guided tutorial vignette
+- Updated `FindClusters` to order cluster factor levels correctly when assigning a custom cluster name
+- Updated `FindConservedMarkers` to remove NA values
+- Updated visualization functions to avoid `ggplot2::guides()` deprecation warnings
+
+# Seurat 5.3.0
+
+## Changes
+- Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))
+- Fixed bugs in `FindSpatiallyVariableFeatures`; deprecated the `slot` parameter in favor of `layer` ([#9836](https://github.com/satijalab/seurat/pull/9836))
+- Extended `FindTransferAnchors`'s `reference` argument to accept SCT inputs containing more than one SCT model; in this case, the reference model that was fit against the largest number of cells is used ([#9833](https://github.com/satijalab/seurat/pull/9833))
+- Extended `FindTransferAnchors`'s `query` argument to accept multi-layer inputs; updated `MappingScore` to support multi-layer query inputs ([#9832](https://github.com/satijalab/seurat/pull/9832))
+- Updated `LeverageScore.default` to convert `BPCells::IterableMatrix` inputs with less than 7500 cells into a sparse matrix before performing the calculation ([#9831](https://github.com/satijalab/seurat/pull/9831))
+- Dropped `VariableFeatures` setter from `SketchData` ([#9830](https://github.com/satijalab/seurat/pull/9830))
+- Extended `Cells.SCTAssay`'s `layer` argument accept slot names: `"counts"`, `"data"`, `"scale.data"`; enabled compatibility with `SketchData`/`LeverageScore`([#9830](https://github.com/satijalab/seurat/pull/9830))
+- Updated `SCTransform.StdAssay` to simplify and speed up the method ([#9828](https://github.com/satijalab/seurat/pull/9828))
+- Updated `AddModuleScore` to support multi-layer inputs ([#9826](https://github.com/satijalab/seurat/pull/9826))
+- Fixed `PseudobulkExpression` to work with `Seurat` inputs containing more than one assay ([9824](https://github.com/satijalab/seurat/pull/9824))
+- Added `RunICA.StdAssay` ([#9825](https://github.com/satijalab/seurat/pull/9825))
+- Updated `HarmonyIntegration` to call `harmony::RunHarmony` in favor of the deprecated `harmony::HarmonyMatrix` ([#9789](https://github.com/satijalab/seurat/pull/9789)) 
+- Added `raster.dpi` parameter to `VlnPlot` ([#9665](https://github.com/satijalab/seurat/pull/9665))
+- Fixed `SpatialDimPlot(..., interactive = TRUE)` to support `SlideSeq` and `STARmap` input types; added `ScaleFactors.SlideSeq` & `ScaleFactors.STARmap` generics ([#9691](https://github.com/satijalab/seurat/pull/9691))
+- Fixed `PercentageFeatureSet` so that the `assay` parameter is always respected; fixed `PercentageFeatureSet` to raise a warning if any `features` are absent in the specified `assay` instead of throwing an error ([#9686](https://github.com/satijalab/seurat/pull/9686))
+- Fixed `GroupCorrelation` and `GroupCorrelationPlot` to be compatible with `SeuratObject` >= 5.0.0 ([#9625](https://github.com/satijalab/seurat/pull/9625))
+
 # Seurat 5.2.1 (2025-01-23)
 
 ## Changes

@@ -1,0 +1,20 @@
+name: Documentation
+description: Create a report to help improve Seurat's documentation
+title: "Documentation: <insert-descriptive-title>"
+labels: [documentation]
+
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for taking the time to file a report.
+  - type: markdown
+    attributes:
+        value: Before continuing, please check the issue tracker to see if the problem has already been reported.
+  - type: textarea
+    attributes:
+      label: Issue Description
+      description: |
+        Please provide a clear, concise description of the issue. Make sure 
+        to include a reference to the specific page on https://satijalab.org/seurat 
+        and/or the relevant [man/*.Rd](https://github.com/satijalab/seurat/blob/main/man) 
+        file(s).

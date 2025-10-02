@@ -92,7 +92,7 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
+  data.use <- GetAssayData(object = object, assay = assay, layer = "scale.data")[reduc.features, ]
   rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
   weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
   fake.vals.raw <- my.lapply(
@@ -293,7 +293,7 @@ ProjectDim <- function(
   assay <- assay %||% DefaultAssay(object = redeuc)
   data.use <- GetAssayData(
     object = object[[assay]],
-    slot = "scale.data"
+    layer = "scale.data"
   )
   if (do.center) {
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
@@ -593,16 +593,16 @@ RunCCA.Seurat <- function(
   }
   nfeatures <- length(x = features)
   if (!(rescale)) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "scale.data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "scale.data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "scale.data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "scale.data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features, ]
     data2 <- data.use2[features, ]
   }
   if (rescale) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features,]
@@ -651,7 +651,7 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, layer = "scale.data")
   ## combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
@@ -761,6 +761,53 @@ RunICA.Assay <- function(
   data.use <- PrepDR(
     object = object,
     features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunICA(
+    object = data.use,
+    assay = assay,
+    nics = nics,
+    rev.ica = rev.ica,
+    ica.function = ica.function,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+
+  )
+  return(reduction.data)
+}
+
+#' @param layer The layer in `assay` to use when running independant component
+#' analysis.
+#'
+#' @rdname RunICA
+#' @concept dimensional_reduction
+#' @export
+#' @method RunICA StdAssay
+#'
+RunICA.StdAssay <- function(
+    object,
+    assay = NULL,
+    features = NULL,
+    layer = 'scale.data',
+    nics = 50,
+    rev.ica = FALSE,
+    ica.function = "icafast",
+    verbose = TRUE,
+    ndims.print = 1:5,
+    nfeatures.print = 30,
+    reduction.name = "ica",
+    reduction.key = "ica_",
+    seed.use = 42,
+    ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
     verbose = verbose
   )
   reduction.data <- RunICA(
@@ -1277,7 +1324,7 @@ RunTSNE.Seurat <- function(
 }
 
 #' @importFrom reticulate py_module_available py_set_seed import
-#' @importFrom uwot umap umap_transform
+#' @importFrom uwot umap umap2 umap_transform
 #' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
@@ -1306,6 +1353,7 @@ RunUMAP.default <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1429,11 +1477,58 @@ RunUMAP.default <- function(
           a = a,
           b = b,
           fast_sgd = uwot.sgd,
+          approx_pow = uwot.approx_pow,
           verbose = verbose,
           ret_model = return.model
         )
       } else {
         umap(
+          X = object,
+          n_threads = nbrOfWorkers(),
+          n_neighbors = as.integer(x = n.neighbors),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          approx_pow = uwot.approx_pow,
+          verbose = verbose,
+          ret_model = return.model
+        )
+      }
+    },
+    'uwot2' = {
+      if (is.list(x = object)) {
+        umap2(
+          X = NULL,
+          nn_method = object,
+          n_threads = nbrOfWorkers(),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
+        )
+      } else {
+        umap2(
           X = object,
           n_threads = nbrOfWorkers(),
           n_neighbors = as.integer(x = n.neighbors),
@@ -1456,14 +1551,6 @@ RunUMAP.default <- function(
       }
     },
     'uwot-predict' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
-      }
       if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
         stop(
           "If running projection UMAP, please pass a DimReduc object with the model stored to reduction.model.",
@@ -1676,8 +1763,8 @@ RunUMAP.Neighbor <- function(
 #' @param slot The slot used to pull data for when using \code{features}. data slot is by default.
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
-#'   \item{\code{uwot}:}{Runs umap via the uwot R package}
-#'   \item{\code{uwot-learn}:}{Runs umap via the uwot R package and return the learned umap model}
+#'   \item{\code{uwot}:}{Runs umap via the uwot R package \code{\link[uwot]{umap}}}
+#'   \item{\code{uwot2}:}{Runs umap2 via the uwot R package \code{\link[uwot]{umap2}}}
 #'   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 #' }
 #' @param n.neighbors This determines the number of neighboring points used in
@@ -1719,6 +1806,8 @@ RunUMAP.Neighbor <- function(
 #' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 #' right adjoint functor.
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
+#' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
+#' \code{\link[uwot]{umap}} for more details.
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
 #' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
@@ -1784,6 +1873,7 @@ RunUMAP.Seurat <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1807,7 +1897,7 @@ RunUMAP.Seurat <- function(
   }
 
   if (!is.null(x = features)) {
-    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, layer = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
@@ -1876,6 +1966,7 @@ RunUMAP.Seurat <- function(
     a = a,
     b = b,
     uwot.sgd = uwot.sgd,
+    uwot.approx_pow = uwot.approx_pow,
     seed.use = seed.use,
     metric.kwds = metric.kwds,
     angular.rp.forest = angular.rp.forest,
@@ -2390,7 +2481,7 @@ PrepDR <- function(
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
   }
-  data.use <- GetAssayData(object = object, slot = slot)
+  data.use <- GetAssayData(object = object, layer = slot)
   if (nrow(x = data.use ) == 0 && slot == "scale.data") {
     stop("Data has not been scaled. Please run ScaleData and retry")
   }
