@@ -8883,7 +8883,7 @@ SingleExIPlot <- function(
   )
   plot <- ggplot(
     data = data,
-    mapping = aes(x = .data[[x]], y = !!y, fill = .data[[fill]])[c(2, 3, 1)]
+    mapping = aes(x = !!x, y = !!y, fill = .data[[fill]])[c(2, 3, 1)]
   ) +
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
     theme_cowplot() +
