@@ -6133,7 +6133,7 @@ LabelClusters <- function(
       mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
       show.legend = FALSE,
       ...
-    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
+    ) + scale_fill_manual(values = unique(labels.loc$color[order(labels.loc[, id])]))
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
