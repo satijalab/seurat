@@ -9105,6 +9105,13 @@ SingleImagePlot <- function(
       n = length(x = levels(x = data$boundary))
     )
   }
+
+  # performing NA check and creating second variable to correctly tidyeval plot and legend
+  col.by.plot <- col.by %NA% NULL
+  col.by.plot  <- list(fill = col.by.plot)
+  is_symbol <- lengths(col.by.plot) > 0
+  col.by.plot  <- c(data_syms(col.by.plot[is_symbol]), col.by.plot[!is_symbol])
+
   # Assemble plot
   plot <- ggplot(
     data = data %NA% NULL,
@@ -9112,7 +9119,7 @@ SingleImagePlot <- function(
       x = .data[['y']],
       y = .data[['x']],
       alpha = .data[['boundary']],
-      fill = .data[[col.by]] %NA% NULL
+      !!!col.by.plot
     )
   )
   if (!is_na(x = data)) {
