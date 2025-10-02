@@ -6331,7 +6331,7 @@ CenterTitle <- function(...) {
 DarkTheme <- function(...) {
   #   Some constants for easier changing in the future
   black.background <- element_rect(fill = 'black')
-  black.background.no.border <- element_rect(fill = 'black', size = 0)
+  black.background.no.border <- element_rect(fill = 'black', linewidth = 0)
   font.margin <- 4
   white.text <- element_text(
     colour = 'white',
@@ -6342,8 +6342,8 @@ DarkTheme <- function(...) {
       l = font.margin
     )
   )
-  white.line <- element_line(colour = 'white', size = 1)
-  no.line <- element_line(size = 0)
+  white.line <- element_line(colour = 'white', linewidth = 1)
+  no.line <- element_line(linewidth = 0)
   #   Create the dark theme
   dark.theme <- theme(
     #   Set background colors
@@ -9364,9 +9364,9 @@ SingleSpatialPlot <- function(
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
   }
-  col.by.plot <- col.by %iff% rlang::data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
+  col.by.plot <- col.by %iff% data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
   col.by <- col.by %iff% paste0("`", col.by, "`")
-  alpha.by <- alpha.by %iff% rlang::data_sym(alpha.by)
+  alpha.by <- alpha.by %iff% data_sym(alpha.by)
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
