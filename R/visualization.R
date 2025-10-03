@@ -927,7 +927,7 @@ DimPlot <- function(
     group.by <- colnames(labels)
   }
   
-  data <- FetchData(
+  meta <- FetchData(
     object = object,
     vars = group.by,
     cells = cells,
