@@ -905,6 +905,11 @@ DimPlot <- function(
   # data <- Embeddings(object = object[[reduction]])[cells, dims]
   # data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
+  
+  # directly get embeddings to avoid name collisions 
+  embed <- Embeddings(object[[reduction]])[cells, dims, drop = FALSE]
+  embed <- as.data.frame(embed)
+  
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
   
@@ -922,12 +927,16 @@ DimPlot <- function(
     group.by <- colnames(labels)
   }
   
-  data <- FetchData(
+  meta <- FetchData(
     object = object,
-    vars = c(dims, group.by),
+    vars = group.by,
     cells = cells,
     clean = 'project'
   )
+  
+  # Combine embeddigns and metadata 
+  data <- cbind(embed, meta)
+  
   # cells <- rownames(x = object)
   # object[['ident']] <- Idents(object = object)
   # orig.groups <- group.by
