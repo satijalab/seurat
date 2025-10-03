@@ -4,6 +4,8 @@
 #' deprecate_warn is_present
 #' @importFrom rlang !!!
 #' abort
+#' data_sym
+#' data_syms
 #' arg_match
 #' arg_match0
 #' as_name
