@@ -227,7 +227,7 @@ PredictAssay <- function(
     reference.data <- GetAssayData(
       object = object,
       assay = assay,
-      slot = slot
+      layer = slot
     )
     features <- features %||% VariableFeatures(object = object[[assay]])
     if (length(x = features) == 0) {
@@ -284,6 +284,11 @@ PredictAssay <- function(
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm).
+#' @param leiden_method Choose from the leidenbase ("leidenbase") or igraph ("igraph") packages for running leiden.
+#' Default is "leidenbase"
+#' @param leiden_objective_function objective function to use if `leiden_method = "igraph"`.
+#' See \code{\link[igraph]{cluster_leiden}} for more information.
+#' Default is "modularity".
 #' @param method DEPRECATED.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
@@ -300,21 +305,23 @@ PredictAssay <- function(
 #' @export
 #'
 FindClusters.default <- function(
-  object,
-  modularity.fxn = 1,
-  initial.membership = NULL,
-  node.sizes = NULL,
-  resolution = 0.8,
-  method = deprecated(),
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  group.singletons = TRUE,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  ...
+    object,
+    modularity.fxn = 1,
+    initial.membership = NULL,
+    node.sizes = NULL,
+    resolution = 0.8,
+    method = deprecated(),
+    algorithm = 1,
+    leiden_method = c("leidenbase", "igraph"),
+    leiden_objective_function = c("modularity", "CPM"),
+    n.start = 10,
+    n.iter = 10,
+    random.seed = 0,
+    group.singletons = TRUE,
+    temp.file.location = NULL,
+    edge.file.name = NULL,
+    verbose = TRUE,
+    ...
 ) {
   CheckDots(...)
   # The `method` parameter is for `RunLeiden` but was deprecated, see
@@ -334,6 +341,9 @@ FindClusters.default <- function(
   if (tolower(x = algorithm) == "leiden") {
     algorithm <- 4
   }
+  leiden_method <- match.arg(leiden_method)
+  leiden_objective_function <- match.arg(leiden_objective_function)
+
   if (nbrOfWorkers() > 1) {
     clustering.results <- future_lapply(
       X = resolution,
@@ -354,6 +364,8 @@ FindClusters.default <- function(
         } else if (algorithm == 4) {
           ids <- RunLeiden(
             object = object,
+            leiden_method = leiden_method,
+            leiden_objective_function = leiden_objective_function,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
             node.sizes = node.sizes,
@@ -390,6 +402,8 @@ FindClusters.default <- function(
       } else if (algorithm == 4) {
         ids <- RunLeiden(
           object = object,
+          leiden_method = leiden_method,
+          leiden_objective_function = leiden_objective_function,
           method = method,
           partition.type = "RBConfigurationVertexPartition",
           initial.membership = initial.membership,
@@ -420,24 +434,26 @@ FindClusters.default <- function(
 #' @method FindClusters Seurat
 #'
 FindClusters.Seurat <- function(
-  object,
-  graph.name = NULL,
-  cluster.name = NULL,
-  modularity.fxn = 1,
-  initial.membership = NULL,
-  node.sizes = NULL,
-  resolution = 0.8,
-  # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
-  method = NULL,
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  group.singletons = TRUE,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  ...
+    object,
+    graph.name = NULL,
+    cluster.name = NULL,
+    modularity.fxn = 1,
+    initial.membership = NULL,
+    node.sizes = NULL,
+    resolution = 0.8,
+    # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
+    method = NULL,
+    algorithm = 1,
+    leiden_method = c("leidenbase", "igraph"),
+    leiden_objective_function = c("modularity", "CPM"),
+    n.start = 10,
+    n.iter = 10,
+    random.seed = 0,
+    group.singletons = TRUE,
+    temp.file.location = NULL,
+    edge.file.name = NULL,
+    verbose = TRUE,
+    ...
 ) {
   CheckDots(...)
   # Since we're throwing a soft deprecation warning, it needs to be duplicated
@@ -463,6 +479,8 @@ FindClusters.Seurat <- function(
     node.sizes = node.sizes,
     resolution = resolution,
     algorithm = algorithm,
+    leiden_method = leiden_method,
+    leiden_objective_function = leiden_objective_function,
     n.start = n.start,
     n.iter = n.iter,
     random.seed = random.seed,
@@ -472,12 +490,11 @@ FindClusters.Seurat <- function(
     verbose = verbose,
     ...
   )
-  cluster.name <- cluster.name %||%
-    paste(
-      graph.name,
-      names(x = clustering.results),
-      sep = '_'
-    )
+
+  # Add cluster names to clustering results
+  default.cluster.name <- paste(graph.name, names(clustering.results), sep = "_")
+  cluster.name <- cluster.name %||% default.cluster.name
+
   names(x = clustering.results) <- cluster.name
   # object <- AddMetaData(object = object, metadata = clustering.results)
   # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
@@ -495,7 +512,15 @@ FindClusters.Seurat <- function(
     }
   )
   Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
-  object[['seurat_clusters']] <- Idents(object = object)
+
+  # If cluster name is NULL, default cluster name is used (seurat_clusters) when assigning factor levels
+  # Otherwise, use cluster name provided by user
+  if (isTRUE(x = all(cluster.name %in% default.cluster.name))) {
+    object[['seurat_clusters']] <- Idents(object = object)
+  } else {
+    object[[cluster.name]] <- Idents(object = object)
+  }
+
   cmd <- LogSeuratCommand(object = object, return.command = TRUE)
   slot(object = cmd, name = 'assay.used') <- DefaultAssay(object = object[[graph.name]])
   object[[slot(object = cmd, name = 'name')]] <- cmd
@@ -667,7 +692,7 @@ FindNeighbors.Assay <- function(
 ) {
   CheckDots(...)
   features <- features %||% VariableFeatures(object = object)
-  data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
+  data.use <- t(x = GetAssayData(object = object, layer = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
     object = data.use,
     k.param = k.param,
@@ -1651,11 +1676,16 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #'
 #' Returns a vector of partition indices.
 #'
-#' @param object An adjacency matrix or adjacency list. 
+#' @param object An adjacency matrix or adjacency list.
 #' @param method DEPRECATED.
+#' @param leiden_method Choose from the leidenbase ("leidenbase") or igraph ("igraph") packages for running leiden.
+#' Default is "leidenbase"
 #' @param partition.type Type of partition to use for Leiden algorithm.
-#' Defaults to "RBConfigurationVertexPartition", see 
+#' Defaults to "RBConfigurationVertexPartition", see
 #' https://cran.rstudio.com/web/packages/leidenbase/leidenbase.pdf for more options.
+#' @param leiden_objective_function objective function to use if `leiden_method = "igraph"`.
+#' See \code{\link[igraph]{cluster_leiden}} for more information.
+#' Default is "modularity".
 #' @param initial.membership Passed to the `initial_membership` parameter
 #' of `leidenbase::leiden_find_partition`.
 #' @param node.sizes Passed to the `node_sizes` parameter of
@@ -1666,35 +1696,42 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #' @param random.seed Seed of the random number generator, must be greater than 0.
 #' @param n.iter Maximal number of iterations per random start
 #'
-#' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
+#' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list cluster_leiden membership
+#'
+#' @references igraph-based leiden clustering is adapted from \code{\link[BPCells]{cluster_graph_leiden}}
+#' (MIT License), author: Benjamin Parks.  Reordering of igraph leiden cluster numbers by
+#' cluster size adapted from rliger v2.0 `.labelClustBySize` (GPL-3.0 License) authors:
+#' Josh Welch & Yichen Wang
 #'
 #' @export
-#' 
+#'
 #' @rdname RunLeiden
 #' @concept clustering
-#' 
+#'
 RunLeiden <- function(
-  object,
-  method = deprecated(),
-  partition.type = c(
-    'RBConfigurationVertexPartition',
-    'ModularityVertexPartition',
-    'RBERVertexPartition',
-    'CPMVertexPartition',
-    'MutableVertexPartition',
-    'SignificanceVertexPartition',
-    'SurpriseVertexPartition'
-  ),
-  initial.membership = NULL,
-  node.sizes = NULL,
-  resolution.parameter = 1,
-  random.seed = 1,
-  n.iter = 10
+    object,
+    method = deprecated(),
+    leiden_method = c("leidenbase", "igraph"),
+    partition.type = c(
+      'RBConfigurationVertexPartition',
+      'ModularityVertexPartition',
+      'RBERVertexPartition',
+      'CPMVertexPartition',
+      'MutableVertexPartition',
+      'SignificanceVertexPartition',
+      'SurpriseVertexPartition'
+    ),
+    leiden_objective_function = c("modularity", "CPM"),
+    initial.membership = NULL,
+    node.sizes = NULL,
+    resolution.parameter = 1,
+    random.seed = 1,
+    n.iter = 10
 ) {
   # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
-  # greater than 0 (or NULL) but the default value for `FindClusters` is 0. 
-  # If `random.seed` is 0 or less, throw a warning and reset the value to 1. 
-   if (!is.null(random.seed) && random.seed <= 0) {
+  # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
+  # If `random.seed` is 0 or less, throw a warning and reset the value to 1.
+  if (!is.null(random.seed) && random.seed <= 0) {
     warning(
       paste0(
         "`random.seed` must be greater than 0 for leiden clustering, ",
@@ -1708,31 +1745,54 @@ RunLeiden <- function(
   # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
   # _requires_ an `igraph` input, so the parameter no longer makes sense. The
   # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
-  # really matter. 
+  # really matter.
   if (is_present(method)) {
     deprecate_soft(
       when = "5.2.0",
       what = "RunLeiden(method)"
     )
   }
-  
+
+  # select leiden method
+  leiden_method <- match.arg(leiden_method)
+
+  if (leiden_method == "igraph") {
+    # adjust seed for igraph leiden
+    #Set seed without permanently changing seed state
+    prev_seed <- get_seed()
+    on.exit(restore_seed(prev_seed), add = TRUE)
+    set.seed(random.seed)
+  }
+
   # Convert `object` into an `igraph`.
   # If `object` is already an `igraph` no conversion is necessary.
-  if (inherits(object, what = "igraph")) { 
+  if (inherits(object, what = "igraph")) {
     input <- object
-  # Otherwise, if `object` is a list, assume it is an adjacency list...
+    # Otherwise, if `object` is a list, assume it is an adjacency list...
   } else if (inherits(object, what = "list")) {
-    # And convert it to an `igraph` with the appropriate method. 
+    # And convert it to an `igraph` with the appropriate method.
     input <- graph_from_adj_list(object)
-  # Or, if `object` is a matrix...
+    # Or, if `object` is a matrix...
   } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
     # Make sure the matrix is sparse.
     if (inherits(object, what = "Graph")) {
-      object <- as.sparse(object)
+      if (leiden_method == "leidenbase") {
+        object <- as.sparse(object)
+      }
     }
     # And then convert it to an graph.
-    input <- graph_from_adjacency_matrix(object, weighted = TRUE)
-  # Throw an error if `object` is of an unknown type. 
+    if (leiden_method == "leidenbase") {
+      input <- graph_from_adjacency_matrix(object, weighted = TRUE)
+    }
+    if (leiden_method == "igraph") {
+      input <- graph_from_adjacency_matrix(
+        object,
+        weighted = TRUE,
+        diag = FALSE,
+        mode = "lower")
+    }
+
+    # Throw an error if `object` is of an unknown type.
   } else {
     stop(
       "Method for Leiden not found for class", class(object),
@@ -1741,16 +1801,40 @@ RunLeiden <- function(
   }
 
   # Run clustering with `leidenbase`.
-  partition <- leidenbase::leiden_find_partition(
-    input,
-    partition_type = partition.type,
-    initial_membership = initial.membership,
-    edge_weights = NULL,
-    node_sizes = node.sizes,
-    resolution_parameter = resolution.parameter,
-    seed = random.seed,
-    num_iter = n.iter
-  )$membership
+  if (leiden_method == "leidenbase") {
+    partition <- leidenbase::leiden_find_partition(
+      input,
+      partition_type = partition.type,
+      initial_membership = initial.membership,
+      edge_weights = NULL,
+      node_sizes = node.sizes,
+      resolution_parameter = resolution.parameter,
+      seed = random.seed,
+      num_iter = n.iter
+    )$membership
+  }
+  if (leiden_method == "igraph") {
+    leiden_objective_function <- match.arg(leiden_objective_function)
+
+    partition <- cluster_leiden(
+      graph = input,
+      resolution = resolution.parameter,
+      objective_function = leiden_objective_function,
+      n_iterations = n.iter,
+      initial_membership = initial.membership)
+    partition <- as.integer(x = membership(communities = partition))
+
+    # reorder cluster number by cluster membership size
+    clusts <- as.character(x = partition)
+    count <- data.frame(table(clusts))
+    count <- count[order(count$Freq, decreasing = TRUE), ]
+    map <- seq(1, nrow(x = count))
+    names(x = map) <- count[[1]]
+    clusts <- factor(map[clusts])
+    partition <- data.frame("res" = factor(clusts))
+    partition <- as.integer(x = partition$res)
+  }
+
   return(partition)
 }
 

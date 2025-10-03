@@ -31,6 +31,7 @@ RunUMAP(object, ...)
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -94,6 +95,7 @@ RunUMAP(object, ...)
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -124,8 +126,8 @@ if running UMAP on a Graph}
 
 \item{umap.method}{UMAP implementation to run. Can be
 \describe{
-  \item{\code{uwot}:}{Runs umap via the uwot R package}
-  \item{\code{uwot-learn}:}{Runs umap via the uwot R package and return the learned umap model}
+  \item{\code{uwot}:}{Runs umap via the uwot R package \code{\link[uwot]{umap}}}
+  \item{\code{uwot2}:}{Runs umap2 via the uwot R package \code{\link[uwot]{umap2}}}
   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 }}
 
@@ -181,6 +183,9 @@ automatically as determined by min. dist and spread. Parameter of differentiable
 right adjoint functor.}
 
 \item{uwot.sgd}{Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details}
+
+\item{uwot.approx_pow}{Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
+\code{\link[uwot]{umap}} for more details.}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed}

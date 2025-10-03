@@ -35,7 +35,8 @@ DimPlot(
   ncol = NULL,
   combine = TRUE,
   raster = NULL,
-  raster.dpi = c(512, 512)
+  raster.dpi = c(512, 512),
+  label.size.cutoff = 0
 )
 
 PCAPlot(object, ...)
@@ -117,8 +118,9 @@ ggplot object. If \code{FALSE}, return a list of ggplot objects}
 \item{raster}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
 
-\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
-Default is c(512, 512).}
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore(). Default is c(512, 512).}
+
+\item{label.size.cutoff}{Clusters with fewer cells than the cutoff are not labeled (replaced with ' ' label)}
 
 \item{...}{Extra parameters passed to \code{DimPlot}}
 }
