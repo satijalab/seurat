@@ -20,6 +20,8 @@ in a \code{Seurat} object}
 be one or more alphanumeric characters followed by an underscore
 \dQuote{\code{_}} (regex pattern
 \dQuote{\code{^[a-zA-Z][a-zA-Z0-9]*_$}})}
+
+\item{\code{misc}}{A named list of unstructured miscellaneous data}
 }
 }
 

@@ -18,6 +18,7 @@ FeaturePlot(
  },
   pt.size = NULL,
   alpha = 1,
+  stroke.size = NULL,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -71,6 +72,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 \item{pt.size}{Adjust point size for plotting}
 
 \item{alpha}{Alpha value for plotting (default is 1)}
+
+\item{stroke.size}{Adjust stroke (outline) size of points}
 
 \item{order}{Boolean determining whether to plot cells in order of expression. Can be useful if
 cells expressing given feature are getting buried.}
@@ -132,8 +135,7 @@ ggplot object. If \code{FALSE}, return a list of ggplot objects}
 \item{raster}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
 
-\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
-Default is c(512, 512).}
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore(). Default is c(512, 512).}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

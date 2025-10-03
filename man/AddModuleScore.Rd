@@ -88,7 +88,7 @@ database; see \code{\link{UpdateSymbolList}} for more details}
 
 \item{slot}{Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)}
 
-\item{kmeans.obj}{A \code{DoKMeans} output used to define feature clusters 
+\item{kmeans.obj}{A \code{DoKMeans} output used to define feature clusters
 when \code{k = TRUE}; ignored if \code{k = FALSE}.}
 }
 \value{
