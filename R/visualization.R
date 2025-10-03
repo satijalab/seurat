@@ -907,7 +907,7 @@ DimPlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
-  
+
   if (label & (label.size.cutoff > 0)) {
     labels <- FetchData(object, group.by)
     for(i in seq_along(group.by)) {
@@ -921,7 +921,7 @@ DimPlot <- function(
     object <- AddMetaData(object,labels)
     group.by <- colnames(labels)
   }
-  
+
   data <- FetchData(
     object = object,
     vars = c(dims, group.by),
@@ -4023,7 +4023,7 @@ InteractiveSpatialPlot <- function(
     if (type == "visium" && "image" %in% slotNames(image_obj)) {
       img_raster <- image_obj@image
     } else if (
-      type == "vizgen" && 
+      type == "vizgen" &&
       "boundaries" %in% slotNames(image_obj) &&
       "centroids" %in% slotNames(image_obj@boundaries) &&
       "image" %in% slotNames(image_obj@boundaries$centroids)
@@ -5138,7 +5138,7 @@ JackStrawPlot <- function(
 #' }
 #' }
 PlotClusterTree <- function(object, direction = "downwards", ...) {
-  if (!PackageCheck('ape', error = FALSE)) {
+  if (isFALSE(x = requireNamespace('ape', quietly = TRUE))) {
     stop(cluster.ape, call. = FALSE)
   }
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
@@ -8758,11 +8758,11 @@ SingleExIPlot <- function(
   raster.dpi = NULL
 ) {
    if (!is.null(x = raster) && isTRUE(x = raster)){
-    if (!PackageCheck('ggrastr', error = FALSE)) {
+     if (isFALSE(x = requireNamespace('ggrastr', quietly = TRUE))) {
       stop("Please install ggrastr from CRAN to enable rasterization.")
     }
   }
-  if (PackageCheck('ggrastr', error = FALSE)) {
+  if (isTRUE(x = requireNamespace('ggrastr', quietly = TRUE))) {
     # Set rasterization to true if ggrastr is installed and
     # number of points exceeds 100,000
     if ((nrow(x = data) > 1e5) & is.null(x = raster)){

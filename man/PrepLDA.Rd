@@ -31,7 +31,7 @@ PrepLDA(
 \item{verbose}{Print progress bar.}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 }
 \value{

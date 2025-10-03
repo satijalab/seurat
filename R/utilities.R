@@ -1,5 +1,4 @@
 #' @include generics.R
-#' @importFrom SeuratObject PackageCheck
 #'
 NULL
 
