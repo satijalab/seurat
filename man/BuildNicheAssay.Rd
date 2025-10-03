@@ -28,6 +28,8 @@ BuildNicheAssay(
 
 \item{neighbors.k}{Number of neighbors to consider for each cell}
 
+\item{niches.k}{Number of niche clusters to construct}
+
 \item{...}{Extra parameters passed to \code{\link{kmeans}}}
 }
 \value{
