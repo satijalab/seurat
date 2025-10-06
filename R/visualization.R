@@ -4635,7 +4635,7 @@ BarcodeInflectionsPlot <- function(object) {
       aes(xintercept = .data[['rank']]),
       linetype = "dashed",
       colour = 'grey60',
-      linewidth = 0.5
+      size = 0.5
     ) +
     geom_vline(
       data = inflection_points,
@@ -6331,7 +6331,7 @@ CenterTitle <- function(...) {
 DarkTheme <- function(...) {
   #   Some constants for easier changing in the future
   black.background <- element_rect(fill = 'black')
-  black.background.no.border <- element_rect(fill = 'black', linewidth = 0)
+  black.background.no.border <- element_rect(fill = 'black', size = 0)
   font.margin <- 4
   white.text <- element_text(
     colour = 'white',
@@ -6342,8 +6342,8 @@ DarkTheme <- function(...) {
       l = font.margin
     )
   )
-  white.line <- element_line(colour = 'white', linewidth = 1)
-  no.line <- element_line(linewidth = 0)
+  white.line <- element_line(colour = 'white', size = 1)
+  no.line <- element_line(size = 0)
   #   Create the dark theme
   dark.theme <- theme(
     #   Set background colors
