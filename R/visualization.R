@@ -9240,7 +9240,7 @@ SingleImagePlot <- function(
 # @seealso \code{\link[cowplot]{theme_cowplot}}
 #
 SinglePolyPlot <- function(data, group.by, ...) {
-  plot <- ggplot(data = data, mapping = aes(x = .data[['x']], y = .data[['y']]))
+  plot <- ggplot(data = data, mapping = aes(x = .data[['x']], y = .data[['y']])) +
     geom_polygon(mapping = aes(fill = .data[[group.by]], group = .data[['cell']])) +
     coord_fixed() +
     theme_cowplot(...)
