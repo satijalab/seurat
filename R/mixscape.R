@@ -1120,7 +1120,7 @@ PlotPerturbScore <- function(
       p2 <- ggplot(data = prtb_score, aes(x = .data[["pvec"]], color = .data[["mix"]])) +
         scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) + +
+        geom_point(aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme_classic() +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
