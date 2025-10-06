@@ -5147,7 +5147,7 @@ JackStrawPlot <- function(
 #' }
 #' }
 PlotClusterTree <- function(object, direction = "downwards", ...) {
-  if (!PackageCheck('ape', error = FALSE)) {
+  if (isFALSE(x = requireNamespace('ape', quietly = TRUE))) {
     stop(cluster.ape, call. = FALSE)
   }
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
@@ -8770,11 +8770,11 @@ SingleExIPlot <- function(
   raster.dpi = NULL
 ) {
    if (!is.null(x = raster) && isTRUE(x = raster)){
-    if (!PackageCheck('ggrastr', error = FALSE)) {
+     if (isFALSE(x = requireNamespace('ggrastr', quietly = TRUE))) {
       stop("Please install ggrastr from CRAN to enable rasterization.")
     }
   }
-  if (PackageCheck('ggrastr', error = FALSE)) {
+  if (isTRUE(x = requireNamespace('ggrastr', quietly = TRUE))) {
     # Set rasterization to true if ggrastr is installed and
     # number of points exceeds 100,000
     if ((nrow(x = data) > 1e5) & is.null(x = raster)){
