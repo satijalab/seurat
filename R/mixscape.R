@@ -162,8 +162,8 @@ DEenrichRPlot <- function(
   return.gene.list = FALSE,
   ...
 ) {
-  enrichr.installed <- PackageCheck("enrichR", error = FALSE)
-  if (!enrichr.installed[1]) {
+  enrichr.installed <- requireNamespace('enrichR', quietly = TRUE)
+  if (isFALSE(x = enrichr.installed)) {
     stop(
       "Please install the enrichR package to use DEenrichRPlot",
       "\nThis can be accomplished with the following command: ",
@@ -698,8 +698,8 @@ RunMixscape <- function(
   fine.mode.labels = "guide_ID",
   prtb.type = "KO"
 ) {
-  mixtools.installed <- PackageCheck("mixtools", error = FALSE)
-  if (!mixtools.installed[1]) {
+  mixtools.installed <- requireNamespace('mixtools', quietly = TRUE)
+  if (isFALSE(x = mixtools.installed)) {
     stop("Please install the mixtools package to use RunMixscape",
          "\nThis can be accomplished with the following command: ",
          "\n----------------------------------------",
