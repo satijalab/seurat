@@ -14,6 +14,7 @@
 - Updated `FindClusters` to order cluster factor levels correctly when assigning a custom cluster name
 - Updated `FindConservedMarkers` to remove NA values
 - Updated visualization functions to avoid `ggplot2::guides()` deprecation warnings
+- Fixed `DimPlot` bug where metadata columns named 'PC_1', 'UMAP_1' etc override reduction embeddings ([#10062](https://github.com/satijalab/seurat/pull/10062))
 
 # Seurat 5.3.0
 
