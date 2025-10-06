@@ -6062,7 +6062,7 @@ LabelClusters <- function(
     stop("Cannot find variable ", id, " in plotting data")
   }
   if (!is.null(x = split.by) && !split.by %in% colnames(x = plot$data)) {
-    warning("Cannot find splitting variable ", id, " in plotting data")
+    warning("Cannot find splitting variable ", split.by, " in plotting data")
     split.by <- NULL
   }
   data <- plot$data[, c(xynames, id, split.by)]
