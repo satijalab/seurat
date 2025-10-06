@@ -698,7 +698,7 @@ RunMixscape <- function(
   fine.mode.labels = "guide_ID",
   prtb.type = "KO"
 ) {
-  mmixtools.installed <- requireNamespace('mixtools', quietly = TRUE)
+  mixtools.installed <- requireNamespace('mixtools', quietly = TRUE)
   if (isFALSE(x = mixtools.installed)) {
     stop("Please install the mixtools package to use RunMixscape",
          "\nThis can be accomplished with the following command: ",
