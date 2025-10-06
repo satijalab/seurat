@@ -2139,10 +2139,10 @@ VariableFeatures.SCTAssay <- function(
 #' @concept spatial
 #'
 ScaleFactors.SlideSeq <- function(object, ...) {
-  # The concept of image scale factors comes from the 10x Visium platform.
+  # The concept of image scale factors comes from the 10x Visium platform. 
   # Although SlideSeq has no equivalent, we still want to provide the generic
   # so that the all of our concrete `SpatialImage` classes implement the same
-  # interface, so we'll return an S3 `scalefactors` object with all values set
+  # interface, so we'll return an S3 `scalefactors` object with all values set 
   # to 1.
   return(scalefactors())
 }
@@ -2153,10 +2153,10 @@ ScaleFactors.SlideSeq <- function(object, ...) {
 #' @concept spatial
 #'
 ScaleFactors.STARmap <- function(object, ...) {
-  # The concept of image scale factors comes from the 10x Visium platform.
+  # The concept of image scale factors comes from the 10x Visium platform. 
   # Although STARmap has no equivalent, we still want to provide the generic
   # so that the all of our concrete `SpatialImage` classes implement the same
-  # interface, so we'll return an S3 `scalefactors` object with all values set
+  # interface, so we'll return an S3 `scalefactors` object with all values set 
   # to 1.
   return(scalefactors())
 }

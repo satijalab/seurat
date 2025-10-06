@@ -37,7 +37,7 @@ use all other cells for comparison; if an object of class \code{phylo} or
 \item{balanced}{Plot an equal number of genes with both groups of cells.}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
+X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{assay}{Assay to use in differential expression testing}
