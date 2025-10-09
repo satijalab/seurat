@@ -3618,7 +3618,9 @@ ISpatialDimPlot <- function(
           df = plot.data,
           coordinfo = InvertCoordinate(x = input$click),
           threshold = 10,
-          maxpoints = 1
+          maxpoints = 1,
+          xvar = "y",
+          yvar = "x"
         )
         plot.env$data <- if (nrow(x = clicked) == 1) {
           cell.clicked <- rownames(x = clicked)
@@ -3658,7 +3660,9 @@ ISpatialDimPlot <- function(
           df = plot.data,
           coordinfo = InvertCoordinate(x = input$hover),
           threshold = 10,
-          maxpoints = 1
+          maxpoints = 1,
+          xvar = "y",
+          yvar = "x"
         )
         if (nrow(hovered) == 1) {
           cell.hover <- rownames(hovered)
