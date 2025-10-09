@@ -905,11 +905,11 @@ DimPlot <- function(
   # data <- Embeddings(object = object[[reduction]])[cells, dims]
   # data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  
-  # directly get embeddings to avoid name collisions 
+
+  # directly get embeddings to avoid name collisions
   embed <- Embeddings(object[[reduction]])[cells, dims, drop = FALSE]
   embed <- as.data.frame(embed)
-  
+
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
 
@@ -926,17 +926,17 @@ DimPlot <- function(
     object <- AddMetaData(object,labels)
     group.by <- colnames(labels)
   }
-  
+
   meta <- FetchData(
     object = object,
     vars = group.by,
     cells = cells,
     clean = 'project'
   )
-  
-  # Combine embeddigns and metadata 
+
+  # Combine embeddigns and metadata
   data <- cbind(embed, meta)
-  
+
   # cells <- rownames(x = object)
   # object[['ident']] <- Idents(object = object)
   # orig.groups <- group.by
@@ -9119,20 +9119,20 @@ SingleImagePlot <- function(
     )
   }
 
-  # performing NA check and creating second variable to correctly tidyeval plot and legend
-  col.by.plot <- col.by %NA% NULL
-  col.by.plot  <- list(fill = col.by.plot)
-  is_symbol <- lengths(col.by.plot) > 0
-  col.by.plot  <- c(data_syms(col.by.plot[is_symbol]), col.by.plot[!is_symbol])
+  # Normalize the optional column name
+  col_clean <- if (is.null(col.by) || is.na(col.by) || !nzchar(col.by)) NULL else col.by
+  # Build optional aes for fill
+  aes_extra <- if (is.null(col_clean)) list() else list(fill = sym(col_clean))
+
 
   # Assemble plot
   plot <- ggplot(
-    data = data %NA% NULL,
+    data = data,
     mapping = aes(
-      x = .data[['y']],
-      y = .data[['x']],
-      alpha = .data[['boundary']],
-      !!!col.by.plot
+      x = .data[["y"]],
+      y = .data[["x"]],
+      alpha = .data[["boundary"]],
+      !!!aes_extra
     )
   )
   if (!is_na(x = data)) {
