@@ -113,7 +113,6 @@ Suggests:
     limma,
     magrittr,
     MAST,
-    magrittr,
     metap,
     mixtools,
     monocle,
