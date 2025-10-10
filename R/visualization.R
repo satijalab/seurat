@@ -9465,6 +9465,10 @@ SingleSpatialPlot <- function(
   }
   col.by.plot <- col.by %iff% data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
   col.by <- col.by %iff% paste0("`", col.by, "`")
+
+  # Store unquoted col.by name for easier access
+  col.by.clean <- gsub("`", "", col.by)
+
   alpha.by <- alpha.by %iff% data_sym(alpha.by)
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
