@@ -2,7 +2,7 @@
 #' @importFrom methods slot slot<-
 #' @importFrom lifecycle deprecated deprecate_soft deprecate_stop
 #' deprecate_warn is_present
-#' @importFrom rlang !!!
+#' @importFrom rlang !!! .data
 #' abort
 #' data_sym
 #' data_syms
