@@ -789,7 +789,7 @@ Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
 ) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   file.path = paste0(data.dir,"/", filename)
@@ -1203,6 +1203,11 @@ Read10X <- function(
     if (ncol(x = feature.names) > 2) {
       data_types <- factor(x = feature.names$V3)
       lvls <- levels(x = data_types)
+      if ("Protein Expression" %in% lvls) {
+        message("Xenium protein expression detected, but no scaling factor",
+                " is supplied with the MEX matrices (vs HDF5). The loaded",
+                " matrix is scaled by a constant from the original values.")
+      }
       if (length(x = lvls) > 1 && length(x = full.data) == 0) {
         message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
       }
@@ -1256,7 +1261,7 @@ Read10X <- function(
 #' @concept preprocessing
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
@@ -1286,6 +1291,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     shp <- infile[[paste0(genome, '/shape')]]
     features <- infile[[paste0(genome, '/', feature_slot)]][]
     barcodes <- infile[[paste0(genome, '/barcodes')]]
+
     sparse.mat <- sparseMatrix(
       i = indices[] + 1,
       p = indptr[],
@@ -1317,6 +1323,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
           simplify = FALSE,
           USE.NAMES = TRUE
         )
+
+        # Apply scaling factor that was used when serializing.
+        if ("Protein Expression" %in% types.unique) {
+          if ("protein_scaling_factor" %in% hdf5r::h5attr_names(infile)) {
+            apply_scaling_factor <- 1.0 / hdf5r::h5attr(infile, "protein_scaling_factor")
+            message("Scaling 'Protein Expression' by ", apply_scaling_factor)
+            sparse.mat[["Protein Expression"]] <- sparse.mat[["Protein Expression"]] * apply_scaling_factor
+          }
+        }
       }
     }
     output[[genome]] <- sparse.mat
@@ -1451,7 +1466,7 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
   # if the coordinate mappings are in a parquet file
   if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
-    if (!requireNamespace("arrow", quietly = TRUE)) {
+    if (isFALSE(x = requireNamespace('arrow', quietly = TRUE))) {
       stop("Please install arrow to read parquet files")
     }
 
@@ -1677,7 +1692,7 @@ ReadAkoya <- function(
   filter = 'DAPI|Blank|Empty',
   inform.quant = c('mean', 'total', 'min', 'max', 'std')
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
   # Check arguments
@@ -2250,7 +2265,7 @@ ReadNanostring <- function(
   subset.counts.matrix = NULL,
   cell.mols.only = TRUE
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
 
@@ -2997,7 +3012,7 @@ ReadVitessce <- function(
   type = c('segmentations', 'centroids'),
   filter = NA_character_
 ) {
-  if (!requireNamespace('jsonlite', quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('jsonlite', quietly = TRUE))) {
     stop("Please install 'jsonlite' for this function")
   }
   type <- match.arg(arg = type, several.ok = TRUE)
@@ -3214,7 +3229,7 @@ ReadVizgen <- function(
   z = 3L
 ) {
   # TODO: handle multiple segmentations per z-plane
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
   # hdf5r is only used for loading polygon boundaries
@@ -3669,10 +3684,10 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
     message("Computing Moran's I")
     mysapply <- pbsapply
   }
-  Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
-  if (Rfast2.installed) {
+  Rfast2.installed <- requireNamespace('Rfast2', quietly = TRUE)
+  if (isTRUE(x = Rfast2.installed)) {
     MyMoran <- Rfast2::moranI
-  } else if (!PackageCheck('ape', error = FALSE)) {
+  } else if (isFALSE(x = requireNamespace('ape', quietly = TRUE))) {
     stop(
       "'RunMoransI' requires either Rfast2 or ape to be installed",
       call. = FALSE

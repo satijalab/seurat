@@ -133,7 +133,7 @@ LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 BuildManual: true
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Collate:
     'RcppExports.R'
     'reexports.R'
