@@ -4024,7 +4024,8 @@ InteractiveSpatialPlot <- function(
   coords$hover <- paste0(
     "Cell: ", coords$cell,
     "<br>x: ", round(coords$x_raw, 1),
-    ", y: ", round(coords$y_raw, 1)
+    ", y: ", round(coords$y_raw, 1),
+    if(group.by != "all") paste0("<br>Cluster: ", coords$group) else ""
   )
 
   # Prepare background tissue image as a base64-encoded PNG (if available and enabled)
@@ -4057,25 +4058,25 @@ InteractiveSpatialPlot <- function(
   }
 
   # Calculate custom axis tick positions and labels to show original coordinates
-  # This is necessary as points are downscaled to fit on the tissue image
+  # This is necessary as points are downscaled to fit on the tissue image 
   # However, to best retain their original spatial orientation, we plot
   # the original coordinate scale on the axis
   create_axis_ticks <- function(scaled_coords, raw_coords, n_ticks = 6) {
     # Get range of scaled and raw coordinates
     scaled_range <- range(scaled_coords, na.rm = TRUE)
     raw_range <- range(raw_coords, na.rm = TRUE)
-
+    
     # Create tick positions in the raw coordinate space
     raw_ticks <- pretty(raw_range, n = n_ticks)
-
+    
     # Calculate corresponding scaled positions
     # Linear interpolation from raw to scaled coordinates
     scale_factor <- diff(scaled_range) / diff(raw_range)
     scaled_ticks <- (raw_ticks - raw_range[1]) * scale_factor + scaled_range[1]
-
+    
     return(list(tickvals = scaled_ticks, ticktext = as.character(raw_ticks)))
   }
-
+  
   # Create custom axis ticks for both x and y axes
   x_ticks <- create_axis_ticks(coords$x, coords$x_raw)
   y_ticks <- create_axis_ticks(coords$y, coords$y_raw)
@@ -4084,26 +4085,49 @@ InteractiveSpatialPlot <- function(
   ui <- miniPage(
     gadgetTitleBar("Select a subset of cells"),
     miniContentPanel(
+      tags$div(
+        style = "margin: 10px; padding: 5px; background-color: #f0f0f0; border-radius: 3px;",
+        tags$small("Tip: Double-click a cell to select all cells in a cluster")
+      ),
       plotly::plotlyOutput("plot", height = "100%")
     )
   )
 
   # Shiny gadget server logic for interactive plot and lasso selection
   server <- function(input, output, session) {
+    # Reactive value to store selected cells
+    selected_cells_rv <- reactiveVal(NULL)
+    # Reactive value to store selected cluster for highlighting
+    selected_cluster_rv <- reactiveVal(NULL)
+    
     # Render the interactive plotly scattergl plot
     output$plot <- plotly::renderPlotly({
+      # Get selected cluster (if any)
+      sel_cluster <- selected_cluster_rv()
+      
+      # Prepare data with potential opacity adjustment
+      plot_data <- coords
+      if (!is.null(sel_cluster) && group.by != "all") {
+        # Add opacity column: full opacity for selected cluster, faded for others
+        plot_data$opacity <- ifelse(plot_data$group == sel_cluster, alpha, alpha * 0.2)
+      } else {
+        plot_data$opacity <- alpha
+      }
+      
       plt <- plotly::plot_ly(
-        data = coords,
+        data = plot_data,
         x = ~y,          # Plot y on x axis to match Seurat/ggplot conventions
         y = ~x,          # Plot x on y axis (this handles flipped axes)
         color = ~group,  # Color by group/cluster if available
         key = ~cell,     # Store cell names for selection retrieval
         type = "scattergl", # Use WebGL for performance with large datasets
         mode = "markers",
-        marker = list(size = 2 * pt.size.factor), # Default pt size is 2
+        marker = list(
+          size = 2 * pt.size.factor,
+          opacity = ~opacity  # Use dynamic opacity
+        ),
         text = ~hover,           # Show hover info (cellid + coordinates)
-        hoverinfo = "text",
-        alpha = alpha            # Global transparency
+        hoverinfo = "text"
       )
 
       # Overlay the tissue image as background if available
@@ -4125,19 +4149,19 @@ InteractiveSpatialPlot <- function(
         )
       }
 
-      # Lock axes to same scale and reverse y for image alignment
+      # Lock axes to same scale and reverse y for image alignment 
       # Set lasso mode and custom axis labels
       plt <- plt %>% plotly::layout(
         dragmode = "lasso",
         yaxis = list(
-          autorange = "reversed",
-          scaleanchor = "x",
+          autorange = "reversed", 
+          scaleanchor = "x", 
           title = "x",
           tickvals = x_ticks$tickvals,
           ticktext = x_ticks$ticktext
         ),
         xaxis = list(
-          scaleanchor = "y",
+          scaleanchor = "y", 
           title = "y",
           tickvals = y_ticks$tickvals,
           ticktext = y_ticks$ticktext
@@ -4146,11 +4170,52 @@ InteractiveSpatialPlot <- function(
       plt
     })
 
-    # When user clicks "Done", retrieve lasso selection and close gadget
+    # Handle double-click events to select all cells in a cluster
+    observeEvent(plotly::event_data("plotly_click"), {
+      click_data <- plotly::event_data("plotly_click")
+      if (!is.null(click_data) && nrow(click_data) > 0) {
+        # Get the clicked cell
+        clicked_cell <- click_data$key[1]
+        
+        # Only proceed if we have cluster information (group.by != "all")
+        if (group.by != "all") {
+          # Find the cluster of the clicked cell
+          clicked_cluster <- coords$group[coords$cell == clicked_cell]
+          
+          # Select all cells in that cluster
+          cluster_cells <- coords$cell[coords$group == clicked_cluster]
+          
+          # Store the selection
+          selected_cells_rv(cluster_cells)
+          
+          # Show a notification to the user
+          showNotification(
+            paste0("Selected ", length(cluster_cells), " cells from cluster ", clicked_cluster),
+            duration = 3,
+            type = "message"
+          )
+        }
+      }
+    })
+
+    # When user clicks "Done", retrieve lasso or double-click selection and close gadget
     observeEvent(input$done, {
+      # First check for lasso selection
       selected <- plotly::event_data("plotly_selected")
-      selected_cells <- selected$key
-      stopApp(selected_cells)
+      
+      # Safely check if lasso selection exists and has rows
+      has_lasso <- !is.null(selected) && is.data.frame(selected) && nrow(selected) > 0
+      
+      if (isTRUE(has_lasso)) {
+        # Return lasso selection
+        stopApp(selected$key)
+      } else if (!is.null(selected_cells_rv())) {
+        # Return double-click cluster selection
+        stopApp(selected_cells_rv())
+      } else {
+        # No selection made
+        stopApp(NULL)
+      }
     })
 
     # When user clicks "Cancel", exit gadget and return NULL
@@ -4162,6 +4227,7 @@ InteractiveSpatialPlot <- function(
   # Launch the interactive gadget
   runGadget(ui, server)
 }
+
 
 #' Visualize spatial clustering and expression data.
 #'
