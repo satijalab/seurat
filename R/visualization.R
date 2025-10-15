@@ -3940,6 +3940,9 @@ InteractiveSpatialPlot <- function(
   # Import magrittr pipe locally
   `%>%` <- magrittr::`%>%`
 
+  # Import shiny tags for UI elements
+  tags <- shiny::tags
+
   # Use provided image name or fallback to default
   image <- image %||% DefaultImage(object)
 
@@ -3961,6 +3964,16 @@ InteractiveSpatialPlot <- function(
     type <- "vizgen"
   } else {
     stop("Unrecognized image class: ", img_class)
+  }
+
+  # Detect if Visium object has segmentation data
+  has_segmentation <- FALSE
+  if (type == "visium" && "boundaries" %in% slotNames(image_obj)) {
+    boundaries <- image_obj@boundaries
+    # Check if segmentation exists in the boundaries list and is not empty
+    if ("segmentation" %in% names(boundaries) && !is.null(boundaries$segmentation)) {
+      has_segmentation <- TRUE
+    }
   }
 
   # Extract and scale cell coordinates according to image type
@@ -4114,10 +4127,29 @@ InteractiveSpatialPlot <- function(
         plot_data$opacity <- alpha
       }
       
+      # Determine which coordinates to use for x and y axes
+      # For Visium with segmentation, use x as x-axis and y as y-axis
+      # For others, use the flipped convention (y as x-axis, x as y-axis)
+      if (has_segmentation) {
+        x_coord <- ~x
+        y_coord <- ~y
+        x_axis_title <- "x"
+        y_axis_title <- "y"
+        x_axis_ticks <- x_ticks
+        y_axis_ticks <- y_ticks
+      } else {
+        x_coord <- ~y
+        y_coord <- ~x
+        x_axis_title <- "y"
+        y_axis_title <- "x"
+        x_axis_ticks <- y_ticks
+        y_axis_ticks <- x_ticks
+      }
+      
       plt <- plotly::plot_ly(
         data = plot_data,
-        x = ~y,          # Plot y on x axis to match Seurat/ggplot conventions
-        y = ~x,          # Plot x on y axis (this handles flipped axes)
+        x = x_coord,     # Use appropriate coordinate based on segmentation
+        y = y_coord,     # Use appropriate coordinate based on segmentation
         color = ~group,  # Color by group/cluster if available
         key = ~cell,     # Store cell names for selection retrieval
         type = "scattergl", # Use WebGL for performance with large datasets
@@ -4156,15 +4188,15 @@ InteractiveSpatialPlot <- function(
         yaxis = list(
           autorange = "reversed", 
           scaleanchor = "x", 
-          title = "x",
-          tickvals = x_ticks$tickvals,
-          ticktext = x_ticks$ticktext
+          title = y_axis_title,
+          tickvals = y_axis_ticks$tickvals,
+          ticktext = y_axis_ticks$ticktext
         ),
         xaxis = list(
           scaleanchor = "y", 
-          title = "y",
-          tickvals = y_ticks$tickvals,
-          ticktext = y_ticks$ticktext
+          title = x_axis_title,
+          tickvals = x_axis_ticks$tickvals,
+          ticktext = x_axis_ticks$ticktext
         )
       )
       plt
