@@ -4258,7 +4258,7 @@ InteractiveSpatialPlot <- function(
       # Safely check if lasso selection exists and has rows
       has_lasso <- !is.null(selected) && is.data.frame(selected) && nrow(selected) > 0
       
-      if (isTRUE(has_lasso)) {
+      if (has_lasso) {
         # Return lasso selection
         stopApp(selected$key)
       } else if (!is.null(selected_cells_rv())) {
