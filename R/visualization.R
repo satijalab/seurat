@@ -4100,7 +4100,7 @@ InteractiveSpatialPlot <- function(
     miniContentPanel(
       tags$div(
         style = "margin: 10px; padding: 5px; background-color: #f0f0f0; border-radius: 3px;",
-        tags$small("Tip: Double-click a cell to select all cells in a cluster")
+        tags$small("Tip: Double-click a cell to select all cells in a cluster, or use lasso to select custom regions")
       ),
       plotly::plotlyOutput("plot", height = "100%")
     )
@@ -4200,6 +4200,25 @@ InteractiveSpatialPlot <- function(
         )
       )
       plt
+    })
+
+    # Show notification upon lasso event
+    observeEvent(plotly::event_data("plotly_selected"), {
+      selected <- plotly::event_data("plotly_selected")
+      if (!is.null(selected) && nrow(selected) > 0) {
+        # Get the number of selected cells
+        n_cells <- nrow(selected)
+        
+        # Store the selection
+        selected_cells_rv(selected$key)
+        
+        # Notify user of number of cells selected
+        showNotification(
+          paste0("Lasso selected ", n_cells, " cell", if(n_cells != 1) "s" else ""),
+          duration = 3,
+          type = "message"
+        )
+      }
     })
 
     # Handle double-click events to select all cells in a cluster
