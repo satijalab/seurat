@@ -4202,17 +4202,18 @@ InteractiveSpatialPlot <- function(
       plt
     })
 
-    # Show notification upon lasso event
+    # Handle lasso selection events to show notification
     observeEvent(plotly::event_data("plotly_selected"), {
       selected <- plotly::event_data("plotly_selected")
-      if (!is.null(selected) && nrow(selected) > 0) {
+      # Check if selection is valid (not NULL, is a data frame, and has rows)
+      if (!is.null(selected) && is.data.frame(selected) && nrow(selected) > 0) {
         # Get the number of selected cells
         n_cells <- nrow(selected)
         
         # Store the selection
         selected_cells_rv(selected$key)
         
-        # Notify user of number of cells selected
+        # Notify user of number of cells lassoed
         showNotification(
           paste0("Lasso selected ", n_cells, " cell", if(n_cells != 1) "s" else ""),
           duration = 3,
@@ -4221,7 +4222,7 @@ InteractiveSpatialPlot <- function(
       }
     })
 
-    # Handle double-click events to select all cells in a cluster
+    # Handle notifications for cluster click events
     observeEvent(plotly::event_data("plotly_click"), {
       click_data <- plotly::event_data("plotly_click")
       if (!is.null(click_data) && nrow(click_data) > 0) {
@@ -4239,7 +4240,7 @@ InteractiveSpatialPlot <- function(
           # Store the selection
           selected_cells_rv(cluster_cells)
           
-          # Show a notification to the user
+          # Notify user of number of cells selected
           showNotification(
             paste0("Selected ", length(cluster_cells), " cells from cluster ", clicked_cluster),
             duration = 3,
