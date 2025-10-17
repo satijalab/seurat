@@ -4215,7 +4215,7 @@ InteractiveSpatialPlot <- function(
         
         # Notify user of number of cells lassoed
         showNotification(
-          paste0("Lasso selected ", n_cells, " cell", if(n_cells != 1) "s" else ""),
+          paste0("Lasso selected ", n_cells, " cell", if (n_cells != 1) "s" else ""),
           duration = 3,
           type = "message"
         )
