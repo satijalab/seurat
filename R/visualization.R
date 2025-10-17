@@ -4038,7 +4038,7 @@ InteractiveSpatialPlot <- function(
     "Cell: ", coords$cell,
     "<br>x: ", round(coords$x_raw, 1),
     ", y: ", round(coords$y_raw, 1),
-    if(group.by != "all") paste0("<br>Cluster: ", coords$group) else ""
+    if (group.by != "all") paste0("<br>Cluster: ", coords$group) else ""
   )
 
   # Prepare background tissue image as a base64-encoded PNG (if available and enabled)
