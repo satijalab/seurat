@@ -7399,8 +7399,6 @@ GeomSpatial <- ggproto(
   ),
   setup_data = function(self, data, params) {
     data <- ggproto_parent(Geom, self)$setup_data(data, params)
-    # We need to flip the image as the Y coordinates are reversed
-    data$y = max(data$y) - data$y + min(data$y)
     data
   },
   draw_key = draw_key_point,
@@ -7410,8 +7408,6 @@ GeomSpatial <- ggproto(
     # This should be in native units, where
     # Locations and sizes are relative to the x- and yscales for the current viewport.
     if (!crop) {
-      y.transform <- c(0, img.dim[[1]]) - panel_scales$y.range
-      data$y <- data$y + sum(y.transform)
       panel_scales$x$continuous_range <- c(0, img.dim[[2]])
       panel_scales$y$continuous_range <- c(0, img.dim[[1]])
       panel_scales$y.range <- c(0, img.dim[[1]])
@@ -7421,8 +7417,6 @@ GeomSpatial <- ggproto(
       data.frame(x = c(0, img.dim[[2]]), y = c(0, img.dim[[1]])),
       panel_scales
     )
-    # Flip Y axis for image
-    z$y <- -rev(z$y) + 1
     wdth <- z$x[2] - z$x[1]
     hgth <- z$y[2] - z$y[1]
     vp <- viewport(
@@ -7430,7 +7424,7 @@ GeomSpatial <- ggproto(
       y = unit(x = z$y[1], units = "npc"),
       width = unit(x = wdth, units = "npc"),
       height = unit(x = hgth, units = "npc"),
-      just = c("left", "bottom")
+      just = c("left", "top")
     )
 
     spot.size <- Radius(object = image, scale = image.scale)
@@ -9485,8 +9479,8 @@ SingleSpatialPlot <- function(
     data <- data[order(data$ident), ]
   }
   plot <- ggplot(data = data, aes(
-    x = .data[[colnames(x = data)[2]]],
-    y = .data[[colnames(x = data)[1]]],
+    x = .data[[colnames(x = data)[1]]],
+    y = .data[[colnames(x = data)[2]]],
     fill = !!col.by.plot,
     alpha = !!alpha.by
   ))
@@ -9517,7 +9511,7 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
-      plot + coord_fixed() + theme(aspect.ratio = 1)
+      plot + coord_fixed() + theme(aspect.ratio = 1) + scale_y_reverse()
     },
     'interactive' = {
       plot + geom_spatial_interactive(
@@ -9551,119 +9545,90 @@ SingleSpatialPlot <- function(
       # Retrieve scale factor from specified image scale ("lowres"/"hires")
       scale.factor <- ScaleFactors(image)[[image.scale]]
       if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
-
-      # Retrieve image dimensions for later use (flipping image)
+      # Retrieve image dimensions for later use
       image.height <- dim(image@image)[1]
       image.width <- dim(image@image)[2]
       
-      # Retrieve the sf data stored in the Visium V2 object 
-      # Merge it with data dataframe which contains ident and gene expression information 
-      sf.data = image@boundaries$segmentation@sf.data
-
-      # Scale geometry to match image scale
+      # Extract and scale segmentation data
+      sf.data <- image@boundaries$segmentation@sf.data
       sf.data$geometry <- sf.data$geometry * scale.factor
+      
+      # Extract and scale centroid coordinates
+      centroids <- image@boundaries$centroids
+      coords <- centroids@coords
+      coords[, 1] <- coords[, 1] * scale.factor
+      coords[, 2] <- coords[, 2] * scale.factor
 
-      # Transform geometry to match image coordinates
-      sf.data$geometry <- lapply(sf.data$geometry,
-                                function(geom) {
-                                  coords <- geom[[1]]
-                                  coords[,2] <- image.height - coords[,2]
-                                  st_polygon(list(coords))
-                                }) %>% st_sfc(crs = st_crs(sf.data))
-
-      #Create sf object from data (POINTS), and extract xy
+      centroid_barcodes <- centroids@cells
+      rownames(coords) <- centroid_barcodes
+      
+      # Add cell column to data for merging
       data$cell <- rownames(data)
-      data.sf <- st_as_sf(data, coords = c("x", "y"), crs = NA)
-
       # Import pipe operator locally
       `%>%` <- magrittr::`%>%`
-
-      data.coords <- data.sf %>%
-        mutate(x = sf::st_coordinates(.)[, 1],
-              y = sf::st_coordinates(.)[, 2]) %>%
-        st_drop_geometry()
-
-      #Merge with sf.data
-      sf.merged <- sf.data %>%
-        left_join(data.coords, by = c("barcodes" = "cell"))
-      sf.cleaned <- sf.merged %>% filter(!is.na(x))
-
-      #Extract centroids from VisiumV2, update sf.cleaned to match centroids
-      if (!requireNamespace("sp", quietly = TRUE)) {
-        stop("The 'sp' package is required but not installed.")
-      }
-      coordinates <- sp::coordinates
-      coords <- coordinates(image@boundaries$centroids)
-      barcodes <- image@boundaries$centroids@cells
-      rownames(coords) <- barcodes
-
-      # Find matching barcodes
-      common_cells <- intersect(sf.cleaned$barcodes, rownames(coords))
-
-      # Use match() to align indices
-      match_idx <- match(common_cells, sf.cleaned$barcodes)
-      coord_idx <- match(common_cells, rownames(coords))
-
-      # Update x and y in sf.cleaned
-      # Apply scaling and transform y axis to match image coordinate system
-      sf.cleaned$x[match_idx] <- coords[coord_idx, 1] * scale.factor
-      sf.cleaned$y[match_idx] <- image.height - (coords[coord_idx, 2] * scale.factor)
-
-      #Plot (currently independently of switch/case)
-      if(!plot_segmentations){
-        #If plot_segmentations FALSE, then plot just the centroids from sf data
-        
+      
+      # Merge sf.data with expression data and centroid coordinates
+      
+      sf.plot <- sf.data %>%
+        left_join(data, by = c("barcodes" = "cell")) %>%
+        filter(barcodes %in% centroid_barcodes)
+      
+      # Create appropriate geom layer based on plot_segmentations
+      if (!plot_segmentations) {
+        #If plot_segmentations FALSE, then plot just the polygon centroids 
         if (is.null(pt.alpha)) {
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
           geom_point_layer <- geom_point(
+            data = sf.plot,
             shape = 21, 
             stroke = stroke, 
             size = pt.size.factor, 
-            aes_string(fill = col.by, alpha = alpha.by)
+            aes(x = x, y = y, fill = !!col.by.plot, alpha = !!alpha.by)
           )
         } else {
-          #If pt.alpha is indeed provided, then use that to define alpha
           geom_point_layer <- geom_point(
+            data = sf.plot,
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
-            aes_string(fill = col.by), 
-            alpha = if (is.null(pt.alpha)) 1 else pt.alpha
+            aes(x = x, y = y, fill = !!col.by.plot),
+            alpha = pt.alpha
           )
         }
-        ggplot(sf.cleaned, aes(x = x, y = y)) +
-          annotation_custom(
+        ggplot() +
+            annotation_custom(
               grob = image.grob,
               xmin = 0,
               xmax = image.width,
               ymin = 0,
               ymax = image.height
             ) +
-          geom_point_layer +
-          coord_fixed() +
-          xlab("x") +
-          ylab("y") +
-          theme_minimal()
-      
-      }else{
-        #If plot_segmentations TRUE, then use geometry data stored in sf to plot cell polygons
+            geom_point_layer +
+            scale_y_reverse() + 
+            xlab("x") +
+            ylab("y") +
+            coord_fixed() +
+            theme_void()
+      } else {
+        # Get polygon coordinates for plotting
+        polygon_coords <- GetPolygonCoordinates(sf.plot)
         
         if (is.null(pt.alpha)) {
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
-          geom_sf_layer <- geom_sf(
-            data = sf.cleaned,
-            aes_string(fill = col.by, alpha = alpha.by),
+          geom_polygon_layer <- geom_polygon(
+            data = polygon_coords,
+            aes(x = x, y = y, fill = !!col.by.plot, alpha = !!alpha.by, group = cell),
             color = "black",
             linewidth = stroke
           )
         } else {
           #If pt.alpha is indeed provided, then use that to define alpha
-          geom_sf_layer <- geom_sf(
-            data = sf.cleaned,
-            aes_string(fill = col.by),
-            alpha = if (is.null(pt.alpha)) 1 else pt.alpha,
+          geom_polygon_layer <- geom_polygon(
+            data = polygon_coords,
+            aes(x = x, y = y, fill = !!col.by.plot, group = cell),
+            alpha = pt.alpha,
             color = "black",
             linewidth = stroke
           ) 
@@ -9676,9 +9641,11 @@ SingleSpatialPlot <- function(
               ymin = 0,
               ymax = image.height
             ) +
-            geom_sf_layer +
-            scale_fill_viridis_d(option = "plasma") +
-            coord_sf() +
+            geom_polygon_layer +
+            scale_y_reverse() + 
+            xlab("x") +
+            ylab("y") +
+            coord_fixed() +
             theme_void()
       }
     },
@@ -9696,7 +9663,7 @@ SingleSpatialPlot <- function(
       )
       plot + geom_polygon(
         data = data,
-        mapping = aes(fill = .data[[col.by]], group = .data[['cell']])
+        mapping = aes(fill = !!col.by.plot, group = .data[['cell']])
       ) + coord_fixed() + theme_cowplot()
 
     },
