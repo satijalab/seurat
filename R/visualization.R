@@ -9564,14 +9564,15 @@ SingleSpatialPlot <- function(
       
       # Add cell column to data for merging
       data$cell <- rownames(data)
-      # Import pipe operator locally
-      `%>%` <- magrittr::`%>%`
-      
       # Merge sf.data with expression data and centroid coordinates
-      
-      sf.plot <- sf.data %>%
-        left_join(data, by = c("barcodes" = "cell")) %>%
-        filter(barcodes %in% centroid_barcodes)
+      sf.plot <- merge(sf.data,
+                        data,
+                        by.x = "barcodes",
+                        by.y = "cell",
+                        all.x = TRUE,
+                        sort = FALSE)
+
+      sf.plot <- sf.plot[sf.plot$barcodes %in% centroid_barcodes, ]
       
       # Create appropriate geom layer based on plot_segmentations
       if (!plot_segmentations) {
