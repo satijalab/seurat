@@ -9427,7 +9427,7 @@ SingleRasterMap <- function(
 #'
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot coord_fixed geom_point xlim ylim
-#' coord_cartesian labs theme_void theme scale_fill_brewer
+#' coord_cartesian labs theme_void theme scale_fill_brewer scale_y_reverse
 #'
 #' @keywords internal
 #'
