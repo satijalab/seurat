@@ -4489,25 +4489,11 @@ SpatialPlot <- function(
         max.feature.value <- max(data[, features[j]])
       }
 
-      #WARNING: The dataframe creation step takes a long time
-      #Has been shown to take upwards of 5 minutes
-      #Positional indexing
-      common_cells <- intersect(rownames(coordinates), rownames(data))
-      coord_idx <- match(common_cells, rownames(coordinates))
-      data_idx <- match(common_cells, rownames(data))
-
-      dataframe <- cbind(
-        coordinates[coord_idx, ],
-        data[data_idx, features[j], drop = FALSE]
-      )
-
-      #Check if object contains a sf slot (attached via Load10X_Spatial)
-      #If so, use sf-geometry based rendering 
+      # Check if object contains a sf slot (attached via Load10X_Spatial)
       use_geom_sf <- (inherits(image.use, "VisiumV2") &&
                       !is.null(image.use@boundaries$segmentation) &&
                       "sf.data" %in% slotNames(image.use@boundaries$segmentation))
 
-      #WARNING: The dataframe creation step takes a long time
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
@@ -9545,6 +9531,7 @@ SingleSpatialPlot <- function(
       # Retrieve scale factor from specified image scale ("lowres"/"hires")
       scale.factor <- ScaleFactors(image)[[image.scale]]
       if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
+      
       # Retrieve image dimensions for later use
       image.height <- dim(image@image)[1]
       image.width <- dim(image@image)[2]
@@ -9552,18 +9539,10 @@ SingleSpatialPlot <- function(
       # Extract and scale segmentation data
       sf.data <- image@boundaries$segmentation@sf.data
       sf.data$geometry <- sf.data$geometry * scale.factor
-      
-      # Extract and scale centroid coordinates
-      centroids <- image@boundaries$centroids
-      coords <- centroids@coords
-      coords[, 1] <- coords[, 1] * scale.factor
-      coords[, 2] <- coords[, 2] * scale.factor
 
-      centroid_barcodes <- centroids@cells
-      rownames(coords) <- centroid_barcodes
-      
       # Add cell column to data for merging
       data$cell <- rownames(data)
+
       # Merge sf.data with expression data and centroid coordinates
       sf.plot <- merge(sf.data,
                         data,
@@ -9572,8 +9551,9 @@ SingleSpatialPlot <- function(
                         all.x = TRUE,
                         sort = FALSE)
 
-      sf.plot <- sf.plot[sf.plot$barcodes %in% centroid_barcodes, ]
-      
+      # Get polygon coordinates for plotting
+      plot_data <- GetSfPlotData(sf.plot)
+
       # Create appropriate geom layer based on plot_segmentations
       if (!plot_segmentations) {
         #If plot_segmentations FALSE, then plot just the polygon centroids 
@@ -9581,7 +9561,7 @@ SingleSpatialPlot <- function(
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
           geom_point_layer <- geom_point(
-            data = sf.plot,
+            data = plot_data,
             shape = 21, 
             stroke = stroke, 
             size = pt.size.factor, 
@@ -9589,7 +9569,7 @@ SingleSpatialPlot <- function(
           )
         } else {
           geom_point_layer <- geom_point(
-            data = sf.plot,
+            data = plot_data,
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
@@ -9612,23 +9592,21 @@ SingleSpatialPlot <- function(
             coord_fixed() +
             theme_void()
       } else {
-        # Get polygon coordinates for plotting
-        polygon_coords <- GetPolygonCoordinates(sf.plot)
         
         if (is.null(pt.alpha)) {
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
           geom_polygon_layer <- geom_polygon(
-            data = polygon_coords,
-            aes(x = x, y = y, fill = !!col.by.plot, alpha = !!alpha.by, group = cell),
+            data = plot_data,
+            aes(x = x.vertex, y = y.vertex, fill = !!col.by.plot, alpha = !!alpha.by, group = cell),
             color = "black",
             linewidth = stroke
           )
         } else {
           #If pt.alpha is indeed provided, then use that to define alpha
           geom_polygon_layer <- geom_polygon(
-            data = polygon_coords,
-            aes(x = x, y = y, fill = !!col.by.plot, group = cell),
+            data = plot_data,
+            aes(x = x.vertex, y = y.vertex, fill = !!col.by.plot, group = cell),
             alpha = pt.alpha,
             color = "black",
             linewidth = stroke

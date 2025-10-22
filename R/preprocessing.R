@@ -1577,7 +1577,7 @@ Read10X_Segmentations <- function (image.dir,
                                 segmentation.type = segmentation.type)
 
   # Create a Segmentation object based on sf, populate sf.data and polygons
-  segmentation <- CreateSegmentation(sf.data)
+  segmentation <- CreateSegmentation(sf.data, lightweight = TRUE)
 
   # Named list with segmentation
   boundaries <- list(segmentation = segmentation)
