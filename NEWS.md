@@ -1,8 +1,6 @@
 # Unreleased
 
 ## Changes
-
-- Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium or SlideSeq data)
 - Added `label.size.cutoff` parameter to `DimPlot` to allow users to label only clusters above a certain size
 - Added option to use `cluster_leiden` from `igraph` when running Leiden clustering ([#9931](https://github.com/satijalab/seurat/pull/9931))
 - Added option to use `umap2` from `uwot` when running UMAP ([#9918](https://github.com/satijalab/seurat/pull/9918))
