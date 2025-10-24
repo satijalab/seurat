@@ -497,16 +497,13 @@ GetResidual <- function(
 #' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
-#' @param bin.size Specifies the bin sizes to read in, can include "polygons" to load segmentations. Defaults to c(16, 8)
+#' @param bin.size Specifies the bin sizes to read in - defaults to c(16, 8)
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
 #' @param image \code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is
 #' passed in it should be co-indexed with \code{`bin.size`}
-#' @param segmentation.type Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
-#' Defaults to "cell".
-#' @param image.name Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
@@ -524,7 +521,6 @@ GetResidual <- function(
 #' Load10X_Spatial(data.dir = data_dir)
 #' }
 #'
-
 Load10X_Spatial <- function (
   data.dir,
   filename = "filtered_feature_bc_matrix.h5",
@@ -534,8 +530,6 @@ Load10X_Spatial <- function (
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
-  image.name = "tissue_lowres_image.png",
-  segmentation.type = NULL,
   ...
 ) {
   # if more than one directory is passed in
@@ -545,7 +539,7 @@ Load10X_Spatial <- function (
     # but also raise a warning
     warning(
       paste0(
-        "data.dir expects a single value but received multiple - ",
+        "`data.dir` expects a single value but received multiple - ",
         "continuing using the first: '",
         data.dir,
         "'."
@@ -559,34 +553,17 @@ Load10X_Spatial <- function (
     stop(paste0("No such file or directory: ", "'", data.dir, "'"))
   }
 
-  # if bin.size is not set but data.dir points to a folder with binned data
+  # if `bin.size` is not set but `data.dir` points to a folder with binned data
   if (is.null(bin.size) & file.exists(paste0(data.dir, "/binned_outputs"))) {
-    # point bin.size to the "standard" set - i.e. everything in the default
-    # output except the 2 um binning because it's a memory hog
+    # point `bin.size` to the "standard" set - i.e. everything in the default
+    # output except the 8 um binning because it's a memory hog
     bin.size <- c(16, 8)
   }
-
-  # Seurat object to return
-  object <- NULL
-
-  bin.size.numeric <- bin.size
-
-  if (!is.null(bin.size)) {
-    # Store numeric bin sizes - these are used to load binned outputs
-    bin.size.numeric <- as.numeric(bin.size[bin.size != "polygons"])
-  }
-
-  # Set flag to indicate if segmentations should be loaded
-  load.segmentations <- length(bin.size.numeric) != length(bin.size)
-
-  # read h5 files if bin.size is NULL (occurs when no /binned_outputs directory exists) or if bin.size contains numeric values
-  load.binned.outputs <- is.null(bin.size) || (!is.null(bin.size.numeric) && length(bin.size.numeric) > 0)
-
-  # If bin.size is specified and binned outputs need to be loaded
-  if(!is.null(bin.size.numeric) && length(bin.size.numeric) > 0) {
-    # convert bin.size to a character vector and pad values to three digits
-    bin.size.pretty <- paste0(sprintf("%03d", bin.size.numeric), "um")
-    # point data.dirs to the specified binnings
+  # if `bin.size` is specified
+  if(!is.null(bin.size)) {
+    # convert `bin.size` to a character vector and pad values to three digits
+    bin.size.pretty <- paste0(sprintf("%03d", bin.size), "um")
+    # point `data.dirs` to the specified binnings
     data.dirs <- paste0(
       data.dir,
       "/binned_outputs/",
@@ -604,173 +581,67 @@ Load10X_Spatial <- function (
     slice.names <- slice
   }
 
-  # read the h5 files in the top-level / binned output directory
-  if(load.binned.outputs) {
-    # read in counts matrices from specified h5 files
-    counts.paths <- lapply(data.dirs, file.path, filename)
-    counts.list <- lapply(counts.paths, Read10X_h5, ...)
-    # maybe convert Cell identifiers to uppercase
-    if (to.upper) {
-      rownames(counts) <- lapply(rownames(counts), toupper)
-    }
+  # read in counts matrices from specified h5 files
+  counts.paths <- lapply(data.dirs, file.path, filename)
+  counts.list <- lapply(counts.paths, Read10X_h5, ...)
+  # maybe convert Cell identifiers to uppercase
+  if (to.upper) {
+    rownames(counts) <- lapply(rownames(counts), toupper)
+  }
 
-    if (is.null(image)) {
-      # read in the corresponding images and coordinate mappings
-      image.list <- mapply(
-        Read10X_Image,
-        file.path(data.dirs, "spatial"),
-        assay = assay.names,
-        slice = slice.names,
-        image.name = image.name,
-        MoreArgs = list(filter.matrix = filter.matrix)
-      )
-    } else {
-      # make sure any passed images are in a vector
-      image.list <- c(image)
-    }
-
-    # check that for each counts matrix there is a corresponding image
-    if (length(image.list) != length(counts.list)) {
-      stop(
-        paste0(
-          "The number of images does not match the number of counts matrices. ",
-          "Ensure each spatial dataset has a corresponding image."
-        )
-      )
-    }
-
-    # for each counts matrix, build a Seurat object
-    object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
-    # associate each counts matrix with its corresponding image
-    object.list <- mapply(
-      function(
-        .object,
-        .image,
-        .assay,
-        .slice
-      ) {
-        # align the image's identifiers with the object's
-        .image <- .image[Cells(.object)]
-        # add the image to the corresponding Seurat instance
-        .object[[.slice]] <- .image
-        return (.object)
-      },
-      object.list,
-      image.list,
-      assay.names,
-      slice.names
+  if (is.null(image)) {
+    # read in the corresponding images and coordinate mappings
+    image.list <- mapply(
+      Read10X_Image,
+      file.path(data.dirs, "spatial"),
+      assay = assay.names,
+      slice = slice.names,
+      MoreArgs = list(filter.matrix = filter.matrix)
     )
-    # merge the Seurat instances - each assay should have unique Cell identifiers
-    object <- merge(
-      object.list[[1]],
-      y = object.list[-1]
+  } else {
+    # make sure any passed images are in a vector
+    image.list <- c(image)
+  }
+
+  # check that for each counts matrix there is a corresponding image
+  if (length(image.list) != length(counts.list)) {
+    stop(
+      paste0(
+        "The number of images does not match the number of counts matrices. ",
+        "Ensure each spatial dataset has a corresponding image."
+      )
     )
   }
-  
-  # read segmentation data if requested
-  if (load.segmentations) {
-    segmentation.assay.name <- paste0(assay, ".Polygons")
-    seg.data.dir <- file.path(data.dir, "segmented_outputs")
-    
-    # Check for different possible file formats/names
-    possible.files <- c(
-      "filtered_feature_cell_matrix.h5",
-      "filtered_feature_bc_matrix.h5", 
-      "raw_feature_bc_matrix.h5"
-    )
-    
-    seg.counts.path <- NULL
-    for (pf in possible.files) {
-      test.path <- file.path(seg.data.dir, pf)
-      if (file.exists(test.path)) {
-        seg.counts.path <- test.path
-        break
-      }
-    }
-    
-    if (is.null(seg.counts.path)) {
-      stop("No cell segmentation matrix found. Looked for: ", paste(possible.files, collapse = ", "))
-    }
 
-    # Read raw counts matrix
-    segmentation.counts <- Read10X_h5(seg.counts.path, ...)
-
-    # Holds barcode names
-    segmentation.counts.cell.ids <- colnames(segmentation.counts)
-
-    # Check segmentation type
-    if (is.null(segmentation.type)) {
-      segmentation.type <- "cell"
-    } else if (length(segmentation.type) != 1 || !(segmentation.type %in% c("cell", "nucleus"))) {
-      stop("segmentation.type must be either 'cell' or 'nucleus'")
-    }
-
-    # Read the Visium (V2) object with segmentations loaded
-    visium.segmentation <- Read10X_Segmentations(
-      image.dir = file.path(seg.data.dir, "spatial"),
-      data.dir = data.dir,
-      image.name = image.name,
-      segmentation.type = segmentation.type
-    )
-
-    # Holds the segmentation object
-    segmentation_obj <- visium.segmentation@boundaries$segmentation
-
-    # Get sf data
-    sf_data <- visium.segmentation@boundaries$segmentation@sf.data
-
-    # Set the attribute-geometry relationship to constant
-    # See https://r-spatial.github.io/sf/reference/sf.html#details
-    st_agr(sf_data) <- "constant"
-
-    # Create a dataframe from sf data to hold centroids
-    centroids_obj <- visium.segmentation@boundaries$centroids
-    centroid_coords <- sf::st_coordinates(sf::st_centroid(sf_data))
-    centroids_df <- data.frame(
-      x = centroid_coords[, "X"],
-      y = centroid_coords[, "Y"],
-      row.names = sf_data$barcodes
-    )
-
-    # Create centroids object
-    centroids <- CreateCentroids(centroids_df,
-                                nsides = Inf,
-                                radius = NULL,
-                                theta = 0)
-
-    # Add centroids to the Visium object
-    visium.segmentation@boundaries$centroids <- centroids
-
-    # Create a new Seurat object with the raw counts
-    segmentation.object <- CreateSeuratObject(
-      segmentation.counts,
-      assay = segmentation.assay.name
-    )
-
-    # Make sure the list of cell names between segmentations & raw counts matches exactly
-    visium.segmentation <- subset(
-      x = visium.segmentation,
-      cells = intersect(Cells(segmentation.object), Cells(visium.segmentation))
-    )
-
-    # Set the default boundary type to centroids for plotting
-    DefaultBoundary(object = visium.segmentation) <- "centroids"
-
-    # Add the Visium object with segmentations to the Seurat object holding counts
-    segmentation.object[[paste0(slice, ".polygons")]] <- visium.segmentation
-
-    # Merge segmented outputs into the object containing binned outputs, if it exists
-    if (!is.null(object)) {
-      object <- merge(x = object, y = segmentation.object)
-    } else {
-      object <- segmentation.object
-    }
-    DefaultAssay(object = object) <- segmentation.assay.name
-  }
+  # for each counts matrix, build a Seurat object
+  object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+  # associate each counts matrix with its corresponding image
+  object.list <- mapply(
+    function(
+      .object,
+      .image,
+      .assay,
+      .slice
+    ) {
+	    # align the image's identifiers with the object's
+	    .image <- .image[Cells(.object)]
+      # add the image to the corresponding Seurat instance
+      .object[[.slice]] <- .image
+      return (.object)
+    },
+    object.list,
+    image.list,
+    assay.names,
+    slice.names
+  )
+  # merge the Seurat instances - each assay should have unique Cell identifiers
+  object <- merge(
+    object.list[[1]],
+    y = object.list[-1]
+  )
 
   return(object)
 }
-
 
 
 #' Read10x Probe Metadata
@@ -1375,18 +1246,12 @@ Read10X_Image <- function(
   image.type <- match.arg(image.type, choices = c("VisiumV1", "VisiumV2"))
 
   # Read in the H&E stain image.
-  primary.path <- file.path(image.dir, image.name)
-  fallback.path <- file.path(dirname(dirname(dirname(image.dir))), "spatial", image.name)
-
-  image <- tryCatch({
-    png::readPNG(primary.path)
-  }, error = function(e) {
-    if (file.exists(fallback.path)) {
-      png::readPNG(fallback.path)
-    } else {
-      stop("Neither primary nor fallback image could be read:\n", primary.path, "\n", fallback.path)
-    }
-  })
+  image <- png::readPNG(
+    source = file.path(
+      image.dir,
+      image.name
+    )
+  )
 
   # Read in the scale factors.
   scale.factors <- Read10X_ScaleFactors(
@@ -1539,111 +1404,6 @@ Read10X_ScaleFactors <- function(filename) {
 
   return (scale.factors)
 }
-
-#' Load 10X Genomics Visium Cell Segmentations
-#'
-#' @param image.dir Path to directory with 10X Genomics visium image data;
-#' @param data.dir Directory of the base spaceranger outs
-#' @param image.name Name of the tissue image to be plotted. tissue_lowres_image.png or tissue_hires_image.png
-#' @param assay Name of assay to associate segmentations to
-#' @param slice Name of the slice to associate the segmentations to
-#' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
-#'
-#'
-#' @return A VisiumV2 object with segmentations
-#'
-#' @export
-#' @concept preprocessing
-#'
-Read10X_Segmentations <- function (image.dir,
-                                   data.dir,
-                                   image.name = "tissue_lowres_image.png",
-                                   assay = "Spatial.Polygons",
-                                   slice = "slice1.polygons",
-                                   segmentation.type = "cell") {
-
-  image <- png::readPNG(source = file.path(image.dir, image.name))
-
-  scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir,
-                                                             "scalefactors_json.json"))
-  key <- Key(slice, quiet = TRUE)
-
-  # Pass proper scale.factor based on whether image is lowres or hires
-  # We assume if not lowres it is hires - image has been validated above
-  scale.factor <- if (grepl("lowres", image.name)) "lowres" else "hires"
-
-  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
-                                image.dir = image.dir,
-                                segmentation.type = segmentation.type)
-
-  # Create a Segmentation object based on sf, populate sf.data and polygons
-  segmentation <- CreateSegmentation(sf.data)
-
-  # Named list with segmentation
-  boundaries <- list(segmentation = segmentation)
-
-  # Build VisiumV2 object
-  visium.v2 <- new(
-    Class = "VisiumV2",
-    boundaries = boundaries,
-    assay = assay,
-    key = key,
-    image = image,
-    scale.factors = scale.factors
-  )
-
-  return(visium.v2)
-}
-#' Format 10X Genomics GeoJson cell IDs
-#'
-#' @param ids Vector of cell IDs to format
-#' @param prefix Optional prefix string
-#' @param suffix Optional suffix string
-#' @param digits Number of digits to zero-pad
-#' 
-#' A helper function to format cell IDs from the segmentation GeoJson to the same type as in the matrix.h5
-#' The GeoJson has cell IDs as integers (eg 1). They need to be in the format cellid_000000001-1
-#'
-#' @return Vector of formatted cell IDs
-Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", digits = 9) {
-  format_string <- paste0("%0", as.integer(digits), "d")
-
-  formatted_ids <- sapply(ids, function(id) {
-    numeric_part <- sprintf(format_string, as.integer(id))
-    paste0(prefix, numeric_part, suffix)
-  })
-
-  return(formatted_ids)
-}
-
-#' Load 10X Genomics GeoJson
-#'
-#' @param data.dir Path to the directory containing matrix data
-#' @param image.dir Path to the directory with spatial GeoJSON data
-#' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
-#'
-#' @return A FOV
-#'
-#' @export
-#' @concept preprocessing
-#'
-Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell") {
-  segmentation_polygons <- read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
-  
-  # Restructure sf geometry for downstream compatibility
-  segmentation_polygons$geometry <- lapply(
-    segmentation_polygons$geometry,
-    function(geom) {
-      coords <- geom[[1]]
-      st_polygon(list(coords))
-    }
-  ) %>% st_sfc(crs = st_crs(NA))
-
-  segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
-  segmentation_polygons
-}
-
-
 
 #' Read and Load Akoya CODEX data
 #'
@@ -2685,27 +2445,16 @@ ReadXenium <- function(
           if(!inherits(cell_seg, "try-error")) { break }
         }
 
-        if (!exists("cell_seg") || inherits(cell_seg, "try-error")) {
-          warning("cells did not contain a segmentation_method column. Skipping...", call. = FALSE, immediate. = TRUE)
+        if(!exists('cell_seg') || inherits(cell_seg, "try-error") || length(intersect(names(col.use), colnames(cell_seg))) != 2) {
+          warning('cells did not contain a segmentation_method column. Skipping...', call. = FALSE, immediate. = TRUE)
           NULL
         } else {
-          #Attempt to add default segmentation_method if nuclei/cell boundary files are provided 
-          message("Cell_seg columns: ", paste(colnames(cell_seg), collapse = ", "))
-          if (!"segmentation_method" %in% colnames(cell_seg)) {
-            message("Adding default segmentation_method = 'cell'")
-            cell_seg$segmentation_method <- "cell"
-          }
+          cell_seg <- cell_seg[, names(col.use)]
+          colnames(cell_seg) <- col.use
 
-          #Try to detect unique cell identifier
-          if (!"cell_id" %in% colnames(cell_seg)) {
-            stop("Missing required column: cell_id")
-          }
-
-          cell_seg <- cell_seg[, c("cell_id", "segmentation_method")]
-          colnames(cell_seg) <- c("cell", "segmentation_method")
           cell_seg$cell <- binary_to_string(cell_seg$cell)
 
-          psegs(type = "finish")
+          psegs(type = 'finish')
 
           data.frame(segmentation_method = cell_seg$segmentation_method, row.names = cell_seg$cell)
         }
@@ -3786,7 +3535,7 @@ SampleUMI <- function(
 #' replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
 #' \code{ScaleData} workflow by fitting a regularized negative binomial model
 #' per gene and returning:
-#'
+#' 
 #' - A new assay (default name “SCT”), in which:
 #'   - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
 #'     sequencing depth; controlled by \code{do.correct.umi}).
@@ -3797,13 +3546,13 @@ SampleUMI <- function(
 #'
 #' When multiple \code{counts} layers exist (e.g. after \code{split()}),
 #' each layer is modeled independently. A consensus variable‐feature set is
-#' then defined by ranking features by how often they’re called “variable”
+#' then defined by ranking features by how often they’re called “variable” 
 #' across different layers (ties broken by median rank).
-#'
+#' 
 #' By default, \code{sctransform::vst} will drop features expressed in fewer
 #' than five cells. In the multi-layer case, this can lead to consenus
 #' variable-features being excluded from the output's \code{scale.data} when
-#' a feature is "variable" across many layers but sparsely expressed in at
+#' a feature is "variable" across many layers but sparsely expressed in at 
 #' least one.
 #'
 #' @param object A Seurat object or UMI count matrix.
@@ -3859,11 +3608,11 @@ SampleUMI <- function(
 #' @seealso \code{\link[sctransform]{vst}},
 #'   \code{\link[sctransform]{get_residuals}},
 #'   \code{\link[sctransform]{correct_counts}}
-#'
+#' 
 #' @rdname SCTransform
 #' @concept preprocessing
 #' @export
-#'
+#' 
 SCTransform.default <- function(
   object,
   cell.attr,
@@ -5861,7 +5610,7 @@ GetResidualSCTModel <- function(
   umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", model = SCTModel)
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
   sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
-  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, layer = "scale.data"))
+  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, layer= "scale.data"))
   if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
   existing_features <- names(x = which(x = ! apply(
     X = GetAssayData(object = object, assay = assay, layer = "scale.data")[, model.cells],

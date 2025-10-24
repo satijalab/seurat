@@ -3887,282 +3887,6 @@ ISpatialFeaturePlot <- function(
   runGadget(app = ui, server = server)
 }
 
-#' Interactive Spatial Cell Selection Tool
-#'
-#' Launch an interactive gadget for lasso-based cell selection from a spatial Seurat object.
-#' Supports Visium, SlideSeq, and Vizgen data. Returns the cell names of the selected subset,
-#' suitable for downstream subsetting or analysis.
-#'
-#' @note This function requires the
-#'   \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}},
-#'   \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}},
-#'   and \href{https://cran.r-project.org/package=base64enc}{\pkg{base64enc}} packages
-#'   to be installed. It also requires \pkg{shiny} and \pkg{miniUI} for the interactive UI.
-#'
-#' @param object A \code{\link[SeuratObject]{Seurat}} object with spatial data.
-#' @param image Name of the spatial image stored in the object. If \code{NULL}, uses the default image for the object.
-#' @param image.scale Character. Which image scaling factor to use for spatial coordinate transformation (\code{"lowres"} by default).
-#' @param group.by Metadata variable (column name) to use for coloring cell points (e.g., cluster assignment). If \code{NULL}, uses \code{"seurat_clusters"} if available, otherwise all cells are grouped together.
-#' @param alpha Numeric transparency value for cell points (default \code{1.0}).
-#' @param pt.size.factor Numeric scaling factor for point size (default \code{1.0}).
-#' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
-#'
-#' @importFrom grDevices png dev.off
-#'
-#' @return A character vector of cell names selected via lasso, which can be used to subset the object.
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' selected_cells <- InteractiveSpatialPlot(object = brain)
-#' selected_cells <- InteractiveSpatialPlot(object = brain, overlay_image = FALSE)
-#' }
-InteractiveSpatialPlot <- function(
-  object,
-  image = NULL,
-  image.scale = "lowres",
-  group.by = NULL,
-  alpha = 1.0,
-  pt.size.factor = 1.0,
-  overlay_image = TRUE
-) {
-  # Check for required packages, stop with clear message if missing
-  if (!requireNamespace("plotly", quietly = TRUE)) {
-    stop("The 'plotly' package must be installed to use InteractiveSpatialPlot().")
-  }
-  if (!requireNamespace("magrittr", quietly = TRUE)) {
-    stop("The 'magrittr' package must be installed to use InteractiveSpatialPlot().")
-  }
-  if (!requireNamespace("base64enc", quietly = TRUE)) {
-    stop("The 'base64enc' package must be installed to use InteractiveSpatialPlot().")
-  }
-
-  # Import magrittr pipe locally
-  `%>%` <- magrittr::`%>%`
-
-  # Use provided image name or fallback to default
-  image <- image %||% DefaultImage(object)
-
-  # Sanity check: requested image must exist in the object
-  if (!image %in% names(object@images)) {
-    stop("Image '", image, "' not found. Available image(s): ", paste(names(object@images), collapse = ", "))
-  }
-
-  # Retrieve the spatial image object
-  image_obj <- object[[image]]
-
-  # Determine image technology type (Visium, SlideSeq, or Vizgen)
-  img_class <- class(image_obj)[1]
-  if (img_class %in% c("VisiumV1", "VisiumV2")) {
-    type <- "visium"
-  } else if (img_class == "SlideSeq") {
-    type <- "slideseq"
-  } else if (img_class == "FOV") {
-    type <- "vizgen"
-  } else {
-    stop("Unrecognized image class: ", img_class)
-  }
-
-  # Extract and scale cell coordinates according to image type
-  if (type == "visium") {
-    # For Visium: coordinates stored in centroids, need scaling
-    if (!"boundaries" %in% slotNames(image_obj)) {
-      stop("Image object does not have a 'boundaries' slot; check if data is truly Visium data")
-    }
-    centroids <- image_obj@boundaries$centroids
-    coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
-    coords$cell <- centroids@cells
-
-    # Scale coordinates to match image pixel units
-    scale.factor <- Seurat::ScaleFactors(image_obj)[[image.scale]]
-    if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
-
-    coords$x_raw <- coords$x  # Store original, unscaled x
-    coords$y_raw <- coords$y  # Store original, unscaled y
-    coords$x <- coords$x * scale.factor
-    coords$y <- coords$y * scale.factor
-
-  } else if (type == "slideseq") {
-    # For Slide-seq: coordinates are stored directly
-    if (!"coordinates" %in% slotNames(image_obj)) {
-      stop("Image object does not have a 'coordinates' slot; check if data is truly Slide-seq data")
-    }
-    coords <- as.data.frame(image_obj@coordinates)
-    coords$cell <- rownames(coords)
-    colnames(coords)[1:2] <- c("x", "y")
-    coords$x_raw <- coords$x
-    coords$y_raw <- coords$y
-
-  } else if (type == "vizgen") {
-    # For Vizgen: coordinates in centroids
-    if (!"boundaries" %in% slotNames(image_obj)) {
-      stop("Vizgen FOV missing 'boundaries' slot")
-    }
-    centroids <- image_obj@boundaries$centroids
-    coords <- as.data.frame(centroids@coords)
-    colnames(coords) <- c("x", "y")
-    coords$cell <- centroids@cells
-    coords$x_raw <- coords$x
-    coords$y_raw <- coords$y
-  }
-
-  # Get cell-level metadata for grouping/labeling
-  meta <- object@meta.data
-
-  # If group.by not given, use 'seurat_clusters' if available; otherwise group all together
-  if (is.null(group.by)) {
-    group.by <- if ("seurat_clusters" %in% colnames(meta)) "seurat_clusters" else "all"
-  }
-  # Assign group/cluster for coloring the plot
-  if (group.by != "all") {
-    coords$group <- meta[coords$cell, group.by]
-  } else {
-    coords$group <- "all"
-  }
-
-  # Compose hover text: show cell name, original (x, y) coordinates, rounded for clarity
-  coords$hover <- paste0(
-    "Cell: ", coords$cell,
-    "<br>x: ", round(coords$x_raw, 1),
-    ", y: ", round(coords$y_raw, 1)
-  )
-
-  # Prepare background tissue image as a base64-encoded PNG (if available and enabled)
-  base64_image <- NULL
-  img_width <- NULL
-  img_height <- NULL
-  if (overlay_image) {
-    # Only attempt to overlay image if compatible type and slot present
-    if (type == "visium" && "image" %in% slotNames(image_obj)) {
-      img_raster <- image_obj@image
-    } else if (
-      type == "vizgen" &&
-      "boundaries" %in% slotNames(image_obj) &&
-      "centroids" %in% slotNames(image_obj@boundaries) &&
-      "image" %in% slotNames(image_obj@boundaries$centroids)
-    ) {
-      img_raster <- image_obj@boundaries$centroids@image
-    }
-    # Convert the raster image array to base64 PNG (for embedding in plotly)
-    if (exists("img_raster")) {
-      img_width <- dim(img_raster)[2]
-      img_height <- dim(img_raster)[1]
-      temp_png <- tempfile(fileext = ".png")
-      png(temp_png, width = img_width, height = img_height)
-      grid::grid.raster(img_raster)
-      dev.off()
-      img_bytes <- readBin(temp_png, "raw", file.info(temp_png)$size)
-      base64_image <- paste0("data:image/png;base64,", base64enc::base64encode(img_bytes))
-    }
-  }
-
-  # Calculate custom axis tick positions and labels to show original coordinates
-  # This is necessary as points are downscaled to fit on the tissue image
-  # However, to best retain their original spatial orientation, we plot
-  # the original coordinate scale on the axis
-  create_axis_ticks <- function(scaled_coords, raw_coords, n_ticks = 6) {
-    # Get range of scaled and raw coordinates
-    scaled_range <- range(scaled_coords, na.rm = TRUE)
-    raw_range <- range(raw_coords, na.rm = TRUE)
-
-    # Create tick positions in the raw coordinate space
-    raw_ticks <- pretty(raw_range, n = n_ticks)
-
-    # Calculate corresponding scaled positions
-    # Linear interpolation from raw to scaled coordinates
-    scale_factor <- diff(scaled_range) / diff(raw_range)
-    scaled_ticks <- (raw_ticks - raw_range[1]) * scale_factor + scaled_range[1]
-
-    return(list(tickvals = scaled_ticks, ticktext = as.character(raw_ticks)))
-  }
-
-  # Create custom axis ticks for both x and y axes
-  x_ticks <- create_axis_ticks(coords$x, coords$x_raw)
-  y_ticks <- create_axis_ticks(coords$y, coords$y_raw)
-
-  # Set up the gadget UI with a plotly output area
-  ui <- miniPage(
-    gadgetTitleBar("Select a subset of cells"),
-    miniContentPanel(
-      plotly::plotlyOutput("plot", height = "100%")
-    )
-  )
-
-  # Shiny gadget server logic for interactive plot and lasso selection
-  server <- function(input, output, session) {
-    # Render the interactive plotly scattergl plot
-    output$plot <- plotly::renderPlotly({
-      plt <- plotly::plot_ly(
-        data = coords,
-        x = ~y,          # Plot y on x axis to match Seurat/ggplot conventions
-        y = ~x,          # Plot x on y axis (this handles flipped axes)
-        color = ~group,  # Color by group/cluster if available
-        key = ~cell,     # Store cell names for selection retrieval
-        type = "scattergl", # Use WebGL for performance with large datasets
-        mode = "markers",
-        marker = list(size = 2 * pt.size.factor), # Default pt size is 2
-        text = ~hover,           # Show hover info (cellid + coordinates)
-        hoverinfo = "text",
-        alpha = alpha            # Global transparency
-      )
-
-      # Overlay the tissue image as background if available
-      if (!is.null(base64_image)) {
-        plt <- plt %>% plotly::layout(
-          images = list(
-            list(
-              source = base64_image,
-              xref = "x", yref = "y", # Anchor to data coordinates
-              x = 0,
-              y = 0,
-              sizex = img_width,
-              sizey = img_height,
-              sizing = "stretch",
-              opacity = 0.6,
-              layer = "below"
-            )
-          )
-        )
-      }
-
-      # Lock axes to same scale and reverse y for image alignment
-      # Set lasso mode and custom axis labels
-      plt <- plt %>% plotly::layout(
-        dragmode = "lasso",
-        yaxis = list(
-          autorange = "reversed",
-          scaleanchor = "x",
-          title = "x",
-          tickvals = x_ticks$tickvals,
-          ticktext = x_ticks$ticktext
-        ),
-        xaxis = list(
-          scaleanchor = "y",
-          title = "y",
-          tickvals = y_ticks$tickvals,
-          ticktext = y_ticks$ticktext
-        )
-      )
-      plt
-    })
-
-    # When user clicks "Done", retrieve lasso selection and close gadget
-    observeEvent(input$done, {
-      selected <- plotly::event_data("plotly_selected")
-      selected_cells <- selected$key
-      stopApp(selected_cells)
-    })
-
-    # When user clicks "Cancel", exit gadget and return NULL
-    observeEvent(input$cancel, {
-      stopApp(NULL)
-    })
-  }
-
-  # Launch the interactive gadget
-  runGadget(ui, server)
-}
-
 #' Visualize spatial clustering and expression data.
 #'
 #' SpatialPlot plots a feature or discrete grouping (e.g. cluster assignments) as
@@ -4234,7 +3958,6 @@ InteractiveSpatialPlot <- function(
 #' \code{\link{ISpatialFeaturePlot}} for more details
 #' @param do.identify,do.hover DEPRECATED in favor of \code{interactive}
 #' @param identify.ident DEPRECATED
-#' @param plot_segmentations Define whether plot should plot centroids or segmentations
 #'
 #' @return If \code{do.identify}, either a vector of cells selected or the object
 #' with selected cells set to the value of \code{identify.ident} (if set). Else,
@@ -4289,8 +4012,7 @@ SpatialPlot <- function(
   do.identify = FALSE,
   identify.ident = NULL,
   do.hover = FALSE,
-  information = NULL,
-  plot_segmentations = FALSE
+  information = NULL
 ) {
   if (isTRUE(x = do.hover) || isTRUE(x = do.identify)) {
     warning(
@@ -4464,14 +4186,12 @@ SpatialPlot <- function(
     plot.idx <- i
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
     image.use <- object[[images[[image.idx]]]]
-    #Extract image information
 
     coordinates <- GetTissueCoordinates(
       object = image.use,
       scale = image.scale
     )
-    #CRITICAL STEP: if the rownames do not match the cell ids, then dataframe is not created properly
-    rownames(coordinates) <- coordinates$cell
+
     highlight.use <- if (facet.highlight) {
       cells.highlight[i]
     } else {
@@ -4489,25 +4209,6 @@ SpatialPlot <- function(
         max.feature.value <- max(data[, features[j]])
       }
 
-      #WARNING: The dataframe creation step takes a long time
-      #Has been shown to take upwards of 5 minutes
-      #Positional indexing
-      common_cells <- intersect(rownames(coordinates), rownames(data))
-      coord_idx <- match(common_cells, rownames(coordinates))
-      data_idx <- match(common_cells, rownames(data))
-
-      dataframe <- cbind(
-        coordinates[coord_idx, ],
-        data[data_idx, features[j], drop = FALSE]
-      )
-
-      #Check if object contains a sf slot (attached via Load10X_Spatial)
-      #If so, use sf-geometry based rendering 
-      use_geom_sf <- (inherits(image.use, "VisiumV2") &&
-                      !is.null(image.use@boundaries$segmentation) &&
-                      "sf.data" %in% slotNames(image.use@boundaries$segmentation))
-
-      #WARNING: The dataframe creation step takes a long time
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
@@ -4530,19 +4231,15 @@ SpatialPlot <- function(
         },
         geom = if (inherits(x = image.use, what = "STARmap")) {
           'poly'
-        } else if (use_geom_sf) {
-          # Use sf for both segmentations and centroids when sf data is available
-          "sf"
         } else {
-          "spatial"
+          'spatial'
         },
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
         shape = shape,
         stroke = stroke,
-        crop = crop,
-        plot_segmentations = plot_segmentations
+        crop = crop
       )
       if (is.null(x = group.by)) {
         plot <- plot +
@@ -4563,10 +4260,6 @@ SpatialPlot <- function(
           ),
           geom = if (inherits(x = image.use, what = "STARmap")) {
             'GeomPolygon'
-          } else if (use_geom_sf && plot_segmentations) {
-            'GeomSf'
-          } else if (use_geom_sf && !plot_segmentations) {
-            'GeomPoint'
           } else {
             'GeomSpatial'
           },
@@ -4588,10 +4281,7 @@ SpatialPlot <- function(
           theme(plot.title = element_text(hjust = 0.5)) +
           NoLegend()
       }
-      if (use_geom_sf && plot_segmentations && !is.null(group.by)) {
-        # Add legend guides to show filled squares next to labels when plotting segmentations
-        plot <- plot + guides(fill = guide_legend(override.aes = list(alpha = 1, color = "black", linewidth = 0.2, size = 2)))
-      }
+
       # Plot multiple images depending on keep.scale
       if (!(is.null(x = keep.scale)) && !inherits(x = data[, features[j]], "factor")) {
         plot <- suppressMessages(plot & scale_fill_gradientn(colors = SpatialColors(n = 100), limits = c(NA, max.feature.value)))
@@ -6096,25 +5786,16 @@ LabelClusters <- function(
   ...
 ) {
   xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
-  plot_data <- plot$data
-  if (geom == "GeomSf") {
-    # For sf, data is within the layers slot, not the data slot
-    geom_layers <- which(sapply(plot$layers, function(layer) class(layer$geom)[1] == "GeomSf"))
-    if (length(geom_layers) > 0 && !is.null(plot$layers[[geom_layers[1]]]$data)) {
-      plot_data <- plot$layers[[geom_layers[1]]]$data
-    }
-  }
-  if (!id %in% colnames(x = plot_data)) {
+  if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
-  if (!is.null(x = split.by) && !split.by %in% colnames(x = plot_data)) {
-    warning("Cannot find splitting variable ", split.by, " in plotting data")
+  if (!is.null(x = split.by) && !split.by %in% colnames(x = plot$data)) {
+    warning("Cannot find splitting variable ", id, " in plotting data")
     split.by <- NULL
   }
-  data <- plot_data[, c(xynames, id, split.by)]
-  id_values <- if (inherits(data, "sf")) data[[id]] else data[, id]
-  possible.clusters <- as.character(x = na.omit(object = unique(x = id_values)))
-  groups <- clusters %||% possible.clusters
+  data <- plot$data[, c(xynames, id, split.by)]
+  possible.clusters <- as.character(x = na.omit(object = unique(x = data[, id])))
+  groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
@@ -6132,25 +5813,15 @@ LabelClusters <- function(
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
-      data.use <- if (inherits(data, "sf")) data[data[[id]] == group, , drop = FALSE] else data[data[, id] == group, , drop = FALSE]
+      data.use <- data[data[, id] == group, , drop = FALSE]
       data.medians <- if (!is.null(x = split.by)) {
         do.call(
           what = 'rbind',
           args = lapply(
             X = unique(x = data.use[, split.by]),
             FUN = function(split) {
-              split_by_values <- if (inherits(data.use, "sf")) data.use[[split.by]] == split else data.use[, split.by] == split
-              split_data <- data.use[split_by_values == split, , drop = FALSE]
-              # Extract coordinates
-              if (inherits(split_data, "sf")) {
-                st_agr(split_data) <- "constant" # Set attr-geom relationship to avoid warnings
-                coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(split_data)))
-                names(coord_data) <- xynames[1:2]
-              } else {
-                coord_data <- data.use[data.use[, split.by] == split, xynames, drop = FALSE]
-              }
               medians <- apply(
-                X = coord_data,
+                X = data.use[data.use[, split.by] == split, xynames, drop = FALSE],
                 MARGIN = 2,
                 FUN = median,
                 na.rm = TRUE
@@ -6162,16 +5833,8 @@ LabelClusters <- function(
           )
         )
       } else {
-        # Extract coordinates
-        if (inherits(data.use, "sf")) {
-          st_agr(data.use) <- "constant"  # Set attr-geom relationship to avoid warnings
-          coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(data.use)))
-          names(coord_data) <- xynames[1:2]
-        } else {
-          coord_data <- data.use[, xynames, drop = FALSE]
-        }
         as.data.frame(x = t(x = apply(
-          X = coord_data,
+          X = data.use[, xynames, drop = FALSE],
           MARGIN = 2,
           FUN = median,
           na.rm = TRUE
@@ -6184,28 +5847,17 @@ LabelClusters <- function(
   )
   if (position == "nearest") {
     labels.loc <- lapply(X = labels.loc, FUN = function(x) {
-      # Handle sf data subsetting for nearest point calculation
-      if (inherits(data, "sf")) {
-        group.data <- data[as.character(data[[id]]) == as.character(x[3]), ]
-        st_agr(group.data) <- "constant"  # Set attr-geom relationship to avoid warnings
-        group.data <- data.frame(sf::st_coordinates(sf::st_centroid(group.data)))
-        names(group.data) <- xynames[1:2]
-      } else {
-        group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
-      }
-      coord_matrix <- as.matrix(group.data[, 1:2])
-      nearest.point <- nn2(data = coord_matrix, query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
-      x[1:2] <- coord_matrix[nearest.point, ]
+      group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
+      nearest.point <- nn2(data = group.data[, 1:2], query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
+      x[1:2] <- group.data[nearest.point, 1:2]
       return(x)
     })
   }
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
-  # Safe handling of factor levels for sf data
-  data_levels <- if (inherits(data, "sf")) levels(data[[id]]) else levels(data[, id])
-  labels.loc[, id] <- factor(x = labels.loc[, id], levels = data_levels)
+  labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
-    stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = unique(x = labels.loc[, id])), ").")
+    stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
   }
   names(x = labels) <- groups
   for (group in groups) {
@@ -6218,7 +5870,7 @@ LabelClusters <- function(
       mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[[id]]),
       show.legend = FALSE,
       ...
-    )
+    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
@@ -7371,11 +7023,6 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   } else {
     x <- as_label(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)
     y <- as_label(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)
-  }
-  # Handle GeomSf case where x/y are NULL because coordinates are in geometry
-  if (geom == "GeomSf") {
-    x <- "x"  # Default coordinate names for sf objects
-    y <- "y"
   }
   return(list('x' = x, 'y' = y))
 }
@@ -9427,7 +9074,6 @@ SingleRasterMap <- function(
 #' @param geom Switch between normal spatial geom and geom to enable hover
 #' functionality
 #' @param na.value Color for spots with NA values
-#' @param plot_segmentations Define whether plot should plot centroids or segmentations
 #'
 #' @return A ggplot2 object
 #'
@@ -9454,21 +9100,16 @@ SingleSpatialPlot <- function(
   alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
-  geom = c('spatial', 'interactive', 'poly', 'sf'),
-  na.value = 'grey50',
-  plot_segmentations = FALSE
+  geom = c('spatial', 'interactive', 'poly'),
+  na.value = 'grey50'
 ) {
   geom <- match.arg(arg = geom)
-  if (!is.null(col.by) && !col.by %in% colnames(data)) {
+  if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
   }
   col.by.plot <- col.by %iff% data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
   col.by <- col.by %iff% paste0("`", col.by, "`")
-
-  # Store unquoted col.by name for easier access
-  col.by.clean <- gsub("`", "", col.by)
-
   alpha.by <- alpha.by %iff% data_sym(alpha.by)
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
@@ -9538,150 +9179,6 @@ SingleSpatialPlot <- function(
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)
     },
-    'sf' = {
-
-      # Validate image
-      image.grob <- rasterGrob(
-        image@image,
-        width = unit(1, "npc"),
-        height = unit(1, "npc"),
-        interpolate = FALSE
-      )
-
-      # Retrieve scale factor from specified image scale ("lowres"/"hires")
-      scale.factor <- ScaleFactors(image)[[image.scale]]
-      if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
-
-      # Retrieve image dimensions for later use (flipping image)
-      image.height <- dim(image@image)[1]
-      image.width <- dim(image@image)[2]
-      
-      # Retrieve the sf data stored in the Visium V2 object 
-      # Merge it with data dataframe which contains ident and gene expression information 
-      sf.data = image@boundaries$segmentation@sf.data
-
-      # Scale geometry to match image scale
-      sf.data$geometry <- sf.data$geometry * scale.factor
-
-      # Transform geometry to match image coordinates
-      sf.data$geometry <- lapply(sf.data$geometry,
-                                function(geom) {
-                                  coords <- geom[[1]]
-                                  coords[,2] <- image.height - coords[,2]
-                                  st_polygon(list(coords))
-                                }) %>% st_sfc(crs = st_crs(sf.data))
-
-      #Create sf object from data (POINTS), and extract xy
-      data$cell <- rownames(data)
-      data.sf <- st_as_sf(data, coords = c("x", "y"), crs = NA)
-
-      # Import pipe operator locally
-      `%>%` <- magrittr::`%>%`
-
-      data.coords <- data.sf %>%
-        mutate(x = sf::st_coordinates(.)[, 1],
-              y = sf::st_coordinates(.)[, 2]) %>%
-        st_drop_geometry()
-
-      #Merge with sf.data
-      sf.merged <- sf.data %>%
-        left_join(data.coords, by = c("barcodes" = "cell"))
-      sf.cleaned <- sf.merged %>% filter(!is.na(x))
-
-      #Extract centroids from VisiumV2, update sf.cleaned to match centroids
-      if (!requireNamespace("sp", quietly = TRUE)) {
-        stop("The 'sp' package is required but not installed.")
-      }
-      coordinates <- sp::coordinates
-      coords <- coordinates(image@boundaries$centroids)
-      barcodes <- image@boundaries$centroids@cells
-      rownames(coords) <- barcodes
-
-      # Find matching barcodes
-      common_cells <- intersect(sf.cleaned$barcodes, rownames(coords))
-
-      # Use match() to align indices
-      match_idx <- match(common_cells, sf.cleaned$barcodes)
-      coord_idx <- match(common_cells, rownames(coords))
-
-      # Update x and y in sf.cleaned
-      # Apply scaling and transform y axis to match image coordinate system
-      sf.cleaned$x[match_idx] <- coords[coord_idx, 1] * scale.factor
-      sf.cleaned$y[match_idx] <- image.height - (coords[coord_idx, 2] * scale.factor)
-
-      #Plot (currently independently of switch/case)
-      if(!plot_segmentations){
-        #If plot_segmentations FALSE, then plot just the centroids from sf data
-        
-        if (is.null(pt.alpha)) {
-          #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
-          #Use alpha.by instead of pt.alpha
-          geom_point_layer <- geom_point(
-            shape = 21, 
-            stroke = stroke, 
-            size = pt.size.factor, 
-            aes_string(fill = col.by, alpha = alpha.by)
-          )
-        } else {
-          #If pt.alpha is indeed provided, then use that to define alpha
-          geom_point_layer <- geom_point(
-            shape = 21,
-            stroke = stroke,
-            size = pt.size.factor,
-            aes_string(fill = col.by), 
-            alpha = if (is.null(pt.alpha)) 1 else pt.alpha
-          )
-        }
-        ggplot(sf.cleaned, aes(x = x, y = y)) +
-          annotation_custom(
-              grob = image.grob,
-              xmin = 0,
-              xmax = image.width,
-              ymin = 0,
-              ymax = image.height
-            ) +
-          geom_point_layer +
-          coord_fixed() +
-          xlab("x") +
-          ylab("y") +
-          theme_minimal()
-      
-      }else{
-        #If plot_segmentations TRUE, then use geometry data stored in sf to plot cell polygons
-        
-        if (is.null(pt.alpha)) {
-          #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
-          #Use alpha.by instead of pt.alpha
-          geom_sf_layer <- geom_sf(
-            data = sf.cleaned,
-            aes_string(fill = col.by, alpha = alpha.by),
-            color = "black",
-            linewidth = stroke
-          )
-        } else {
-          #If pt.alpha is indeed provided, then use that to define alpha
-          geom_sf_layer <- geom_sf(
-            data = sf.cleaned,
-            aes_string(fill = col.by),
-            alpha = if (is.null(pt.alpha)) 1 else pt.alpha,
-            color = "black",
-            linewidth = stroke
-          ) 
-        }
-        ggplot() +
-            annotation_custom(
-              grob = image.grob,
-              xmin = 0,
-              xmax = image.width,
-              ymin = 0,
-              ymax = image.height
-            ) +
-            geom_sf_layer +
-            scale_fill_viridis_d(option = "plasma") +
-            coord_sf() +
-            theme_void()
-      }
-    },
     'poly' = {
       data$cell <- rownames(x = data)
       data[, c('x', 'y')] <- NULL
@@ -9712,9 +9209,7 @@ SingleSpatialPlot <- function(
       colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
-      data[[col.by.clean]] <- as.character(data[[col.by.clean]])
-      vals <- unique(as.character(data[[col.by.clean]]))
-      cols <- cols[names(cols) %in% vals]
+      cols <- cols[names(x = cols) %in% data[[gsub(pattern = '`', replacement = "", x = col.by)]]]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale

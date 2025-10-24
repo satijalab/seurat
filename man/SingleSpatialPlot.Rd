@@ -19,9 +19,8 @@ SingleSpatialPlot(
   alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c("#DE2D26", "grey50"),
-  geom = c("spatial", "interactive", "poly", "sf"),
-  na.value = "grey50",
-  plot_segmentations = FALSE
+  geom = c("spatial", "interactive", "poly"),
+  na.value = "grey50"
 )
 }
 \arguments{
@@ -71,8 +70,6 @@ unselected cells.}
 functionality}
 
 \item{na.value}{Color for spots with NA values}
-
-\item{plot_segmentations}{Define whether plot should plot centroids or segmentations}
 }
 \value{
 A ggplot2 object
