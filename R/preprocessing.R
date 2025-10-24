@@ -1426,7 +1426,7 @@ Read10X_Image <- function(
 
   # Create an `sp` compatible `FOV` instance.
   fov <- CreateFOV(
-    coordinates[, c("imagerow", "imagecol")],
+    coordinates[, c("imagecol", "imagerow")],
     type = "centroids",
     radius = scale.factors[["spot"]],
     assay = assay,
