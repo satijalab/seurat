@@ -8565,7 +8565,7 @@ SingleExIPlot <- function(
   switch(
     EXPR = type,
     'violin' = {
-      x <- 'ident'
+      x <- data_sym("ident")
       y <- data_sym(feature)
       xlab <- 'Identity'
       ylab <- axis.label
@@ -8601,7 +8601,7 @@ SingleExIPlot <- function(
     },
     'ridge' = {
       x <- data_sym(feature)
-      y <- 'ident'
+      y <- data_sym("ident")
       xlab <- axis.label
       ylab <- 'Identity'
       geom <- list(
