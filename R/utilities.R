@@ -2625,12 +2625,21 @@ Online <- function(url, strict = FALSE, seconds = 5L) {
 # Parenting(parent.find = 'Seurat', features = features[features > 7])
 #
 Parenting <- function(parent.find = 'Seurat', ...) {
-  calls <- as.character(x = sys.calls())
-  calls <- lapply(
-    X = strsplit(x = calls, split = '(', fixed = TRUE),
-    FUN = '[',
-    1
-  )
+  # Extract function names from call stack without serializing entire objects
+  # This avoids the performance issue when large objects are passed via do.call
+  calls <- vapply(sys.calls(), function(call) {
+    if (is.call(call) && length(call) > 0) {
+      # Get just the function name, not the full call with arguments
+      func <- call[[1]]
+      if (is.name(func)) {
+        return(as.character(func))
+      } else if (is.call(func)) {
+        # Handle cases like pkg::function
+        return(paste(as.character(func), collapse = ""))
+      }
+    }
+    return("")
+  }, character(1))
   parent.index <- grep(pattern = parent.find, x = calls)
   if (length(x = parent.index) != 1) {
     warning(
