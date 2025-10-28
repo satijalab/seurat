@@ -2,7 +2,7 @@ name: Reverse Dependency Checks
 
 on:
   workflow_dispatch:
-   inputs:
+    inputs:
       which:
         type: choice
         description: Which dependents to check
@@ -12,7 +12,7 @@ on:
           - all
 
 jobs:
-  free-space: 
+  free-space:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,6 +24,6 @@ jobs:
   check-reverse-dependencies:
     needs: free-space
     name: Reverse check ${{ inputs.which }} dependents
-      uses: r-devel/recheck/.github/workflows/recheck.yml@v1
-      with:
-        which: ${{ inputs.which }}
+    uses: r-devel/recheck/.github/workflows/recheck.yml@v1
+    with:
+      which: ${{ inputs.which }}
