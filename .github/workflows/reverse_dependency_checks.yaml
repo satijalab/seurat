@@ -2,11 +2,26 @@ name: Reverse Dependency Checks
 
 on:
   workflow_dispatch:
+   inputs:
+      which:
+        type: choice
+        description: Which dependents to check
+        options:
+          - strong
+          - most
+          - all
 
 jobs:
   # Run a reverse dependency check similar to CRAN, for more details see 
   # https://github.com/r-devel/recheck.
   check-reverse-dependencies:
-    uses: r-devel/recheck/.github/workflows/recheck.yml@v1
-    with:
-      which: all
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Free some disk space # Sourced from https://github.com/r-devel/rcheckserver/blob/main/.github/workflows/build.yml#L24-L25
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+
+      - name: Reverse check ${{ inputs.which }} dependents
+        uses: r-devel/recheck/.github/workflows/recheck.yml@v1
+        with:
+          which: ${{ inputs.which }}
