@@ -9622,7 +9622,7 @@ SingleSpatialPlot <- function(
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
-            aes_string(fill = col.by, alpha = alpha.by)
+            aes(fill = .data[[col.by]], alpha = .data[[alpha.by]])
           )
         } else {
           #If pt.alpha is indeed provided, then use that to define alpha
@@ -9630,7 +9630,7 @@ SingleSpatialPlot <- function(
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
-            aes_string(fill = col.by),
+            aes(fill = .data[[col.by]]),
             alpha = if (is.null(pt.alpha)) 1 else pt.alpha
           )
         }
