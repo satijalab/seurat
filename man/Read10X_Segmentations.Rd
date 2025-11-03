@@ -10,7 +10,8 @@ Read10X_Segmentations(
   image.name = "tissue_lowres_image.png",
   assay = "Spatial.Polygons",
   slice = "slice1.polygons",
-  segmentation.type = "cell"
+  segmentation.type = "cell",
+  lightweight = FALSE
 )
 }
 \arguments{

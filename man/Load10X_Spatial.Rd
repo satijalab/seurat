@@ -15,6 +15,7 @@ Load10X_Spatial(
   image = NULL,
   image.name = "tissue_lowres_image.png",
   segmentation.type = NULL,
+  lightweight = FALSE,
   ...
 )
 }
