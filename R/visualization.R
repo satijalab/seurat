@@ -9497,7 +9497,7 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
-      plot + coord_fixed() + theme(aspect.ratio = 1) + scale_y_reverse()
+      plot + coord_fixed() + scale_y_reverse()
     },
     'interactive' = {
       plot + geom_spatial_interactive(
