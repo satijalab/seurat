@@ -9554,6 +9554,23 @@ SingleSpatialPlot <- function(
       # Get polygon coordinates for plotting
       plot_data <- GetSfPlotData(sf.plot)
 
+      if (packageVersion("ggplot2") < "4.0.0") {
+        message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
+        image_annotation_layer <- annotation_custom(
+                              grob = image.grob,
+                              xmin = 0,
+                              xmax = image.width,
+                              ymin = -image.height,
+                              ymax = 0)
+      } else {
+        image_annotation_layer <- annotation_custom(
+                              grob = image.grob,
+                              xmin = 0,
+                              xmax = image.width,
+                              ymin = 0,
+                              ymax = image.height)
+      }
+
       # Create appropriate geom layer based on plot_segmentations
       if (!plot_segmentations) {
         #If plot_segmentations FALSE, then plot just the polygon centroids 
@@ -9578,13 +9595,7 @@ SingleSpatialPlot <- function(
           )
         }
         ggplot() +
-            annotation_custom(
-              grob = image.grob,
-              xmin = 0,
-              xmax = image.width,
-              ymin = 0,
-              ymax = image.height
-            ) +
+            image_annotation_layer +
             geom_point_layer +
             scale_y_reverse() + 
             xlab("x") +
@@ -9613,13 +9624,7 @@ SingleSpatialPlot <- function(
           ) 
         }
         ggplot() +
-            annotation_custom(
-              grob = image.grob,
-              xmin = 0,
-              xmax = image.width,
-              ymin = 0,
-              ymax = image.height
-            ) +
+            image_annotation_layer +
             geom_polygon_layer +
             scale_y_reverse() + 
             xlab("x") +
