@@ -536,6 +536,7 @@ Load10X_Spatial <- function (
   image = NULL,
   image.name = "tissue_lowres_image.png",
   segmentation.type = NULL,
+  lightweight = FALSE,
   ...
 ) {
   # if more than one directory is passed in
@@ -710,7 +711,8 @@ Load10X_Spatial <- function (
       image.dir = file.path(seg.data.dir, "spatial"),
       data.dir = data.dir,
       image.name = image.name,
-      segmentation.type = segmentation.type
+      segmentation.type = segmentation.type,
+      lightweight = lightweight
     )
 
     # Holds the segmentation object
@@ -1560,7 +1562,8 @@ Read10X_Segmentations <- function (image.dir,
                                    image.name = "tissue_lowres_image.png",
                                    assay = "Spatial.Polygons",
                                    slice = "slice1.polygons",
-                                   segmentation.type = "cell") {
+                                   segmentation.type = "cell",
+                                   lightweight = FALSE) {
 
   image <- png::readPNG(source = file.path(image.dir, image.name))
 
@@ -1577,7 +1580,7 @@ Read10X_Segmentations <- function (image.dir,
                                 segmentation.type = segmentation.type)
 
   # Create a Segmentation object based on sf, populate sf.data and polygons
-  segmentation <- CreateSegmentation(sf.data, lightweight = TRUE)
+  segmentation <- CreateSegmentation(sf.data, lightweight = lightweight)
 
   # Named list with segmentation
   boundaries <- list(segmentation = segmentation)
