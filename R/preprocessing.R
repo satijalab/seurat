@@ -715,46 +715,18 @@ Load10X_Spatial <- function (
       lightweight = lightweight
     )
 
-    # Holds the segmentation object
-    segmentation_obj <- visium.segmentation@boundaries$segmentation
-
-    # Get sf data
-    sf_data <- visium.segmentation@boundaries$segmentation@sf.data
-
-    # Set the attribute-geometry relationship to constant
-    # See https://r-spatial.github.io/sf/reference/sf.html#details
-    st_agr(sf_data) <- "constant"
-
-    # Create a dataframe from sf data to hold centroids
-    centroids_obj <- visium.segmentation@boundaries$centroids
-    centroid_coords <- sf::st_coordinates(sf::st_centroid(sf_data))
-    centroids_df <- data.frame(
-      x = centroid_coords[, "X"],
-      y = centroid_coords[, "Y"],
-      row.names = sf_data$barcodes
-    )
-
-    # Create centroids object
-    centroids <- CreateCentroids(centroids_df,
-                                nsides = Inf,
-                                radius = NULL,
-                                theta = 0)
-
-    # Add centroids to the Visium object
-    visium.segmentation@boundaries$centroids <- centroids
-
     # Create a new Seurat object with the raw counts
     segmentation.object <- CreateSeuratObject(
       segmentation.counts,
       assay = segmentation.assay.name
     )
-
-    # Make sure the list of cell names between segmentations & raw counts matches exactly
+    
+    common_cells <- unique(Cells(visium.segmentation)[Cells(visium.segmentation) %in% Cells(segmentation.object)])
     visium.segmentation <- subset(
       x = visium.segmentation,
-      cells = intersect(Cells(segmentation.object), Cells(visium.segmentation))
+      cells = common_cells
     )
-
+    
     # Set the default boundary type to centroids for plotting
     DefaultBoundary(object = visium.segmentation) <- "centroids"
 
@@ -1565,25 +1537,48 @@ Read10X_Segmentations <- function (image.dir,
                                    segmentation.type = "cell",
                                    lightweight = FALSE) {
 
-  image <- png::readPNG(source = file.path(image.dir, image.name))
 
+  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
+                                segmentation.type = segmentation.type)
+
+  # Set the attribute-geometry relationship to constant
+  # See https://r-spatial.github.io/sf/reference/sf.html#details
+  st_agr(sf.data) <- "constant"
+
+  # Extract coordinates as a dataframe from sf object
+  coords_mat <- sf::st_coordinates(sf.data)
+  l2_indices <- coords_mat[, "L2"] # L2 column corresponds to polygon (cell) index
+  
+  coords_df <- data.frame(x = coords_mat[, 1],
+                          y = coords_mat[, 2],
+                          cell = sf.data$barcodes[l2_indices],
+                          stringsAsFactors = FALSE)
+  
+  # Create a Segmentation object; populate it based on the coordinates from the sf object
+  segmentations <- CreateSegmentation(coords_df, lightweight = lightweight)
+
+  # Create a dataframe from sf data to hold centroids
+  centroid_coords <- sf::st_coordinates(sf::st_centroid(sf.data))
+  centroids_df <- data.frame(
+    x = centroid_coords[, "X"],
+    y = centroid_coords[, "Y"],
+    row.names = sf.data$barcodes
+  )
+
+  # Create centroids object
+  centroids <- CreateCentroids(centroids_df,
+                              nsides = Inf,
+                              radius = NULL,
+                              theta = 0)
+
+  # Named list with segmentations and centroids
+  boundaries <- list(segmentations = segmentations, centroids = centroids)
+
+  # Get image, scale factors, key
+  image <- png::readPNG(source = file.path(image.dir, image.name))
   scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir,
                                                              "scalefactors_json.json"))
   key <- Key(slice, quiet = TRUE)
-
-  # Pass proper scale.factor based on whether image is lowres or hires
-  # We assume if not lowres it is hires - image has been validated above
-  scale.factor <- if (grepl("lowres", image.name)) "lowres" else "hires"
-
-  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
-                                image.dir = image.dir,
-                                segmentation.type = segmentation.type)
-
-  # Create a Segmentation object based on sf, populate sf.data and polygons
-  segmentation <- CreateSegmentation(sf.data, lightweight = lightweight)
-
-  # Named list with segmentation
-  boundaries <- list(segmentation = segmentation)
 
   # Build VisiumV2 object
   visium.v2 <- new(
@@ -1622,7 +1617,6 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' Load 10X Genomics GeoJson
 #'
 #' @param data.dir Path to the directory containing matrix data
-#' @param image.dir Path to the directory with spatial GeoJSON data
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
 #'
 #' @return A FOV
@@ -1630,7 +1624,7 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' @export
 #' @concept preprocessing
 #'
-Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell") {
+Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
   segmentation_polygons <- read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
   
   # Restructure sf geometry for downstream compatibility
