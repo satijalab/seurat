@@ -4491,8 +4491,8 @@ SpatialPlot <- function(
 
       # Check if object contains a sf slot (attached via Load10X_Spatial)
       use_geom_sf <- (inherits(image.use, "VisiumV2") &&
-                      !is.null(image.use@boundaries$segmentation) &&
-                      "sf.data" %in% slotNames(image.use@boundaries$segmentation))
+                      !is.null(image.use@boundaries$segmentations) &&
+                      "sf.data" %in% slotNames(image.use@boundaries$segmentations))
 
       plot <- SingleSpatialPlot(
         data = cbind(
@@ -9537,22 +9537,19 @@ SingleSpatialPlot <- function(
       image.width <- dim(image@image)[2]
       
       # Extract and scale segmentation data
-      sf.data <- image@boundaries$segmentation@sf.data
-      sf.data$geometry <- sf.data$geometry * scale.factor
-
-      # Add cell column to data for merging
-      data$cell <- rownames(data)
+      segm_data <- image@boundaries$segmentations@sf.data
+      segm_data$x <- segm_data$x * scale.factor
+      segm_data$y <- segm_data$y * scale.factor
 
       # Merge sf.data with expression data and centroid coordinates
-      sf.plot <- merge(sf.data,
+      plot_data <- merge(segm_data,
                         data,
-                        by.x = "barcodes",
-                        by.y = "cell",
-                        all.x = TRUE,
+                        by = "cell",
+                        suffixes = c("", ".centroid"),
                         sort = FALSE)
 
       # Get polygon coordinates for plotting
-      plot_data <- GetSfPlotData(sf.plot)
+      # plot_data <- GetSfPlotData(sf.plot)
 
       if (packageVersion("ggplot2") < "4.0.0") {
         message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
@@ -9582,7 +9579,7 @@ SingleSpatialPlot <- function(
             shape = 21, 
             stroke = stroke, 
             size = pt.size.factor, 
-            aes(x = x, y = y, fill = !!col.by.plot, alpha = !!alpha.by)
+            aes(x = x.centroid, y = y.centroid, fill = !!col.by.plot, alpha = !!alpha.by)
           )
         } else {
           geom_point_layer <- geom_point(
@@ -9590,7 +9587,7 @@ SingleSpatialPlot <- function(
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
-            aes(x = x, y = y, fill = !!col.by.plot),
+            aes(x = x.centroid, y = y.centroid, fill = !!col.by.plot),
             alpha = pt.alpha
           )
         }
@@ -9609,7 +9606,7 @@ SingleSpatialPlot <- function(
           #Use alpha.by instead of pt.alpha
           geom_polygon_layer <- geom_polygon(
             data = plot_data,
-            aes(x = x.vertex, y = y.vertex, fill = !!col.by.plot, alpha = !!alpha.by, group = cell),
+            aes(x = x, y = y, fill = !!col.by.plot, alpha = !!alpha.by, group = cell),
             color = "black",
             linewidth = stroke
           )
@@ -9617,7 +9614,7 @@ SingleSpatialPlot <- function(
           #If pt.alpha is indeed provided, then use that to define alpha
           geom_polygon_layer <- geom_polygon(
             data = plot_data,
-            aes(x = x.vertex, y = y.vertex, fill = !!col.by.plot, group = cell),
+            aes(x = x, y = y, fill = !!col.by.plot, group = cell),
             alpha = pt.alpha,
             color = "black",
             linewidth = stroke
