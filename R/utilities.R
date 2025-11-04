@@ -1023,51 +1023,6 @@ GeneSymbolThesarus <- function(
   return(synonyms)
 }
 
-#' Extract data from a plot-ready \code{sf} object in a format suitable
-#' for use with \code{ggplot2::geom_polygon()}.
-#'
-#' @param sf_data A \code{sf} object
-#' @return A data.frame with columns x.vertex, y.vertex, cell (barcode), and columns corresponding to plotting variables, such that
-#' each row represents plotting information for a single vertex of the segmentation corresponding to that barcode.
-#'  
-#' @keywords internal
-#'
-GetSfPlotData <- function(sf_data) {
-  if (!is.null(sf_data) && inherits(sf_data, 'sf')) {
-    # Extract coordinates as a dataframe from sf object
-    coords_mat <- sf::st_coordinates(sf_data)
-    l2_indices <- coords_mat[, "L2"] # L2 column corresponds to polygon (cell) index
-
-    coords_df <- data.frame(cell = sf_data$barcodes[l2_indices],
-                            x.vertex = coords_mat[, 1],
-                            y.vertex = coords_mat[, 2],
-                            stringsAsFactors = FALSE)
-
-    
-    # Get column names in sf_data other than cell id (numeric) and geometry ("sf_column")
-    geom_column <- attr(sf_data, "sf_column")
-    data_columns <- setdiff(names(sf_data), c("cell_id", geom_column))
-
-    # Check if there are any additional columns to merge
-    if (length(data_columns) > 0 && "barcodes" %in% data_columns) {
-      # Retrieve additional data (ex. metadata, expression data, etc) attached to the sf object
-      plot_data <- sf::st_drop_geometry(sf_data)
-      plot_data <- plot_data[data_columns]
-
-      # Reattach data to coordinates dataframe by matching barcodes
-      match_idx <- match(coords_df$cell, plot_data$barcodes)
-      data_columns <- setdiff(data_columns, "barcodes")
-
-      for (col in data_columns) {
-        coords_df[[col]] <- plot_data[[col]][match_idx]
-      }
-    }
-    return(coords_df)
-  } else {
-    stop("Unable to extract polygon coordinates; the 'sf.data' slot does not contain an sf object.")
-  }
-}
-
 #' Compute the correlation of features broken down by groups with another
 #' covariate
 #'
