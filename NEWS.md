@@ -4,6 +4,9 @@
 - Added support for Space Ranger 4.0 outputs - updated `Load10X_Spatial`, `Read10X_Image`, spatial visualization functions (`SpatialPlot`, `SingleSpatialPlot`, `SpatialDimPlot`, `SpatialFeaturePlot`), added helpers (`Read10X_Segmentations`, `Read10X_HD_GeoJson`, `Format10X_GeoJson_CellID`)
 - Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium, SlideSeq, or Vizgen data)
 
+### Fixes
+- Reverted #10062 in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData`; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
+
 # Seurat 5.3.1
 
 ## Changes
