@@ -5,7 +5,7 @@
 - Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium, SlideSeq, or Vizgen data)
 
 ### Fixes
-- Reverted #10062 in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData`
+- Reverted #10062 in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData`; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
 
 # Seurat 5.3.1
 
