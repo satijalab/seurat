@@ -1,3 +1,11 @@
+# Unreleased
+
+## Changes
+
+### Fixes
+
+- Reverted method of data fetch in `DimPlot`; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
+
 # Seurat 5.3.1
 
 ## Changes
@@ -22,6 +30,7 @@
 - Updated `FindClusters` to order cluster factor levels correctly when assigning a custom cluster name ([#10092](https://github.com/satijalab/seurat/pull/10092))
 - Updated `FindConservedMarkers` to remove NA values ([#9917](https://github.com/satijalab/seurat/pull/9917))
 - Updated visualization functions to avoid ggplot2 `guides`, `aes_string`, and `facet_grid` deprecation warnings ([#9409](https://github.com/satijalab/seurat/pull/9409), [#10116](https://github.com/satijalab/seurat/pull/10116))
+- Fixed `DimPlot` bug where metadata columns named 'PC_1', 'UMAP_1' etc override reduction embeddings ([#10062](https://github.com/satijalab/seurat/pull/10062))
 
 
 # Seurat 5.3.0 (2025-04-23)
