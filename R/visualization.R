@@ -923,6 +923,16 @@ DimPlot <- function(
     group.by <- colnames(labels)
   }
 
+  # check for overlap between colnames of dim reduc embeddings and metadata
+  metadata_cols <- names(object[[]])
+  colname_overlap <- intersect(dims, metadata_cols)
+  if (length(colname_overlap) > 0) {
+    warning("Found metadata columns with the same names as requested reduction columns: ",
+      paste(colname_overlap, collapse = ", "),
+      ". Consider renaming these metadata column(s) to avoid conflicts with dimensionality reduction embeddings.",
+      call. = FALSE)
+  }
+
   data <- FetchData(
     object = object,
     vars = c(dims, group.by),
