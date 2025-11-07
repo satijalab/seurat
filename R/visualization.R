@@ -906,10 +906,6 @@ DimPlot <- function(
   # data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
 
-  # directly get embeddings to avoid name collisions
-  embed <- Embeddings(object[[reduction]])[cells, dims, drop = FALSE]
-  embed <- as.data.frame(embed)
-
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
 
@@ -927,16 +923,22 @@ DimPlot <- function(
     group.by <- colnames(labels)
   }
 
-  meta <- FetchData(
+  # check for overlap between colnames of dim reduc embeddings and metadata
+  metadata_cols <- names(object[[]])
+  colname_overlap <- intersect(dims, metadata_cols)
+  if (length(colname_overlap) > 0) {
+    warning("Found metadata columns with the same names as requested reduction columns: ",
+      paste(colname_overlap, collapse = ", "),
+      ". Consider renaming these metadata column(s) to avoid conflicts with dimensionality reduction embeddings.",
+      call. = FALSE)
+  }
+
+  data <- FetchData(
     object = object,
-    vars = group.by,
+    vars = c(dims, group.by),
     cells = cells,
     clean = 'project'
   )
-
-  # Combine embeddigns and metadata
-  data <- cbind(embed, meta)
-
   # cells <- rownames(x = object)
   # object[['ident']] <- Idents(object = object)
   # orig.groups <- group.by

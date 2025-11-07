@@ -2,6 +2,14 @@
 
 ## Changes
 
+### Fixes
+
+- Reverted method of data fetch in `DimPlot`; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
+
+# Seurat 5.3.1
+
+## Changes
+
 ### Additions
 - Added option to use `cluster_leiden` from `igraph` when running Leiden clustering ([#9931](https://github.com/satijalab/seurat/pull/9931))
 - Added option to use `umap2` from `uwot` when running UMAP ([#9918](https://github.com/satijalab/seurat/pull/9918))
