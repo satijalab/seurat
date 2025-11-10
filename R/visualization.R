@@ -6131,7 +6131,15 @@ LabelClusters <- function(
       data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
     }
   }
-  data <- cbind(data, color = pb$data[[1]][[1]])
+
+  # Retrieve colour from built data
+  col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
+  if (length(col_choice) > 0) {
+    data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
+  } else {
+    data <- cbind(data, color = NA_character_)
+  }
+
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
@@ -6146,7 +6154,7 @@ LabelClusters <- function(
               split_data <- data.use[split_by_values == split, , drop = FALSE]
               # Extract coordinates
               if (inherits(split_data, "sf")) {
-                st_agr(split_data) <- "constant" # Set attr-geom relationship to avoid warnings
+                st_agr(split_data) <- "constant"
                 coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(split_data)))
                 names(coord_data) <- xynames[1:2]
               } else {
@@ -6167,7 +6175,7 @@ LabelClusters <- function(
       } else {
         # Extract coordinates
         if (inherits(data.use, "sf")) {
-          st_agr(data.use) <- "constant"  # Set attr-geom relationship to avoid warnings
+          st_agr(data.use) <- "constant"
           coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(data.use)))
           names(coord_data) <- xynames[1:2]
         } else {
@@ -6190,7 +6198,7 @@ LabelClusters <- function(
       # Handle sf data subsetting for nearest point calculation
       if (inherits(data, "sf")) {
         group.data <- data[as.character(data[[id]]) == as.character(x[3]), ]
-        st_agr(group.data) <- "constant"  # Set attr-geom relationship to avoid warnings
+        st_agr(group.data) <- "constant"
         group.data <- data.frame(sf::st_coordinates(sf::st_centroid(group.data)))
         names(group.data) <- xynames[1:2]
       } else {
@@ -6214,14 +6222,15 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
+
   if (box) {
     geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
     plot <- plot + geom.use(
       data = labels.loc,
-      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[[id]]),
+      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[["color"]]),
       show.legend = FALSE,
       ...
-    )
+    ) + scale_fill_identity()
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
