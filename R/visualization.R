@@ -5811,7 +5811,15 @@ LabelClusters <- function(
       data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
     }
   }
-  data <- cbind(data, color = pb$data[[1]][[1]])
+
+  # Retrieve colour from built data
+  col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
+  if (length(col_choice) > 0) {
+    data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
+  } else {
+    data <- cbind(data, color = NA_character_)
+  }
+
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
@@ -5865,14 +5873,15 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
+
   if (box) {
     geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
     plot <- plot + geom.use(
       data = labels.loc,
-      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[[id]]),
+      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[["color"]]),
       show.legend = FALSE,
       ...
-    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
+    ) + scale_fill_identity()
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
