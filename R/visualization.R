@@ -6229,6 +6229,7 @@ LabelClusters <- function(
       data = labels.loc,
       mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[["color"]]),
       show.legend = FALSE,
+      inherit.aes = FALSE,
       ...
     ) + scale_fill_identity()
   } else {
@@ -6237,6 +6238,7 @@ LabelClusters <- function(
       data = labels.loc,
       mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]]),
       show.legend = FALSE,
+      inherit.aes = FALSE,
       ...
     )
   }
