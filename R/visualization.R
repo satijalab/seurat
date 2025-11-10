@@ -4464,13 +4464,19 @@ SpatialPlot <- function(
     plot.idx <- i
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
     image.use <- object[[images[[image.idx]]]]
-    #Extract image information
+
+    if (!.hasSlot(object = image.use, name = "coords_x_name")) {
+      stop(
+        "Please run `UpdateSeuratObject()` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
+        call. = TRUE
+      )
+    }
 
     coordinates <- GetTissueCoordinates(
       object = image.use,
       scale = image.scale
     )
-    #CRITICAL STEP: if the rownames do not match the cell ids, then dataframe is not created properly
+    # if the rownames do not match the cell ids, then dataframe is not created properly
     rownames(coordinates) <- coordinates$cell
     highlight.use <- if (facet.highlight) {
       cells.highlight[i]
@@ -4489,8 +4495,8 @@ SpatialPlot <- function(
         max.feature.value <- max(data[, features[j]])
       }
 
-      # Check if object contains a sf slot (attached via Load10X_Spatial)
-      use_geom_sf <- (inherits(image.use, "VisiumV2") &&
+      # Check if object is of type Visium and contains segmentations (attached via Load10X_Spatial)
+      has_visium_segm_data <- (inherits(image.use, "VisiumV2") &&
                       !is.null(image.use@boundaries$segmentations) &&
                       "sf.data" %in% slotNames(image.use@boundaries$segmentations))
 
@@ -4515,10 +4521,9 @@ SpatialPlot <- function(
           NULL
         },
         geom = if (inherits(x = image.use, what = "STARmap")) {
-          'poly'
-        } else if (use_geom_sf) {
-          # Use sf for both segmentations and centroids when sf data is available
-          "sf"
+          "poly_starmap"
+        } else if (has_visium_segm_data) {
+          "poly"
         } else {
           "spatial"
         },
@@ -4547,11 +4552,9 @@ SpatialPlot <- function(
             yes = features[j],
             no = 'highlight'
           ),
-          geom = if (inherits(x = image.use, what = "STARmap")) {
+          geom = if (inherits(x = image.use, what = "STARmap") || (has_visium_segm_data && plot_segmentations)) {
             'GeomPolygon'
-          } else if (use_geom_sf && plot_segmentations) {
-            'GeomSf'
-          } else if (use_geom_sf && !plot_segmentations) {
+          } else if (has_visium_segm_data && !plot_segmentations) {
             'GeomPoint'
           } else {
             'GeomSpatial'
@@ -4574,7 +4577,7 @@ SpatialPlot <- function(
           theme(plot.title = element_text(hjust = 0.5)) +
           NoLegend()
       }
-      if (use_geom_sf && plot_segmentations && !is.null(group.by)) {
+      if (has_visium_segm_data && plot_segmentations && !is.null(group.by)) {
         # Add legend guides to show filled squares next to labels when plotting segmentations
         plot <- plot + guides(fill = guide_legend(override.aes = list(alpha = 1, color = "black", linewidth = 0.2, size = 2)))
       }
@@ -9434,7 +9437,7 @@ SingleSpatialPlot <- function(
   alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
-  geom = c('spatial', 'interactive', 'poly', 'sf'),
+  geom = c('spatial', 'interactive', 'poly', 'poly_starmap'),
   na.value = 'grey50',
   plot_segmentations = FALSE
 ) {
@@ -9518,7 +9521,7 @@ SingleSpatialPlot <- function(
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)
     },
-    'sf' = {
+    'poly' = {
 
       # Validate image
       image.grob <- rasterGrob(
@@ -9547,9 +9550,6 @@ SingleSpatialPlot <- function(
                         by = "cell",
                         suffixes = c("", ".centroid"),
                         sort = FALSE)
-
-      # Get polygon coordinates for plotting
-      # plot_data <- GetSfPlotData(sf.plot)
 
       if (packageVersion("ggplot2") < "4.0.0") {
         message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
@@ -9602,8 +9602,8 @@ SingleSpatialPlot <- function(
       } else {
         
         if (is.null(pt.alpha)) {
-          #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
-          #Use alpha.by instead of pt.alpha
+          # If pt.alpha is not provided, then alpha is derived from group/cluster data
+          # Use alpha.by instead of pt.alpha
           geom_polygon_layer <- geom_polygon(
             data = plot_data,
             aes(x = x, y = y, fill = !!col.by.plot, alpha = !!alpha.by, group = cell),
@@ -9611,7 +9611,7 @@ SingleSpatialPlot <- function(
             linewidth = stroke
           )
         } else {
-          #If pt.alpha is indeed provided, then use that to define alpha
+          # If pt.alpha is indeed provided, then use that to define alpha
           geom_polygon_layer <- geom_polygon(
             data = plot_data,
             aes(x = x, y = y, fill = !!col.by.plot, group = cell),
@@ -9630,7 +9630,7 @@ SingleSpatialPlot <- function(
             theme_void()
       }
     },
-    'poly' = {
+    'poly_starmap' = {
       data$cell <- rownames(x = data)
       data[, c('x', 'y')] <- NULL
       data <- merge(
@@ -9646,7 +9646,6 @@ SingleSpatialPlot <- function(
         data = data,
         mapping = aes(fill = !!col.by.plot, group = .data[['cell']])
       ) + coord_fixed() + theme_cowplot()
-
     },
     stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
   )
