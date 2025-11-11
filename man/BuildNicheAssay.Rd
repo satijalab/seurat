@@ -37,7 +37,7 @@ Seurat object containing a new assay
 }
 \description{
 This function will construct a new assay where each feature is a
-cell label The values represents the sum of a particular cell label
+cell label. The values represent the sum of a particular cell label
 neighboring a given cell.
 }
 \concept{clustering}
