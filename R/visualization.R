@@ -9636,7 +9636,7 @@ SingleSpatialPlot <- function(
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
-            aes(fill = .data[[col.by]], alpha = .data[[alpha.by]])
+            aes(fill = .data[[col.by.clean]], alpha = .data[[alpha.by]])
           )
         } else {
           #If pt.alpha is indeed provided, then use that to define alpha
@@ -9644,7 +9644,7 @@ SingleSpatialPlot <- function(
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
-            aes(fill = .data[[col.by]]),
+            aes(fill = .data[[col.by.clean]]),
             alpha = if (is.null(pt.alpha)) 1 else pt.alpha
           )
         }
@@ -9670,7 +9670,7 @@ SingleSpatialPlot <- function(
           #Use alpha.by instead of pt.alpha
           geom_sf_layer <- geom_sf(
             data = sf.cleaned,
-            aes(fill = .data[[col.by]], alpha = .data[[alpha.by]]),
+            aes(fill = .data[[col.by.clean]], alpha = .data[[alpha.by]]),
             color = "black",
             linewidth = stroke
           )
@@ -9678,7 +9678,7 @@ SingleSpatialPlot <- function(
           #If pt.alpha is indeed provided, then use that to define alpha
           geom_sf_layer <- geom_sf(
             data = sf.cleaned,
-            aes(fill = .data[[col.by]]),
+            aes(fill = .data[[col.by.clean]]),
             alpha = if (is.null(pt.alpha)) 1 else pt.alpha,
             color = "black",
             linewidth = stroke
