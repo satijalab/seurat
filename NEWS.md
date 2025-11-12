@@ -1,19 +1,36 @@
 # Unreleased
 
+### Additions
+- Added support for Space Ranger 4.0 outputs - updated `Load10X_Spatial`, `Read10X_Image`, spatial visualization functions (`SpatialPlot`, `SingleSpatialPlot`, `SpatialDimPlot`, `SpatialFeaturePlot`), added helpers (`Read10X_Segmentations`, `Read10X_HD_GeoJson`, `Format10X_GeoJson_CellID`)
+- Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium, SlideSeq, or Vizgen data)
+
+### Fixes
+- Reverted #10062 in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData`; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
+
+# Seurat 5.3.1
+
 ## Changes
 
-- Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium or SlideSeq data)
-- Added `label.size.cutoff` parameter to `DimPlot` to allow users to label only clusters above a certain size
+### Additions
 - Added option to use `cluster_leiden` from `igraph` when running Leiden clustering ([#9931](https://github.com/satijalab/seurat/pull/9931))
 - Added option to use `umap2` from `uwot` when running UMAP ([#9918](https://github.com/satijalab/seurat/pull/9918))
-- Updated `PseudobulkExpression` to acccount for the case that a category passed to `group.by` has only one value
-- Updated `VlnPlot` to use assay passed to the function if specified
-- Updated `FeatureScatter` to allow gene names with parentheses to be plotted
-- Updated `SingleRasterMap` to store object metadata correctly
-- Made minor edit to description of section running `DoHeatmap` in PBMC3K guided tutorial vignette
-- Updated `FindClusters` to order cluster factor levels correctly when assigning a custom cluster name
-- Updated `FindConservedMarkers` to remove NA values
-- Updated visualization functions to avoid `ggplot2::guides()` deprecation warnings
+- Added option to use `approx_pow` parameter from `uwot` when running UMAP ([#9449](https://github.com/satijalab/seurat/pull/9449))
+- Updated `LoadXenium` to add support for Xenium protein data ([#10024](https://github.com/satijalab/seurat/pull/10024))
+- Added option to specify stroke size in `FeaturePlot` ([#10053](https://github.com/satijalab/seurat/pull/10053))
+- Added `label.size.cutoff` parameter to `DimPlot` to allow users to label only clusters above a certain size ([#10092](https://github.com/satijalab/seurat/pull/10092))
+
+### Fixes
+
+- Fixed deprecated calls to Seurat functions `GetAssayData` and `PackageCheck` ([#9924](https://github.com/satijalab/seurat/pull/9924)), ([#10102](https://github.com/satijalab/seurat/pull/10102))
+- Fixed errors in `RunAzimuth` relating to `FindTransferAnchors` ([#9924](https://github.com/satijalab/seurat/pull/9924))
+- Fixed errors in `LeverageScore` relating to handling of (variable) features ([#9924](https://github.com/satijalab/seurat/pull/9924))
+- Updated `PseudobulkExpression` to acccount for the case that a category passed to `group.by` has only one value ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `VlnPlot` to use assay passed to the function if specified ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `FeatureScatter` to allow gene names with parentheses to be plotted ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `SingleRasterMap` to store object metadata correctly ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `FindClusters` to order cluster factor levels correctly when assigning a custom cluster name ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `FindConservedMarkers` to remove NA values ([#9917](https://github.com/satijalab/seurat/pull/9917))
+- Updated visualization functions to avoid ggplot2 `guides`, `aes_string`, and `facet_grid` deprecation warnings ([#9409](https://github.com/satijalab/seurat/pull/9409), [#10116](https://github.com/satijalab/seurat/pull/10116))
 - Fixed `DimPlot` bug where metadata columns named 'PC_1', 'UMAP_1' etc override reduction embeddings ([#10062](https://github.com/satijalab/seurat/pull/10062))
 
 # Seurat 5.3.0
