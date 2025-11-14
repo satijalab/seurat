@@ -9236,7 +9236,7 @@ SingleImagePlot <- function(
         geom_polygon(
           mapping = aes(group = .data[['cell']]),
           color = border.color,
-          size = border.size
+          linewidth = border.size
         )
       } else {
         # Default to no borders when plotting centroids
