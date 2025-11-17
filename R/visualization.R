@@ -9497,9 +9497,20 @@ SingleSpatialPlot <- function(
     },
     'poly' = {
 
+      image_to_plot <- image@image
+
+      # Apply image transparency
+      if (image.alpha < 1) {
+          # Convert image to RGBA by adding alpha channel
+          rgba_image <- array(data = NA, dim = c(dim(image_to_plot)[1:2], 4))
+          rgba_image[,,1:3] <- image_to_plot
+          rgba_image[,,4] <- image.alpha
+          image_to_plot <- rgba_image
+      }
+      
       # Validate image
       image.grob <- rasterGrob(
-        image@image,
+        image_to_plot,
         width = unit(1, "npc"),
         height = unit(1, "npc"),
         interpolate = FALSE
@@ -9518,7 +9529,7 @@ SingleSpatialPlot <- function(
       segm_data$x <- segm_data$x * scale.factor
       segm_data$y <- segm_data$y * scale.factor
 
-      # Merge sf.data with expression data and centroid coordinates
+      # Merge segmentation data with expression data and centroid coordinates
       plot_data <- merge(segm_data,
                         data,
                         by = "cell",
