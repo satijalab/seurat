@@ -6086,9 +6086,9 @@ LabelClusters <- function(
 ) {
   xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   plot_data <- plot$data
-  if (geom == "GeomSf") {
-    # For sf, data is within the layers slot, not the data slot
-    geom_layers <- which(sapply(plot$layers, function(layer) class(layer$geom)[1] == "GeomSf"))
+ if (geom == "GeomPolygon") {
+    # When plotting polygons, data is within the layers slot, not the data slot
+    geom_layers <- which(sapply(plot$layers, function(layer) class(layer$geom)[1] == geom))
     if (length(geom_layers) > 0 && !is.null(plot$layers[[geom_layers[1]]]$data)) {
       plot_data <- plot$layers[[geom_layers[1]]]$data
     }
@@ -6101,7 +6101,7 @@ LabelClusters <- function(
     split.by <- NULL
   }
   data <- plot_data[, c(xynames, id, split.by)]
-  id_values <- if (inherits(data, "sf")) data[[id]] else data[, id]
+  id_values <- data[, id]
   possible.clusters <- as.character(x = na.omit(object = unique(x = id_values)))
   groups <- clusters %||% possible.clusters
   if (any(!groups %in% possible.clusters)) {
@@ -6121,23 +6121,17 @@ LabelClusters <- function(
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
-      data.use <- if (inherits(data, "sf")) data[data[[id]] == group, , drop = FALSE] else data[data[, id] == group, , drop = FALSE]
+      data.use <- data[data[, id] == group, , drop = FALSE]
       data.medians <- if (!is.null(x = split.by)) {
         do.call(
           what = 'rbind',
           args = lapply(
             X = unique(x = data.use[, split.by]),
             FUN = function(split) {
-              split_by_values <- if (inherits(data.use, "sf")) data.use[[split.by]] == split else data.use[, split.by] == split
+              split_by_values <- data.use[, split.by] == split
               split_data <- data.use[split_by_values == split, , drop = FALSE]
               # Extract coordinates
-              if (inherits(split_data, "sf")) {
-                st_agr(split_data) <- "constant" # Set attr-geom relationship to avoid warnings
-                coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(split_data)))
-                names(coord_data) <- xynames[1:2]
-              } else {
-                coord_data <- data.use[data.use[, split.by] == split, xynames, drop = FALSE]
-              }
+              coord_data <- data.use[data.use[, split.by] == split, xynames, drop = FALSE]
               medians <- apply(
                 X = coord_data,
                 MARGIN = 2,
@@ -6152,13 +6146,7 @@ LabelClusters <- function(
         )
       } else {
         # Extract coordinates
-        if (inherits(data.use, "sf")) {
-          st_agr(data.use) <- "constant"  # Set attr-geom relationship to avoid warnings
-          coord_data <- data.frame(sf::st_coordinates(sf::st_centroid(data.use)))
-          names(coord_data) <- xynames[1:2]
-        } else {
-          coord_data <- data.use[, xynames, drop = FALSE]
-        }
+        coord_data <- data.use[, xynames, drop = FALSE]
         as.data.frame(x = t(x = apply(
           X = coord_data,
           MARGIN = 2,
@@ -6173,15 +6161,7 @@ LabelClusters <- function(
   )
   if (position == "nearest") {
     labels.loc <- lapply(X = labels.loc, FUN = function(x) {
-      # Handle sf data subsetting for nearest point calculation
-      if (inherits(data, "sf")) {
-        group.data <- data[as.character(data[[id]]) == as.character(x[3]), ]
-        st_agr(group.data) <- "constant"  # Set attr-geom relationship to avoid warnings
-        group.data <- data.frame(sf::st_coordinates(sf::st_centroid(group.data)))
-        names(group.data) <- xynames[1:2]
-      } else {
-        group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
-      }
+      group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
       coord_matrix <- as.matrix(group.data[, 1:2])
       nearest.point <- nn2(data = coord_matrix, query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
       x[1:2] <- coord_matrix[nearest.point, ]
@@ -6189,8 +6169,7 @@ LabelClusters <- function(
     })
   }
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
-  # Safe handling of factor levels for sf data
-  data_levels <- if (inherits(data, "sf")) levels(data[[id]]) else levels(data[, id])
+  data_levels <- levels(data[, id])
   labels.loc[, id] <- factor(x = labels.loc[, id], levels = data_levels)
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
@@ -7360,11 +7339,6 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   } else {
     x <- as_label(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)
     y <- as_label(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)
-  }
-  # Handle GeomSf case where x/y are NULL because coordinates are in geometry
-  if (geom == "GeomSf") {
-    x <- "x"  # Default coordinate names for sf objects
-    y <- "y"
   }
   return(list('x' = x, 'y' = y))
 }
