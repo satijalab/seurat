@@ -935,10 +935,14 @@ DimPlot <- function(
 
   data <- FetchData(
     object = object,
-    vars = c(dims, group.by),
+    vars = group.by,
     cells = cells,
     clean = 'project'
   )
+
+  # Combine embeddigns and metadata
+  data <- cbind(embed, meta)
+
   # cells <- rownames(x = object)
   # object[['ident']] <- Idents(object = object)
   # orig.groups <- group.by
