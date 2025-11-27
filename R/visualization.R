@@ -6132,12 +6132,45 @@ LabelClusters <- function(
     }
   }
 
-  # Retrieve colour from built data
-  col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
-  if (length(col_choice) > 0) {
-    data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
-  } else {
-    data <- cbind(data, color = NA_character_)
+  # Retrieve colour mapping for each group
+  # Extract colors from the plot's scales
+  color_scale <- NULL
+  if (!is.null(pb$plot$scales$get_scales("colour"))) {
+    color_scale <- pb$plot$scales$get_scales("colour")
+  } else if (!is.null(pb$plot$scales$get_scales("color"))) {
+    color_scale <- pb$plot$scales$get_scales("color")
+  }
+  
+  # Create color mapping for groups
+  group_colors <- setNames(rep(NA_character_, length(groups)), groups)
+  if (!is.null(color_scale) && !is.null(color_scale$palette)) {
+    if (is.function(color_scale$palette)) {
+      # For discrete scales
+      n_colors <- length(groups)
+      palette_colors <- color_scale$palette(n_colors)
+      group_colors <- setNames(palette_colors[seq_along(groups)], groups)
+    }
+  }
+  
+  # If no colors from scale, try to get from built data
+  if (all(is.na(group_colors))) {
+    col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
+    if (length(col_choice) > 0) {
+      data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
+      # Try to map colors from data
+      for (group in groups) {
+        group_data <- if (inherits(data, "sf")) data[data[[id]] == group, , drop = FALSE] else data[data[, id] == group, , drop = FALSE]
+        if (nrow(group_data) > 0) {
+          group_color <- group_data$color[1]
+          # Check if it's a valid color
+          if (!is.na(group_color) && !is.numeric(group_color) && grepl("^#[0-9A-Fa-f]{6}", group_color)) {
+            group_colors[group] <- group_color
+          }
+        }
+      }
+    } else {
+      data <- cbind(data, color = NA_character_)
+    }
   }
 
   labels.loc <- lapply(
@@ -6189,7 +6222,8 @@ LabelClusters <- function(
         )))
       }
       data.medians[, id] <- group
-      data.medians$color <- data.use$color[1]
+      # Assign color from group_colors mapping
+      data.medians$color <- group_colors[as.character(group)]
       return(data.medians)
     }
   )
@@ -6430,7 +6464,7 @@ CenterTitle <- function(...) {
 DarkTheme <- function(...) {
   #   Some constants for easier changing in the future
   black.background <- element_rect(fill = 'black')
-  black.background.no.border <- element_rect(fill = 'black', size = 0)
+  black.background.no.border <- element_rect(fill = 'black', linewidth = 0)
   font.margin <- 4
   white.text <- element_text(
     colour = 'white',
@@ -6441,8 +6475,8 @@ DarkTheme <- function(...) {
       l = font.margin
     )
   )
-  white.line <- element_line(colour = 'white', size = 1)
-  no.line <- element_line(size = 0)
+  white.line <- element_line(colour = 'white', linewidth = 1)
+  no.line <- element_line(linewidth = 0)
   #   Create the dark theme
   dark.theme <- theme(
     #   Set background colors
