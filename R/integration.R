@@ -828,7 +828,8 @@ FindTransferAnchors <- function(
             nrow(reference[[reference.assay]]$scale.data) == 0) {
           stop(
             "No scale.data found in the ", reference.assay, " assay of the reference object. ",
-            "Please run ScaleData() on the reference object before using FindTransferAnchors with SCT normalization.",
+            "For SCT normalization, please run GetResidual() on the reference object before using FindTransferAnchors. ",
+            "ScaleData() is not required for SCT assays.",
             call. = FALSE
           )
         }
@@ -839,7 +840,7 @@ FindTransferAnchors <- function(
         if (length(features) == 0) {
           stop(
             "No features remaining after intersecting with scale.data in ", reference.assay, " assay. ",
-            "Please ensure ScaleData() has been run on the reference object with appropriate features.",
+            "For SCT normalization, please ensure GetResidual() has been run on the reference object with appropriate features.",
             call. = FALSE
           )
         }
@@ -3646,9 +3647,11 @@ TransferData <- function(
       }
       
       # Use a safer version of which.max that handles edge cases
+      # A safer version of which.max that handles the all-NA case.
+      # Negative and zero values are handled by which.max as usual.
       safe_which_max <- function(x) {
-        if (all(is.na(x)) || all(x == 0)) {
-          return(1L)  # Default to first class if all are NA or 0
+        if (all(is.na(x))) {
+          return(1L)  # Default to first class if all are NA
         }
         result <- which.max(x)
         if (length(result) == 0) {

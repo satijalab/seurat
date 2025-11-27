@@ -7,7 +7,7 @@ ggplot2 version 4.0.0 (released September 2025) introduced breaking changes by m
 
 ### 1. DarkTheme() - Deprecated `size` parameter ✅
 **Status**: FIXED  
-**Files**: `R/visualization.R` (lines 6433-6445)  
+**Files**: `R/visualization.R` (lines 6476-6491)  
 **Changes**: 
 - Replaced `element_rect(fill = 'black', size = 0)` with `linewidth = 0`
 - Replaced `element_line(colour = 'white', size = 1)` with `linewidth = 1`

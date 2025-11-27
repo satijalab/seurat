@@ -6179,7 +6179,7 @@ LabelClusters <- function(
         if (nrow(group_data) > 0) {
           group_color <- group_data$color[1]
           # Check if it's a valid color
-          if (!is.na(group_color) && !is.numeric(group_color) && grepl("^#[0-9A-Fa-f]{6}", group_color)) {
+          if (!is.na(group_color) && !is.numeric(group_color) && grepl("^#[0-9A-Fa-f]{6,8}$", group_color)) {
             group_colors[group] <- group_color
           }
         }

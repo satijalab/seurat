@@ -2884,10 +2884,9 @@ ReadXenium <- function(
         # Apply QV threshold filtering
         if (!is.null(mols.qv.threshold) && 'qv' %in% colnames(transcripts)) {
           transcripts <- transcripts[transcripts$qv >= mols.qv.threshold, ]
+          # Remove qv column after filtering (not needed in output)
+          transcripts <- transcripts[, setdiff(colnames(transcripts), 'qv')]
         }
-        
-        # Remove qv column after filtering (not needed in output)
-        transcripts <- transcripts[, setdiff(colnames(transcripts), 'qv')]
 
         pmicrons(type = 'finish')
 
