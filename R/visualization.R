@@ -6156,11 +6156,10 @@ LabelClusters <- function(
   # Create color mapping for groups
   group_colors <- setNames(rep(NA_character_, length(groups)), groups)
   if (!is.null(color_scale) && !is.null(color_scale$palette)) {
-    if (is.function(color_scale$palette)) {
-      # For discrete scales
-      n_colors <- length(groups)
-      palette_colors <- color_scale$palette(n_colors)
-      group_colors <- setNames(palette_colors[seq_along(groups)], groups)
+    if (is.function(color_scale$map)) {
+      # Use the scale's map function to get the correct color for each group
+      mapped_colors <- color_scale$map(groups)
+      group_colors <- setNames(mapped_colors, groups)
     }
   }
   
