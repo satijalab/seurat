@@ -2189,7 +2189,6 @@ VariableFeaturePlot <- function(
       call. = FALSE,
       immediate. = TRUE
     )
-    # Use first two columns (typically mean and variance-related)
     hvf.info <- hvf.info[, 1:min(2, ncol(hvf.info)), drop = FALSE]
     if (ncol(hvf.info) < 2) {
       stop(
