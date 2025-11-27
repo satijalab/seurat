@@ -823,10 +823,26 @@ FindTransferAnchors <- function(
           features = features,
           verbose = FALSE
           ))
+        # Check if scale.data exists and has features
+        if (is.null(reference[[reference.assay]]$scale.data) || 
+            nrow(reference[[reference.assay]]$scale.data) == 0) {
+          stop(
+            "No scale.data found in the ", reference.assay, " assay of the reference object. ",
+            "Please run ScaleData() on the reference object before using FindTransferAnchors with SCT normalization.",
+            call. = FALSE
+          )
+        }
         features <- intersect(
           x = features,
           y = rownames(reference[[reference.assay]]$scale.data)
         )
+        if (length(features) == 0) {
+          stop(
+            "No features remaining after intersecting with scale.data in ", reference.assay, " assay. ",
+            "Please ensure ScaleData() has been run on the reference object with appropriate features.",
+            call. = FALSE
+          )
+        }
         VariableFeatures(reference) <- features
       }
       if (IsSCT(assay = query[[query.assay]])) {
