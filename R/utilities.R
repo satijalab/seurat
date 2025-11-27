@@ -2635,7 +2635,7 @@ Parenting <- function(parent.find = 'Seurat', ...) {
         return(as.character(func))
       } else if (is.call(func)) {
         # Handle cases like pkg::function
-        return(paste(as.character(func), collapse = ""))
+        return(paste(as.character(func), collapse = "::"))
       }
     }
     return("")
