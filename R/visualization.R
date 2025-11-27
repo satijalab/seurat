@@ -2179,7 +2179,24 @@ VariableFeaturePlot <- function(
   )
   status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]
   var.status <- c('no', 'yes')[unlist(hvf.info[[status.col]]) + 1]
-  if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
+  
+  # Handle cases where hvf.info may have different numbers of columns
+  if (ncol(hvf.info) < 3) {
+    warning(
+      "HVFInfo returned fewer than 3 columns. ",
+      "This may occur when using different normalization methods on the same object. ",
+      "Using available columns for plotting.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    hvf.info <- hvf.info[, 1:min(2, ncol(hvf.info)), drop = FALSE]
+    if (ncol(hvf.info) < 2) {
+      stop(
+        "HVFInfo returned fewer than 2 columns. ",
+        "Cannot generate plot. Please check your normalization and feature selection methods."
+      )
+    }
+  } else if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
     hvf.info <- hvf.info[, c(1, 2)]
   } else if (colnames(x = hvf.info)[3] == 'variance.expected') {
     hvf.info <- hvf.info[, c(1, 4)]
@@ -6132,12 +6149,44 @@ LabelClusters <- function(
     }
   }
 
-  # Retrieve colour from built data
-  col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
-  if (length(col_choice) > 0) {
-    data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
-  } else {
-    data <- cbind(data, color = NA_character_)
+  # Retrieve colour mapping for each group
+  # Extract colors from the plot's scales
+  color_scale <- NULL
+  if (!is.null(pb$plot$scales$get_scales("colour"))) {
+    color_scale <- pb$plot$scales$get_scales("colour")
+  } else if (!is.null(pb$plot$scales$get_scales("color"))) {
+    color_scale <- pb$plot$scales$get_scales("color")
+  }
+  
+  # Create color mapping for groups
+  group_colors <- setNames(rep(NA_character_, length(groups)), groups)
+  if (!is.null(color_scale) && !is.null(color_scale$palette)) {
+    if (is.function(color_scale$map)) {
+      # Use the scale's map function to get the correct color for each group
+      mapped_colors <- color_scale$map(groups)
+      group_colors <- setNames(mapped_colors, groups)
+    }
+  }
+  
+  # If no colors from scale, try to get from built data
+  if (all(is.na(group_colors))) {
+    col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
+    if (length(col_choice) > 0) {
+      data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
+      # Try to map colors from data
+      for (group in groups) {
+        group_data <- if (inherits(data, "sf")) data[data[[id]] == group, , drop = FALSE] else data[data[, id] == group, , drop = FALSE]
+        if (nrow(group_data) > 0) {
+          group_color <- group_data$color[1]
+          # Check if it's a valid color
+          if (!is.na(group_color) && !is.numeric(group_color) && grepl("^#[0-9A-Fa-f]{6,8}$", group_color)) {
+            group_colors[group] <- group_color
+          }
+        }
+      }
+    } else {
+      data <- cbind(data, color = NA_character_)
+    }
   }
 
   labels.loc <- lapply(
@@ -6189,7 +6238,8 @@ LabelClusters <- function(
         )))
       }
       data.medians[, id] <- group
-      data.medians$color <- data.use$color[1]
+      # Assign color from group_colors mapping
+      data.medians$color <- group_colors[as.character(group)]
       return(data.medians)
     }
   )
@@ -6430,7 +6480,7 @@ CenterTitle <- function(...) {
 DarkTheme <- function(...) {
   #   Some constants for easier changing in the future
   black.background <- element_rect(fill = 'black')
-  black.background.no.border <- element_rect(fill = 'black', size = 0)
+  black.background.no.border <- element_rect(fill = 'black', linewidth = 0)
   font.margin <- 4
   white.text <- element_text(
     colour = 'white',
@@ -6441,8 +6491,8 @@ DarkTheme <- function(...) {
       l = font.margin
     )
   )
-  white.line <- element_line(colour = 'white', size = 1)
-  no.line <- element_line(size = 0)
+  white.line <- element_line(colour = 'white', linewidth = 1)
+  no.line <- element_line(linewidth = 0)
   #   Create the dark theme
   dark.theme <- theme(
     #   Set background colors

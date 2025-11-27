@@ -823,10 +823,27 @@ FindTransferAnchors <- function(
           features = features,
           verbose = FALSE
           ))
+        # Check if scale.data exists and has features
+        if (is.null(reference[[reference.assay]]$scale.data) || 
+            nrow(reference[[reference.assay]]$scale.data) == 0) {
+          stop(
+            "No scale.data found in the ", reference.assay, " assay of the reference object. ",
+            "For SCT normalization, please run GetResidual() on the reference object before using FindTransferAnchors. ",
+            "ScaleData() is not required for SCT assays.",
+            call. = FALSE
+          )
+        }
         features <- intersect(
           x = features,
           y = rownames(reference[[reference.assay]]$scale.data)
         )
+        if (length(features) == 0) {
+          stop(
+            "No features remaining after intersecting with scale.data in ", reference.assay, " assay. ",
+            "For SCT normalization, please ensure GetResidual() has been run on the reference object with appropriate features.",
+            call. = FALSE
+          )
+        }
         VariableFeatures(reference) <- features
       }
       if (IsSCT(assay = query[[query.assay]])) {
@@ -3617,7 +3634,33 @@ TransferData <- function(
          prediction.scores <- (prediction.scores + bridge.prediction.scores)/2
          prediction.scores <- as.matrix(x = prediction.scores)
       }
-      prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
+      
+      # Check for NaN values in prediction scores and handle them
+      if (any(is.nan(prediction.scores))) {
+        warning(
+          "NaN values detected in prediction scores. This may indicate issues with ",
+          "normalization, k.weight parameter, or data quality. NaN scores will be replaced with 0.",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        prediction.scores[is.nan(prediction.scores)] <- 0
+      }
+      
+      # Use a safer version of which.max that handles edge cases
+      # A safer version of which.max that handles the all-NA case.
+      # Negative and zero values are handled by which.max as usual.
+      safe_which_max <- function(x) {
+        if (all(is.na(x))) {
+          return(1L)  # Default to first class if all are NA
+        }
+        result <- which.max(x)
+        if (length(result) == 0) {
+          return(1L)  # Default to first class if which.max returns empty
+        }
+        return(result)
+      }
+      
+      prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = safe_which_max)]
       prediction.ids <- as.character(prediction.ids)
       prediction.max <- apply(X = prediction.scores, MARGIN = 1, FUN = max)
       if (is.null(x = query)) {
