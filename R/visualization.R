@@ -2191,6 +2191,12 @@ VariableFeaturePlot <- function(
     )
     # Use first two columns (typically mean and variance-related)
     hvf.info <- hvf.info[, 1:min(2, ncol(hvf.info)), drop = FALSE]
+    if (ncol(hvf.info) < 2) {
+      stop(
+        "HVFInfo returned fewer than 2 columns. ",
+        "Cannot generate plot. Please check your normalization and feature selection methods."
+      )
+    }
   } else if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
     hvf.info <- hvf.info[, c(1, 2)]
   } else if (colnames(x = hvf.info)[3] == 'variance.expected') {
