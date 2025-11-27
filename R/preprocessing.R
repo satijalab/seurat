@@ -2846,7 +2846,8 @@ ReadXenium <- function(
         col.use = c(
           x_location = letters[24+flip.xy],
           y_location = letters[25-flip.xy],
-          feature_name = 'gene'
+          feature_name = 'gene',
+          qv = 'qv'
         )
 
         for(option in Filter(function(x) x$req, list(
@@ -2879,6 +2880,14 @@ ReadXenium <- function(
         colnames(transcripts) <- col.use
 
         transcripts$gene <- binary_to_string(transcripts$gene)
+        
+        # Apply QV threshold filtering
+        if (!is.null(mols.qv.threshold) && 'qv' %in% colnames(transcripts)) {
+          transcripts <- transcripts[transcripts$qv >= mols.qv.threshold, ]
+        }
+        
+        # Remove qv column after filtering (not needed in output)
+        transcripts <- transcripts[, setdiff(colnames(transcripts), 'qv')]
 
         pmicrons(type = 'finish')
 
