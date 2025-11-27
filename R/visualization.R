@@ -2179,7 +2179,19 @@ VariableFeaturePlot <- function(
   )
   status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]
   var.status <- c('no', 'yes')[unlist(hvf.info[[status.col]]) + 1]
-  if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
+  
+  # Handle cases where hvf.info may have different numbers of columns
+  if (ncol(hvf.info) < 3) {
+    warning(
+      "HVFInfo returned fewer than 3 columns. ",
+      "This may occur when using different normalization methods on the same object. ",
+      "Using available columns for plotting.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    # Use first two columns (typically mean and variance-related)
+    hvf.info <- hvf.info[, 1:min(2, ncol(hvf.info)), drop = FALSE]
+  } else if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
     hvf.info <- hvf.info[, c(1, 2)]
   } else if (colnames(x = hvf.info)[3] == 'variance.expected') {
     hvf.info <- hvf.info[, c(1, 4)]
