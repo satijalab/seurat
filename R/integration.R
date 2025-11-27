@@ -3633,7 +3633,31 @@ TransferData <- function(
          prediction.scores <- (prediction.scores + bridge.prediction.scores)/2
          prediction.scores <- as.matrix(x = prediction.scores)
       }
-      prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
+      
+      # Check for NaN values in prediction scores and handle them
+      if (any(is.nan(prediction.scores))) {
+        warning(
+          "NaN values detected in prediction scores. This may indicate issues with ",
+          "normalization, k.weight parameter, or data quality. NaN scores will be replaced with 0.",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        prediction.scores[is.nan(prediction.scores)] <- 0
+      }
+      
+      # Use a safer version of which.max that handles edge cases
+      safe_which_max <- function(x) {
+        if (all(is.na(x)) || all(x == 0)) {
+          return(1L)  # Default to first class if all are NA or 0
+        }
+        result <- which.max(x)
+        if (length(result) == 0) {
+          return(1L)  # Default to first class if which.max returns empty
+        }
+        return(result)
+      }
+      
+      prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = safe_which_max)]
       prediction.ids <- as.character(prediction.ids)
       prediction.max <- apply(X = prediction.scores, MARGIN = 1, FUN = max)
       if (is.null(x = query)) {
