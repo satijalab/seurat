@@ -4465,7 +4465,7 @@ SpatialPlot <- function(
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
     image.use <- object[[images[[image.idx]]]]
 
-    if (!.hasSlot(object = image.use, name = "coords_x_name")) {
+    if (!.hasSlot(object = image.use, name = "coords_x_orientation")) {
       stop(
         "Please run `UpdateSeuratObject()` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
         call. = TRUE
