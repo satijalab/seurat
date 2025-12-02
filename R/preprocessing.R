@@ -506,6 +506,9 @@ GetResidual <- function(
 #' passed in it should be co-indexed with \code{`bin.size`}
 #' @param segmentation.type Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
 #' Defaults to "cell".
+#' @param compact Whether to store segmentations in \emph{only} the \code{sf.data} slot 
+#' in the corresponding Segmentation object (default TRUE) to save memory and processing time.
+#' If FALSE, segmentations are also stored in \code{\link[sp]{sp}} format in addition to the \code{sf.data} slot.
 #' @param image.name Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
@@ -536,7 +539,7 @@ Load10X_Spatial <- function (
   image = NULL,
   image.name = "tissue_lowres_image.png",
   segmentation.type = NULL,
-  lightweight = FALSE,
+  compact = TRUE,
   ...
 ) {
   # if more than one directory is passed in
@@ -712,7 +715,7 @@ Load10X_Spatial <- function (
       data.dir = data.dir,
       image.name = image.name,
       segmentation.type = segmentation.type,
-      lightweight = lightweight
+      compact = compact
     )
 
     # Create a new Seurat object with the raw counts
@@ -1525,6 +1528,7 @@ Read10X_ScaleFactors <- function(filename) {
 #' @param assay Name of assay to associate segmentations to
 #' @param slice Name of the slice to associate the segmentations to
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
+#' @param compact Whether to store segmentations in only the \code{sf.data} slot; see \code{\link{Load10X_Spatial}} for details
 #'
 #'
 #' @return A VisiumV2 object with segmentations
@@ -1538,7 +1542,7 @@ Read10X_Segmentations <- function (image.dir,
                                    assay = "Spatial.Polygons",
                                    slice = "slice1.polygons",
                                    segmentation.type = "cell",
-                                   lightweight = FALSE) {
+                                   compact = TRUE) {
 
 
   sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
@@ -1558,7 +1562,7 @@ Read10X_Segmentations <- function (image.dir,
                           stringsAsFactors = FALSE)
   
   # Create a Segmentation object; populate it based on the coordinates from the sf object
-  segmentations <- CreateSegmentation(coords_df, lightweight = lightweight)
+  segmentations <- CreateSegmentation(coords_df, compact = compact)
 
   # Create a dataframe from sf data to hold centroids
   centroid_coords <- sf::st_coordinates(sf::st_centroid(sf.data))
