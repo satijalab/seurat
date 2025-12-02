@@ -11,7 +11,7 @@ Read10X_Segmentations(
   assay = "Spatial.Polygons",
   slice = "slice1.polygons",
   segmentation.type = "cell",
-  lightweight = FALSE
+  compact = TRUE
 )
 }
 \arguments{
@@ -26,6 +26,8 @@ Read10X_Segmentations(
 \item{slice}{Name of the slice to associate the segmentations to}
 
 \item{segmentation.type}{Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used}
+
+\item{compact}{Whether to store segmentations in only the \code{sf.data} slot; see \code{\link{Load10X_Spatial}} for details}
 }
 \value{
 A VisiumV2 object with segmentations
