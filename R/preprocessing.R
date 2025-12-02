@@ -1402,19 +1402,23 @@ Read10X_Image <- function(
   stopifnot(image.type == "VisiumV2")
 
   # Create an `sp` compatible `FOV` instance.
-  # The coordinate system for objects takes the origin to be in the top-left corner,
-  # where the x-axis is horizontal and associated with the image column
   fov <- CreateFOV(
     coordinates[, c("imagecol", "imagerow")],
     type = "centroids",
     radius = scale.factors[["spot"]],
     assay = assay,
-    key = key,
-    coords_x_orientation = "horizontal"
+    key = key
   )
 
-  # Build the final `VisiumV2` instance, essentially just adding `image` and
-  # `scale.factors` to the `fov`.
+  #### NOTE ####
+  # The Visium coordinate system takes the origin to be in the top-left corner,
+  # where the x-axis is horizontal and associated with the image column.
+  # We mark this with the coords_x_orientation flag.
+  # Older Visium objects in Seurat have a different system (x-axis vertical, etc), 
+  # which is updated after checking whether the flag is set (SeuratObject::UpdateSeuratObject).
+  ###############
+
+  # Build the final `VisiumV2` instance
   visium.v2 <- new(
     Class = "VisiumV2",
     boundaries = fov@boundaries,
@@ -1422,7 +1426,8 @@ Read10X_Image <- function(
     assay = fov@assay,
     key = fov@key,
     image = image,
-    scale.factors = scale.factors
+    scale.factors = scale.factors,
+    coords_x_orientation = "horizontal"
   )
 
   return(visium.v2)
