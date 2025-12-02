@@ -1399,12 +1399,15 @@ Read10X_Image <- function(
   stopifnot(image.type == "VisiumV2")
 
   # Create an `sp` compatible `FOV` instance.
+  # The coordinate system for objects takes the origin to be in the top-left corner,
+  # where the x-axis is horizontal and associated with the image column
   fov <- CreateFOV(
     coordinates[, c("imagecol", "imagerow")],
     type = "centroids",
     radius = scale.factors[["spot"]],
     assay = assay,
-    key = key
+    key = key,
+    coords_x_orientation = "horizontal"
   )
 
   # Build the final `VisiumV2` instance, essentially just adding `image` and
