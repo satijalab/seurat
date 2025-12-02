@@ -1599,7 +1599,8 @@ Read10X_Segmentations <- function (image.dir,
     assay = assay,
     key = key,
     image = image,
-    scale.factors = scale.factors
+    scale.factors = scale.factors,
+    coords_x_orientation = "horizontal"
   )
 
   return(visium.v2)
