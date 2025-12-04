@@ -906,10 +906,6 @@ DimPlot <- function(
   # data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
 
-  # directly get embeddings to avoid name collisions
-  embed <- Embeddings(object[[reduction]])[cells, dims, drop = FALSE]
-  embed <- as.data.frame(embed)
-
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
 
@@ -927,15 +923,22 @@ DimPlot <- function(
     group.by <- colnames(labels)
   }
 
-  meta <- FetchData(
+  # check for overlap between colnames of dim reduc embeddings and metadata
+  metadata_cols <- names(object[[]])
+  colname_overlap <- intersect(dims, metadata_cols)
+  if (length(colname_overlap) > 0) {
+    warning("Found metadata columns with the same names as requested reduction columns: ",
+      paste(colname_overlap, collapse = ", "),
+      ". Consider renaming these metadata column(s) to avoid conflicts with dimensionality reduction embeddings.",
+      call. = FALSE)
+  }
+
+  data <- FetchData(
     object = object,
-    vars = group.by,
+    vars = c(dims, group.by),
     cells = cells,
     clean = 'project'
   )
-
-  # Combine embeddigns and metadata
-  data <- cbind(embed, meta)
 
   # cells <- rownames(x = object)
   # object[['ident']] <- Idents(object = object)
@@ -6117,7 +6120,15 @@ LabelClusters <- function(
       data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
     }
   }
-  data <- cbind(data, color = pb$data[[1]][[1]])
+
+  # Retrieve colour from built data
+  col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
+  if (length(col_choice) > 0) {
+    data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
+  } else {
+    data <- cbind(data, color = NA_character_)
+  }
+
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
@@ -6179,20 +6190,23 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
+
   if (box) {
     geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
     plot <- plot + geom.use(
       data = labels.loc,
-      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[[id]]),
+      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[["color"]]),
       show.legend = FALSE,
+      inherit.aes = FALSE,
       ...
-    )
+    ) + scale_fill_identity()
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
       data = labels.loc,
       mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]]),
       show.legend = FALSE,
+      inherit.aes = FALSE,
       ...
     )
   }
@@ -8875,7 +8889,7 @@ SingleExIPlot <- function(
   switch(
     EXPR = type,
     'violin' = {
-      x <- 'ident'
+      x <- data_sym("ident")
       y <- data_sym(feature)
       xlab <- 'Identity'
       ylab <- axis.label
@@ -8911,7 +8925,7 @@ SingleExIPlot <- function(
     },
     'ridge' = {
       x <- data_sym(feature)
-      y <- 'ident'
+      y <- data_sym("ident")
       xlab <- axis.label
       ylab <- 'Identity'
       geom <- list(
@@ -9420,13 +9434,7 @@ SingleSpatialPlot <- function(
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
   }
-  col.by.plot <- col.by %iff% data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
-  col.by <- col.by %iff% paste0("`", col.by, "`")
 
-  # Store unquoted col.by name for easier access
-  col.by.clean <- gsub("`", "", col.by)
-
-  alpha.by <- alpha.by %iff% data_sym(alpha.by)
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
@@ -9441,6 +9449,14 @@ SingleSpatialPlot <- function(
     levels(x = data$ident) <- c(order, setdiff(x = levels(x = data$ident), y = order))
     data <- data[order(data$ident), ]
   }
+  col.by.plot <- col.by %iff% data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
+  col.by <- col.by %iff% paste0("`", col.by, "`")
+
+  # Store unquoted col.by name for easier access
+  col.by.clean <- gsub("`", "", col.by)
+
+  alpha.by <- alpha.by %iff% data_sym(alpha.by)
+
   plot <- ggplot(data = data, aes(
     x = .data[[colnames(x = data)[1]]],
     y = .data[[colnames(x = data)[2]]],
@@ -9603,7 +9619,7 @@ SingleSpatialPlot <- function(
             alpha = pt.alpha,
             color = "black",
             linewidth = stroke
-          ) 
+          )
         }
         ggplot() +
             image_annotation_layer +
