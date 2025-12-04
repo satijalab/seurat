@@ -1550,35 +1550,14 @@ Read10X_Segmentations <- function (image.dir,
                                    compact = TRUE) {
 
 
-  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
+  sf.obj <- Read10X_HD_GeoJson(data.dir = data.dir, 
                                 segmentation.type = segmentation.type)
-
-  # Set the attribute-geometry relationship to constant
-  # See https://r-spatial.github.io/sf/reference/sf.html#details
-  st_agr(sf.data) <- "constant"
-
-  # Extract coordinates as a dataframe from sf object
-  coords_mat <- sf::st_coordinates(sf.data)
-  l2_indices <- coords_mat[, "L2"] # L2 column corresponds to polygon (cell) index
-  
-  coords_df <- data.frame(x = coords_mat[, 1],
-                          y = coords_mat[, 2],
-                          cell = sf.data$barcodes[l2_indices],
-                          stringsAsFactors = FALSE)
-  
+                                
   # Create a Segmentation object; populate it based on the coordinates from the sf object
-  segmentations <- CreateSegmentation(coords_df, compact = compact)
+  segmentations <- CreateSegmentation(sf.obj, compact = compact)
 
-  # Create a dataframe from sf data to hold centroids
-  centroid_coords <- sf::st_coordinates(sf::st_centroid(sf.data))
-  centroids_df <- data.frame(
-    x = centroid_coords[, "X"],
-    y = centroid_coords[, "Y"],
-    row.names = sf.data$barcodes
-  )
-
-  # Create centroids object
-  centroids <- CreateCentroids(centroids_df,
+  # Create a Centroids object; populate it based on the centroids from the sf object
+  centroids <- CreateCentroids(sf.obj,
                               nsides = Inf,
                               radius = NULL,
                               theta = 0)
@@ -1605,6 +1584,7 @@ Read10X_Segmentations <- function (image.dir,
 
   return(visium.v2)
 }
+
 #' Format 10X Genomics GeoJson cell IDs
 #'
 #' @param ids Vector of cell IDs to format
