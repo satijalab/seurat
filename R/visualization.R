@@ -940,9 +940,6 @@ DimPlot <- function(
     clean = 'project'
   )
 
-  # Combine embeddigns and metadata
-  data <- cbind(embed, meta)
-
   # cells <- rownames(x = object)
   # object[['ident']] <- Idents(object = object)
   # orig.groups <- group.by
