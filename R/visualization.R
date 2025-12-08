@@ -935,11 +935,10 @@ DimPlot <- function(
 
   data <- FetchData(
     object = object,
-    vars = group.by,
+    vars = c(dims, group.by),
     cells = cells,
     clean = 'project'
   )
-
   # cells <- rownames(x = object)
   # object[['ident']] <- Idents(object = object)
   # orig.groups <- group.by
