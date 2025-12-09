@@ -9582,9 +9582,9 @@ SingleSpatialPlot <- function(
           geom_point_layer <- geom_point(
             data = plot_data,
             shape = 21, 
-            stroke = stroke, 
-            size = pt.size.factor, 
-            aes(x = x.centroid, y = y.centroid, fill = !!col.by.plot, alpha = !!alpha.by)
+            stroke = stroke,
+            size = pt.size.factor,
+            aes(x = .data[['x.centroid']], y = .data[['y.centroid']], fill = !!col.by.plot, alpha = !!alpha.by)
           )
         } else {
           geom_point_layer <- geom_point(
@@ -9592,7 +9592,7 @@ SingleSpatialPlot <- function(
             shape = 21,
             stroke = stroke,
             size = pt.size.factor,
-            aes(x = x.centroid, y = y.centroid, fill = !!col.by.plot),
+            aes(x = .data[['x.centroid']], y = .data[['y.centroid']], fill = !!col.by.plot),
             alpha = pt.alpha
           )
         }
@@ -9611,7 +9611,7 @@ SingleSpatialPlot <- function(
           # Use alpha.by instead of pt.alpha
           geom_polygon_layer <- geom_polygon(
             data = plot_data,
-            aes(x = x, y = y, fill = !!col.by.plot, alpha = !!alpha.by, group = cell),
+            aes(x = .data[['x']], y = .data[['y']], fill = !!col.by.plot, alpha = !!alpha.by, group = .data[['cell']]),
             color = "black",
             linewidth = stroke
           )
@@ -9619,7 +9619,7 @@ SingleSpatialPlot <- function(
           # If pt.alpha is indeed provided, then use that to define alpha
           geom_polygon_layer <- geom_polygon(
             data = plot_data,
-            aes(x = x, y = y, fill = !!col.by.plot, group = cell),
+            aes(x = .data[['x']], y = .data[['y']], fill = !!col.by.plot, group = .data[['cell']]),
             alpha = pt.alpha,
             color = "black",
             linewidth = stroke
