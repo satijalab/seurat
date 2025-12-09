@@ -6089,12 +6089,13 @@ LabelClusters <- function(
 ) {
   xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   plot_data <- plot$data
- if (geom == "GeomPolygon") {
+  data_nested <- FALSE
+ if ((geom == "GeomPolygon") || is.null(plot_data) || (length(plot_data) == 0)) {
     # When plotting polygons, data is within the layers slot, not the data slot
-    geom_layers <- which(sapply(plot$layers, function(layer) class(layer$geom)[1] == geom))
-    if (length(geom_layers) > 0 && !is.null(plot$layers[[geom_layers[1]]]$data)) {
-      plot_data <- plot$layers[[geom_layers[1]]]$data
+    if (!is.null(plot$layers[[2]]$data)) {
+      plot_data <- plot$layers[[2]]$data
     }
+    data_nested <- TRUE
   }
   if (!id %in% colnames(x = plot_data)) {
     stop("Cannot find variable ", id, " in plotting data")
@@ -6120,15 +6121,18 @@ LabelClusters <- function(
       data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
     }
   }
-
-  # Retrieve colour from built data
-  col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
-  if (length(col_choice) > 0) {
-    data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
+  if (data_nested) {
+    colors_to_plot <- pb$plot$plot_env$cols
+    data$color <- colors_to_plot[as.character(x = data[, id])]
   } else {
-    data <- cbind(data, color = NA_character_)
+    # Retrieve colour from built data
+    col_choice <- intersect(c("colour", "color"), names(pb$data[[1]]))
+    if (length(col_choice) > 0) {
+      data <- cbind(data, color = pb$data[[1]][[col_choice[1]]])
+    } else {
+      data <- cbind(data, color = NA_character_)
+    }
   }
-
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
