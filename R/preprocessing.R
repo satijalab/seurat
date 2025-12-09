@@ -1612,22 +1612,22 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' @param data.dir Path to the directory containing matrix data
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
 #'
-#' @return A FOV
+#' @return An \code{sf} object containing polygon segmentations from the GeoJSON provided by 10x, formatted for downstream coordinate retrieval
 #'
 #' @export
 #' @concept preprocessing
 #'
 Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
-  segmentation_polygons <- read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
+  segmentation_polygons <- sf::read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
   
   # Restructure sf geometry for downstream compatibility
-  segmentation_polygons$geometry <- lapply(
+  segmentation_polygons$geometry <- sf::st_sfc(lapply(
     segmentation_polygons$geometry,
     function(geom) {
       coords <- geom[[1]]
-      st_polygon(list(coords))
+      sf::st_polygon(list(coords))
     }
-  ) %>% st_sfc(crs = st_crs(NA))
+  ), crs = sf::st_crs(NA))
 
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
   segmentation_polygons
