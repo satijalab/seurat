@@ -12,7 +12,7 @@ Read10X_HD_GeoJson(data.dir, segmentation.type = "cell")
 \item{segmentation.type}{Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used}
 }
 \value{
-A FOV
+An \code{sf} object containing polygon segmentations from the GeoJSON provided by 10x, formatted for downstream coordinate retrieval
 }
 \description{
 Load 10X Genomics GeoJson
