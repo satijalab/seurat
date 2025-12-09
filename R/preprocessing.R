@@ -516,6 +516,7 @@ GetResidual <- function(
 #'
 #' @importFrom png readPNG
 #' @importFrom jsonlite fromJSON
+#' @importFrom SeuratObject DefaultBoundary<-
 #'
 #' @export
 #' @concept preprocessing
@@ -673,6 +674,11 @@ Load10X_Spatial <- function (
   
   # read segmentation data if requested
   if (load.segmentations) {
+    # Check for required packages, stop with clear message if missing
+    if (!requireNamespace("sf", quietly = TRUE)) {
+      stop("The 'sf' package must be installed to load segmentation data.")
+    }
+
     segmentation.assay.name <- paste0(assay, ".Polygons")
     seg.data.dir <- file.path(data.dir, "segmented_outputs")
     
