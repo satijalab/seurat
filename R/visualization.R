@@ -6199,11 +6199,12 @@ LabelClusters <- function(
     geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
     plot <- plot + geom.use(
       data = labels.loc,
-      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]], fill = .data[["color"]]),
+      mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]]),
+      fill = labels.loc$color,
       show.legend = FALSE,
       inherit.aes = FALSE,
       ...
-    ) + scale_fill_identity()
+    )
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
