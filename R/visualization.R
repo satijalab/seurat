@@ -6092,7 +6092,7 @@ LabelClusters <- function(
   xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   plot_data <- plot$data
   data_nested <- FALSE
- if ((geom == "GeomPolygon") || is.null(plot_data) || (length(plot_data) == 0)) {
+  if ((geom == "GeomPolygon") || is.null(plot_data) || (length(plot_data) == 0)) {
     # When plotting polygons, data is within the layers slot, not the data slot
     if (!is.null(plot$layers[[2]]$data)) {
       plot_data <- plot$layers[[2]]$data
@@ -6114,16 +6114,7 @@ LabelClusters <- function(
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
   pb <- ggplot_build(plot = plot)
-  if (geom == 'GeomSpatial') {
-    xrange.save <- layer_scales(plot = plot)$x$range$range
-    yrange.save <- layer_scales(plot = plot)$y$range$range
-    data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
-    if (!pb$plot$plot_env$crop) {
-      y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
-      data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
-    }
-  }
-  if (data_nested) {
+  if (data_nested || (geom == "GeomSpatial")) {
     colors_to_plot <- pb$plot$plot_env$cols
     data$color <- colors_to_plot[as.character(x = data[, id])]
   } else {
@@ -6216,10 +6207,6 @@ LabelClusters <- function(
       inherit.aes = FALSE,
       ...
     )
-  }
-  # restore old axis ranges
-  if (geom == 'GeomSpatial') {
-    plot <- suppressMessages(expr = plot + coord_fixed(xlim = xrange.save, ylim = yrange.save))
   }
   return(plot)
 }
