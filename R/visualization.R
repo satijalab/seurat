@@ -4468,9 +4468,11 @@ SpatialPlot <- function(
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
     image.use <- object[[images[[image.idx]]]]
 
-    if (!.hasSlot(object = image.use, name = "coords_x_orientation")) {
+    is_visium <- inherits(image.use, "VisiumV1") || inherits(image.use, "VisiumV2")
+    old_axis_orientation <- (!.hasSlot(image.use, "coords_x_orientation")) || (.hasSlot(image.use, "coords_x_orientation") && (slot(image.use, "coords_x_orientation") != 'horizontal'))
+    if (old_axis_orientation) {
       stop(
-        "Please run `UpdateSeuratObject()` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
+        "Please run `UpdateSeuratObject` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
         call. = TRUE
       )
     }
