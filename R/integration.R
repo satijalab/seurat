@@ -1796,7 +1796,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   suppressWarnings(expr = unintegrated[[new.reduction.name]] <- CreateDimReducObject(
     embeddings = as.matrix(x = t(x = integrated.data)),
     assay = intdr.assay,
-    loadings = Loadings(object = reductions),
+    loadings = Loadings(object = reductions)[,dims.to.integrate],
     key = paste0(new.reduction.name.safe, "_")
   ))
   unintegrated <- SetIntegrationData(
