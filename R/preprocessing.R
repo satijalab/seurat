@@ -3743,7 +3743,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #'
 #' @examples
 #' data("pbmc_small")
-#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
+#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", layer = "counts"))
 #' downsampled = SampleUMI(data = counts)
 #' head(x = downsampled)
 #'
