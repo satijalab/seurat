@@ -3329,13 +3329,11 @@ LinkedDimPlot <- function(
         plot.env$data <- if (is.null(x = input$brush)) {
           clicked <- nearPoints(
             df = plot.data,
-            coordinfo = if (click$invert) {
-              InvertCoordinate(x = click$pt)
-            } else {
-              click$pt
-            },
+            coordinfo = click$pt,
             threshold = 10,
-            maxpoints = 1
+            maxpoints = 1,
+            xvar = if (click$invert) sp_x else dp_x,
+            yvar = if (click$invert) sp_y else dp_y
           )
           if (nrow(x = clicked) == 1) {
             cell.clicked <- rownames(x = clicked)
@@ -3349,7 +3347,10 @@ LinkedDimPlot <- function(
         } else if (input$brush$outputId == 'dimplot') {
           brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE)
         } else if (input$brush$outputId == 'spatialplot') {
-          brushedPoints(df = plot.data, brush = InvertCoordinate(x = input$brush), allRows = TRUE)
+          b <- input$brush
+          b$ymin <- sp_y_max - (b$ymin - sp_y_min)
+          b$ymax <- sp_y_max - (b$ymax - sp_y_min)
+          brushedPoints(df = plot.data, brush = b, allRows = TRUE, xvar = sp_x, yvar = sp_y)
         }
         plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
           'selected_'
@@ -3388,13 +3389,15 @@ LinkedDimPlot <- function(
       expr = {
         cell.hover <- rownames(x = nearPoints(
           df = plot.data,
-          coordinfo = if (is.null(x = input[['sphover']])) {
+          coordinfo = if (is.null(input[['sphover']])) {
             input$dimhover
           } else {
-            InvertCoordinate(x = input$sphover)
+            flip_y(input$sphover)
           },
           threshold = 10,
-          maxpoints = 1
+          maxpoints = 1,
+          xvar = if (is.null(input$sphover)) dp_x else sp_x,
+          yvar = if (is.null(input$sphover)) dp_y else sp_y
         ))
         # if (length(x = cell.hover) == 1) {
         #   palette <- hue_pal()(n = length(x = levels(x = object)))
