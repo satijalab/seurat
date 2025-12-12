@@ -1802,6 +1802,12 @@ RunLeiden <- function(
 
   # Run clustering with `leidenbase`.
   if (leiden_method == "leidenbase") {
+    # Check if leidenbase is available
+    if (!requireNamespace("leidenbase", quietly = TRUE)) {
+      stop("Package 'leidenbase' is required for leiden_method = 'leidenbase'. ",
+           "Please install it with: install.packages('leidenbase')")
+    }
+    
     partition <- leidenbase::leiden_find_partition(
       input,
       partition_type = partition.type,
