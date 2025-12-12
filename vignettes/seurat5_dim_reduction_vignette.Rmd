@@ -72,7 +72,7 @@ Though not incorporated as part of the Seurat package, its easy to run multidime
 ```{r mds}
 # Before running  MDS, we first calculate a distance matrix between all pairs of cells.
 # Here we use a simple euclidean distance metric on all genes, using scale.data as input
-d <- dist(t(GetAssayData(pbmc, slot = 'scale.data')))
+d <- dist(t(GetAssayData(pbmc, layer = 'scale.data')))
 # Run the MDS procedure, k determines the number of dimensions
 mds <- cmdscale(d = d, k = 2)
 # cmdscale returns the cell embeddings, we first label the columns to ensure downstream consistency

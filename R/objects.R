@@ -1731,14 +1731,21 @@ GetTissueCoordinates.VisiumV2 <- function(
   scale = NULL,
   ...
 ) {
-  # make call to GetTissueCoordiantes.FOV
+  # make call to GetTissueCoordinates.FOV
   coordinates <- NextMethod(object, ...)
+  dots <- list(...)
+  which <- dots$which %||% DefaultBoundary(object = object)
+  which <- match.arg(arg = which, choices = names(x = object))
   # do some cleanup of the resulting data.frame to make it play nice
   # with `SpatialPlot` - namely set rownames and re-order the columns so
   # that the actual position values appear first
-  rownames(coordinates) <- coordinates[["cell"]]
+  
+  # avoid extra processing for Segmentation objects,
+  # otherwise "duplicate 'row.names' are not allowed" error occurs
+  if (!(inherits(object[[which]], "Segmentation"))) {
+    rownames(coordinates) <- coordinates[["cell"]]
+  }
   coordinates <- coordinates[, c("x", "y", "cell")]
-
   if (!is.null(scale)) {
     # scale the coordinates by the specified factor
     scale <- match.arg(scale, choices = c("lowres", "hires"))
