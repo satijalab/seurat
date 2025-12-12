@@ -5,4 +5,4 @@
 #' the function call in \code{\link[progressr]{with_progress}} or run
 #' \code{\link[progressr:handlers]{handlers(global = TRUE)}} before running
 #' this function. For more details about \pkg{progressr}, please read
-#' \href{https://progressr.futureverse.org/articles/progressr-intro.html}{\code{vignette("progressr-intro")}}
+#' \href{https://progressr.futureverse.org/articles/progressr-01-intro.html}{\code{vignette("progressr-intro")}}
