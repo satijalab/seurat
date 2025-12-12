@@ -3311,7 +3311,8 @@ LinkedDimPlot <- function(
     observeEvent(
       eventExpr = input$spclick,
       handlerExpr = {
-        click$pt <- input$spclick
+        # Flip coordinates vertically for spatial plot to match tissue image
+        click$pt <- flip_y(input$spclick)
         click$invert <- TRUE
       }
     )
