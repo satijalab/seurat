@@ -8,7 +8,7 @@
 #'   \item{g2m.genes}{Genes associated with G2M-phase}
 #' }
 #' @concept data
-#' @source \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC4944528/}
+#' @source `https://doi.org/10.1126/science.aad0501`
 #'
 "cc.genes"
 
@@ -41,7 +41,7 @@
 #'   \item{g2m.genes}{Genes associated with G2M-phase}
 #' }
 #' @concept data
-#' @source \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC4944528/}
+#' @source `https://doi.org/10.1126/science.aad0501`
 #'
 #' @seealso \code{\link{cc.genes}}
 #'

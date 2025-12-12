@@ -12,7 +12,7 @@ A list of two vectors
 }
 }
 \source{
-\url{https://pmc.ncbi.nlm.nih.gov/articles/PMC4944528/}
+`https://doi.org/10.1126/science.aad0501`
 }
 \usage{
 cc.genes.updated.2019
