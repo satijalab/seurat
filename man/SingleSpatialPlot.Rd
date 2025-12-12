@@ -19,7 +19,7 @@ SingleSpatialPlot(
   alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c("#DE2D26", "grey50"),
-  geom = c("spatial", "interactive", "poly", "sf"),
+  geom = c("spatial", "interactive", "poly", "poly_starmap"),
   na.value = "grey50",
   plot_segmentations = FALSE
 )

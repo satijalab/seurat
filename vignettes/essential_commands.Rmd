@@ -170,7 +170,7 @@ pbmc[["RNA"]]$counts
 LayerData(pbmc,assay = 'RNA',layer = 'counts')
 
 # GetAssayData from Seurat v4 is still supported
-GetAssayData(object = pbmc, assay = 'RNA', slot = 'counts')
+GetAssayData(object = pbmc, assay = 'RNA', layer = 'counts')
 
 # ADT counts matrix (multimodal object)
 cbmc[["ADT"]]$counts
@@ -186,7 +186,7 @@ pbmc[["RNA"]]$counts <- new.data
 LayerData(pbmc,assay = 'RNA',layer = 'counts') <- new.data
 
 # SetAssayData from Seurat v4 is still supported
-pbmc <- SetAssayData(object = pbmc, slot = 'counts',new.data = new.data)
+pbmc <- SetAssayData(object = pbmc, layer = 'counts',new.data = new.data)
 
 ```
 

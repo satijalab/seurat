@@ -506,6 +506,9 @@ GetResidual <- function(
 #' passed in it should be co-indexed with \code{`bin.size`}
 #' @param segmentation.type Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
 #' Defaults to "cell".
+#' @param compact Whether to store segmentations in \emph{only} the \code{sf.data} slot 
+#' in the corresponding Segmentation object (default TRUE) to save memory and processing time.
+#' If FALSE, segmentations are also stored in \code{\link[sp]{sp}} format in addition to the \code{sf.data} slot.
 #' @param image.name Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
@@ -513,6 +516,7 @@ GetResidual <- function(
 #'
 #' @importFrom png readPNG
 #' @importFrom jsonlite fromJSON
+#' @importFrom SeuratObject DefaultBoundary<-
 #'
 #' @export
 #' @concept preprocessing
@@ -536,6 +540,7 @@ Load10X_Spatial <- function (
   image = NULL,
   image.name = "tissue_lowres_image.png",
   segmentation.type = NULL,
+  compact = TRUE,
   ...
 ) {
   # if more than one directory is passed in
@@ -669,6 +674,11 @@ Load10X_Spatial <- function (
   
   # read segmentation data if requested
   if (load.segmentations) {
+    # Check for required packages, stop with clear message if missing
+    if (!requireNamespace("sf", quietly = TRUE)) {
+      stop("The 'sf' package must be installed to load segmentation data.")
+    }
+
     segmentation.assay.name <- paste0(assay, ".Polygons")
     seg.data.dir <- file.path(data.dir, "segmented_outputs")
     
@@ -710,49 +720,22 @@ Load10X_Spatial <- function (
       image.dir = file.path(seg.data.dir, "spatial"),
       data.dir = data.dir,
       image.name = image.name,
-      segmentation.type = segmentation.type
+      segmentation.type = segmentation.type,
+      compact = compact
     )
-
-    # Holds the segmentation object
-    segmentation_obj <- visium.segmentation@boundaries$segmentation
-
-    # Get sf data
-    sf_data <- visium.segmentation@boundaries$segmentation@sf.data
-
-    # Set the attribute-geometry relationship to constant
-    # See https://r-spatial.github.io/sf/reference/sf.html#details
-    st_agr(sf_data) <- "constant"
-
-    # Create a dataframe from sf data to hold centroids
-    centroids_obj <- visium.segmentation@boundaries$centroids
-    centroid_coords <- sf::st_coordinates(sf::st_centroid(sf_data))
-    centroids_df <- data.frame(
-      x = centroid_coords[, "X"],
-      y = centroid_coords[, "Y"],
-      row.names = sf_data$barcodes
-    )
-
-    # Create centroids object
-    centroids <- CreateCentroids(centroids_df,
-                                nsides = Inf,
-                                radius = NULL,
-                                theta = 0)
-
-    # Add centroids to the Visium object
-    visium.segmentation@boundaries$centroids <- centroids
 
     # Create a new Seurat object with the raw counts
     segmentation.object <- CreateSeuratObject(
       segmentation.counts,
       assay = segmentation.assay.name
     )
-
-    # Make sure the list of cell names between segmentations & raw counts matches exactly
+    
+    common_cells <- unique(Cells(visium.segmentation)[Cells(visium.segmentation) %in% Cells(segmentation.object)])
     visium.segmentation <- subset(
       x = visium.segmentation,
-      cells = intersect(Cells(segmentation.object), Cells(visium.segmentation))
+      cells = common_cells
     )
-
+    
     # Set the default boundary type to centroids for plotting
     DefaultBoundary(object = visium.segmentation) <- "centroids"
 
@@ -1426,15 +1409,22 @@ Read10X_Image <- function(
 
   # Create an `sp` compatible `FOV` instance.
   fov <- CreateFOV(
-    coordinates[, c("imagerow", "imagecol")],
+    coordinates[, c("imagecol", "imagerow")],
     type = "centroids",
     radius = scale.factors[["spot"]],
     assay = assay,
     key = key
   )
 
-  # Build the final `VisiumV2` instance, essentially just adding `image` and
-  # `scale.factors` to the `fov`.
+  #### NOTE ####
+  # The Visium coordinate system takes the origin to be in the top-left corner,
+  # where the x-axis is horizontal and associated with the image column.
+  # We mark this with the coords_x_orientation flag.
+  # Older Visium objects in Seurat have a different system (x-axis vertical, etc), 
+  # which is updated after checking whether the flag is set (SeuratObject::UpdateSeuratObject).
+  ###############
+
+  # Build the final `VisiumV2` instance
   visium.v2 <- new(
     Class = "VisiumV2",
     boundaries = fov@boundaries,
@@ -1442,7 +1432,8 @@ Read10X_Image <- function(
     assay = fov@assay,
     key = fov@key,
     image = image,
-    scale.factors = scale.factors
+    scale.factors = scale.factors,
+    coords_x_orientation = "horizontal"
   )
 
   return(visium.v2)
@@ -1548,6 +1539,7 @@ Read10X_ScaleFactors <- function(filename) {
 #' @param assay Name of assay to associate segmentations to
 #' @param slice Name of the slice to associate the segmentations to
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
+#' @param compact Whether to store segmentations in only the \code{sf.data} slot; see \code{\link{Load10X_Spatial}} for details
 #'
 #'
 #' @return A VisiumV2 object with segmentations
@@ -1560,27 +1552,30 @@ Read10X_Segmentations <- function (image.dir,
                                    image.name = "tissue_lowres_image.png",
                                    assay = "Spatial.Polygons",
                                    slice = "slice1.polygons",
-                                   segmentation.type = "cell") {
+                                   segmentation.type = "cell",
+                                   compact = TRUE) {
 
+
+  sf.obj <- Read10X_HD_GeoJson(data.dir = data.dir, 
+                                segmentation.type = segmentation.type)
+                                
+  # Create a Segmentation object; populate it based on the coordinates from the sf object
+  segmentations <- CreateSegmentation(sf.obj, compact = compact)
+
+  # Create a Centroids object; populate it based on the centroids from the sf object
+  centroids <- CreateCentroids(sf.obj,
+                              nsides = Inf,
+                              radius = NULL,
+                              theta = 0)
+
+  # Named list with segmentations and centroids
+  boundaries <- list(segmentations = segmentations, centroids = centroids)
+
+  # Get image, scale factors, key
   image <- png::readPNG(source = file.path(image.dir, image.name))
-
   scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir,
                                                              "scalefactors_json.json"))
   key <- Key(slice, quiet = TRUE)
-
-  # Pass proper scale.factor based on whether image is lowres or hires
-  # We assume if not lowres it is hires - image has been validated above
-  scale.factor <- if (grepl("lowres", image.name)) "lowres" else "hires"
-
-  sf.data <- Read10X_HD_GeoJson(data.dir = data.dir, 
-                                image.dir = image.dir,
-                                segmentation.type = segmentation.type)
-
-  # Create a Segmentation object based on sf, populate sf.data and polygons
-  segmentation <- CreateSegmentation(sf.data)
-
-  # Named list with segmentation
-  boundaries <- list(segmentation = segmentation)
 
   # Build VisiumV2 object
   visium.v2 <- new(
@@ -1589,11 +1584,13 @@ Read10X_Segmentations <- function (image.dir,
     assay = assay,
     key = key,
     image = image,
-    scale.factors = scale.factors
+    scale.factors = scale.factors,
+    coords_x_orientation = "horizontal"
   )
 
   return(visium.v2)
 }
+
 #' Format 10X Genomics GeoJson cell IDs
 #'
 #' @param ids Vector of cell IDs to format
@@ -1619,25 +1616,24 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' Load 10X Genomics GeoJson
 #'
 #' @param data.dir Path to the directory containing matrix data
-#' @param image.dir Path to the directory with spatial GeoJSON data
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
 #'
-#' @return A FOV
+#' @return An \code{sf} object containing polygon segmentations from the GeoJSON provided by 10x, formatted for downstream coordinate retrieval
 #'
 #' @export
 #' @concept preprocessing
 #'
-Read10X_HD_GeoJson <- function(data.dir, image.dir, segmentation.type = "cell") {
-  segmentation_polygons <- read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
+Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
+  segmentation_polygons <- sf::read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
   
   # Restructure sf geometry for downstream compatibility
-  segmentation_polygons$geometry <- lapply(
+  segmentation_polygons$geometry <- sf::st_sfc(lapply(
     segmentation_polygons$geometry,
     function(geom) {
       coords <- geom[[1]]
-      st_polygon(list(coords))
+      sf::st_polygon(list(coords))
     }
-  ) %>% st_sfc(crs = st_crs(NA))
+  ), crs = sf::st_crs(NA))
 
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
   segmentation_polygons
@@ -3747,7 +3743,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #'
 #' @examples
 #' data("pbmc_small")
-#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
+#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", layer = "counts"))
 #' downsampled = SampleUMI(data = counts)
 #' head(x = downsampled)
 #'

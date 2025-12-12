@@ -83,7 +83,7 @@ test_that("Read10X_Image works as expected", {
     coordinates.expected <- Read10X_Coordinates(
       file.path(path.to.image, coordinate.filename),
       filter.matrix = TRUE
-    )[, c("imagerow", "imagecol")]
+    )[, c("imagecol", "imagerow")]
     colnames(coordinates.expected) <- c("x", "y")
     # read in the scale factors as an S3 object
     scale.factors.expected <- Read10X_ScaleFactors(
@@ -147,9 +147,9 @@ test_that("Read10X_Image works as expected", {
     # check that `coordinates` contains values scaled for the low resolution PNG
     # also make sure that it has the expected column names
     coordinates.expected.v1 <- coordinates.expected
-    colnames(coordinates.expected.v1) <- c("imagerow", "imagecol")
+    colnames(coordinates.expected.v1) <- c("imagecol", "imagerow")
     expect_equal(
-      coordinates[, c("imagerow", "imagecol")] / scale.factors[["lowres"]],
+      coordinates[, c("imagecol", "imagerow")] / scale.factors[["lowres"]],
       coordinates.expected.v1
     )
     # check that the spot size is similarly scaled

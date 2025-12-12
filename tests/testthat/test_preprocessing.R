@@ -192,7 +192,7 @@ object2 <- object
 object2 <- SetAssayData(
   object = object,
   assay = "RNA",
-  slot = "data",
+  layer = "data",
   new.data = new.data
 )
 object2 <- ScaleData(object = object2, verbose = FALSE)
@@ -417,7 +417,7 @@ test_that("SCTransform ncells param works", {
 })
 
 suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
-object[["SCT"]] <- suppressWarnings({SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])})
+object[["SCT"]] <- suppressWarnings({SetAssayData(object = object[["SCT"]], layer = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])})
 object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
 test_that("GetResidual works", {
   expect_equal(dim(GetAssayData(object = object[["SCT"]], layer = "scale.data")), c(220, 80))

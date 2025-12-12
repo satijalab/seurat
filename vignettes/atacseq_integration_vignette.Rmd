@@ -201,7 +201,7 @@ In order to perform co-embedding, we first 'impute' RNA expression into the scAT
 # note that we restrict the imputation to variable genes from scRNA-seq, but could impute the
 # full transcriptome if we wanted to
 genes.use <- VariableFeatures(pbmc.rna)
-refdata <- GetAssayData(pbmc.rna, assay = "RNA", slot = "data")[genes.use, ]
+refdata <- GetAssayData(pbmc.rna, assay = "RNA", layer = "data")[genes.use, ]
 
 # refdata (input) contains a scRNA-seq expression matrix for the scRNA-seq cells.  imputation
 # (output) will contain an imputed scRNA-seq matrix for each of the ATAC cells

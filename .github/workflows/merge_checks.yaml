@@ -44,6 +44,11 @@ jobs:
       - name: Install Dependencies
         run: installDeps.r -s
 
+      # Install SeuratObject from CRAN
+      # This helps check updates to SeuratObject and Seurat in rapid succession
+      - name: Install SeuratObject from CRAN (source)
+        run: Rscript -e "install.packages('SeuratObject', type = 'source', repos = 'https://cloud.r-project.org')"
+
       # Run CRAN checks, if any ERRORs or WARNINGs are raised the check fails.
       # Certain tests are skipped when running as CRAN—skip all tests so they
       # can be run together in a subsequent step.

@@ -422,7 +422,7 @@ Counts, cluster, and spot information is extracted from the Seurat query and ref
 ```{r rctd.qeury, warning=FALSE}
 library(spacexr)
 
-query.counts <- GetAssayData(xenium.obj, assay = "Xenium", slot = "counts")[, Cells(xenium.obj[["crop"]])]
+query.counts <- GetAssayData(xenium.obj, assay = "Xenium", layer = "counts")[, Cells(xenium.obj[["crop"]])]
 coords <- GetTissueCoordinates(xenium.obj[["crop"]], which = "centroids")
 rownames(coords) <- coords$cell
 coords$cell <- NULL
@@ -437,7 +437,7 @@ allen.cortex.ref <- UpdateSeuratObject(allen.cortex.ref)
 Idents(allen.cortex.ref) <- "subclass"
 # remove CR cells because there aren't enough of them for annotation
 allen.cortex.ref <- subset(allen.cortex.ref, subset = subclass != "CR")
-counts <- GetAssayData(allen.cortex.ref, assay = "RNA", slot = "counts")
+counts <- GetAssayData(allen.cortex.ref, assay = "RNA", layer = "counts")
 cluster <- as.factor(allen.cortex.ref$subclass)
 names(cluster) <- colnames(allen.cortex.ref)
 nUMI <- allen.cortex.ref$nCount_RNA

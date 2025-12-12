@@ -333,7 +333,7 @@ DefaultAssay(pbmc) <- "ATAC"
 pwm_set <- getMatrixSet(x = JASPAR2020, opts = list(species = 9606, all_versions = FALSE))
 motif.matrix <- CreateMotifMatrix(features = granges(pbmc), pwm = pwm_set, genome = 'hg38', use.counts = FALSE)
 motif.object <- CreateMotifObject(data = motif.matrix, pwm = pwm_set)
-pbmc <- SetAssayData(pbmc, assay = 'ATAC', slot = 'motifs', new.data = motif.object)
+pbmc <- SetAssayData(pbmc, assay = 'ATAC', layer = 'motifs', new.data = motif.object)
 
 # Note that this step can take 30-60 minutes 
 pbmc <- RunChromVAR(
