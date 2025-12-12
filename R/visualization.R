@@ -3273,6 +3273,17 @@ LinkedDimPlot <- function(
   plot.data <- cbind(coords, group.data, embeddings)
   plot.data$selected_ <- FALSE
   Idents(object = object) <- group.by
+
+  # Retrieve coordinates for tissue plot and dim plot seperately
+  sp_x <- colnames(coords)[1]
+  sp_y <- colnames(coords)[2]
+  dp_x <- dims[1]
+  dp_y <- dims[2]
+  sp_y_min <- min(plot.data[[sp_y]]); sp_y_max <- max(plot.data[[sp_y]])
+
+  # Add tiny helper function to flip interactive coordinate points
+  flip_y <- function(pt) { pt$y <- sp_y_max - (pt$y - sp_y_min); pt }
+
   # Setup the server
   server <- function(input, output, session) {
     click <- reactiveValues(pt = NULL, invert = FALSE)
