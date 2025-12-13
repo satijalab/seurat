@@ -1,11 +1,18 @@
-# Unreleased
+# Seurat 5.4.0
 
 ### Additions
-- Added support for Space Ranger 4.0 outputs - updated `Load10X_Spatial`, `Read10X_Image`, spatial visualization functions (`SpatialPlot`, `SingleSpatialPlot`, `SpatialDimPlot`, `SpatialFeaturePlot`), added helpers (`Read10X_Segmentations`, `Read10X_HD_GeoJson`, `Format10X_GeoJson_CellID`)
+- Added support for 10x Space Ranger 4.0 outputs (Visium data with segmentations)
+  - Updated data loading functions `Load10X_Spatial`, `Read10X_Image`, 
+  - Updated `GetTissueCoordinates.VisiumV2`
+  - Updated spatial visualization functions `SpatialPlot`, `SingleSpatialPlot`, `SpatialDimPlot`, `SpatialFeaturePlot`
+  - Added helper functions `Read10X_Segmentations`, `Read10X_HD_GeoJson`, `Format10X_GeoJson_CellID`
 - Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium, SlideSeq, or Vizgen data)
 
 ### Fixes
-- Reverted #10062 in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData`; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
+- Updated loading & visualization functions (see above for list) for Visium objects -- see [#10125](https://github.com/satijalab/seurat/pull/10215) for details
+  - For binned Visium data, `x` now correctly corresponds to `imagecol` from tissue positions; `y` now correctly corresponds to `imagerow` from tissue positions; these are now consistent with 10X's coordinate system (with the origin being the top left).
+- Reverted [#10062](https://github.com/satijalab/seurat/pull/10062) in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData` as previously; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
+- Added color retrieval logic in `LabelClusters` for consistent cluster label coloring ([#10198](https://github.com/satijalab/seurat/pull/10198))
 
 # Seurat 5.3.1
 
