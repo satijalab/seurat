@@ -557,6 +557,7 @@ object2 <- CreateSeuratObject(counts = pbmc.test,
                              meta.data = fake.meta.data2)
 
 test_that("`SCTransform` is consistent for multi-layer inputs", {
+  skip_on_cran()
   clip.range = c(-1.632993, 1.632993)
   
   test_case_v3 <- SplitObject(object2, split.by = "Condition")

@@ -1,4 +1,6 @@
 # Tests for functions in differential_expression.R
+if (!identical(Sys.getenv("NOT_CRAN"), "true")) return()
+
 suppressWarnings(RNGversion(vstr = "3.5.3"))
 set.seed(seed = 42)
 
