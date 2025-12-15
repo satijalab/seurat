@@ -16,6 +16,7 @@ results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident
 
 
 test_that("Default settings work as expected with pseudocount = 1", {
+  skip_on_cran()
   expect_error(FindMarkers(object = pbmc_small))
   expect_error(FindMarkers(object = pbmc_small, ident.1 = "test"))
   expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = "test"))
@@ -60,6 +61,7 @@ tymp.results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, f
 vargenes.results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, features = VariableFeatures(object = pbmc_small), verbose = FALSE, base = exp(1),pseudocount.use = 1))
 
 test_that("features parameter behaves correctly ", {
+  skip_on_cran()
   expect_equal(nrow(x = tymp.results), 1)
   expect_equal(tymp.results[1, "p_val"], 3.227445e-07, tolerance = 1e-12)
   expect_equal(tymp.results[1, "avg_logFC"], -2.188179, tolerance = 1e-6)
@@ -80,6 +82,7 @@ test_that("features parameter behaves correctly ", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = Cells(x = pbmc_small)[1:40], ident.2 = Cells(x = pbmc_small)[41:80], verbose = FALSE, base = exp(1),pseudocount.use = 1))
 test_that("passing cell names works", {
+  skip_on_cran()
   expect_equal(nrow(x = results), 216)
   expect_equal(results[1, "p_val"], 0.0001690882)
   expect_equal(results[1, "avg_logFC"], -1.967123, tolerance = 1e-6)
@@ -93,6 +96,7 @@ results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.
 results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1))
 results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1, vst.flavor = "v1"))
 test_that("setting pseudocount.use works", {
+  skip_on_cran()
   expect_equal(nrow(x = results), 222)
   expect_equal(results[1, "avg_logFC"], -2.640848, tolerance = 1e-6)
   expect_equal(nrow(x = results.clr), 214)
@@ -105,6 +109,7 @@ results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.
 results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1, mean.fxn = rowMeans))
 results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1, mean.fxn = rowMeans, vst.flaovr = "v1"))
 test_that("setting mean.fxn works", {
+  skip_on_cran()
   expect_equal(nrow(x = results), 216)
   expect_equal(results[1, "avg_logFC"], -4.204346, tolerance = 1e-6)
   expect_equal(results.clr[1, "avg_logFC"], -1.353025, tolerance = 1e-6)
@@ -152,6 +157,7 @@ test_that("only.pos works", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, max.cells.per.ident = 20, verbose = FALSE, base = exp(1),pseudocount.use = 1))
 test_that("max.cells.per.ident works", {
+  skip_on_cran()
   expect_equal(nrow(x = results), 222)
   expect_equal(results[1, "p_val"], 3.428568e-08, tolerance = 1e-13)
   expect_equal(results[1, "avg_logFC"], -2.638242, tolerance = 1e-6)
@@ -180,6 +186,7 @@ Idents(object = t2) <- "groups"
 results2 <- suppressWarnings(FindMarkers(object = t2, ident.1 = "g1", ident.2 = "g2", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 
 test_that("group.by works", {
+  skip_on_cran()
   expect_equal(nrow(x = results), 190)
   expect_equal(results, results2)
   expect_equal(results[1, "p_val"], 0.02870319)
@@ -196,6 +203,7 @@ Idents(object = t2) <- "groups"
 results2 <- suppressWarnings(FindMarkers(object = t2, ident.1 = "g1", ident.2 = "g2", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 
 test_that("subset.ident works", {
+  skip_on_cran()
   expect_equal(nrow(x = results), 183)
   expect_equal(results, results2)
   expect_equal(results[1, "p_val"], 0.01293720)
@@ -208,6 +216,7 @@ test_that("subset.ident works", {
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, reduction = "pca", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("reduction works", {
+  skip_on_cran()
   expect_equal(results[1, "p_val"], 1.664954e-10, tolerance = 1e-15)
   expect_equal(results[1, "avg_diff"], -2.810453669, tolerance = 1e-6)
   expect_equal(results[1, "p_val_adj"], 3.163412e-09, tolerance = 1e-14)
@@ -368,6 +377,7 @@ test_that("BPCells FindMarkers gives same results", {
 # -------------------------------------------------------------------------------
 
 test_that("FindAllMarkers works as expected", {
+  skip_on_cran()
   pbmc_copy <- pbmc_small
   Idents(pbmc_copy) <- "orig.ident"
 

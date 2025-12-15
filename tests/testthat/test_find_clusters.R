@@ -52,8 +52,12 @@ test_that("Smoke test for `FindClusters`", {
   expect_no_error(FindClusters(test_case, algorithm = 3))
   # The leiden algorithm requires that `random.seed` be greater than 0,
   # which is the default for `FindClusters` so a warning should be raised.
-  expect_warning(FindClusters(test_case, algorithm = 4))
-  expect_no_warning(FindClusters(test_case, algorithm = 4, random.seed = 1))
+  # Test with igraph method
   expect_warning(FindClusters(test_case, algorithm = 4, leiden_method = "igraph"))
   expect_no_warning(FindClusters(test_case, algorithm = 4, leiden_method = "igraph", random.seed = 1))
+  
+  # Test leidenbase method if available
+  skip_if_not_installed("leidenbase")
+  expect_warning(FindClusters(test_case, algorithm = 4, leiden_method = "leidenbase"))
+  expect_no_warning(FindClusters(test_case, algorithm = 4, leiden_method = "leidenbase", random.seed = 1))
 })

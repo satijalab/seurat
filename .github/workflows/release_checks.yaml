@@ -63,6 +63,9 @@ jobs:
           extra-packages: 
             any::rcmdcheck
             any::pkgdown
+            any::testthat
+          # Only install hard / required dependencies
+          dependencies: '"hard"'
           # Installed packages are cached by default - force an upgrade to the 
           # latest version of all dependencies.
           upgrade: 'TRUE'
