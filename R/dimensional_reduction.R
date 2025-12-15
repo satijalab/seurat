@@ -1445,8 +1445,12 @@ RunUMAP.default <- function(
         angular_rp_forest = angular.rp.forest,
         verbose = verbose
       )
-      if (numeric_version(x = umap_import$`__version__`) >=
-          numeric_version(x = "0.5.0")) {
+      # Parse umap version to first 3 version numbers
+      # This avoids utils parsing issues when version contains text ie:(0.5.0.release)
+      umap_ver <- umap_import$`__version__`
+      umap_ver_clean <- paste(regmatches(umap_ver, gregexpr("[0-9]+", umap_ver))[[1]][1:3], collapse = ".")
+
+      if (numeric_version(x = umap_ver_clean) >= numeric_version(x = "0.5.0")) {
         umap.args <- c(umap.args, list(
           densmap = densmap,
           dens_lambda = dens.lambda,
