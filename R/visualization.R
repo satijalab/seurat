@@ -4112,8 +4112,8 @@ InteractiveSpatialPlot <- function(
     output$plot <- plotly::renderPlotly({
       plt <- plotly::plot_ly(
         data = coords,
-        x = ~y,          # Plot y on x axis to match Seurat/ggplot conventions
-        y = ~x,          # Plot x on y axis (this handles flipped axes)
+        x = ~x,
+        y = ~y,
         color = ~group,  # Color by group/cluster if available
         key = ~cell,     # Store cell names for selection retrieval
         type = "scattergl", # Use WebGL for performance with large datasets
@@ -4150,15 +4150,15 @@ InteractiveSpatialPlot <- function(
         yaxis = list(
           autorange = "reversed",
           scaleanchor = "x",
-          title = "x",
-          tickvals = x_ticks$tickvals,
-          ticktext = x_ticks$ticktext
-        ),
-        xaxis = list(
-          scaleanchor = "y",
           title = "y",
           tickvals = y_ticks$tickvals,
           ticktext = y_ticks$ticktext
+        ),
+        xaxis = list(
+          scaleanchor = "y",
+          title = "x",
+          tickvals = x_ticks$tickvals,
+          ticktext = x_ticks$ticktext
         )
       )
       plt
