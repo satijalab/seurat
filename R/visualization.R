@@ -4171,11 +4171,22 @@ InteractiveSpatialPlot <- function(
       plt
     })
 
+    observe({
+      selected <- plotly::event_data("plotly_selected")
+      if (!is.null(selected) && nrow(selected) > 0) {
+        current_selection(selected$key)
+      } else {
+        current_selection(coords$cell)
+      }
+    })
+
+    output$selection_count <- renderUI({
+      tags$span(paste0("Selected cells: ", length(current_selection())))
+    })
+
     # When user clicks "Done", retrieve lasso selection and close gadget
     observeEvent(input$done, {
-      selected <- plotly::event_data("plotly_selected")
-      selected_cells <- selected$key
-      stopApp(selected_cells)
+      stopApp(current_selection())
     })
 
     # When user clicks "Cancel", exit gadget and return NULL
