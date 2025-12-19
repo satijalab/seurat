@@ -4102,12 +4102,19 @@ InteractiveSpatialPlot <- function(
   ui <- miniPage(
     gadgetTitleBar("Select a subset of cells"),
     miniContentPanel(
-      plotly::plotlyOutput("plot", height = "100%")
+      plotly::plotlyOutput("plot", height = "100%"),
+      tags$div(
+        uiOutput("selection_count"),
+        style = "position:absolute; bottom:8px; right:10px; padding:4px 6px; background:rgba(255,255,255,0.8); font-size:12px; border-radius:3px; pointer-events:none;"
+      )
     )
   )
 
   # Shiny gadget server logic for interactive plot and lasso selection
   server <- function(input, output, session) {
+
+    current_selection <- reactiveVal(coords$cell)
+
     # Render the interactive plotly scattergl plot
     output$plot <- plotly::renderPlotly({
       plt <- plotly::plot_ly(
