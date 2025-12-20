@@ -67,9 +67,18 @@ A \code{\link[patchwork]{patchwork}ed} ggplot object if
 Draws a ridge plot of single cell data (gene expression, metrics, PC
 scores, etc.)
 }
+\note{
+In some environments, RidgePlot may error with ggplot2 >= 4.0.0 (e.g.,
+with messages such as \code{'S4SXP': should not happen}). In local testing,
+this occurred with ggplot2 4.0.1 + patchwork 1.3.2 and was resolved
+by using ggplot2 3.5.2. See the Seurat issue tracker for updates on
+ggplot2 4.x compatibility.
+}
 \examples{
 data("pbmc_small")
-RidgePlot(object = pbmc_small, features = 'PC_1')
+if (utils::packageVersion("ggplot2") < "4.0.0") {
+  RidgePlot(object = pbmc_small, features = "PC_1")
+}
 
 }
 \concept{visualization}

@@ -522,9 +522,18 @@ HTOHeatmap <- function(
 #' @export
 #' @concept visualization
 #'
+#' @note
+#' In some environments, RidgePlot may error with ggplot2 >= 4.0.0 (e.g.,
+#' with messages such as \code{'S4SXP': should not happen}). In local testing,
+#' this occurred with ggplot2 4.0.1 + patchwork 1.3.2 and was resolved
+#' by using ggplot2 3.5.2. See the Seurat issue tracker for updates on
+#' ggplot2 4.x compatibility.
+#'
 #' @examples
 #' data("pbmc_small")
-#' RidgePlot(object = pbmc_small, features = 'PC_1')
+#' if (utils::packageVersion("ggplot2") < "4.0.0") {
+#'   RidgePlot(object = pbmc_small, features = "PC_1")
+#' }
 #'
 RidgePlot <- function(
   object,
@@ -9413,8 +9422,8 @@ SingleRasterMap <- function(
 #' @return A ggplot2 object
 #'
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot coord_fixed geom_point 
-#' xlim ylim coord_cartesian labs theme_void theme 
+#' @importFrom ggplot2 ggplot coord_fixed geom_point
+#' xlim ylim coord_cartesian labs theme_void theme
 #' scale_fill_brewer scale_y_reverse annotation_custom
 #'
 #' @keywords internal
@@ -9534,7 +9543,7 @@ SingleSpatialPlot <- function(
           rgba_image[,,4] <- image.alpha
           image_to_plot <- rgba_image
       }
-      
+
       # Validate image
       image.grob <- rasterGrob(
         image_to_plot,
@@ -9546,11 +9555,11 @@ SingleSpatialPlot <- function(
       # Retrieve scale factor from specified image scale ("lowres"/"hires")
       scale.factor <- ScaleFactors(image)[[image.scale]]
       if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
-      
+
       # Retrieve image dimensions for later use
       image.height <- dim(image@image)[1]
       image.width <- dim(image@image)[2]
-      
+
       # Extract and scale segmentation data
       segm_data <- image@boundaries$segmentations@sf.data
       segm_data$x <- segm_data$x * scale.factor
@@ -9582,13 +9591,13 @@ SingleSpatialPlot <- function(
 
       # Create appropriate geom layer based on plot_segmentations
       if (!plot_segmentations) {
-        #If plot_segmentations FALSE, then plot just the polygon centroids 
+        #If plot_segmentations FALSE, then plot just the polygon centroids
         if (is.null(pt.alpha)) {
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
           geom_point_layer <- geom_point(
             data = plot_data,
-            shape = 21, 
+            shape = 21,
             stroke = stroke,
             size = pt.size.factor,
             aes(x = .data[['x.centroid']], y = .data[['y.centroid']], fill = !!col.by.plot, alpha = !!alpha.by)
@@ -9606,13 +9615,13 @@ SingleSpatialPlot <- function(
         ggplot() +
             image_annotation_layer +
             geom_point_layer +
-            scale_y_reverse() + 
+            scale_y_reverse() +
             xlab("x") +
             ylab("y") +
             coord_fixed() +
             theme_void()
       } else {
-        
+
         if (is.null(pt.alpha)) {
           # If pt.alpha is not provided, then alpha is derived from group/cluster data
           # Use alpha.by instead of pt.alpha
@@ -9635,7 +9644,7 @@ SingleSpatialPlot <- function(
         ggplot() +
             image_annotation_layer +
             geom_polygon_layer +
-            scale_y_reverse() + 
+            scale_y_reverse() +
             xlab("x") +
             ylab("y") +
             coord_fixed() +
