@@ -22,4 +22,4 @@ Seurat has been successfully installed on Mac OS X, Linux, and Windows, using th
 
 Improvements and new features will be added on a regular basis, please post on the [github page](https://github.com/satijalab/seurat) with any questions or if you would like to contribute
 
-For a version history/changelog, please see the [NEWS file](https://github.com/satijalab/seurat/blob/master/NEWS.md).
+For a version history/changelog, please see the [NEWS file](https://github.com/satijalab/seurat/blob/main/NEWS.md).
