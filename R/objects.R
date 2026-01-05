@@ -324,7 +324,8 @@ VisiumV1 <- setClass(
     'image' = 'array',
     'scale.factors' = 'scalefactors',
     'coordinates' = 'data.frame',
-    'spot.radius' = 'numeric'
+    'spot.radius' = 'numeric',
+    "coords_x_orientation" = "character"
   )
 )
 
