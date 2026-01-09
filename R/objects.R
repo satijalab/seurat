@@ -1704,13 +1704,13 @@ GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
 GetTissueCoordinates.VisiumV1 <- function(
   object,
   scale = 'lowres',
-  cols = c('imagerow', 'imagecol'),
+  cols = c('imagecol', 'imagerow'),
   ...
 ) {
   cols <- cols %||% colnames(x = slot(object = object, name = 'coordinates'))
   if (!is.null(x = scale)) {
     coordinates <- slot(
-      object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
+      object = object, name = 'coordinates')[, c('imagecol', 'imagerow')]
     scale <- match.arg(
       arg = scale, choices = c('spot', 'fiducial', 'hires', 'lowres'))
     scale.use <- ScaleFactors(object = object)[[scale]]
