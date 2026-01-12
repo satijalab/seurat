@@ -503,19 +503,19 @@ FindClusters.Seurat <- function(
   for (col in names(clustering.results)) {
     # Read in current factor levels
     levels.col <- levels(clustering.results[[col]])
-    # Sort levels numerically
-    levels.sorted <- tryCatch(
-      expr = sort(as.numeric(x = levels.col)),
-      warning = function(...) {
-        return(sort(levels.col))
-      },
-      error = function(...) {
-        return(sort(levels.col))
-      }
+
+    # Split factor levels by numeric vs non-numeric
+    is_int <- grepl("^[0-9]+$", levels.col)
+
+    levels.sorted <- c(
+      # Sort numeric levels
+      levels.col[is_int][order(as.integer(levels.col[is_int]))],
+      # Sort remaining non-numeric levels
+      sort(levels.col[!is_int])
     )
-    # Rebuild factor with sorted level order
+    # Rebuild factor levels using sorted labels
     clustering.results[[col]] <- factor(
-      x = clustering.results[[col]], 
+      x = as.character(clustering.results[[col]]),
       levels = levels.sorted
     )
   }
