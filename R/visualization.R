@@ -3945,14 +3945,18 @@ InteractiveSpatialPlot <- function(
   overlay_image = TRUE
 ) {
   # Check for required packages, stop with clear message if missing
-  if (!requireNamespace("plotly", quietly = TRUE)) {
-    stop("The 'plotly' package must be installed to use InteractiveSpatialPlot().")
-  }
-  if (!requireNamespace("magrittr", quietly = TRUE)) {
-    stop("The 'magrittr' package must be installed to use InteractiveSpatialPlot().")
-  }
-  if (!requireNamespace("base64enc", quietly = TRUE)) {
-    stop("The 'base64enc' package must be installed to use InteractiveSpatialPlot().")
+  required_pkgs <- c("plotly", "magrittr", "base64enc", "shiny")
+  
+  missing_pkgs <- required_pkgs[
+    !vapply(required_pkgs, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1))
+  ]
+  
+  if (length(missing_pkgs) > 0) {
+    stop(
+      "InteractiveSpatialPlot() functionality requires these packages to be installed: ",
+      paste0("'", missing_pkgs, "'", collapse = ", "),
+      call. = FALSE
+    )
   }
 
   # Import magrittr pipe locally
