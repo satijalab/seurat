@@ -3945,14 +3945,18 @@ InteractiveSpatialPlot <- function(
   overlay_image = TRUE
 ) {
   # Check for required packages, stop with clear message if missing
-  if (!requireNamespace("plotly", quietly = TRUE)) {
-    stop("The 'plotly' package must be installed to use InteractiveSpatialPlot().")
-  }
-  if (!requireNamespace("magrittr", quietly = TRUE)) {
-    stop("The 'magrittr' package must be installed to use InteractiveSpatialPlot().")
-  }
-  if (!requireNamespace("base64enc", quietly = TRUE)) {
-    stop("The 'base64enc' package must be installed to use InteractiveSpatialPlot().")
+  required_pkgs <- c("plotly", "magrittr", "base64enc", "shiny")
+  
+  missing_pkgs <- required_pkgs[
+    !vapply(required_pkgs, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1))
+  ]
+  
+  if (length(missing_pkgs) > 0) {
+    stop(
+      "InteractiveSpatialPlot() functionality requires these packages to be installed: ",
+      paste0("'", missing_pkgs, "'", collapse = ", "),
+      call. = FALSE
+    )
   }
 
   # Import magrittr pipe locally
@@ -4102,18 +4106,25 @@ InteractiveSpatialPlot <- function(
   ui <- miniPage(
     gadgetTitleBar("Select a subset of cells"),
     miniContentPanel(
-      plotly::plotlyOutput("plot", height = "100%")
+      plotly::plotlyOutput("plot", height = "100%"),
+      tags$div(
+        uiOutput("selection_count"),
+        style = "position:absolute; bottom:8px; right:10px; padding:4px 6px; background:rgba(255,255,255,0.8); font-size:12px; border-radius:3px; pointer-events:none;"
+      )
     )
   )
 
   # Shiny gadget server logic for interactive plot and lasso selection
   server <- function(input, output, session) {
+
+    current_selection <- reactiveVal(coords$cell)
+
     # Render the interactive plotly scattergl plot
     output$plot <- plotly::renderPlotly({
       plt <- plotly::plot_ly(
         data = coords,
-        x = ~y,          # Plot y on x axis to match Seurat/ggplot conventions
-        y = ~x,          # Plot x on y axis (this handles flipped axes)
+        x = ~x,
+        y = ~y,
         color = ~group,  # Color by group/cluster if available
         key = ~cell,     # Store cell names for selection retrieval
         type = "scattergl", # Use WebGL for performance with large datasets
@@ -4150,25 +4161,39 @@ InteractiveSpatialPlot <- function(
         yaxis = list(
           autorange = "reversed",
           scaleanchor = "x",
-          title = "x",
-          tickvals = x_ticks$tickvals,
-          ticktext = x_ticks$ticktext
-        ),
-        xaxis = list(
-          scaleanchor = "y",
           title = "y",
           tickvals = y_ticks$tickvals,
           ticktext = y_ticks$ticktext
+        ),
+        xaxis = list(
+          scaleanchor = "y",
+          title = "x",
+          tickvals = x_ticks$tickvals,
+          ticktext = x_ticks$ticktext
         )
       )
       plt
     })
 
+    observeEvent(plotly::event_data("plotly_selected"), {
+      selected <- plotly::event_data("plotly_selected")
+
+      if (is.null(selected) || NROW(selected) == 0) {
+        current_selection(NULL)
+      } else {
+        keys <- selected$key
+        keys <- keys[!is.na(keys)]
+        current_selection(keys)
+      }
+    }, ignoreInit = TRUE)
+
+    output$selection_count <- renderUI({
+      tags$span(paste0("Selected cells: ", NROW(current_selection())))
+    })
+
     # When user clicks "Done", retrieve lasso selection and close gadget
     observeEvent(input$done, {
-      selected <- plotly::event_data("plotly_selected")
-      selected_cells <- selected$key
-      stopApp(selected_cells)
+      stopApp(current_selection())
     })
 
     # When user clicks "Cancel", exit gadget and return NULL
