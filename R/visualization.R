@@ -9471,6 +9471,10 @@ SingleSpatialPlot <- function(
   plot_segmentations = FALSE
 ) {
   geom <- match.arg(arg = geom)
+
+  # Retrieve image dimensions for later use
+  image.height <- dim(image@image)[1]
+  image.width <- dim(image@image)[2]
   if (!is.null(col.by) && !col.by %in% colnames(data)) {
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
@@ -9531,6 +9535,9 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
+      if (!crop) {
+        plot <- plot + theme(aspect.ratio = image.height / image.width)
+      }
       plot + coord_fixed() + scale_y_reverse()
     },
     'interactive' = {
@@ -9577,9 +9584,6 @@ SingleSpatialPlot <- function(
       scale.factor <- ScaleFactors(image)[[image.scale]]
       if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
       
-      # Retrieve image dimensions for later use
-      image.height <- dim(image@image)[1]
-      image.width <- dim(image@image)[2]
       
       # Extract and scale segmentation data
       segm_data <- image@boundaries$segmentations@sf.data
