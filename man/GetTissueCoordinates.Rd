@@ -14,7 +14,7 @@
 \method{GetTissueCoordinates}{VisiumV1}(
   object,
   scale = "lowres",
-  cols = c("imagerow", "imagecol"),
+  cols = c("imagecol", "imagerow"),
   ...
 )
 

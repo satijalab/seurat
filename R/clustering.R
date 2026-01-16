@@ -498,6 +498,28 @@ FindClusters.Seurat <- function(
   names(x = clustering.results) <- cluster.name
   # object <- AddMetaData(object = object, metadata = clustering.results)
   # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
+
+  # Sort all factor levels for clustering result columns
+  for (col in names(clustering.results)) {
+    # Read in current factor levels
+    levels.col <- levels(clustering.results[[col]])
+
+    # Split factor levels by numeric vs non-numeric
+    is_int <- grepl("^[0-9]+$", levels.col)
+
+    levels.sorted <- c(
+      # Sort numeric levels
+      levels.col[is_int][order(as.integer(levels.col[is_int]))],
+      # Sort remaining non-numeric levels
+      sort(levels.col[!is_int])
+    )
+    # Rebuild factor levels using sorted labels
+    clustering.results[[col]] <- factor(
+      x = as.character(clustering.results[[col]]),
+      levels = levels.sorted
+    )
+  }
+
   idents.use <- names(x = clustering.results)[ncol(x = clustering.results)]
   object[[]] <- clustering.results
   Idents(object = object, replace = TRUE) <- object[[idents.use, drop = TRUE]]
