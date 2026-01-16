@@ -7425,10 +7425,10 @@ GeomSpatial <- ggproto(
     # Locations and sizes are relative to the x- and yscales for the current viewport.
     if (!crop) {
       # needs to be consistent with the origin being in the top-left
-      panel_scales$x$continuous_range <- c(0, img.dim[[1]])
-      panel_scales$y$continuous_range <- c(-img.dim[[2]], 0)
-      panel_scales$y.range <- c(0, img.dim[[1]])
-      panel_scales$x.range <- c(-img.dim[[2]], 0)
+      panel_scales$x$continuous_range <- c(0, img.dim[[2]])
+      panel_scales$y$continuous_range <- c(-img.dim[[1]], 0)
+      panel_scales$x.range <- c(0, img.dim[[2]])
+      panel_scales$y.range <- c(-img.dim[[1]], 0)
     }
     z <- coord$transform(
       data.frame(x = c(0, img.dim[[2]]), y = c(0, img.dim[[1]])),
