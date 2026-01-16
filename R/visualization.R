@@ -9535,10 +9535,11 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
+      aspect.ratio <- 1
       if (!crop) {
-        plot <- plot + theme(aspect.ratio = image.height / image.width)
+        aspect.ratio <- image.height / image.width
       }
-      plot + coord_fixed() + scale_y_reverse()
+      plot <- plot + coord_fixed(ratio = aspect.ratio) + scale_y_reverse()
     },
     'interactive' = {
       plot + geom_spatial_interactive(
