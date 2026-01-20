@@ -9603,7 +9603,7 @@ SingleSpatialPlot <- function(
                         by = "cell",
                         suffixes = c("", ".centroid"),
                         sort = FALSE)
-
+      xlim <- if (!crop) c(0, image.width) else NULL
       if (packageVersion("ggplot2") < "4.0.0") {
         message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
         image_annotation_layer <- annotation_custom(
@@ -9612,6 +9612,12 @@ SingleSpatialPlot <- function(
                               xmax = image.width,
                               ymin = -image.height,
                               ymax = 0)
+        if (packageVersion("ggplot2") < "4.0.0") {
+          message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
+          ylim <- c(image.height, 0)
+        } else {
+          ylim <- c(0, image.height)
+        }
       } else {
         image_annotation_layer <- annotation_custom(
                               grob = image.grob,
@@ -9619,6 +9625,7 @@ SingleSpatialPlot <- function(
                               xmax = image.width,
                               ymin = 0,
                               ymax = image.height)
+        ylim <- if (!crop) c(0, image.height) else NULL
       }
 
       # Create appropriate geom layer based on plot_segmentations
@@ -9650,7 +9657,7 @@ SingleSpatialPlot <- function(
             scale_y_reverse() + 
             xlab("x") +
             ylab("y") +
-            coord_fixed() +
+            coord_fixed(xlim = xlim, ylim = ylim) +
             theme_void()
       } else {
         
@@ -9679,7 +9686,7 @@ SingleSpatialPlot <- function(
             scale_y_reverse() + 
             xlab("x") +
             ylab("y") +
-            coord_fixed() +
+            coord_fixed(xlim = xlim, ylim = ylim) +
             theme_void()
       }
     },
