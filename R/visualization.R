@@ -9604,6 +9604,7 @@ SingleSpatialPlot <- function(
                         suffixes = c("", ".centroid"),
                         sort = FALSE)
       xlim <- if (!crop) c(0, image.width) else NULL
+      ylim <- NULL
       if (packageVersion("ggplot2") < "4.0.0") {
         message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
         image_annotation_layer <- annotation_custom(
@@ -9612,11 +9613,9 @@ SingleSpatialPlot <- function(
                               xmax = image.width,
                               ymin = -image.height,
                               ymax = 0)
-        if (packageVersion("ggplot2") < "4.0.0") {
+        if (!crop) {
           message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
           ylim <- c(image.height, 0)
-        } else {
-          ylim <- c(0, image.height)
         }
       } else {
         image_annotation_layer <- annotation_custom(
