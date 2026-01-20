@@ -9535,11 +9535,17 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
-      aspect.ratio <- 1
+      xlim <- if (!crop) c(0, image.width) else NULL
+      ylim <- NULL
       if (!crop) {
-        aspect.ratio <- image.height / image.width
+        if (packageVersion("ggplot2") < "4.0.0") {
+          message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
+          ylim <- c(image.height, 0)
+        } else {
+          ylim <- c(0, image.height)
+        }
       }
-      plot <- plot + coord_fixed(ratio = aspect.ratio) + scale_y_reverse()
+      plot + coord_fixed(xlim = xlim, ylim = ylim) + scale_y_reverse()
     },
     'interactive' = {
       plot + geom_spatial_interactive(
