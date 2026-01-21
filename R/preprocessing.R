@@ -4808,7 +4808,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
-    slot = slot,
+    layer = layer,
     features = features,
     spatial.location = tc,
     selection.method = selection.method,
