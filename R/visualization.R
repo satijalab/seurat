@@ -9472,9 +9472,6 @@ SingleSpatialPlot <- function(
 ) {
   geom <- match.arg(arg = geom)
 
-  # Retrieve image dimensions for later use
-  image.height <- dim(image@image)[1]
-  image.width <- dim(image@image)[2]
   if (!is.null(col.by) && !col.by %in% colnames(data)) {
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
@@ -9511,6 +9508,10 @@ SingleSpatialPlot <- function(
   plot <- switch(
     EXPR = geom,
     'spatial' = {
+      # Retrieve image dimensions for later use
+      image.height <- dim(image@image)[1]
+      image.width <- dim(image@image)[2]
+
       if (is.null(x = pt.alpha)) {
         plot <- plot + geom_spatial(
           point.size.factor = pt.size.factor,
@@ -9567,8 +9568,9 @@ SingleSpatialPlot <- function(
         coord_cartesian(expand = FALSE)
     },
     'poly' = {
-
       image_to_plot <- image@image
+      image.height <- dim(image_to_plot)[1]
+      image.width <- dim(image_to_plot)[2]
 
       # Apply image transparency
       if (image.alpha < 1) {
