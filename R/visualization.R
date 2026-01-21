@@ -7425,10 +7425,10 @@ GeomSpatial <- ggproto(
     # Locations and sizes are relative to the x- and yscales for the current viewport.
     if (!crop) {
       # needs to be consistent with the origin being in the top-left
-      panel_scales$x$continuous_range <- c(0, img.dim[[1]])
-      panel_scales$y$continuous_range <- c(-img.dim[[2]], 0)
-      panel_scales$y.range <- c(0, img.dim[[1]])
-      panel_scales$x.range <- c(-img.dim[[2]], 0)
+      panel_scales$x$continuous_range <- c(0, img.dim[[2]])
+      panel_scales$y$continuous_range <- c(-img.dim[[1]], 0)
+      panel_scales$x.range <- c(0, img.dim[[2]])
+      panel_scales$y.range <- c(-img.dim[[1]], 0)
     }
     z <- coord$transform(
       data.frame(x = c(0, img.dim[[2]]), y = c(0, img.dim[[1]])),
@@ -9472,9 +9472,6 @@ SingleSpatialPlot <- function(
 ) {
   geom <- match.arg(arg = geom)
 
-  # Retrieve image dimensions for later use
-  image.height <- dim(image@image)[1]
-  image.width <- dim(image@image)[2]
   if (!is.null(col.by) && !col.by %in% colnames(data)) {
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
@@ -9511,6 +9508,10 @@ SingleSpatialPlot <- function(
   plot <- switch(
     EXPR = geom,
     'spatial' = {
+      # Retrieve image dimensions for later use
+      image.height <- dim(image@image)[1]
+      image.width <- dim(image@image)[2]
+
       if (is.null(x = pt.alpha)) {
         plot <- plot + geom_spatial(
           point.size.factor = pt.size.factor,
@@ -9535,10 +9536,17 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
+      xlim <- if (!crop) c(0, image.width) else NULL
+      ylim <- NULL
       if (!crop) {
-        plot <- plot + theme(aspect.ratio = image.height / image.width)
+        if (packageVersion("ggplot2") < "4.0.0") {
+          message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
+          ylim <- c(image.height, 0)
+        } else {
+          ylim <- c(0, image.height)
+        }
       }
-      plot + coord_fixed() + scale_y_reverse()
+      plot + coord_fixed(xlim = xlim, ylim = ylim) + scale_y_reverse()
     },
     'interactive' = {
       plot + geom_spatial_interactive(
@@ -9560,8 +9568,9 @@ SingleSpatialPlot <- function(
         coord_cartesian(expand = FALSE)
     },
     'poly' = {
-
       image_to_plot <- image@image
+      image.height <- dim(image_to_plot)[1]
+      image.width <- dim(image_to_plot)[2]
 
       # Apply image transparency
       if (image.alpha < 1) {
@@ -9596,7 +9605,8 @@ SingleSpatialPlot <- function(
                         by = "cell",
                         suffixes = c("", ".centroid"),
                         sort = FALSE)
-
+      xlim <- if (!crop) c(0, image.width) else NULL
+      ylim <- NULL
       if (packageVersion("ggplot2") < "4.0.0") {
         message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
         image_annotation_layer <- annotation_custom(
@@ -9605,6 +9615,10 @@ SingleSpatialPlot <- function(
                               xmax = image.width,
                               ymin = -image.height,
                               ymax = 0)
+        if (!crop) {
+          message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
+          ylim <- c(image.height, 0)
+        }
       } else {
         image_annotation_layer <- annotation_custom(
                               grob = image.grob,
@@ -9612,6 +9626,7 @@ SingleSpatialPlot <- function(
                               xmax = image.width,
                               ymin = 0,
                               ymax = image.height)
+        ylim <- if (!crop) c(0, image.height) else NULL
       }
 
       # Create appropriate geom layer based on plot_segmentations
@@ -9643,7 +9658,7 @@ SingleSpatialPlot <- function(
             scale_y_reverse() + 
             xlab("x") +
             ylab("y") +
-            coord_fixed() +
+            coord_fixed(xlim = xlim, ylim = ylim) +
             theme_void()
       } else {
         
@@ -9672,7 +9687,7 @@ SingleSpatialPlot <- function(
             scale_y_reverse() + 
             xlab("x") +
             ylab("y") +
-            coord_fixed() +
+            coord_fixed(xlim = xlim, ylim = ylim) +
             theme_void()
       }
     },
