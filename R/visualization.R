@@ -9508,10 +9508,6 @@ SingleSpatialPlot <- function(
   plot <- switch(
     EXPR = geom,
     'spatial' = {
-      # Retrieve image dimensions for later use
-      image.height <- dim(image@image)[1]
-      image.width <- dim(image@image)[2]
-
       if (is.null(x = pt.alpha)) {
         plot <- plot + geom_spatial(
           point.size.factor = pt.size.factor,
@@ -9536,9 +9532,15 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
-      xlim <- if (!crop) c(0, image.width) else NULL
+      
+      xlim <- NULL
       ylim <- NULL
-      if (!crop) {
+
+      if (.hasSlot(object = image, name = "image") && !crop) {
+        image.height <- dim(image@image)[1]
+        image.width <- dim(image@image)[2]
+
+        xlim <- c(0, image.width)
         if (packageVersion("ggplot2") < "4.0.0") {
           message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
           ylim <- c(image.height, 0)
@@ -9546,6 +9548,7 @@ SingleSpatialPlot <- function(
           ylim <- c(0, image.height)
         }
       }
+      
       plot + coord_fixed(xlim = xlim, ylim = ylim) + scale_y_reverse()
     },
     'interactive' = {
