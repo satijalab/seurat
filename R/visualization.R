@@ -9725,6 +9725,14 @@ SingleSpatialPlot <- function(
     } else {
       data[[col.by.clean]] <- as.character(data[[col.by.clean]])
       vals <- unique(as.character(data[[col.by.clean]]))
+      #cols must be a named vector 
+      if (is.null(names(cols)) || anyNA(names(cols)) || any(names(cols) == "")) {
+        warning(
+          "SpatialPlot: `cols` is being treated as a manual mapping, but it has no valid names. ",
+          "Seurat will match colors to groups by name, so you should pass a named vector whose names ",
+          "match the values of `", col.by, "`, for example: setNames(cols, sort(unique(data[[col.by]])))."
+        )
+      }
       cols <- cols[names(cols) %in% vals]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
