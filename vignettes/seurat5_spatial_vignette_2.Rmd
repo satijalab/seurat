@@ -49,8 +49,6 @@ library(Seurat)
 library(future)
 plan("multisession", workers = 10)
 library(ggplot2)
-
-options(future.globals.maxSize = 10 * 1024^3)
 ```
 
 # Mouse Brain: Vizgen MERSCOPE
@@ -336,7 +334,7 @@ Next, we plot the positions of the pan-inhibitory neuron marker Gad1, inhibitory
 ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
 ```
 
-```{r save.img, include=FALSE, eval =FALSE}
+```{r save.img, include=FALSE}
 plot <- ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Gfap"), nmols = 40000, alpha=0.01, dark.background = F, mols.alpha = 0.6) + coord_flip() + scale_x_reverse() + NoLegend()
 ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 5, width = 9, plot = plot)
 ```
@@ -652,6 +650,6 @@ sessionInfo()
 
 </details>
 
-```{r save.times, include=FALSE, eval=FALSE}
+```{r save.times, include=FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_spatial_vignette_2.csv")
 ```
