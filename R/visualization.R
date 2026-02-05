@@ -9724,16 +9724,31 @@ SingleSpatialPlot <- function(
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
       data[[col.by.clean]] <- as.character(data[[col.by.clean]])
-      vals <- unique(as.character(data[[col.by.clean]]))
-      #cols must be a named vector 
-      if (is.null(names(cols)) || anyNA(names(cols)) || any(names(cols) == "")) {
-        warning(
-          "SpatialPlot: `cols` is being treated as a manual mapping, but it has no valid names. ",
-          "Seurat will match colors to groups by name, so you should pass a named vector whose names ",
-          "match the values of `", col.by, "`, for example: setNames(cols, sort(unique(data[[col.by]])))."
-        )
+      
+      vals <- sort(unique(data[[col.by.clean]]))
+      # n_groups is number of discrete groups/clusters that need colours
+      n_groups <- length(vals)
+      # Check whether 'cols' can be treated as a manual mapping
+      has_valid_names <- !is.null(names(cols)) && !anyNA(names(cols)) && all(names(cols) != "")
+    
+      # cols must be a named vector 
+      # If cols is unnamed, then names(cols) is NULL
+      # Cols is then subsetted down to length 0 
+      if (has_valid_names) {
+        cols <- cols[names(cols) %in% vals]
+      } else {
+        if (length(cols) < n_groups) {
+          warning(
+                    "SpatialPlot: `cols` is being treated as a manual mapping, but it has no valid names. ",
+                    "Seurat will match colors to groups by name, so you should pass a named vector whose names ",
+                    "match the values of `", col.by, "`, for example: setNames(cols, sort(unique(data[[col.by]])))."
+          )
+          cols <- rep_len(cols, n_groups)
+        } else {
+          cols <- cols[seq_len(n_groups)]
+        }
+        names(cols) <- vals
       }
-      cols <- cols[names(cols) %in% vals]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale
