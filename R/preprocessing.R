@@ -825,10 +825,13 @@ LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
   # load positions of each bead and store in a SlideSeq object in images slot
   coords <- read.csv(coordinates.file)
   colnames(coords) <- c("cell", "x", "y")
-  coords$y <- -coords$y
-  rownames(coords) <- coords$cell
-  coords$cell <- NULL
-  image <- new(Class = 'SlideSeq', assay = assay, coordinates = coords)
+  coords_reoriented <- coords
+  coords_reoriented$x <- max(coords$y) - coords$y
+  coords_reoriented$y <- coords$x
+  rownames(coords_reoriented) <- coords_reoriented$cell
+  coords_reoriented$cell <- NULL
+  coords_reoriented <- coords_reoriented[colnames(object),]
+  image <- new(Class = 'SlideSeq', assay = assay, coordinates = coords_reoriented)
   object[["Slice"]] <- image
   return(object)
 }
