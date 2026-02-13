@@ -8661,6 +8661,11 @@ SingleDimPlot <- function(
   raster <- raster %||% (nrow(x = data) > 1e5)
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
 
+  if (is.null(raster) && is.null(order)){
+    message("Points cannot be ordered and rasterized at the same time.",
+            "\nPoint order will be randomized in raster image.")
+  }
+
   if (is.null(x = stroke.size)) {
     stroke.size <- 0.600075815011372
   }
