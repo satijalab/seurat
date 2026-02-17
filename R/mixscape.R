@@ -835,7 +835,7 @@ RunMixscape <- function(
           post.prob <- 1/(1 + lik.ratio)
           object[[new.class.name]][names(x = which(post.prob > 0.5)), 1] <- gene
           object[[new.class.name]][names(x = which(post.prob < 0.5)), 1] <- paste(gene, " NP", sep = "")
-          if (length(x = which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s)) < min.de.genes) {
+          if (length(x = which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s)) < min.cells) {
             if (verbose) {
               message("Fewer than ", min.cells, " cells assigned as ",
                       gene, "Assigning all to NP.")
@@ -851,7 +851,11 @@ RunMixscape <- function(
         }
         object[[new.class.name]][which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s), 1] <- paste(gene, prtb.type, sep = " ")
       }
-      object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
+      object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(
+        X = as.character(x = object[[new.class.name]][, 1]),
+        FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}
+      ))
+      object[[paste0(new.class.name, ".global")]][which(x = object[[new.class.name]][, 1] == "NP"), 1] <- "NP"
       object[[paste0(new.class.name, ".global")]][which(x = is.na(x = object[[paste0(new.class.name, ".global")]])), 1] <- nt.class.name
       object[[paste0(new.class.name,"_p_", tolower(prtb.type))]][names(x = post.prob), 1] <- post.prob
     }
