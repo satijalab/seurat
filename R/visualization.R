@@ -8654,6 +8654,16 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
+  # IF both raster and order are TRUE, points are plotted with ggraster::geom_point_rast to maintain 
+  # correct ordering of points
+  if (isTRUE(raster) && isTRUE(order)){
+    # Check if ggrastr installed correctly
+    if (!is.null(x = raster) && isTRUE(x = raster)){
+      if (isFALSE(x = requireNamespace('ggrastr', quietly = TRUE))) {
+        stop("Please install ggrastr from CRAN to enable rasterization.")
+      }
+    }
+  }
   if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
