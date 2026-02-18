@@ -8760,16 +8760,30 @@ SingleDimPlot <- function(
 
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
-    plot + geom_scattermore(
-      mapping = aes(
-        x = .data[[dims[1]]],
-        y = .data[[dims[2]]],
-        !!!optional
-      ),
-      pointsize = pt.size,
-      alpha = alpha,
-      pixels = raster.dpi
-    )
+    # If order is FALSE, use faster geom_scattermore
+    # If order is TRUE, use slower geom_point_rast, which is needed for correct ordering of points
+    if (!isTRUE(order)){
+      plot + geom_scattermore(
+        mapping = aes(
+          x = .data[[dims[1]]],
+          y = .data[[dims[2]]],
+          !!!optional
+        ),
+        pointsize = pt.size,
+        alpha = alpha,
+        pixels = raster.dpi
+      )
+    }else{
+      plot + geom_point_rast(
+        mapping = aes(
+          x = .data[[dims[1]]],
+          y = .data[[dims[2]]],
+          !!!optional
+        ),
+        size = pt.size,
+        alpha = alpha
+      )  
+    }
   } else {
     plot + geom_point(
       mapping = aes(
