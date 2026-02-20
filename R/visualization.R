@@ -3926,6 +3926,8 @@ ISpatialFeaturePlot <- function(
 #' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
 #'
 #' @importFrom grDevices png dev.off
+#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel runGadget
+#' @importFrom shiny uiOutput reactiveVal renderUI tags observeEvent stopApp
 #'
 #' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
