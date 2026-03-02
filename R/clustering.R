@@ -1704,32 +1704,21 @@ NNdist <- function(
         nn.idx <- lapply(X = 1:nrow(x = nn.idx), FUN = function(x) nn.idx[x, ])
     }
     query.embeddings <- query.embeddings %||% embeddings
-    if (!inherits(x = plan(), what = "multicore")) {
-        oplan <- plan(strategy = "sequential")
-        on.exit(plan(oplan), add = TRUE)
-    }
-    nn.dist <- future_lapply(
-        X = 1:nrow(x = query.embeddings),
-        FUN = function(x) {
-            # Calculate distances for this specific query point
-            query_idx <- if (is.list(nn.idx)) nn.idx[[x]] else nn.idx[x, ]
-            distances <- fast_dist(
-                x = query.embeddings[x, , drop = FALSE],
-                y = embeddings,
-                n = list(query_idx)
-            )[[1]]
-            
-            # Apply nearest distance adjustment if provided
-            if (!is.null(x = nearest.dist)) {
-                r_dist <- distances - nearest.dist[x]
+    nn.dist <- fast_dist(
+        x = query.embeddings,
+        y = embeddings,
+        n = nn.idx
+    )
+    if (!is.null(x = nearest.dist)) {
+        nn.dist <- lapply(
+            X = seq_along(nn.dist),
+            FUN = function(x) {
+                r_dist <- nn.dist[[x]] - nearest.dist[x]
                 r_dist[r_dist < 0] <- 0
                 return(r_dist)
-            } else {
-                return(distances)
             }
-        },
-        future.seed = TRUE
-    )
+        )
+    }
     return(nn.dist)
 }
 
