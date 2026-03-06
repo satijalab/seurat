@@ -5414,14 +5414,25 @@ ScaleData.IterableMatrix <- function(
     features.mean <- 0
   }
   if (do.scale) {
-    features.sd <- sqrt(BPCells::matrix_stats(
+    features.var <- BPCells::matrix_stats(
       matrix = object,
-      row_stats = 'variance')$row_stats['variance',])
+      row_stats = 'variance')$row_stats['variance',]
+    if (do.center) {
+      features.sd <- sqrt(features.var)
+    } else {
+      # When not centering, scale by sqrt(sum(x^2) / (n-1)) to match
+      # FastSparseRowScale behavior (Bessel-corrected root mean square)
+      n <- ncol(object)
+      features.row.mean <- BPCells::matrix_stats(
+        matrix = object,
+        row_stats = 'mean')$row_stats['mean',]
+      features.sd <- sqrt(features.var + n * features.row.mean^2 / (n - 1))
+    }
     features.sd[features.sd == 0] <- 0.01
   } else {
     features.sd <- 1
   }
-  if (scale.max != Inf) {
+  if (scale.max != Inf && (do.scale || do.center)) {
     object <- BPCells::min_by_row(mat = object, vals = scale.max * features.sd + features.mean)
   }
   scaled.data <- (object - features.mean) / features.sd
