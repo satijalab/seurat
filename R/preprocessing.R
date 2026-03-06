@@ -5091,14 +5091,74 @@ ScaleData.default <- function(
 ScaleData.IterableMatrix <- function(
     object,
     features = NULL,
+    vars.to.regress = NULL,
+    latent.data = NULL,
     do.scale = TRUE,
     do.center = TRUE,
     scale.max = 10,
+    verbose = TRUE,
     ...
 ) {
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
+
+  # Handle covariate regression using BPCells::regress_out
+  if (!is.null(x = vars.to.regress)) {
+    if (is.null(x = latent.data)) {
+      latent.data <- data.frame(row.names = colnames(x = object))
+    } else {
+      latent.data <- latent.data[colnames(x = object), , drop = FALSE]
+      rownames(x = latent.data) <- colnames(x = object)
+    }
+    # Check if any vars.to.regress are features in the matrix
+    if (any(vars.to.regress %in% rownames(x = object))) {
+      feature_vars <- vars.to.regress[vars.to.regress %in% rownames(x = object)]
+      # For IterableMatrix, convert the subset to a regular matrix for latent.data
+      feature_data <- t(as.matrix(object[feature_vars, , drop = FALSE]))
+      latent.data <- cbind(latent.data, feature_data)
+    }
+    # Validate that we have the requested variables
+    notfound <- setdiff(x = vars.to.regress, y = colnames(x = latent.data))
+    if (length(x = notfound) == length(x = vars.to.regress)) {
+      stop(
+        "None of the requested variables to regress are present in the object.",
+        call. = FALSE
+      )
+    } else if (length(x = notfound) > 0) {
+      warning(
+        "Requested variables to regress not in object: ",
+        paste(notfound, collapse = ", "),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      vars.to.regress <- colnames(x = latent.data)
+    }
+    if (verbose) {
+      message("Regressing out ", paste(vars.to.regress, collapse = ', '))
+    }
+    # Use BPCells regress_out function
+    regress_data <- latent.data[, vars.to.regress, drop = FALSE]
+    object <- BPCells::regress_out(mat = object, latent_data = regress_data, prediction_axis = "row")
+  }
+
+  # Proceed with scaling/centering
+  if (verbose && (do.scale || do.center)) {
+    msg <- paste(
+      na.omit(object = c(
+        ifelse(test = do.center, yes = 'centering', no = NA_character_),
+        ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+      )),
+      collapse = ' and '
+    )
+    msg <- paste0(
+      toupper(x = substr(x = msg, start = 1, stop = 1)),
+      substr(x = msg, start = 2, stop = nchar(x = msg)),
+      ' data matrix'
+    )
+    message(msg)
+  }
+
   if (do.center) {
     features.mean <- BPCells::matrix_stats(
       matrix = object,
@@ -5118,7 +5178,7 @@ ScaleData.IterableMatrix <- function(
     object <- BPCells::min_by_row(mat = object, vals = scale.max * features.sd + features.mean)
   }
   scaled.data <- (object - features.mean) / features.sd
-return(scaled.data)
+  return(scaled.data)
 }
 
 
