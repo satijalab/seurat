@@ -506,7 +506,7 @@ GetResidual <- function(
 #' passed in it should be co-indexed with \code{`bin.size`}
 #' @param segmentation.type Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
 #' Defaults to "cell".
-#' @param compact Whether to store segmentations in \emph{only} the \code{sf.data} slot 
+#' @param compact Whether to store segmentations in \emph{only} the \code{sf.data} slot
 #' in the corresponding Segmentation object (default TRUE) to save memory and processing time.
 #' If FALSE, segmentations are also stored in \code{\link[sp]{sp}} format in addition to the \code{sf.data} slot.
 #' @param image.name Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png
@@ -671,7 +671,7 @@ Load10X_Spatial <- function (
       y = object.list[-1]
     )
   }
-  
+
   # read segmentation data if requested
   if (load.segmentations) {
     # Check for required packages, stop with clear message if missing
@@ -681,14 +681,14 @@ Load10X_Spatial <- function (
 
     segmentation.assay.name <- paste0(assay, ".Polygons")
     seg.data.dir <- file.path(data.dir, "segmented_outputs")
-    
+
     # Check for different possible file formats/names
     possible.files <- c(
       "filtered_feature_cell_matrix.h5",
-      "filtered_feature_bc_matrix.h5", 
+      "filtered_feature_bc_matrix.h5",
       "raw_feature_bc_matrix.h5"
     )
-    
+
     seg.counts.path <- NULL
     for (pf in possible.files) {
       test.path <- file.path(seg.data.dir, pf)
@@ -697,7 +697,7 @@ Load10X_Spatial <- function (
         break
       }
     }
-    
+
     if (is.null(seg.counts.path)) {
       stop("No cell segmentation matrix found. Looked for: ", paste(possible.files, collapse = ", "))
     }
@@ -729,13 +729,13 @@ Load10X_Spatial <- function (
       segmentation.counts,
       assay = segmentation.assay.name
     )
-    
+
     common_cells <- unique(Cells(visium.segmentation)[Cells(visium.segmentation) %in% Cells(segmentation.object)])
     visium.segmentation <- subset(
       x = visium.segmentation,
       cells = common_cells
     )
-    
+
     # Set the default boundary type to centroids for plotting
     DefaultBoundary(object = visium.segmentation) <- "centroids"
 
@@ -1420,7 +1420,7 @@ Read10X_Image <- function(
   # The Visium coordinate system takes the origin to be in the top-left corner,
   # where the x-axis is horizontal and associated with the image column.
   # We mark this with the coords_x_orientation flag.
-  # Older Visium objects in Seurat have a different system (x-axis vertical, etc), 
+  # Older Visium objects in Seurat have a different system (x-axis vertical, etc),
   # which is updated after checking whether the flag is set (SeuratObject::UpdateSeuratObject).
   ###############
 
@@ -1556,9 +1556,9 @@ Read10X_Segmentations <- function (image.dir,
                                    compact = TRUE) {
 
 
-  sf.obj <- Read10X_HD_GeoJson(data.dir = data.dir, 
+  sf.obj <- Read10X_HD_GeoJson(data.dir = data.dir,
                                 segmentation.type = segmentation.type)
-                                
+
   # Create a Segmentation object; populate it based on the coordinates from the sf object
   segmentations <- CreateSegmentation(sf.obj, compact = compact)
 
@@ -1597,7 +1597,7 @@ Read10X_Segmentations <- function (image.dir,
 #' @param prefix Optional prefix string
 #' @param suffix Optional suffix string
 #' @param digits Number of digits to zero-pad
-#' 
+#'
 #' A helper function to format cell IDs from the segmentation GeoJson to the same type as in the matrix.h5
 #' The GeoJson has cell IDs as integers (eg 1). They need to be in the format cellid_000000001-1
 #'
@@ -1625,7 +1625,7 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #'
 Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
   segmentation_polygons <- sf::read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
-  
+
   # Restructure sf geometry for downstream compatibility
   segmentation_polygons$geometry <- sf::st_sfc(lapply(
     segmentation_polygons$geometry,
@@ -2685,7 +2685,7 @@ ReadXenium <- function(
           warning("cells did not contain a segmentation_method column. Skipping...", call. = FALSE, immediate. = TRUE)
           NULL
         } else {
-          #Attempt to add default segmentation_method if nuclei/cell boundary files are provided 
+          #Attempt to add default segmentation_method if nuclei/cell boundary files are provided
           message("Cell_seg columns: ", paste(colnames(cell_seg), collapse = ", "))
           if (!"segmentation_method" %in% colnames(cell_seg)) {
             message("Adding default segmentation_method = 'cell'")
@@ -5338,14 +5338,74 @@ ScaleData.default <- function(
 ScaleData.IterableMatrix <- function(
     object,
     features = NULL,
+    vars.to.regress = NULL,
+    latent.data = NULL,
     do.scale = TRUE,
     do.center = TRUE,
     scale.max = 10,
+    verbose = TRUE,
     ...
 ) {
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
+
+  # Handle covariate regression using BPCells::regress_out
+  if (!is.null(x = vars.to.regress)) {
+    if (is.null(x = latent.data)) {
+      latent.data <- data.frame(row.names = colnames(x = object))
+    } else {
+      latent.data <- latent.data[colnames(x = object), , drop = FALSE]
+      rownames(x = latent.data) <- colnames(x = object)
+    }
+    # Check if any vars.to.regress are features in the matrix
+    if (any(vars.to.regress %in% rownames(x = object))) {
+      feature_vars <- vars.to.regress[vars.to.regress %in% rownames(x = object)]
+      # For IterableMatrix, convert the subset to a regular matrix for latent.data
+      feature_data <- t(as.matrix(object[feature_vars, , drop = FALSE]))
+      latent.data <- cbind(latent.data, feature_data)
+    }
+    # Validate that we have the requested variables
+    notfound <- setdiff(x = vars.to.regress, y = colnames(x = latent.data))
+    if (length(x = notfound) == length(x = vars.to.regress)) {
+      stop(
+        "None of the requested variables to regress are present in the object.",
+        call. = FALSE
+      )
+    } else if (length(x = notfound) > 0) {
+      warning(
+        "Requested variables to regress not in object: ",
+        paste(notfound, collapse = ", "),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      vars.to.regress <- colnames(x = latent.data)
+    }
+    if (verbose) {
+      message("Regressing out ", paste(vars.to.regress, collapse = ', '))
+    }
+    # Use BPCells regress_out function
+    regress_data <- latent.data[, vars.to.regress, drop = FALSE]
+    object <- BPCells::regress_out(mat = object, latent_data = regress_data, prediction_axis = "row")
+  }
+
+  # Proceed with scaling/centering
+  if (verbose && (do.scale || do.center)) {
+    msg <- paste(
+      na.omit(object = c(
+        ifelse(test = do.center, yes = 'centering', no = NA_character_),
+        ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+      )),
+      collapse = ' and '
+    )
+    msg <- paste0(
+      toupper(x = substr(x = msg, start = 1, stop = 1)),
+      substr(x = msg, start = 2, stop = nchar(x = msg)),
+      ' data matrix'
+    )
+    message(msg)
+  }
+
   if (do.center) {
     features.mean <- BPCells::matrix_stats(
       matrix = object,
@@ -5354,18 +5414,29 @@ ScaleData.IterableMatrix <- function(
     features.mean <- 0
   }
   if (do.scale) {
-    features.sd <- sqrt(BPCells::matrix_stats(
+    features.var <- BPCells::matrix_stats(
       matrix = object,
-      row_stats = 'variance')$row_stats['variance',])
+      row_stats = 'variance')$row_stats['variance',]
+    if (do.center) {
+      features.sd <- sqrt(features.var)
+    } else {
+      # When not centering, scale by sqrt(sum(x^2) / (n-1)) to match
+      # FastSparseRowScale behavior (Bessel-corrected root mean square)
+      n <- ncol(object)
+      features.row.mean <- BPCells::matrix_stats(
+        matrix = object,
+        row_stats = 'mean')$row_stats['mean',]
+      features.sd <- sqrt(features.var + n * features.row.mean^2 / (n - 1))
+    }
     features.sd[features.sd == 0] <- 0.01
   } else {
     features.sd <- 1
   }
-  if (scale.max != Inf) {
+  if (scale.max != Inf && (do.scale || do.center)) {
     object <- BPCells::min_by_row(mat = object, vals = scale.max * features.sd + features.mean)
   }
   scaled.data <- (object - features.mean) / features.sd
-return(scaled.data)
+  return(scaled.data)
 }
 
 

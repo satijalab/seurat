@@ -45,7 +45,7 @@ passed in it should be co-indexed with \code{`bin.size`}}
 \item{segmentation.type}{Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
 Defaults to "cell".}
 
-\item{compact}{Whether to store segmentations in \emph{only} the \code{sf.data} slot 
+\item{compact}{Whether to store segmentations in \emph{only} the \code{sf.data} slot
 in the corresponding Segmentation object (default TRUE) to save memory and processing time.
 If FALSE, segmentations are also stored in \code{\link[sp]{sp}} format in addition to the \code{sf.data} slot.}
 
