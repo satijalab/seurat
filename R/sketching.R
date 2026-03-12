@@ -591,7 +591,14 @@ LeverageScore.StdAssay <- function(
       )
     }, error = function(e) {
       # Rerun LeverageScore with zero-variance rows removed
-      nonzero_var <- which(apply(mat, 1, function(x) var(x) > 0))
+      row_vars <- if (inherits(x = mat, what = 'IterableMatrix')) {
+        BPCells::matrix_stats(matrix = mat, row_stats = 'variance')$row_stats['variance',]
+      } else if (inherits(x = mat, what = 'dgCMatrix')) {
+        RowVarSparse(mat = mat)
+      } else {
+        RowVar(x = mat)
+      }
+      nonzero_var <- which(row_vars > 0)
       zero_var_features <- setdiff(rownames(mat), rownames(mat)[nonzero_var])
 
       # Warn user if any zero-variance features encountered
