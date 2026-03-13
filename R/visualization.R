@@ -9720,7 +9720,7 @@ SingleSpatialPlot <- function(
     if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
       scale <- scale_fill_brewer(palette = cols, na.value = na.value)
     } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
-      colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+      colors <- DiscretePalette(length(unique(data[[col.by.clean]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
       data[[col.by.clean]] <- as.character(data[[col.by.clean]])
