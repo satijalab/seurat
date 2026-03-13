@@ -9720,12 +9720,33 @@ SingleSpatialPlot <- function(
     if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
       scale <- scale_fill_brewer(palette = cols, na.value = na.value)
     } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
-      colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+      colors <- DiscretePalette(length(unique(data[[col.by.clean]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
       data[[col.by.clean]] <- as.character(data[[col.by.clean]])
-      vals <- unique(as.character(data[[col.by.clean]]))
-      cols <- cols[names(cols) %in% vals]
+      
+      vals <- sort(unique(data[[col.by.clean]]))
+      # n_groups is number of discrete groups/clusters that need colours
+      n_groups <- length(vals)
+      # Check whether 'cols' can be treated as a manual mapping
+      has_valid_names <- !is.null(names(cols)) && !anyNA(names(cols)) && all(names(cols) != "")
+    
+      # cols must be a named vector 
+      # If cols is unnamed, then names(cols) is NULL
+      # Cols is then subsetted down to length 0 
+     if (has_valid_names) {
+        cols <- cols[vals]
+        if (anyNA(cols)) {
+          warning("Missing color mappings for ", paste(vals[is.na(cols)], collapse = ", "))
+        }
+      } else {
+        if (length(cols) != n_groups) {
+          warning("Number of colors does not match number of groups; adjusting.")
+        }
+        cols <- rep_len(cols, n_groups)
+        names(cols) <- vals
+      }
+      scale <- scale_fill_manual(values = cols, na.value = na.value)
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale
