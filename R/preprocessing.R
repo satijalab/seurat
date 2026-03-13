@@ -4289,7 +4289,10 @@ SCTransform.Seurat <- function(
                             ...)
   assay.data <- SCTAssay(assay.data, assay.orig = assay)
   
+  # Extract all SCT models stored in assay
   sct_models <- slot(object = assay.data, name = "SCTModel.list")
+  
+  # Update umi.assay field for every SCT model 
   for (i in seq_along(sct_models)) {
     slot(object = sct_models[[i]], name = "umi.assay") <- assay
   }
