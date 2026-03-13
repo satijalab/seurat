@@ -4160,6 +4160,9 @@ SCTransform.Assay <- function(
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
+    message(
+      "NOTE:A reference SCT model was provided, therefore counts are NOT corrected (Regardless of argument passed to do.correct.umi)"
+    )
   }
 
   umi <- GetAssayData(object = object, layer = 'counts')
