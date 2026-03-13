@@ -9734,21 +9734,19 @@ SingleSpatialPlot <- function(
       # cols must be a named vector 
       # If cols is unnamed, then names(cols) is NULL
       # Cols is then subsetted down to length 0 
-      if (has_valid_names) {
-        cols <- cols[names(cols) %in% vals]
-      } else {
-        if (length(cols) < n_groups) {
-          warning(
-                    "SpatialPlot: `cols` is being treated as a manual mapping, but it has no valid names. ",
-                    "Seurat will match colors to groups by name, so you should pass a named vector whose names ",
-                    "match the values of `", col.by, "`, for example: setNames(cols, sort(unique(data[[col.by]])))."
-          )
-          cols <- rep_len(cols, n_groups)
-        } else {
-          cols <- cols[seq_len(n_groups)]
+     if (has_valid_names) {
+        cols <- cols[vals]
+        if (anyNA(cols)) {
+          warning("Missing color mappings for ", paste(vals[is.na(cols)], collapse = ", "))
         }
+      } else {
+        if (length(cols) != n_groups) {
+          warning("Number of colors does not match number of groups; adjusting.")
+        }
+        cols <- rep_len(cols, n_groups)
         names(cols) <- vals
       }
+      scale <- scale_fill_manual(values = cols, na.value = na.value)
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale
