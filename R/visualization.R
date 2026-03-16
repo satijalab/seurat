@@ -8654,6 +8654,14 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
+  # IF both raster and order are TRUE, points are plotted with ggrastr::geom_point_rast to maintain 
+  # correct ordering of points
+  if (isTRUE(raster) && isTRUE(order)) {
+    # Check if ggrastr installed correctly and in namespace
+    if (isFALSE(x = requireNamespace('ggrastr', quietly = TRUE))){
+      stop("Please install ggrastr from CRAN to enable ordered rasterization.")
+    }
+  }
   if ((nrow(x = data) > 1e5) & is.null(x = raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
@@ -8760,16 +8768,30 @@ SingleDimPlot <- function(
 
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
-    plot + geom_scattermore(
-      mapping = aes(
-        x = .data[[dims[1]]],
-        y = .data[[dims[2]]],
-        !!!optional
-      ),
-      pointsize = pt.size,
-      alpha = alpha,
-      pixels = raster.dpi
-    )
+    # If order is FALSE, use faster geom_scattermore
+    # If order is TRUE, use slower geom_point_rast, which is needed for correct ordering of points
+    if (!isTRUE(order)){
+      plot + geom_scattermore(
+        mapping = aes(
+          x = .data[[dims[1]]],
+          y = .data[[dims[2]]],
+          !!!optional
+        ),
+        pointsize = pt.size,
+        alpha = alpha,
+        pixels = raster.dpi
+      )
+    } else {
+      plot + ggrastr::geom_point_rast(
+        mapping = aes(
+          x = .data[[dims[1]]],
+          y = .data[[dims[2]]],
+          !!!optional
+        ),
+        size = pt.size,
+        alpha = alpha
+      )  
+    }
   } else {
     plot + geom_point(
       mapping = aes(
