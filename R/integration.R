@@ -5335,6 +5335,7 @@ ProjectCellEmbeddings.default <- function(
   ...
 ){
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
+  ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
 if (normalization.method == 'SCT') {
   reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
   query <- FetchResiduals_reference(
@@ -5382,18 +5383,31 @@ if (normalization.method == 'SCT') {
     }
     feature.mean[is.na(x = feature.mean)] <- 1
   }
-  store.names <- dimnames(x = query)
   if (is.numeric(x = feature.mean)) {
-    query <- FastSparseRowScaleWithKnownStats(
-      mat = as.sparse(x = query),
-      mu = feature.mean,
-      sigma = feature.sd,
-      display_progress = FALSE
-    )
+    # Avoid densifying query: t(L) %*% clip((Q-mu)/sd, s) =
+    # t(L/sd) %*% Q - t(L/sd) %*% mu - t(L) %*% clip_excess, where clip_excess is sparse.
+    scale_max   <- 10
+    query       <- as.sparse(x = query)
+    L_prime     <- ref.feature.loadings / feature.sd
+    centering   <- drop(crossprod(L_prime, feature.mean))
+    nz_row      <- query@i + 1L
+    nz_col      <- rep(seq_len(ncol(query)), diff(query@p))
+    nz_val      <- query@x
+    scaled_nz   <- (nz_val - feature.mean[nz_row]) / feature.sd[nz_row]
+    excess      <- scaled_nz > scale_max
+    proj.pca    <- as.matrix(t(crossprod(x = L_prime, y = query) - centering))
+    if (any(excess)) {
+      clip_excess <- sparseMatrix(
+        i    = nz_row[excess],
+        j    = nz_col[excess],
+        x    = scaled_nz[excess] - scale_max,
+        dims = dim(query)
+      )
+      proj.pca <- proj.pca - as.matrix(t(crossprod(x = ref.feature.loadings, y = clip_excess)))
+    }
+    return(proj.pca)
   }
-  dimnames(x = query) <- store.names
 }
-  ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = query))
   return(proj.pca)
 }
