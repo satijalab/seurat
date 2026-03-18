@@ -8064,7 +8064,9 @@ MultiExIPlot <- function(
   ) +
     labs(x = x.label, y = y.label, fill = NULL) +
     theme_cowplot()
-  plot <- do.call(what = '+', args = list(plot, geom))
+  for (layer in geom) {
+    plot <- plot + layer
+  }
   if (flip) {
     plot <- plot +
       scale_y_continuous(
@@ -9011,7 +9013,9 @@ SingleExIPlot <- function(
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
     theme_cowplot() +
     theme(plot.title = element_text(hjust = 0.5))
-  plot <- do.call(what = '+', args = list(plot, geom))
+  for (layer in geom) {
+    plot <- plot + layer
+  }
   plot <- plot + if (log) {
     log.scale
   } else {
