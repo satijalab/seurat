@@ -3926,6 +3926,8 @@ ISpatialFeaturePlot <- function(
 #' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
 #'
 #' @importFrom grDevices png dev.off
+#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel runGadget
+#' @importFrom shiny uiOutput reactiveVal renderUI tags observeEvent stopApp
 #'
 #' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
@@ -4107,8 +4109,8 @@ InteractiveSpatialPlot <- function(
     gadgetTitleBar("Select a subset of cells"),
     miniContentPanel(
       plotly::plotlyOutput("plot", height = "100%"),
-      tags$div(
-        uiOutput("selection_count"),
+      shiny::tags$div(
+        shiny::uiOutput("selection_count"),
         style = "position:absolute; bottom:8px; right:10px; padding:4px 6px; background:rgba(255,255,255,0.8); font-size:12px; border-radius:3px; pointer-events:none;"
       )
     )
@@ -4117,7 +4119,7 @@ InteractiveSpatialPlot <- function(
   # Shiny gadget server logic for interactive plot and lasso selection
   server <- function(input, output, session) {
 
-    current_selection <- reactiveVal(coords$cell)
+    current_selection <- shiny::reactiveVal(coords$cell)
 
     # Render the interactive plotly scattergl plot
     output$plot <- plotly::renderPlotly({
@@ -4187,8 +4189,8 @@ InteractiveSpatialPlot <- function(
       }
     }, ignoreInit = TRUE)
 
-    output$selection_count <- renderUI({
-      tags$span(paste0("Selected cells: ", NROW(current_selection())))
+    output$selection_count <- shiny::renderUI({
+      shiny::tags$span(paste0("Selected cells: ", NROW(current_selection())))
     })
 
     # When user clicks "Done", retrieve lasso selection and close gadget
@@ -8064,7 +8066,9 @@ MultiExIPlot <- function(
   ) +
     labs(x = x.label, y = y.label, fill = NULL) +
     theme_cowplot()
-  plot <- do.call(what = '+', args = list(plot, geom))
+  for (layer in geom) {
+    plot <- plot + layer
+  }
   if (flip) {
     plot <- plot +
       scale_y_continuous(
@@ -9011,7 +9015,9 @@ SingleExIPlot <- function(
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
     theme_cowplot() +
     theme(plot.title = element_text(hjust = 0.5))
-  plot <- do.call(what = '+', args = list(plot, geom))
+  for (layer in geom) {
+    plot <- plot + layer
+  }
   plot <- plot + if (log) {
     log.scale
   } else {
