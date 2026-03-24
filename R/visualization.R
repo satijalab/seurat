@@ -7433,9 +7433,10 @@ GeomSpatial <- ggproto(
       data.frame(x = c(0, img.dim[[2]]), y = c(0, img.dim[[1]])),
       panel_scales
     )
+    # Construct viewport for the plot based on img dimensions and plot coords
     wdth <- z$x[2] - z$x[1]
     hgth <- z$y[2] - z$y[1]
-    vp <- viewport(
+    plot_viewport <- viewport(
       x = unit(x = z$x[1], units = "npc"),
       y = unit(x = z$y[1], units = "npc"),
       width = unit(x = wdth, units = "npc"),
@@ -7445,8 +7446,6 @@ GeomSpatial <- ggproto(
 
     spot.size <- Radius(object = image, scale = image.scale)
     coords <- coord$transform(data, panel_scales)
-
-    img <- editGrob(grob = GetImage(image), vp = vp)
     pts <- pointsGrob(
       x = coords$x,
       y = coords$y,
@@ -7457,9 +7456,12 @@ GeomSpatial <- ggproto(
         fill = alpha(colour = coords$fill, alpha = coords$alpha),
         lwd = coords$stroke)
     )
-    vp <- viewport()
-    gt <- gTree(vp = vp)
+    canvas_viewport <- viewport()
+    gt <- gTree(vp = canvas_viewport) # empty gTree to add the image and points to
+    # Only draw the image if it has a non-zero alpha value, otherwise just draw the points
     if (image.alpha > 0) {
+      img_grob <- GetImage(image)
+      img <- editGrob(grob = img_grob, vp = plot_viewport)
       if (image.alpha != 1) {
         img$raster = as.raster(
           x = matrix(
