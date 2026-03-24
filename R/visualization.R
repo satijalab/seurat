@@ -8660,7 +8660,7 @@ SingleDimPlot <- function(
 ) {
   # IF raster is TRUE and order is specified, points are plotted with ggrastr::geom_point_rast to maintain 
   # correct ordering of points
-  order_rast <- isTRUE(raster) && !is.null(order)
+  order_rast <- isTRUE(raster) && (!(isFALSE(x = order) || is.null(x = order)))
   if (order_rast) {
     # Check if ggrastr installed correctly and in namespace
     if (isFALSE(x = requireNamespace('ggrastr', quietly = TRUE))){
