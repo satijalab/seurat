@@ -9472,7 +9472,6 @@ SingleRasterMap <- function(
 #' @param geom Switch between normal spatial geom and geom to enable hover
 #' functionality
 #' @param na.value Color for spots with NA values
-#' @param plot_segmentations Define whether plot should plot centroids or segmentations
 #'
 #' @return A ggplot2 object
 #'
@@ -9501,8 +9500,7 @@ SingleSpatialPlot <- function(
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
   geom = c('spatial', 'interactive', 'poly', 'poly_starmap'),
-  na.value = 'grey50',
-  plot_segmentations = FALSE
+  na.value = 'grey50'
 ) {
   geom <- match.arg(arg = geom)
 
