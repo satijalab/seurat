@@ -2031,8 +2031,8 @@ as.data.frame.Matrix <- function(
 #'
 #' @return A ggplot2 scale object
 #'
-#' @importFrom RColorBrewer brewer.pal brewer.pal.info scale_fill_brewer scale_color_brewer
-#' @importFrom ggplot2 scale_fill_manual scale_color_manual
+#' @importFrom RColorBrewer brewer.pal brewer.pal.info
+#' @importFrom ggplot2 scale_fill_manual scale_color_manual scale_fill_brewer scale_color_brewer
 #' @keywords internal
 #'
 #' @noRd
