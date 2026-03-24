@@ -7444,13 +7444,20 @@ GeomSpatial <- ggproto(
       just = c("left", "top")
     )
 
-    spot.size <- Radius(object = image, scale = image.scale)
+    # Calculate spot size relative to the image size to be consistent across different images and scales
+    spot.radius <- Radius(object = image, scale = image.scale)
+    base.point.size <- if (length(spot.radius) == 1L) {
+      unit(spot.radius, "npc")
+    } else {
+      unit(rep_len(1, nrow(data)), "mm")
+    }
+    point.size <- base.point.size * data$point.size.factor
     coords <- coord$transform(data, panel_scales)
     pts <- pointsGrob(
       x = coords$x,
       y = coords$y,
       pch = data$shape,
-      size = unit(spot.size, "npc") * data$point.size.factor,
+      size = point.size,
       gp = gpar(
         col = alpha(colour = coords$colour, alpha = coords$alpha),
         fill = alpha(colour = coords$fill, alpha = coords$alpha),
