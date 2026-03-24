@@ -4520,22 +4520,20 @@ SpatialPlot <- function(
       )
     }
 
-    coordinates <- GetTissueCoordinates(
-      object = image.use,
-      scale = image.scale
-    )
-
-    if (is_visium_v2) {
-      # if the rownames do not match the cell ids, then dataframe is not created properly
-      rownames(coordinates) <- coordinates$cell
+    # When plotting segmentations, set the default boundary (temporarily) to segmentations
+    if (plot_segmentations == TRUE && inherits(image.use, "VisiumV2") && 
+        "segmentations" %in% names(image.use)) {
+      db <- DefaultBoundary(image.use)
+      on.exit(DefaultBoundary(image.use) <- db, add = TRUE) # Reset on exit
+      DefaultBoundary(image.use) <- "segmentations"
     }
-
+    coordinates <- GetTissueCoordinates(object = image.use, scale = image.scale)
     highlight.use <- if (facet.highlight) {
       cells.highlight[i]
     } else {
       cells.highlight
     }
-    for (j in 1:length(x = features)) {
+    for (j in seq_along(features)) {
       cols.unset <- is.factor(x = data[, features[j]]) && is.null(x = cols)
       if (cols.unset) {
         cols <- hue_pal()(n = length(x = levels(x = data[, features[j]])))
@@ -4547,16 +4545,16 @@ SpatialPlot <- function(
         max.feature.value <- max(data[, features[j]])
       }
 
-      # Check if object is of type Visium and contains segmentations (attached via Load10X_Spatial)
-      has_visium_segm_data <- (inherits(image.use, "VisiumV2") &&
-                      !is.null(image.use@boundaries$segmentations) &&
-                      "sf.data" %in% slotNames(image.use@boundaries$segmentations))
+      # Check if object is of type Visium and contains segmentations
+      has_visium_segm_data <- inherits(image.use, "VisiumV2") &&
+                              !is.null(image.use@boundaries$segmentations) &&
+                              "sf.data" %in% slotNames(image.use@boundaries$segmentations)
+
+      idx <- match(coordinates$cell, rownames(x = data))
+      plot.data <- cbind(coordinates, data[idx, features[j], drop = FALSE])
 
       plot <- SingleSpatialPlot(
-        data = cbind(
-          coordinates,
-          data[rownames(x = coordinates), features[j], drop = FALSE]
-        ),
+        data = plot.data,
         image = image.use,
         image.scale = image.scale,
         image.alpha = image.alpha,
@@ -4574,7 +4572,7 @@ SpatialPlot <- function(
         },
         geom = if (inherits(x = image.use, what = "STARmap")) {
           "poly_starmap"
-        } else if (has_visium_segm_data) {
+        } else if (has_visium_segm_data && plot_segmentations) {
           "poly"
         } else {
           "spatial"
@@ -4584,8 +4582,7 @@ SpatialPlot <- function(
         pt.size.factor = pt.size.factor,
         shape = shape,
         stroke = stroke,
-        crop = crop,
-        plot_segmentations = plot_segmentations
+        crop = crop
       )
       if (is.null(x = group.by)) {
         plot <- plot +
