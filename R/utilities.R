@@ -2022,6 +2022,55 @@ as.data.frame.Matrix <- function(
   return(boundaries)
 }
 
+#' Build a discrete color scale
+#' @param data Data frame containing the variable to color by
+#' @param col.by Column name in \code{data} to color by
+#' @param cols Vector of colors or a single color palette name
+#' @param na.value Color to use for NA values
+#' @param aesthetic "fill" or "color" (aesthetic to apply the scale to)
+#'
+#' @return A ggplot2 scale object
+#'
+#' @importFrom RColorBrewer brewer.pal brewer.pal.info scale_fill_brewer scale_color_brewer
+#' @importFrom ggplot2 scale_fill_manual scale_color_manual
+#' @keywords internal
+#'
+#' @noRd
+#'
+.BuildDiscreteScale <- function(data, cols, col.by, na.value, aesthetic = c("fill", "color")) {
+  aesthetic <- match.arg(arg = aesthetic)
+  manual_scale <- if (aesthetic == "fill") scale_fill_manual else scale_color_manual
+
+  if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
+    manual_scale <- if (aesthetic == "fill") scale_fill_brewer else scale_color_brewer
+  } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
+    palette <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+  } else {
+    vals <- sort(unique(data[[col.by]]))
+    # n_groups is number of discrete groups/clusters that need colours
+    n_groups <- length(vals)
+
+    # Check whether 'cols' can be treated as a manual mapping
+    has_valid_names <- !is.null(names(cols)) && !anyNA(names(cols)) && all(names(cols) != "")
+
+    # cols must be a named vector to be treated as an explicit mapping from group->color
+    # otherwise assign to groups in order
+    if (has_valid_names) {
+      palette <- cols[vals]
+      if (anyNA(cols)) {
+        warning("Missing color mappings for ", paste(vals[is.na(cols)], collapse = ", "))
+      }
+    } else {
+      if (length(cols) != n_groups) {
+        warning("Number of colors does not match number of groups; adjusting.")
+      }
+      palette <- rep_len(cols, n_groups)
+      names(palette) <- vals
+    }
+  }
+  return(manual_scale(values = palette, na.value = na.value))
+}
+
 # Generate chunk points
 #
 # @param dsize How big is the data being chunked
