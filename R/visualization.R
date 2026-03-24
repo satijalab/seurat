@@ -9692,43 +9692,19 @@ SingleSpatialPlot <- function(
     },
     stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
   )
+  scale.aesthetic <- if (geom == "interactive") "color" else "fill"
   if (!is.null(x = cells.highlight)) {
-    plot <- plot + scale_fill_manual(values = cols.highlight)
+    plot <- plot + if (scale.aesthetic == "fill") {
+      scale_fill_manual(values = cols.highlight)
+    } else {
+      scale_color_manual(values = cols.highlight)
+    }
   }
   if (!is.null(x = cols) && is.null(x = cells.highlight)) {
-    if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
-      scale <- scale_fill_brewer(palette = cols, na.value = na.value)
-    } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
-      colors <- DiscretePalette(length(unique(data[[col.by.clean]])), palette = cols)
-      scale <- scale_fill_manual(values = colors, na.value = na.value)
-    } else {
+    if (length(x = col.by.clean) == 1L && nzchar(x = col.by.clean)) {
       data[[col.by.clean]] <- as.character(data[[col.by.clean]])
-      
-      vals <- sort(unique(data[[col.by.clean]]))
-      # n_groups is number of discrete groups/clusters that need colours
-      n_groups <- length(vals)
-      # Check whether 'cols' can be treated as a manual mapping
-      has_valid_names <- !is.null(names(cols)) && !anyNA(names(cols)) && all(names(cols) != "")
-    
-      # cols must be a named vector 
-      # If cols is unnamed, then names(cols) is NULL
-      # Cols is then subsetted down to length 0 
-     if (has_valid_names) {
-        cols <- cols[vals]
-        if (anyNA(cols)) {
-          warning("Missing color mappings for ", paste(vals[is.na(cols)], collapse = ", "))
-        }
-      } else {
-        if (length(cols) != n_groups) {
-          warning("Number of colors does not match number of groups; adjusting.")
-        }
-        cols <- rep_len(cols, n_groups)
-        names(cols) <- vals
-      }
-      scale <- scale_fill_manual(values = cols, na.value = na.value)
-      scale <- scale_fill_manual(values = cols, na.value = na.value)
+      plot <- plot + .BuildDiscreteScale(data = data, cols = cols, col.by = col.by.clean, na.value = na.value, aesthetic = scale.aesthetic)
     }
-    plot <- plot + scale
   }
   plot <- plot + NoAxes() + theme(panel.background = element_blank())
   return(plot)
