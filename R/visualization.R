@@ -9503,6 +9503,64 @@ SingleSpatialPlot <- function(
   na.value = 'grey50'
 ) {
   geom <- match.arg(arg = geom)
+  image_dim <- dim(image)
+  image.height <- image_dim[1]
+  image.width <- image_dim[2]
+  ggplot_version_4 <- packageVersion("ggplot2") >= "4.0.0"
+
+  # Helper to set coord limits based on image dimensions
+  coord_limits <- function() {
+    xlim <- if (!crop) c(0, image.width) else NULL
+    ylim <- NULL
+    if (!crop) {
+      if (!ggplot_version_4) {
+        message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
+        ylim <- c(image.height, 0)
+      } else {
+        ylim <- c(0, image.height)
+      }
+    }
+    list(x = xlim, y = ylim)
+  }
+
+  # Helper to create custom annotation layer for the background image 
+  build_image_annotation <- function() {
+    if (image.alpha == 0) {
+      return(NULL)
+    }
+    image_to_plot <- GetImage(object = image, mode = "raw")
+    if (image.alpha < 1) {
+      rgba_image <- array(data = NA, dim = c(image_dim[1:2], 4))
+      rgba_image[, , 1:3] <- image_to_plot
+      rgba_image[, , 4] <- image.alpha
+      image_to_plot <- rgba_image
+    }
+    image.grob <- rasterGrob(
+      image_to_plot,
+      width = unit(1, "npc"),
+      height = unit(1, "npc"),
+      interpolate = FALSE
+    )
+    if (!ggplot_version_4) {
+      message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
+      return(annotation_custom(
+        grob = image.grob,
+        xmin = 0,
+        xmax = image.width,
+        ymin = -image.height,
+        ymax = 0
+      ))
+    }
+    return(annotation_custom(
+      grob = image.grob,
+      xmin = 0,
+      xmax = image.width,
+      ymin = 0,
+      ymax = image.height
+    ))
+  }
+
+  limits <- coord_limits()
 
   if (!is.null(col.by) && !col.by %in% colnames(data)) {
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
@@ -9523,25 +9581,28 @@ SingleSpatialPlot <- function(
     levels(x = data$ident) <- c(order, setdiff(x = levels(x = data$ident), y = order))
     data <- data[order(data$ident), ]
   }
-  col.by.plot <- col.by %iff% data_sym(col.by) #had to create second variable to safely use tidyeval in plotting but not effect subsetting in gsub call later in function
-  col.by <- col.by %iff% paste0("`", col.by, "`")
 
-  # Store unquoted col.by name for easier access
-  col.by.clean <- gsub("`", "", col.by)
+  col.by.plot <- col.by %iff% data_sym(col.by) # for use in aes() if not NULL
+  col.by <- col.by %iff% paste0("`", col.by, "`") # quote + wrap in backticks for safe direct use within [[ ]]
+  col.by.clean <- gsub("`", "", col.by) # quote
 
   alpha.by <- alpha.by %iff% data_sym(alpha.by)
 
+  xname <- colnames(x = data)[1]
+  yname <- colnames(x = data)[2]
+
   plot <- ggplot(data = data, aes(
-    x = .data[[colnames(x = data)[1]]],
-    y = .data[[colnames(x = data)[2]]],
+    x = .data[[xname]],
+    y = .data[[yname]],
     fill = !!col.by.plot,
     alpha = !!alpha.by
   ))
+
   plot <- switch(
     EXPR = geom,
     'spatial' = {
-      if (is.null(x = pt.alpha)) {
-        plot <- plot + geom_spatial(
+      geom_spatial_layer <- if (is.null(pt.alpha)) {
+        geom_spatial(
           point.size.factor = pt.size.factor,
           data = data,
           image = image,
@@ -9549,10 +9610,10 @@ SingleSpatialPlot <- function(
           image.scale = image.scale,
           crop = crop,
           shape = shape,
-          stroke = stroke,
+          stroke = stroke
         )
       } else {
-        plot <- plot + geom_spatial(
+        geom_spatial(
           point.size.factor = pt.size.factor,
           data = data,
           image = image,
@@ -9564,24 +9625,10 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
-      
-      xlim <- NULL
-      ylim <- NULL
-
-      if (.hasSlot(object = image, name = "image") && !crop) {
-        image.height <- dim(image@image)[1]
-        image.width <- dim(image@image)[2]
-
-        xlim <- c(0, image.width)
-        if (packageVersion("ggplot2") < "4.0.0") {
-          message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
-          ylim <- c(image.height, 0)
-        } else {
-          ylim <- c(0, image.height)
-        }
-      }
-      
-      plot + coord_fixed(xlim = xlim, ylim = ylim) + scale_y_reverse()
+      plot + geom_spatial_layer +
+        coord_fixed(xlim = limits$x, ylim = limits$y) + 
+        scale_y_reverse() +
+        theme_void()
     },
     'interactive' = {
       plot + geom_spatial_interactive(
@@ -9603,128 +9650,28 @@ SingleSpatialPlot <- function(
         coord_cartesian(expand = FALSE)
     },
     'poly' = {
-      image_to_plot <- image@image
-      image.height <- dim(image_to_plot)[1]
-      image.width <- dim(image_to_plot)[2]
-
-      # Apply image transparency
-      if (image.alpha < 1) {
-          # Convert image to RGBA by adding alpha channel
-          rgba_image <- array(data = NA, dim = c(dim(image_to_plot)[1:2], 4))
-          rgba_image[,,1:3] <- image_to_plot
-          rgba_image[,,4] <- image.alpha
-          image_to_plot <- rgba_image
-      }
-      
-      # Validate image
-      image.grob <- rasterGrob(
-        image_to_plot,
-        width = unit(1, "npc"),
-        height = unit(1, "npc"),
-        interpolate = FALSE
-      )
-
-      # Retrieve scale factor from specified image scale ("lowres"/"hires")
-      scale.factor <- ScaleFactors(image)[[image.scale]]
-      if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
-      
-      
-      # Extract and scale segmentation data
-      segm_data <- image@boundaries$segmentations@sf.data
-      segm_data$x <- segm_data$x * scale.factor
-      segm_data$y <- segm_data$y * scale.factor
-
-      # Merge segmentation data with expression data and centroid coordinates
-      plot_data <- merge(segm_data,
-                        data,
-                        by = "cell",
-                        suffixes = c("", ".centroid"),
-                        sort = FALSE)
-      xlim <- if (!crop) c(0, image.width) else NULL
-      ylim <- NULL
-      if (packageVersion("ggplot2") < "4.0.0") {
-        message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
-        image_annotation_layer <- annotation_custom(
-                              grob = image.grob,
-                              xmin = 0,
-                              xmax = image.width,
-                              ymin = -image.height,
-                              ymax = 0)
-        if (!crop) {
-          message("Changing coordinate limits to work with ggplot2 < 4.0.0.")
-          ylim <- c(image.height, 0)
-        }
+      geom_poly_layer <- if (is.null(pt.alpha)) {
+        geom_polygon(
+          data = data,
+          aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, alpha = !!alpha.by, group = .data[['cell']]),
+          color = "black",
+          linewidth = stroke
+        )
       } else {
-        image_annotation_layer <- annotation_custom(
-                              grob = image.grob,
-                              xmin = 0,
-                              xmax = image.width,
-                              ymin = 0,
-                              ymax = image.height)
-        ylim <- if (!crop) c(0, image.height) else NULL
+        geom_polygon(
+          data = data,
+          aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, group = .data[['cell']]),
+          alpha = pt.alpha,
+          color = "black",
+          linewidth = stroke
+        )
       }
-
-      # Create appropriate geom layer based on plot_segmentations
-      if (!plot_segmentations) {
-        #If plot_segmentations FALSE, then plot just the polygon centroids 
-        if (is.null(pt.alpha)) {
-          #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
-          #Use alpha.by instead of pt.alpha
-          geom_point_layer <- geom_point(
-            data = plot_data,
-            shape = 21, 
-            stroke = stroke,
-            size = pt.size.factor,
-            aes(x = .data[['x.centroid']], y = .data[['y.centroid']], fill = !!col.by.plot, alpha = !!alpha.by)
-          )
-        } else {
-          geom_point_layer <- geom_point(
-            data = plot_data,
-            shape = 21,
-            stroke = stroke,
-            size = pt.size.factor,
-            aes(x = .data[['x.centroid']], y = .data[['y.centroid']], fill = !!col.by.plot),
-            alpha = pt.alpha
-          )
-        }
-        ggplot() +
-            image_annotation_layer +
-            geom_point_layer +
-            scale_y_reverse() + 
-            xlab("x") +
-            ylab("y") +
-            coord_fixed(xlim = xlim, ylim = ylim) +
-            theme_void()
-      } else {
-        
-        if (is.null(pt.alpha)) {
-          # If pt.alpha is not provided, then alpha is derived from group/cluster data
-          # Use alpha.by instead of pt.alpha
-          geom_polygon_layer <- geom_polygon(
-            data = plot_data,
-            aes(x = .data[['x']], y = .data[['y']], fill = !!col.by.plot, alpha = !!alpha.by, group = .data[['cell']]),
-            color = "black",
-            linewidth = stroke
-          )
-        } else {
-          # If pt.alpha is indeed provided, then use that to define alpha
-          geom_polygon_layer <- geom_polygon(
-            data = plot_data,
-            aes(x = .data[['x']], y = .data[['y']], fill = !!col.by.plot, group = .data[['cell']]),
-            alpha = pt.alpha,
-            color = "black",
-            linewidth = stroke
-          )
-        }
-        ggplot() +
-            image_annotation_layer +
-            geom_polygon_layer +
-            scale_y_reverse() + 
-            xlab("x") +
-            ylab("y") +
-            coord_fixed(xlim = xlim, ylim = ylim) +
-            theme_void()
-      }
+      ggplot() +
+        build_image_annotation() +
+        geom_poly_layer +
+        scale_y_reverse() +
+        coord_fixed(xlim = limits$x, ylim = limits$y) +
+        theme_void()
     },
     'poly_starmap' = {
       data$cell <- rownames(x = data)
