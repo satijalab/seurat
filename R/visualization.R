@@ -8658,9 +8658,10 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
-  # IF both raster and order are TRUE, points are plotted with ggrastr::geom_point_rast to maintain 
+  # IF raster is TRUE and order is specified, points are plotted with ggrastr::geom_point_rast to maintain 
   # correct ordering of points
-  if (isTRUE(raster) && isTRUE(order)) {
+  order_rast <- isTRUE(raster) && !is.null(order)
+  if (order_rast) {
     # Check if ggrastr installed correctly and in namespace
     if (isFALSE(x = requireNamespace('ggrastr', quietly = TRUE))){
       stop("Please install ggrastr from CRAN to enable ordered rasterization.")
@@ -8772,9 +8773,9 @@ SingleDimPlot <- function(
 
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
-    # If order is FALSE, use faster geom_scattermore
-    # If order is TRUE, use slower geom_point_rast, which is needed for correct ordering of points
-    if (!isTRUE(order)){
+    # Use geom_point_rast when generating rasterized plots with specified order
+    # (although slower, orders points correctly whereas geom_scattermore does not)
+    if (!order_rast) {
       plot + geom_scattermore(
         mapping = aes(
           x = .data[[dims[1]]],
@@ -8786,6 +8787,9 @@ SingleDimPlot <- function(
         pixels = raster.dpi
       )
     } else {
+      rlang::warn(message = "Seurat uses ggrastr::geom_point_rast to maintain point order with rasterization.", 
+                  .frequency = "once",
+                  .frequency_id = "Seurat-geom_point_rast")
       plot + ggrastr::geom_point_rast(
         mapping = aes(
           x = .data[[dims[1]]],
