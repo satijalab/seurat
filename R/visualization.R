@@ -8786,10 +8786,10 @@ SingleDimPlot <- function(
         pixels = raster.dpi
       )
     } else {
-      rlang::warn(message = "Seurat uses ggrastr::geom_point_rast to maintain point order with rasterization.", 
+      rlang::warn(message = "Seurat uses ggrastr::rasterise to maintain point order with rasterization.", 
                   .frequency = "once",
-                  .frequency_id = "Seurat-geom_point_rast")
-      plot + ggrastr::geom_point_rast(
+                  .frequency_id = "Seurat-ggrastr-rasterise")
+      plot + ggrastr::rasterise(geom_point(
         mapping = aes(
           x = .data[[dims[1]]],
           y = .data[[dims[2]]],
@@ -8797,7 +8797,7 @@ SingleDimPlot <- function(
         ),
         size = pt.size,
         alpha = alpha
-      )  
+      ))
     }
   } else {
     plot + geom_point(
