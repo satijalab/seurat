@@ -1075,6 +1075,7 @@ DimPlot <- function(
 #'     scales that are not comparable between plots
 #' }
 #' @param slot Which slot to pull expression data from?
+#' @param assay Primary assay to pull feature data from
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
@@ -1132,6 +1133,7 @@ FeaturePlot <- function(
   keep.scale = "feature",
   shape.by = NULL,
   slot = 'data',
+  assay = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -1232,7 +1234,8 @@ FeaturePlot <- function(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
-    layer = slot
+    layer = slot,
+    assay = assay
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
@@ -3957,11 +3960,11 @@ InteractiveSpatialPlot <- function(
 ) {
   # Check for required packages, stop with clear message if missing
   required_pkgs <- c("plotly", "magrittr", "base64enc", "shiny")
-  
+
   missing_pkgs <- required_pkgs[
     !vapply(required_pkgs, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1))
   ]
-  
+
   if (length(missing_pkgs) > 0) {
     stop(
       "InteractiveSpatialPlot() functionality requires these packages to be installed: ",
@@ -4524,7 +4527,7 @@ SpatialPlot <- function(
 
     is_visium_v2 <- inherits(image.use, "VisiumV2")
     old_axis_orientation <- (!.hasSlot(image.use, "coords_x_orientation")) || (.hasSlot(image.use, "coords_x_orientation") && (slot(image.use, "coords_x_orientation") != 'horizontal'))
-    
+
     if (is_visium_v2 && old_axis_orientation) {
       stop(
         "Please run `UpdateSeuratObject` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
@@ -9522,8 +9525,8 @@ SingleRasterMap <- function(
 #' @return A ggplot2 object
 #'
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot coord_fixed geom_point 
-#' xlim ylim coord_cartesian labs theme_void theme 
+#' @importFrom ggplot2 ggplot coord_fixed geom_point
+#' xlim ylim coord_cartesian labs theme_void theme
 #' scale_fill_brewer scale_y_reverse annotation_custom
 #'
 #' @keywords internal
