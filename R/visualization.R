@@ -1066,6 +1066,7 @@ DimPlot <- function(
 #'     scales that are not comparable between plots
 #' }
 #' @param slot Which slot to pull expression data from?
+#' @param assay Primary assay to pull feature data from
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
@@ -1123,6 +1124,7 @@ FeaturePlot <- function(
   keep.scale = "feature",
   shape.by = NULL,
   slot = 'data',
+  assay = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -1223,7 +1225,8 @@ FeaturePlot <- function(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
-    layer = slot
+    layer = slot,
+    assay = assay
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
@@ -3946,11 +3949,11 @@ InteractiveSpatialPlot <- function(
 ) {
   # Check for required packages, stop with clear message if missing
   required_pkgs <- c("plotly", "magrittr", "base64enc", "shiny")
-  
+
   missing_pkgs <- required_pkgs[
     !vapply(required_pkgs, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1))
   ]
-  
+
   if (length(missing_pkgs) > 0) {
     stop(
       "InteractiveSpatialPlot() functionality requires these packages to be installed: ",
@@ -4510,7 +4513,7 @@ SpatialPlot <- function(
 
     is_visium_v2 <- inherits(image.use, "VisiumV2")
     old_axis_orientation <- (!.hasSlot(image.use, "coords_x_orientation")) || (.hasSlot(image.use, "coords_x_orientation") && (slot(image.use, "coords_x_orientation") != 'horizontal'))
-    
+
     if (is_visium_v2 && old_axis_orientation) {
       stop(
         "Please run `UpdateSeuratObject` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
@@ -8654,7 +8657,7 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
-  # IF both raster and order are TRUE, points are plotted with ggrastr::geom_point_rast to maintain 
+  # IF both raster and order are TRUE, points are plotted with ggrastr::geom_point_rast to maintain
   # correct ordering of points
   if (isTRUE(raster) && isTRUE(order)) {
     # Check if ggrastr installed correctly and in namespace
@@ -8790,7 +8793,7 @@ SingleDimPlot <- function(
         ),
         size = pt.size,
         alpha = alpha
-      )  
+      )
     }
   } else {
     plot + geom_point(
@@ -9465,8 +9468,8 @@ SingleRasterMap <- function(
 #' @return A ggplot2 object
 #'
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot coord_fixed geom_point 
-#' xlim ylim coord_cartesian labs theme_void theme 
+#' @importFrom ggplot2 ggplot coord_fixed geom_point
+#' xlim ylim coord_cartesian labs theme_void theme
 #' scale_fill_brewer scale_y_reverse annotation_custom
 #'
 #' @keywords internal
@@ -9554,7 +9557,7 @@ SingleSpatialPlot <- function(
           alpha = pt.alpha
         )
       }
-      
+
       xlim <- NULL
       ylim <- NULL
 
@@ -9570,7 +9573,7 @@ SingleSpatialPlot <- function(
           ylim <- c(0, image.height)
         }
       }
-      
+
       plot + coord_fixed(xlim = xlim, ylim = ylim) + scale_y_reverse()
     },
     'interactive' = {
@@ -9605,7 +9608,7 @@ SingleSpatialPlot <- function(
           rgba_image[,,4] <- image.alpha
           image_to_plot <- rgba_image
       }
-      
+
       # Validate image
       image.grob <- rasterGrob(
         image_to_plot,
@@ -9617,8 +9620,8 @@ SingleSpatialPlot <- function(
       # Retrieve scale factor from specified image scale ("lowres"/"hires")
       scale.factor <- ScaleFactors(image)[[image.scale]]
       if (is.null(scale.factor)) stop("Scale factor for '", image.scale, "' not found")
-      
-      
+
+
       # Extract and scale segmentation data
       segm_data <- image@boundaries$segmentations@sf.data
       segm_data$x <- segm_data$x * scale.factor
@@ -9656,13 +9659,13 @@ SingleSpatialPlot <- function(
 
       # Create appropriate geom layer based on plot_segmentations
       if (!plot_segmentations) {
-        #If plot_segmentations FALSE, then plot just the polygon centroids 
+        #If plot_segmentations FALSE, then plot just the polygon centroids
         if (is.null(pt.alpha)) {
           #If pt.alpha not provided, then alpha parameter is derived from group/cluster data
           #Use alpha.by instead of pt.alpha
           geom_point_layer <- geom_point(
             data = plot_data,
-            shape = 21, 
+            shape = 21,
             stroke = stroke,
             size = pt.size.factor,
             aes(x = .data[['x.centroid']], y = .data[['y.centroid']], fill = !!col.by.plot, alpha = !!alpha.by)
@@ -9680,13 +9683,13 @@ SingleSpatialPlot <- function(
         ggplot() +
             image_annotation_layer +
             geom_point_layer +
-            scale_y_reverse() + 
+            scale_y_reverse() +
             xlab("x") +
             ylab("y") +
             coord_fixed(xlim = xlim, ylim = ylim) +
             theme_void()
       } else {
-        
+
         if (is.null(pt.alpha)) {
           # If pt.alpha is not provided, then alpha is derived from group/cluster data
           # Use alpha.by instead of pt.alpha
@@ -9709,7 +9712,7 @@ SingleSpatialPlot <- function(
         ggplot() +
             image_annotation_layer +
             geom_polygon_layer +
-            scale_y_reverse() + 
+            scale_y_reverse() +
             xlab("x") +
             ylab("y") +
             coord_fixed(xlim = xlim, ylim = ylim) +
@@ -9746,16 +9749,16 @@ SingleSpatialPlot <- function(
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
       data[[col.by.clean]] <- as.character(data[[col.by.clean]])
-      
+
       vals <- sort(unique(data[[col.by.clean]]))
       # n_groups is number of discrete groups/clusters that need colours
       n_groups <- length(vals)
       # Check whether 'cols' can be treated as a manual mapping
       has_valid_names <- !is.null(names(cols)) && !anyNA(names(cols)) && all(names(cols) != "")
-    
-      # cols must be a named vector 
+
+      # cols must be a named vector
       # If cols is unnamed, then names(cols) is NULL
-      # Cols is then subsetted down to length 0 
+      # Cols is then subsetted down to length 0
      if (has_valid_names) {
         cols <- cols[vals]
         if (anyNA(cols)) {
