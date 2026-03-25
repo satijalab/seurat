@@ -2043,6 +2043,7 @@ as.data.frame.Matrix <- function(
 
   if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
     manual_scale <- if (aesthetic == "fill") scale_fill_brewer else scale_color_brewer
+    return(manual_scale(palette = cols, na.value = na.value))
   } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
     palette <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
   } else {
