@@ -4550,6 +4550,11 @@ SpatialPlot <- function(
                               !is.null(image.use@boundaries$segmentations) &&
                               "sf.data" %in% slotNames(image.use@boundaries$segmentations)
 
+      # GetTissueCoordinates will not always return a "cell" column (e.g., Visium V1)
+      if (!("cell" %in% colnames(x = coordinates))) {
+        coordinates$cell <- rownames(x = coordinates)
+      }
+
       idx <- match(coordinates$cell, rownames(x = data))
       plot.data <- cbind(coordinates, data[idx, features[j], drop = FALSE])
 
