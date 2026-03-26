@@ -4617,8 +4617,6 @@ SpatialPlot <- function(
           ),
           geom = if (inherits(x = image.use, what = "STARmap") || (has_visium_segm_data && plot_segmentations)) {
             'GeomPolygon'
-          } else if (has_visium_segm_data && !plot_segmentations) {
-            'GeomPoint'
           } else {
             'GeomSpatial'
           },
