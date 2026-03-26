@@ -19,61 +19,62 @@ navbar:
       href: articles/get_started_v5_new.html
     - text: "Vignettes"
       menu:
-        - text: Introductory Vignettes
-        - text: "PBMC 3K guided tutorial"
-          href: articles/pbmc3k_tutorial.html
-        - text: "Data visualization vignette"
-          href: articles/visualization_vignette.html
-        - text: "SCTransform, v2 regularization"
-          href: articles/sctransform_vignette.html
-        - text: "Using Seurat with multi-modal data"
-          href: articles/multimodal_vignette.html
-        - text: "Seurat v5 Command Cheat Sheet"
-          href: articles/essential_commands.html
-        - text: -------
-        - text: Data Integration
-        - text: "Introduction to scRNA-seq integration"
-          href: articles/integration_introduction.html
-        - text: "Integrative analysis in Seurat v5"
-          href: articles/seurat5_integration.html
-        - text: "Mapping and annotating query datasets"
-          href: articles/integration_mapping.html
-        - text: -------
-        - text: Multi-assay data
-        - text: "Dictionary Learning for cross-modality integration"
-          href: articles/seurat5_integration_bridge.html
-        - text: "Weighted Nearest Neighbor Analysis"
-          href: articles/weighted_nearest_neighbor_analysis.html
-        - text: "Integrating scRNA-seq and scATAC-seq data"
-          href: articles/seurat5_atacseq_integration_vignette.html
-        - text: "Multimodal reference mapping"
-          href: articles/multimodal_reference_mapping.html
-        - text: "Mixscape Vignette"
-          href: articles/mixscape_vignette.html
-        - text: -------
-        - text: Massively scalable analysis
-        - text: "Sketch-based analysis in Seurat v5"
-          href: articles/seurat5_sketch_analysis.html
-        - text: "Sketch integration using a 1 million cell dataset from Parse Biosciences"
-          href: articles/ParseBio_sketch_integration.html
-        - text: "Map COVID PBMC datasets to a healthy reference"
-          href: articles/COVID_SCTMapping.html
-        - text: "BPCells Interaction"
-          href: articles/seurat5_bpcells_interaction_vignette.html
-        - text: -------
-        - text: Spatial analysis
-        - text: "Analysis of spatial datasets (Imaging-based)"
-          href: articles/seurat5_spatial_vignette_2.html
-        - text: "Analysis of spatial datasets (Sequencing-based)"
-          href: articles/spatial_vignette.html
-        - text: -------
-        - text: Other
-        - text: "Cell-cycle scoring and regression"
-          href: articles/cell_cycle_vignette.html
-        - text: "Differential expression testing"
-          href: articles/de_vignette.html
-        - text: "Demultiplexing with hashtag oligos (HTOs)"
-          href: articles/hashing_vignette.html
+        - text: "Introductory Vignettes"
+          menu:
+            - text: "PBMC 3K guided tutorial"
+              href: articles/pbmc3k_tutorial.html
+            - text: "Data visualization vignette"
+              href: articles/visualization_vignette.html
+            - text: "SCTransform, v2 regularization"
+              href: articles/sctransform_vignette.html
+            - text: "Using Seurat with multi-modal data"
+              href: articles/multimodal_vignette.html
+            - text: "Seurat v5 Command Cheat Sheet"
+              href: articles/essential_commands.html
+        - text: "Data Integration"
+          menu:
+            - text: "Introduction to scRNA-seq integration"
+              href: articles/integration_introduction.html
+            - text: "Integrative analysis in Seurat v5"
+              href: articles/seurat5_integration.html
+            - text: "Mapping and annotating query datasets"
+              href: articles/integration_mapping.html
+        - text: "Multi-assay data"
+          menu:
+            - text: "Dictionary Learning for cross-modality integration"
+              href: articles/seurat5_integration_bridge.html
+            - text: "Weighted Nearest Neighbor Analysis"
+              href: articles/weighted_nearest_neighbor_analysis.html
+            - text: "Integrating scRNA-seq and scATAC-seq data"
+              href: articles/seurat5_atacseq_integration_vignette.html
+            - text: "Multimodal reference mapping"
+              href: articles/multimodal_reference_mapping.html
+            - text: "Mixscape Vignette"
+              href: articles/mixscape_vignette.html
+        - text: "Massively scalable analysis"
+          menu:
+            - text: "Sketch-based analysis in Seurat v5"
+              href: articles/seurat5_sketch_analysis.html
+            - text: "Sketch integration using a 1 million cell dataset from Parse Biosciences"
+              href: articles/ParseBio_sketch_integration.html
+            - text: "Map COVID PBMC datasets to a healthy reference"
+              href: articles/COVID_SCTMapping.html
+            - text: "BPCells Interaction"
+              href: articles/seurat5_bpcells_interaction_vignette.html
+        - text: "Spatial analysis"
+          menu:
+            - text: "Analysis of spatial datasets (Imaging-based)"
+              href: articles/seurat5_spatial_vignette_2.html
+            - text: "Analysis of spatial datasets (Sequencing-based)"
+              href: articles/spatial_vignette.html
+        - text: "Other"
+          menu:
+            - text: "Cell-cycle scoring and regression"
+              href: articles/cell_cycle_vignette.html
+            - text: "Differential expression testing"
+              href: articles/de_vignette.html
+            - text: "Demultiplexing with hashtag oligos (HTOs)"
+              href: articles/hashing_vignette.html
     - text: Extensions
       href: articles/extensions.html
     - text: FAQ
