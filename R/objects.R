@@ -1196,6 +1196,7 @@ as.Seurat.SingleCellExperiment <- function(
   } else {
     assayn <- orig.exp
   }
+  object <- NULL
   for (assay in assayn) {
     if (assay != orig.exp) {
       x <- SingleCellExperiment::swapAltExp(x = x, name = assay, saved = NULL)
@@ -1239,7 +1240,7 @@ as.Seurat.SingleCellExperiment <- function(
     names(x = assays) <- assay
     Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
     # Create the Seurat object
-    if (!exists(x = "object")) {
+    if (is.null(x = object)) {
       object <- CreateSeuratObject(
         counts = assays[[assay]],
         Class = 'Seurat',

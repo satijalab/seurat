@@ -3933,6 +3933,8 @@ ISpatialFeaturePlot <- function(
 #' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
 #'
 #' @importFrom grDevices png dev.off
+#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel runGadget
+#' @importFrom shiny uiOutput reactiveVal renderUI tags observeEvent stopApp
 #'
 #' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
@@ -4114,8 +4116,8 @@ InteractiveSpatialPlot <- function(
     gadgetTitleBar("Select a subset of cells"),
     miniContentPanel(
       plotly::plotlyOutput("plot", height = "100%"),
-      tags$div(
-        uiOutput("selection_count"),
+      shiny::tags$div(
+        shiny::uiOutput("selection_count"),
         style = "position:absolute; bottom:8px; right:10px; padding:4px 6px; background:rgba(255,255,255,0.8); font-size:12px; border-radius:3px; pointer-events:none;"
       )
     )
@@ -4124,7 +4126,7 @@ InteractiveSpatialPlot <- function(
   # Shiny gadget server logic for interactive plot and lasso selection
   server <- function(input, output, session) {
 
-    current_selection <- reactiveVal(coords$cell)
+    current_selection <- shiny::reactiveVal(coords$cell)
 
     # Render the interactive plotly scattergl plot
     output$plot <- plotly::renderPlotly({
@@ -4194,8 +4196,8 @@ InteractiveSpatialPlot <- function(
       }
     }, ignoreInit = TRUE)
 
-    output$selection_count <- renderUI({
-      tags$span(paste0("Selected cells: ", NROW(current_selection())))
+    output$selection_count <- shiny::renderUI({
+      shiny::tags$span(paste0("Selected cells: ", NROW(current_selection())))
     })
 
     # When user clicks "Done", retrieve lasso selection and close gadget
@@ -8071,7 +8073,9 @@ MultiExIPlot <- function(
   ) +
     labs(x = x.label, y = y.label, fill = NULL) +
     theme_cowplot()
-  plot <- do.call(what = '+', args = list(plot, geom))
+  for (layer in geom) {
+    plot <- plot + layer
+  }
   if (flip) {
     plot <- plot +
       scale_y_continuous(
@@ -8666,8 +8670,16 @@ SingleDimPlot <- function(
             "\nTo disable this behavior set `raster=FALSE`")
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
+  # IF raster is TRUE and order is specified, points are plotted with ggrastr::geom_point_rast to maintain 
+  # correct ordering of points
+  order_rast <- isTRUE(raster) && (!(isFALSE(x = order) || is.null(x = order)))
+  if (order_rast) {
+    # Check if ggrastr installed correctly and in namespace
+    if (isFALSE(x = requireNamespace('ggrastr', quietly = TRUE))){
+      stop("Please install ggrastr from CRAN to enable ordered rasterization.")
+    }
+  }
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-
   if (is.null(x = stroke.size)) {
     stroke.size <- 0.600075815011372
   }
@@ -8767,16 +8779,33 @@ SingleDimPlot <- function(
 
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
-    plot + geom_scattermore(
-      mapping = aes(
-        x = .data[[dims[1]]],
-        y = .data[[dims[2]]],
-        !!!optional
-      ),
-      pointsize = pt.size,
-      alpha = alpha,
-      pixels = raster.dpi
-    )
+    # Use geom_point_rast when generating rasterized plots with specified order
+    # (although slower, orders points correctly whereas geom_scattermore does not)
+    if (!order_rast) {
+      plot + geom_scattermore(
+        mapping = aes(
+          x = .data[[dims[1]]],
+          y = .data[[dims[2]]],
+          !!!optional
+        ),
+        pointsize = pt.size,
+        alpha = alpha,
+        pixels = raster.dpi
+      )
+    } else {
+      rlang::warn(message = "Seurat uses ggrastr::rasterise to maintain point order with rasterization.", 
+                  .frequency = "once",
+                  .frequency_id = "Seurat-ggrastr-rasterise")
+      plot + ggrastr::rasterise(geom_point(
+        mapping = aes(
+          x = .data[[dims[1]]],
+          y = .data[[dims[2]]],
+          !!!optional
+        ),
+        size = pt.size,
+        alpha = alpha
+      ))
+    }
   } else {
     plot + geom_point(
       mapping = aes(
@@ -8996,7 +9025,9 @@ SingleExIPlot <- function(
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
     theme_cowplot() +
     theme(plot.title = element_text(hjust = 0.5))
-  plot <- do.call(what = '+', args = list(plot, geom))
+  for (layer in geom) {
+    plot <- plot + layer
+  }
   plot <- plot + if (log) {
     log.scale
   } else {
@@ -9727,12 +9758,33 @@ SingleSpatialPlot <- function(
     if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
       scale <- scale_fill_brewer(palette = cols, na.value = na.value)
     } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
-      colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+      colors <- DiscretePalette(length(unique(data[[col.by.clean]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
       data[[col.by.clean]] <- as.character(data[[col.by.clean]])
-      vals <- unique(as.character(data[[col.by.clean]]))
-      cols <- cols[names(cols) %in% vals]
+      
+      vals <- sort(unique(data[[col.by.clean]]))
+      # n_groups is number of discrete groups/clusters that need colours
+      n_groups <- length(vals)
+      # Check whether 'cols' can be treated as a manual mapping
+      has_valid_names <- !is.null(names(cols)) && !anyNA(names(cols)) && all(names(cols) != "")
+    
+      # cols must be a named vector 
+      # If cols is unnamed, then names(cols) is NULL
+      # Cols is then subsetted down to length 0 
+     if (has_valid_names) {
+        cols <- cols[vals]
+        if (anyNA(cols)) {
+          warning("Missing color mappings for ", paste(vals[is.na(cols)], collapse = ", "))
+        }
+      } else {
+        if (length(cols) != n_groups) {
+          warning("Number of colors does not match number of groups; adjusting.")
+        }
+        cols <- rep_len(cols, n_groups)
+        names(cols) <- vals
+      }
+      scale <- scale_fill_manual(values = cols, na.value = na.value)
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale
