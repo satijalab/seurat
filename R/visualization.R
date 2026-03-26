@@ -1066,6 +1066,7 @@ DimPlot <- function(
 #'     scales that are not comparable between plots
 #' }
 #' @param slot Which slot to pull expression data from?
+#' @param assay Primary assay to pull feature data from
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
@@ -1123,6 +1124,7 @@ FeaturePlot <- function(
   keep.scale = "feature",
   shape.by = NULL,
   slot = 'data',
+  assay = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -1223,7 +1225,8 @@ FeaturePlot <- function(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
-    layer = slot
+    layer = slot,
+    assay = assay
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {

@@ -27,6 +27,7 @@ FeaturePlot(
   keep.scale = "feature",
   shape.by = NULL,
   slot = "data",
+  assay = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -105,6 +106,8 @@ cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.}
 
 \item{slot}{Which slot to pull expression data from?}
+
+\item{assay}{Primary assay to pull feature data from}
 
 \item{blend}{Scale and blend expression values to visualize coexpression of two features}
 
