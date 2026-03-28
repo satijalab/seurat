@@ -41,7 +41,7 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
     stop("Need at least one interation");
   if (modularityFunction == 2 && resolution > 1.0)
     stop("error: resolution<1 for alternative modularity");
-  try {
+
   bool update;
   double modularity, maxModularity, resolution2;
   int i, j;
@@ -170,10 +170,4 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
   clustering->orderClustersByNNodes();
   IntegerVector iv(clustering->cluster.cbegin(), clustering->cluster.cend());
   return iv;
-  } catch(std::exception &ex) {
-    forward_exception_to_r(ex);
-  } catch(...) {
-    Rcpp::stop("c++ exception (unknown reason)");
-  }
-  return IntegerVector(1);
 }
