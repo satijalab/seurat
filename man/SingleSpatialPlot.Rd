@@ -15,6 +15,7 @@ SingleSpatialPlot(
   pt.size.factor = NULL,
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   col.by = NULL,
   alpha.by = NULL,
   cells.highlight = NULL,
@@ -52,6 +53,9 @@ to show entire background image.}
 The default is 21, which plots cirlces - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
+
+\item{stroke.alpha}{Opacity of spot borders. Set to \code{NA} (default) to use the
+same alpha as the fill.}
 
 \item{col.by}{Mapping variable for the point color}
 
