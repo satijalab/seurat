@@ -4274,6 +4274,8 @@ InteractiveSpatialPlot <- function(
 #' @param shape Control the shape of the spots - same as the ggplot2 parameter.
 #' The default is 21, which plots circles - use 22 to plot squares.
 #' @param stroke Control the width of the border around the spots
+#' @param stroke.alpha Opacity of spot borders. Set to \\code{NA} to use the
+#' same alpha as the spot fill.
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
 #' \code{\link{ISpatialFeaturePlot}} for more details
@@ -4330,6 +4332,7 @@ SpatialPlot <- function(
   alpha = c(1, 1),
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -4587,6 +4590,7 @@ SpatialPlot <- function(
         pt.size.factor = pt.size.factor,
         shape = shape,
         stroke = stroke,
+        stroke.alpha = stroke.alpha,
         crop = crop
       )
       if (is.null(x = group.by)) {
@@ -7413,7 +7417,8 @@ GeomSpatial <- ggproto(
     point.size.factor = 1.0,
     fill = NA,
     alpha = NA,
-    stroke = NA
+    stroke = NA,
+    stroke.alpha = NA
   ),
   setup_data = function(self, data, params) {
     data <- ggproto_parent(Geom, self)$setup_data(data, params)
@@ -7462,7 +7467,10 @@ GeomSpatial <- ggproto(
       pch = data$shape,
       size = point.size,
       gp = gpar(
-        col = alpha(colour = coords$colour, alpha = coords$alpha),
+        col = alpha(
+          colour = coords$colour,
+          alpha = coords$stroke.alpha %||% coords$alpha
+        ),
         fill = alpha(colour = coords$fill, alpha = coords$alpha),
         lwd = coords$stroke)
     )
@@ -9464,6 +9472,8 @@ SingleRasterMap <- function(
 #' to show entire background image.
 #' @param pt.size.factor Sets the size of the points relative to spot.radius
 #' @param stroke Control the width of the border around the spots
+#' @param stroke.alpha Opacity of spot borders. Set to \code{NA} (default) to use the
+#' same alpha as the fill.
 #' @param shape Control the shape of the spots - same as the ggplot2 parameter.
 #' The default is 21, which plots cirlces - use 22 to plot squares.
 #' @param col.by Mapping variable for the point color
@@ -9501,6 +9511,7 @@ SingleSpatialPlot <- function(
   pt.size.factor = NULL,
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   col.by = NULL,
   alpha.by = NULL,
   cells.highlight = NULL,
@@ -9616,7 +9627,8 @@ SingleSpatialPlot <- function(
           image.scale = image.scale,
           crop = crop,
           shape = shape,
-          stroke = stroke
+          stroke = stroke,
+          stroke.alpha = stroke.alpha
         )
       } else {
         geom_spatial(
@@ -9628,6 +9640,7 @@ SingleSpatialPlot <- function(
           crop = crop,
           shape = shape,
           stroke = stroke,
+          stroke.alpha = stroke.alpha,
           alpha = pt.alpha
         )
       }
@@ -9656,11 +9669,16 @@ SingleSpatialPlot <- function(
         coord_cartesian(expand = FALSE)
     },
     'poly' = {
+      stroke.color <- if (is.na(x = stroke.alpha)) {
+        "black"
+      } else {
+        alpha("black", stroke.alpha)
+      }
       geom_poly_layer <- if (is.null(pt.alpha)) {
         geom_polygon(
           data = data,
           aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, alpha = !!alpha.by, group = .data[['cell']]),
-          color = "black",
+          color = stroke.color,
           linewidth = stroke
         )
       } else {
@@ -9668,7 +9686,7 @@ SingleSpatialPlot <- function(
           data = data,
           aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, group = .data[['cell']]),
           alpha = pt.alpha,
-          color = "black",
+          color = stroke.color,
           linewidth = stroke
         )
       }
