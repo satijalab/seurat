@@ -2251,7 +2251,18 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- as.list(set_median_umi)
   all_genes <- rownames(x = object[[assay]])
   # correct counts
+  # Takes raw UMI counts for set of genes and corrects them using the model parameters for a given SCT model
   my.correct_counts <- function(model_name){
+    # Retrieve model parameters SCT model
+    pars <- model_pars_fit[[model_name]]
+
+    valid_genes <- rownames(pars)[
+      is.finite(pars[, "theta"]) &
+      is.finite(pars[, "(Intercept)"]) &
+      is.finite(pars[, "log_umi"])
+    ]
+
+    cells <- rownames(cell_attr[[model_name]])
     model_genes <- rownames(x = model_pars_fit[[model_name]])
       x <- list(
         model_str = model_str[[model_name]],
