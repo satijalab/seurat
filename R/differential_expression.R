@@ -2244,32 +2244,32 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     ]
 
     cells <- rownames(cell_attr[[model_name]])
-    model_genes <- rownames(x = model_pars_fit[[model_name]])
-      x <- list(
-        model_str = model_str[[model_name]],
-        arguments = arguments[[model_name]],
-        model_pars_fit = as.matrix(x = model_pars_fit[[model_name]]),
-        cell_attr = cell_attr[[model_name]]
-      )
-      cells <- rownames(x = cell_attr[[model_name]])
-      umi <- raw_umi[all_genes, cells]
 
-      umi_corrected <- correct_counts(
-        x = x,
-        umi = umi,
-        verbosity = 0,
-        scale_factor = min_median_umi
-      )
-      missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
-      corrected_counts.list <- NULL
-      gc(verbose = FALSE)
-      empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
-      rownames(x = empty) <- missing_features
-      colnames(x = umi_corrected) <- colnames(x = umi_corrected)
+    x <- list(
+      model_str = model_str[[model_name]],
+      arguments = arguments[[model_name]],
+      model_pars_fit = as.matrix(pars[valid_genes, , drop = FALSE]),
+      cell_attr = cell_attr[[model_name]]
+    )
+    cells <- rownames(x = cell_attr[[model_name]])
+    umi <- raw_umi[all_genes, cells]
 
-      umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
+    umi_corrected <- correct_counts(
+      x = x,
+      umi = umi,
+      verbosity = 0,
+      scale_factor = min_median_umi
+    )
+    missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
+    corrected_counts.list <- NULL
+    gc(verbose = FALSE)
+    empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
+    rownames(x = empty) <- missing_features
+    colnames(x = umi_corrected) <- colnames(x = umi_corrected)
 
-      return(umi_corrected)
+    umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
+
+    return(umi_corrected)
   }
   corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
                                      FUN = my.correct_counts)
