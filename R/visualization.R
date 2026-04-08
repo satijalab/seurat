@@ -34,11 +34,13 @@ setGeneric(
 #' @param balanced Plot an equal number of genes with both + and - scores.
 #' @param projected Use the full projected dimensional reduction
 #' @param ncol Number of columns to plot
-#' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable and excludes figure legend in output
+#' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, 
+#' but not customizable and excludes figure legend in output
 #' @param assays A vector of assays to pull data from
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed} ggplot object with 
 #' single shared figure legend when \code{fast=FALSE}. If \code{FALSE}, return a list of ggplot objects
-#' @param legend.position When \code{combine=TRUE}, allows legend position to be adjusted for \code{\link[patchwork]{patchwork}ed} output; defaults as \code{"right"}
+#' @param legend.position When \code{combine=TRUE}, allows legend position to be adjusted
+#' for \code{\link[patchwork]{patchwork}ed} output (default "right"). See \link[ggplot2]{theme}
 #'
 #' @return No return value by default. If using fast = FALSE, will return a
 #' \code{\link[patchwork]{patchwork}ed} ggplot object if combine = TRUE, otherwise
