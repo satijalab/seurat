@@ -2270,8 +2270,8 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
       model_pars_fit = as.matrix(pars[valid_genes, , drop = FALSE]),
       cell_attr = cell_attr[[model_name]]
     )
-    cells <- rownames(x = cell_attr[[model_name]])
-    umi <- raw_umi[all_genes, cells]
+    # Retrieve raw UMI counts for valid genes and cells
+    umi <- raw_umi[valid_genes, cells, drop = FALSE]
 
     umi_corrected <- correct_counts(
       x = x,
