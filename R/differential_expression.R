@@ -2251,11 +2251,17 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- as.list(set_median_umi)
   all_genes <- rownames(x = object[[assay]])
   # correct counts
-  # Takes raw UMI counts for set of genes and corrects them using the model parameters for a given SCT model
+  # Recorrect raw UMI counts for one SCT model at a shared target depth
+  # We only recorrect genes whose fitted SCT parameters are all finite
+  # Genes with non finite fitted parameters can produce invalid values during recorrection,
+  # so we exclude them here and add them back later as zero rows to preserve the full feature set
   my.correct_counts <- function(model_name){
-    # Retrieve model parameters SCT model
+    # Retrieve model parameters SCT model per-gene
     pars <- model_pars_fit[[model_name]]
 
+    # Keep only genes with finite fitted parameters
+    # This is because in split-layer SCT workflows, some sparse genes may have NaN values for
+    # fitted parameters due to low expression levels in some layers
     valid_genes <- rownames(pars)[
       is.finite(pars[, "theta"]) &
       is.finite(pars[, "(Intercept)"]) &
@@ -2263,7 +2269,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     ]
 
     cells <- rownames(cell_attr[[model_name]])
-
+    # Prepare input list for correct_counts function
     x <- list(
       model_str = model_str[[model_name]],
       arguments = arguments[[model_name]],
@@ -2273,12 +2279,27 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     # Retrieve raw UMI counts for valid genes and cells
     umi <- raw_umi[valid_genes, cells, drop = FALSE]
 
+    # Recorrect counts to the common minimum median UMI depth so that counts from different 
+    #SCT models are on the same scale
     umi_corrected <- correct_counts(
       x = x,
       umi = umi,
       verbosity = 0,
       scale_factor = min_median_umi
     )
+
+    # Safety check to remove any NaN rows that remained after recorrection
+    # If any NaN values remain, set them to 0 to avoid downstream issues
+    # Want to avoid any NaN propagation into SCT assay
+    bad_rows <- rownames(umi_corrected)[
+      apply(umi_corrected, 1, function(z) any(!is.finite(z)))
+    ]
+    if (length(bad_rows) > 0) {
+      umi_corrected[bad_rows, ] <- 0
+    }
+
+    # Add back any genes that were not recorrected for this model as zero rows
+    # This keeps the corrected matrix aligned to the full assay wide gene set
     missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
     corrected_counts.list <- NULL
     gc(verbose = FALSE)
@@ -2286,6 +2307,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     rownames(x = empty) <- missing_features
     colnames(x = umi_corrected) <- colnames(x = umi_corrected)
 
+    # Restore full gene set, original row order
     umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
 
     return(umi_corrected)
