@@ -37,7 +37,7 @@ We have [previously released support](https://satijalab.org/seurat/articles/spat
 
 Users can install the Visium HD-compatible release from Github. Existing Seurat workflows for [clustering, visualization, and downstream analysis](https://satijalab.org/seurat/articles/pbmc3k_tutorial) have been updated to support both Visium and Visium HD data.
 
-We note that Visium HD data is generated from spatially patterned olignocleotides labeled in 2um x 2um bins. However, since the data from this resolution is sparse, adjacent bins are pooled together to create 8um and 16um resolutions. 10x recommends the use of 8um binned data for analysis, but Seurat supports in the simultaneous loading of multiple binnings - and stores them in a single object as multiple assays.
+We note that Visium HD data is generated from spatially patterned oligonucleotides labeled in 2um x 2um bins. However, since the data from this resolution is sparse, adjacent bins are pooled together to create 8um and 16um resolutions. 10x recommends the use of 8um binned data for analysis, but Seurat supports in the simultaneous loading of multiple binnings - and stores them in a single object as multiple assays.
 
 In this vignette, we provide an overview of some of the spatial workflows that Seurat supports for analyzing Visium HD data, in particular:
   
@@ -132,7 +132,7 @@ Details of the sketching procedure and workflow are described in [Hao et al, Nat
 DefaultAssay(object) <- "Spatial.008um"
 object <- FindVariableFeatures(object)
 object <- ScaleData(object)
-# we select 50,0000 cells and create a new 'sketch' assay
+# we select 50,000 cells and create a new 'sketch' assay
 object <- SketchData(
   object = object,
   ncells = 50000,
@@ -215,7 +215,7 @@ p
 We can also find and visualize the top gene expression markers for each cluster:
 
 ```{r heatmap, fig.height = 12}
-# Crete downsampled object to make visualization either
+# Create downsampled object to make visualization either
 DefaultAssay(object) <- "Spatial.008um"
 Idents(object) <- "seurat_cluster.projected"
 object_subset <- subset(object, cells = Cells(object[['Spatial.008um']]), downsample=1000)
@@ -313,7 +313,7 @@ if (!requireNamespace("spacexr", quietly = TRUE)) {
 library(spacexr)
 ```
 
-RCTD takes an scRNA-seq dataset as a reference, and a spatial dataset as a query. For a reference, we use a mouse scRNA-seq dataset from the Allen Brain Atlas, available for download [here](https://www.dropbox.com/scl/fi/r1mixf4eof2cot891n215/allen_scRNAseq_ref.Rds?rlkey=ynr6s6wu1efqsjsu3h40vitt7&dl=0). The reference scRNAs-eq dataset has been reduced to 200,000 cells (and rare cell types <25 cells have been removed).
+RCTD takes an scRNA-seq dataset as a reference, and a spatial dataset as a query. For a reference, we use a mouse scRNA-seq dataset from the Allen Brain Atlas, available for download [here](https://www.dropbox.com/scl/fi/r1mixf4eof2cot891n215/allen_scRNAseq_ref.Rds?rlkey=ynr6s6wu1efqsjsu3h40vitt7&dl=0). The reference scRNA-seq dataset has been reduced to 200,000 cells (and rare cell types <25 cells have been removed).
 
 We use the cortex Visium HD object as the spatial query. For computational efficiency, we sketch the spatial query dataset, apply RCTD to deconvolute the 'sketched' cortical cells and annotate them, and then project these annotations to the full cortical dataset.
 

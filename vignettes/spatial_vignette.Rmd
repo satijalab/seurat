@@ -65,7 +65,7 @@ library("vembedr")
 
 ## Dataset
 
-Here, we will be using a recently released dataset of sagital mouse brain slices generated using the Visium v1 chemistry. There are two serial anterior sections, and two (matched) serial posterior sections. 
+Here, we will be using a recently released dataset of sagittal mouse brain slices generated using the Visium v1 chemistry. There are two serial anterior sections, and two (matched) serial posterior sections. 
 
 You can download the data [here](https://support.10xgenomics.com/spatial-gene-expression/datasets), and load it into Seurat using the `Load10X_Spatial()` function. This reads in the output of the [spaceranger](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger) pipeline, and returns a Seurat object that contains both the spot-level expression data along with the associated image of the tissue slice. You can also use our [SeuratData package](https://github.com/satijalab/seurat-data) for easy data access, as demonstrated below. After installing the dataset, you can type `?stxBrain` to learn more.
 
@@ -100,7 +100,7 @@ wrap_plots(plot1, plot2)
 
 These plots demonstrate that the variance in molecular counts across spots is not just technical in nature, but also is dependent on the tissue anatomy. For example, regions of the tissue that are depleted for neurons (such as the cortical white matter), reproducibly exhibit lower molecular counts. As a result, standard approaches (such as the `LogNormalize()` function), which force each data point to have the same underlying 'size' after normalization, can be problematic. 
 
-As an alternative, we recommend using sctransform (Hafemeister and Satija, Genome Biology 2019), which which builds regularized negative binomial models of gene expression in order to account for technical artifacts while preserving biological variance. For more details on sctransform, please see the paper [here](https://genomebiology-biomedcentral-com/articles/10.1186/s13059-021-02584-9) and the Seurat vignette [here](sctransform_vignette.html). sctransform normalizes the data, detects high-variance features, and stores the data in the `SCT` assay.
+As an alternative, we recommend using sctransform (Hafemeister and Satija, Genome Biology 2019), which builds regularized negative binomial models of gene expression in order to account for technical artifacts while preserving biological variance. For more details on sctransform, please see the paper [here](https://genomebiology-biomedcentral-com/articles/10.1186/s13059-021-02584-9) and the Seurat vignette [here](sctransform_vignette.html). sctransform normalizes the data, detects high-variance features, and stores the data in the `SCT` assay.
 
 ```{r preprocess}
 brain <- SCTransform(brain, assay = "Spatial", verbose = FALSE)
@@ -190,7 +190,7 @@ SpatialDimPlot(brain, cells.highlight = CellsByIdentities(object = brain,idents 
 
 ## Interactive plotting 
 
-We have also built in a number of interactive plotting capabilities. Both `SpatialDimPlot()` and `SpatialFeaturePlot()` now have an `interactive` parameter, that when set to `TRUE`, will open up the Rstudio viewer pane with an interactive Shiny plot. The example below demonstrates an interactive `SpatialDimPlot()` in which you can hover over spots and view the cell name and current identity class (analogous to the previous `do.hover` behavior).
+We have also built in a number of interactive plotting capabilities. Both `SpatialDimPlot()` and `SpatialFeaturePlot()` now have an `interactive` parameter, that when set to `TRUE`, will open up the RStudio viewer pane with an interactive Shiny plot. The example below demonstrates an interactive `SpatialDimPlot()` in which you can hover over spots and view the cell name and current identity class (analogous to the previous `do.hover` behavior).
 
 ```{r ispatialdimplot, eval = FALSE}
 SpatialDimPlot(brain, interactive = TRUE)
@@ -222,14 +222,14 @@ embed_url("https://youtu.be/10PZqjcSKrg")
 
 ## Identification of Spatially Variable Features
 
-Seurat offers two workflows to identify molecular features that correlate with spatial location within a tissue. The first is to perform differential expression based on pre-annotated anatomical regions within the tissue, which may be determined either from unsupervised clustering or prior knowledge. This strategy works will in this case, as the clusters above exhibit clear spatial restriction.
+Seurat offers two workflows to identify molecular features that correlate with spatial location within a tissue. The first is to perform differential expression based on pre-annotated anatomical regions within the tissue, which may be determined either from unsupervised clustering or prior knowledge. This strategy works well in this case, as the clusters above exhibit clear spatial restriction.
 
 ```{r de, fig.height = 4}
 de_markers <- FindMarkers(brain, ident.1 = 5, ident.2 = 6)
 SpatialFeaturePlot(object = brain, features = rownames(de_markers)[1:3], alpha = c(0.1, 1), ncol = 3)
 ```
 
-An alternative approach, implemented in `FindSpatiallyVariables()`, is to search for features exhibiting spatial patterning in the absence of pre-annotation. The default method (`method = 'markvariogram`), is inspired by the [Trendsceek](https://www.nature.com/articles/nmeth.4634), which models spatial transcriptomics data as a mark point process and computes a 'variogram', which identifies genes whose expression level is dependent on their spatial location. More specifically, this process calculates gamma(r) values measuring the dependence between two spots a certain "r" distance apart. By default, we use an r-value of '5' in these analyses, and only compute these values for variable genes (where variation is calculated independently of spatial location) to save time.
+An alternative approach, implemented in `FindSpatiallyVariableFeatures()`, is to search for features exhibiting spatial patterning in the absence of pre-annotation. The default method (`method = 'markvariogram'`), is inspired by the [Trendsceek](https://www.nature.com/articles/nmeth.4634), which models spatial transcriptomics data as a mark point process and computes a 'variogram', which identifies genes whose expression level is dependent on their spatial location. More specifically, this process calculates gamma(r) values measuring the dependence between two spots a certain "r" distance apart. By default, we use an r-value of '5' in these analyses, and only compute these values for variable genes (where variation is calculated independently of spatial location) to save time.
 
 We note that there are multiple methods in the literature to accomplish this task, including [SpatialDE](https://www.nature.com/articles/nmeth.4636), and [Splotch](https://www.biorxiv.org/content/10.1101/757096v1.article-metrics). We encourage interested users to explore these methods, and hope to add support for them in the near future.
 
@@ -264,8 +264,8 @@ p1 + p2
 
 ## Integration with single-cell data
 
-At ~50um, spots from the visium assay will encompass the expression profiles of multiple cells. For the growing list of systems where scRNA-seq data is available, users may be interested to 'deconvolute' each of the spatial voxels to predict the underlying composition of cell types. In preparing this vignette, we tested a wide variety of decovonlution and integration methods, using a [reference scRNA-seq dataset](https://www.nature.com/articles/nn.4216) of ~14,000 adult mouse cortical cell taxonomy from the Allen Institute, generated with the SMART-Seq2 protocol. 
-We consistently found superior performance using integration methods (as opposed to deconvolution methods), likely because of substantially different noise models that characterize spatial and single-cell datasets, and integration methods are specifiically designed to be robust to these differences. We therefore apply the 'anchor'-based integration workflow introduced in [Seurat v3](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8), that enables the probabilistic transfer of annotations from a reference to a query set. We therefore follow the label transfer workflow introduced [here](integration_mapping.html), taking advantage of sctransform normalization, but anticipate new methods to be developed to accomplish this task.
+At ~50um, spots from the visium assay will encompass the expression profiles of multiple cells. For the growing list of systems where scRNA-seq data is available, users may be interested to 'deconvolute' each of the spatial voxels to predict the underlying composition of cell types. In preparing this vignette, we tested a wide variety of deconvolution and integration methods, using a [reference scRNA-seq dataset](https://www.nature.com/articles/nn.4216) of ~14,000 adult mouse cortical cell taxonomy from the Allen Institute, generated with the SMART-Seq2 protocol. 
+We consistently found superior performance using integration methods (as opposed to deconvolution methods), likely because of substantially different noise models that characterize spatial and single-cell datasets, and integration methods are specifically designed to be robust to these differences. We therefore apply the 'anchor'-based integration workflow introduced in [Seurat v3](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8), that enables the probabilistic transfer of annotations from a reference to a query set. We therefore follow the label transfer workflow introduced [here](integration_mapping.html), taking advantage of sctransform normalization, but anticipate new methods to be developed to accomplish this task.
 
 We first load the data (download available [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1)), pre-process the scRNA-seq reference, and then perform label transfer. The procedure outputs, for each spot, a probabilistic classification for each of the scRNA-seq derived classes. We add these predictions as a new assay in the Seurat object.
 
