@@ -177,8 +177,8 @@ The default is 21, which plots circles - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
 
-\item{stroke.alpha}{Opacity of spot borders. Set to \\code{NA} to use the
-same alpha as the spot fill.}
+\item{stroke.alpha}{Control the opacity of spot borders (when stroke is specified). 
+Set to \code{NA} to use the same alpha as the fill.}
 
 \item{interactive}{Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 session, see \code{\link{ISpatialDimPlot}} or
