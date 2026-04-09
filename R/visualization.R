@@ -7461,18 +7461,21 @@ GeomSpatial <- ggproto(
     }
     point.size <- base.point.size * data$point.size.factor
     coords <- coord$transform(data, panel_scales)
+
+    coords$stroke <- alpha(
+      "black",
+      ifelse(is.na(coords$stroke.alpha), coords$alpha, coords$stroke.alpha)
+    )
+
     pts <- pointsGrob(
       x = coords$x,
       y = coords$y,
       pch = data$shape,
       size = point.size,
       gp = gpar(
-        col = alpha(
-          colour = coords$colour,
-          alpha = coords$stroke.alpha %||% coords$alpha
-        ),
         fill = alpha(colour = coords$fill, alpha = coords$alpha),
-        lwd = coords$stroke)
+        col = coords$stroke
+      )
     )
     canvas_viewport <- viewport()
     gt <- gTree(vp = canvas_viewport) # empty gTree to add the image and points to
@@ -9670,7 +9673,7 @@ SingleSpatialPlot <- function(
     },
     'poly' = {
       stroke.color <- if (is.na(x = stroke.alpha)) {
-        "black"
+        alpha("black", pt.alpha)
       } else {
         alpha("black", stroke.alpha)
       }
