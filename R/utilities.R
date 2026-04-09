@@ -2058,12 +2058,16 @@ as.data.frame.Matrix <- function(
     # otherwise assign to groups in order
     if (has_valid_names) {
       palette <- cols[vals]
-      if (anyNA(cols)) {
-        warning("Missing color mappings for ", paste(vals[is.na(cols)], collapse = ", "))
+      if (anyNA(palette)) {
+        warning("Missing color mappings for ", paste(vals[is.na(palette)], collapse = ", "), 
+                call. = FALSE, 
+                immediate. = TRUE)
       }
     } else {
       if (length(cols) != n_groups) {
-        warning("Number of colors does not match number of groups; adjusting.")
+        warning("Number of colors does not match number of groups; adjusting.",
+                call. = FALSE,
+                immediate. = TRUE)
       }
       palette <- rep_len(cols, n_groups)
       names(palette) <- vals
