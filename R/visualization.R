@@ -4283,8 +4283,8 @@ InteractiveSpatialPlot <- function(
 #' @param shape Control the shape of the spots - same as the ggplot2 parameter.
 #' The default is 21, which plots circles - use 22 to plot squares.
 #' @param stroke Control the width of the border around the spots
-#' @param stroke.alpha Opacity of spot borders. Set to \\code{NA} to use the
-#' same alpha as the spot fill.
+#' @param stroke.alpha Control the opacity of spot borders (when stroke is specified). 
+#' Set to \code{NA} to use the same alpha as the fill.
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
 #' \code{\link{ISpatialFeaturePlot}} for more details
@@ -9502,8 +9502,8 @@ SingleRasterMap <- function(
 #' to show entire background image.
 #' @param pt.size.factor Sets the size of the points relative to spot.radius
 #' @param stroke Control the width of the border around the spots
-#' @param stroke.alpha Opacity of spot borders. Set to \code{NA} (default) to use the
-#' same alpha as the fill.
+#' @param stroke.alpha Control the opacity of spot borders (when stroke is specified). 
+#' Set to \code{NA} to use the same alpha as the fill.
 #' @param shape Control the shape of the spots - same as the ggplot2 parameter.
 #' The default is 21, which plots cirlces - use 22 to plot squares.
 #' @param col.by Mapping variable for the point color
