@@ -9673,24 +9673,28 @@ SingleSpatialPlot <- function(
         coord_cartesian(expand = FALSE)
     },
     'poly' = {
-      stroke.color <- if (is.na(x = stroke.alpha)) {
-        alpha("black", pt.alpha)
-      } else {
-        alpha("black", stroke.alpha)
-      }
+      # define aesthetics for geom_polygon layer based on if pt.alpha (SDP) or alpha.by (SFP) is set
       geom_poly_layer <- if (is.null(pt.alpha)) {
-        geom_polygon(
-          data = data,
-          aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, alpha = !!alpha.by, group = .data[['cell']]),
-          color = stroke.color,
-          linewidth = stroke
-        )
+        if (is.na(x = stroke.alpha)) {
+          geom_polygon(
+            data = data,
+            aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, alpha = !!alpha.by, group = .data[['cell']], color = after_scale(alpha("black", alpha))),
+            linewidth = stroke
+          )
+        } else {
+          geom_polygon(
+            data = data,
+            aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, alpha = !!alpha.by, group = .data[['cell']]),
+            color = alpha("black", stroke.alpha),
+            linewidth = stroke
+          )
+        }
       } else {
         geom_polygon(
           data = data,
           aes(x = .data[[xname]], y = .data[[yname]], fill = !!col.by.plot, group = .data[['cell']]),
           alpha = pt.alpha,
-          color = stroke.color,
+          color = if (is.na(x = stroke.alpha)) alpha("black", pt.alpha) else alpha("black", stroke.alpha),
           linewidth = stroke
         )
       }
