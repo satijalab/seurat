@@ -7462,7 +7462,7 @@ GeomSpatial <- ggproto(
     point.size <- base.point.size * data$point.size.factor
     coords <- coord$transform(data, panel_scales)
 
-    coords$stroke <- alpha(
+    stroke_color <- alpha(
       "black",
       ifelse(is.na(coords$stroke.alpha), coords$alpha, coords$stroke.alpha)
     )
@@ -7474,7 +7474,8 @@ GeomSpatial <- ggproto(
       size = point.size,
       gp = gpar(
         fill = alpha(colour = coords$fill, alpha = coords$alpha),
-        col = coords$stroke
+        col = stroke_color,
+        lwd = coords$stroke
       )
     )
     canvas_viewport <- viewport()
