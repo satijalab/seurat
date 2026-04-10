@@ -5070,7 +5070,7 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stde
   }
   
   plot <- ggplot(data = data.frame(dims = 1:ndims, y_data = y_data)) +
-    geom_point(mapping = aes(x = .data[['dims']], y = .data[['y_data']])) +
+    geom_point(mapping = aes(x = .data[["dims"]], y = .data[["y_data"]])) +
     labs(
       x = gsub(
         pattern = '_$',
