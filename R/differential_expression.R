@@ -118,54 +118,66 @@ FindAllMarkers <- function(
   }
   genes.de <- list()
   messages <- list()
-  for (i in 1:length(x = idents.all)) {
-    if (verbose) {
-      message("Calculating cluster ", idents.all[i])
-    }
-    genes.de[[i]] <- tryCatch(
-      expr = {
-        FindMarkers(
-          object = object,
-          assay = assay,
-          ident.1 = if (is.null(x = node)) {
-            idents.all[i]
-          } else {
-            tree
-          },
-          ident.2 = if (is.null(x = node)) {
-            NULL
-          } else {
-            idents.all[i]
-          },
-          features = features,
-          logfc.threshold = logfc.threshold,
-          test.use = test.use,
-          slot = slot,
-          min.pct = min.pct,
-          min.diff.pct = min.diff.pct,
-          verbose = verbose,
-          only.pos = only.pos,
-          max.cells.per.ident = max.cells.per.ident,
-          random.seed = random.seed,
-          latent.vars = latent.vars,
-          min.cells.feature = min.cells.feature,
-          min.cells.group = min.cells.group,
-          mean.fxn = mean.fxn,
-          fc.name = fc.name,
-          base = base,
-          densify = densify,
-          ...
-        )
-      },
-      error = function(cond) {
-        return(cond$message)
+  bpcells_warning_shown <- FALSE
+  withCallingHandlers({
+    for (i in 1:length(x = idents.all)) {
+      if (verbose) {
+        message("Calculating cluster ", idents.all[i])
       }
-    )
-    if (is.character(x = genes.de[[i]])) {
-      messages[[i]] <- genes.de[[i]]
-      genes.de[[i]] <- NULL
+      genes.de[[i]] <- tryCatch(
+        expr = {
+          FindMarkers(
+            object = object,
+            assay = assay,
+            ident.1 = if (is.null(x = node)) {
+              idents.all[i]
+            } else {
+              tree
+            },
+            ident.2 = if (is.null(x = node)) {
+              NULL
+            } else {
+              idents.all[i]
+            },
+            features = features,
+            logfc.threshold = logfc.threshold,
+            test.use = test.use,
+            slot = slot,
+            min.pct = min.pct,
+            min.diff.pct = min.diff.pct,
+            verbose = verbose,
+            only.pos = only.pos,
+            max.cells.per.ident = max.cells.per.ident,
+            random.seed = random.seed,
+            latent.vars = latent.vars,
+            min.cells.feature = min.cells.feature,
+            min.cells.group = min.cells.group,
+            mean.fxn = mean.fxn,
+            fc.name = fc.name,
+            base = base,
+            densify = densify,
+            ...
+          )
+        },
+        error = function(cond) {
+          return(cond$message)
+        }
+      )
+      if (is.character(x = genes.de[[i]])) {
+        messages[[i]] <- genes.de[[i]]
+        genes.de[[i]] <- NULL
+      }
     }
-  }
+  }, warning = function(w) {
+    if (grepl("Column-major order detected", conditionMessage(w))) {
+      if (!bpcells_warning_shown) {
+        bpcells_warning_shown <<- TRUE
+        warning(paste(conditionMessage(w), "to avoid repeated transpositions.", sep = " "), 
+                immediate. = TRUE, call. = FALSE)
+      }
+      invokeRestart("muffleWarning")
+    }
+  })
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
     if (is.null(x = unlist(x = genes.de[i]))) {
