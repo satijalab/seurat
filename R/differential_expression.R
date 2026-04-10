@@ -594,6 +594,11 @@ FindMarkers.default <- function(
       stop("Differential expression with BPCells currently only supports the 'wilcox' method.",
            " Please rerun with test.use = 'wilcox'")
     }
+    if (BPCells::storage_order(object) == "col") {
+      warning(paste("Column-major order detected; FindMarkers requires row-major order.", 
+              "Consider first running BPCells::transpose_storage_order()", sep = "\n"),
+              immediate. = TRUE, call. = FALSE)
+    }
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
     groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
     de.results <- suppressMessages(
