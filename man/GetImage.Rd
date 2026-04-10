@@ -15,14 +15,6 @@
 
 \method{GetImage}{VisiumV2}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 }
-\arguments{
-\item{object}{An object}
-
-\item{mode}{How to return the image; should accept one of \dQuote{grob},
-\dQuote{raster}, \dQuote{plotly}, or \dQuote{raw}}
-
-\item{...}{Arguments passed to other methods}
-}
 \description{
 Get Image Data
 }

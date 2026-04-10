@@ -26,8 +26,6 @@ VariableFeaturePlot(
 
 \item{log}{Plot the x-axis in log scale}
 
-\item{selection.method}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}}
-
 \item{assay}{Assay to pull variable features from}
 
 \item{raster}{Convert points to raster format, default is \code{NULL}

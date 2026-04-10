@@ -7,13 +7,7 @@
 \method{HVFInfo}{SCTAssay}(object, method, status = FALSE, ...)
 }
 \arguments{
-\item{object}{An object}
-
 \item{method}{method to determine variable features}
-
-\item{status}{Add variable status to the resulting data frame}
-
-\item{...}{Arguments passed to other methods}
 }
 \description{
 Get variable feature information from \code{\link{SCTAssay}} objects
