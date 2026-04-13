@@ -4160,8 +4160,10 @@ SCTransform.Assay <- function(
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
-    warning(
-      "A reference SCT model was provided, therefore counts are NOT corrected (Regardless of argument passed to do.correct.umi)"
+    rlang::warn(
+      "A reference SCT model was provided, therefore counts are not corrected (regardless of do.correct.umi)",
+      .frequency = "once",
+      .frequency_id = "SCTransform-reference-SCTmodel-correct-counts"
     )
   }
 
