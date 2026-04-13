@@ -302,9 +302,10 @@ test_that("Mixing SCT and non-SCT assays fails", {
   expect_error(FindTransferAnchors(reference = ref, query = query, reference.assay = "RNA", query.assay = "SCT", k.filter = 50, normalization.method = "SCT"))
 })
 
-test_that("FindTransferAnchors with default SCT works", {
+test_that("FindTransferAnchors with default SCT works (CCA)", {
   skip_on_cran()
-  anchors <- FindTransferAnchors(reference = ref, query = query, normalization.method = "SCT", reduction = "cca", k.filter = 50)
+  ref_correct_counts_warning <- "A reference SCT model was provided, therefore counts are not corrected (regardless of do.correct.umi)"
+  anchors <- expect_warning(FindTransferAnchors(reference = ref, query = query, normalization.method = "SCT", reduction = "cca", k.filter = 50), ref_correct_counts_warning, fixed = TRUE)
   co <- anchors@object.list[[1]]
   expect_equal(dim(co), c(220, 160))
   expect_equal(Reductions(co), c("cca", "cca.l2"))
