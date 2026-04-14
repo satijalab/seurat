@@ -44,6 +44,8 @@ NULL
 #'   Moran's I function available via the Rfast2 package}}
 #'   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
 #'   default behavior of split/multi violin plots}
+#'   \item{\code{Seurat.warn.findmarkers.bpcells.colmajor}}{Show message about improving
+#'   memory usage when running FindMarkers with a column-major ordered BPCells IterableMatrix.}
 #' }
 #'
 #' @docType package
@@ -62,6 +64,7 @@ seurat_default_options <- list(
   Seurat.checkdots = "warn",
   Seurat.presto.wilcox.msg = TRUE, #CHANGE
   Seurat.Rfast2.msg = TRUE,
+  Seurat.warn.findmarkers.bpcells.colmajor = TRUE,
   Seurat.warn.vlnplot.split = TRUE,
   Seurat.object.assay.version = "v5"
 )

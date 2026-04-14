@@ -118,54 +118,65 @@ FindAllMarkers <- function(
   }
   genes.de <- list()
   messages <- list()
-  for (i in 1:length(x = idents.all)) {
-    if (verbose) {
-      message("Calculating cluster ", idents.all[i])
-    }
-    genes.de[[i]] <- tryCatch(
-      expr = {
-        FindMarkers(
-          object = object,
-          assay = assay,
-          ident.1 = if (is.null(x = node)) {
-            idents.all[i]
-          } else {
-            tree
-          },
-          ident.2 = if (is.null(x = node)) {
-            NULL
-          } else {
-            idents.all[i]
-          },
-          features = features,
-          logfc.threshold = logfc.threshold,
-          test.use = test.use,
-          slot = slot,
-          min.pct = min.pct,
-          min.diff.pct = min.diff.pct,
-          verbose = verbose,
-          only.pos = only.pos,
-          max.cells.per.ident = max.cells.per.ident,
-          random.seed = random.seed,
-          latent.vars = latent.vars,
-          min.cells.feature = min.cells.feature,
-          min.cells.group = min.cells.group,
-          mean.fxn = mean.fxn,
-          fc.name = fc.name,
-          base = base,
-          densify = densify,
-          ...
-        )
-      },
-      error = function(cond) {
-        return(cond$message)
+  old_opt <- options(Seurat.warn.findmarkers.bpcells.colmajor = TRUE)
+  on.exit(options(old_opt), add = TRUE)
+  withCallingHandlers({
+    for (i in 1:length(x = idents.all)) {
+      if (verbose) {
+        message("Calculating cluster ", idents.all[i])
       }
-    )
-    if (is.character(x = genes.de[[i]])) {
-      messages[[i]] <- genes.de[[i]]
-      genes.de[[i]] <- NULL
+      genes.de[[i]] <- tryCatch(
+        expr = {
+          FindMarkers(
+            object = object,
+            assay = assay,
+            ident.1 = if (is.null(x = node)) {
+              idents.all[i]
+            } else {
+              tree
+            },
+            ident.2 = if (is.null(x = node)) {
+              NULL
+            } else {
+              idents.all[i]
+            },
+            features = features,
+            logfc.threshold = logfc.threshold,
+            test.use = test.use,
+            slot = slot,
+            min.pct = min.pct,
+            min.diff.pct = min.diff.pct,
+            verbose = verbose,
+            only.pos = only.pos,
+            max.cells.per.ident = max.cells.per.ident,
+            random.seed = random.seed,
+            latent.vars = latent.vars,
+            min.cells.feature = min.cells.feature,
+            min.cells.group = min.cells.group,
+            mean.fxn = mean.fxn,
+            fc.name = fc.name,
+            base = base,
+            densify = densify,
+            ...
+          )
+        },
+        error = function(cond) {
+          return(cond$message)
+        }
+      )
+      if (is.character(x = genes.de[[i]])) {
+        messages[[i]] <- genes.de[[i]]
+        genes.de[[i]] <- NULL
+      }
     }
-  }
+  }, warning = function(w) {
+    if (grepl("Column-major order detected", conditionMessage(w))) {
+      msg <- conditionMessage(w)
+      msg <- sub("\\.\\nThis message will be shown once per session\\.$", " to avoid repeated transpositions.", msg)
+      warning(msg, immediate. = TRUE, call. = FALSE)
+      invokeRestart("muffleWarning")
+    }
+  })
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
     if (is.null(x = unlist(x = genes.de[i]))) {
@@ -593,6 +604,13 @@ FindMarkers.default <- function(
     if(test.use != "wilcox"){
       stop("Differential expression with BPCells currently only supports the 'wilcox' method.",
            " Please rerun with test.use = 'wilcox'")
+    }
+    if (BPCells::storage_order(object) == "col" && isTRUE(getOption('Seurat.warn.findmarkers.bpcells.colmajor'))) {
+      warning(paste("Column-major order detected; FindMarkers requires row-major order.", 
+              "Consider first running BPCells::transpose_storage_order().",
+              "This message will be shown once per session.", sep = "\n"),
+              immediate. = TRUE, call. = FALSE)
+      options(Seurat.warn.findmarkers.bpcells.colmajor = FALSE)
     }
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
     groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
