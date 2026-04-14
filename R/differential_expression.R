@@ -118,7 +118,8 @@ FindAllMarkers <- function(
   }
   genes.de <- list()
   messages <- list()
-  bpcells_warning_shown <- FALSE
+  old_opt <- options(Seurat.warn.findmarkers.bpcells.colmajor = TRUE)
+  on.exit(options(old_opt), add = TRUE)
   withCallingHandlers({
     for (i in 1:length(x = idents.all)) {
       if (verbose) {
@@ -170,11 +171,9 @@ FindAllMarkers <- function(
     }
   }, warning = function(w) {
     if (grepl("Column-major order detected", conditionMessage(w))) {
-      if (!bpcells_warning_shown) {
-        bpcells_warning_shown <<- TRUE
-        warning(paste(conditionMessage(w), "to avoid repeated transpositions.", sep = " "), 
-                immediate. = TRUE, call. = FALSE)
-      }
+      msg <- conditionMessage(w)
+      msg <- sub("\\.\\nThis message will be shown once per session\\.$", " to avoid repeated transpositions.", msg)
+      warning(msg, immediate. = TRUE, call. = FALSE)
       invokeRestart("muffleWarning")
     }
   })
@@ -606,10 +605,12 @@ FindMarkers.default <- function(
       stop("Differential expression with BPCells currently only supports the 'wilcox' method.",
            " Please rerun with test.use = 'wilcox'")
     }
-    if (BPCells::storage_order(object) == "col") {
+    if (BPCells::storage_order(object) == "col" && isTRUE(getOption('Seurat.warn.findmarkers.bpcells.colmajor'))) {
       warning(paste("Column-major order detected; FindMarkers requires row-major order.", 
-              "Consider first running BPCells::transpose_storage_order()", sep = "\n"),
+              "Consider first running BPCells::transpose_storage_order().",
+              "This message will be shown once per session.", sep = "\n"),
               immediate. = TRUE, call. = FALSE)
+      options(Seurat.warn.findmarkers.bpcells.colmajor = FALSE)
     }
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
     groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
