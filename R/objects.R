@@ -2259,7 +2259,8 @@ dim.STARmap <- function(x) {
 #' @export
 #'
 dim.VisiumV1 <- function(x) {
-  return(dim(x = GetImage(object = x)$raster))
+  # Use mode='raw' to avoid grob creation
+  return(dim(x = GetImage(object = x, mode = 'raw'))[1:2])
 }
 
 #' @method dim VisiumV2
