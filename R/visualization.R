@@ -3286,15 +3286,16 @@ LinkedDimPlot <- function(
   plot.data$selected_ <- FALSE
   Idents(object = object) <- group.by
 
-  # Retrieve coordinates for tissue plot and dim plot seperately
+  # Retrieve coordinates for tissue plot and dim plot separately
   sp_x <- colnames(coords)[1]
   sp_y <- colnames(coords)[2]
   dp_x <- dims[1]
   dp_y <- dims[2]
-  sp_y_min <- min(plot.data[[sp_y]]); sp_y_max <- max(plot.data[[sp_y]])
+  sp_y_min <- min(plot.data[[sp_y]])
+  sp_y_max <- max(plot.data[[sp_y]])
 
   # Add tiny helper function to flip interactive coordinate points
-  flip_y <- function(pt) { pt$y <- sp_y_max - (pt$y - sp_y_min); pt }
+  flip_y <- function(pt) { if (!is.null(pt$y)) { pt$y <- sp_y_max - (pt$y - sp_y_min) }; pt }
 
   # Setup the server
   server <- function(input, output, session) {
@@ -3510,7 +3511,7 @@ LinkedFeaturePlot <- function(
   dp_x <- dims[1]
   dp_y <- dims[2]
   # coordinates should be in image space, so need to flip y when setting or displaying info for points
-  flip_y <- function(pt) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])); pt }
+  flip_y <- function(pt) { if (!is.null(pt)) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])) }; pt }
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
   server <- function(input, output, session) {
@@ -3642,7 +3643,7 @@ ISpatialDimPlot <- function(
   sp_x <- colnames(coords)[1]
   sp_y <- colnames(coords)[2]
   # coordinates should be in image space, so need to flip y when setting or displaying info for points
-  flip_y <- function(pt) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])); pt }
+  flip_y <- function(pt) { if (!is.null(pt)) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])) }; pt }
   scale.factor <- ScaleFactors(object[[image]])[[image.scale]]
   plot.data <- cbind(coords, group.data)
   plot.data$selected_ <- FALSE
