@@ -4397,6 +4397,29 @@ SpatialPlot <- function(
       if (identical(alpha, c(1, 1))) { 
         alpha <- c(0.1, 1)
       }
+      tryCatch(
+         expr = {
+           return(ISpatialDimPlot(
+             object = object,
+             image = images[1],
+             image.scale = image.scale,
+             group.by = group.by,
+             alpha = alpha
+           ))
+         },
+         error = function(e) {
+          # error can occur when image and assay don't match
+          # or when the default assay set doesn't have data corresponding to the default ident etc.
+          if (grepl("arguments imply differing number of rows", conditionMessage(e))) {
+            stop(
+              "Cells were removed due to missing data; check if the specified image and assay are correct.\n",
+              call. = FALSE
+            )
+          } else {
+            stop(e)
+          }
+         }
+      )
     }
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
