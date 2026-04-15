@@ -3316,6 +3316,8 @@ LinkedDimPlot <- function(
       handlerExpr = {
         click$pt <- NULL
         click$invert <- FALSE
+        plot.env$data <- plot.data
+        plot.env$alpha.by <- NULL
         session$resetBrush(brushId = 'brush')
       }
     )
