@@ -8859,47 +8859,60 @@ SingleDimPlot <- function(
   optional  <- list(color = col.by, shape = shape.by, alpha = alpha.by)
   is_symbol <- lengths(optional) > 0
   optional  <- c(rlang::data_syms(optional[is_symbol]), optional[!is_symbol])
-
+  # Separate plotting aesthetics based on whether alpha is defined by a scalar or a mapping variable
+  use.alpha.by <- is.null(x = alpha.by) 
+  
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
     # Use geom_point_rast when generating rasterized plots with specified order
     # (although slower, orders points correctly whereas geom_scattermore does not)
     if (!order_rast) {
-      plot + geom_scattermore(
-        mapping = aes(
-          x = .data[[dims[1]]],
-          y = .data[[dims[2]]],
-          !!!optional
-        ),
-        pointsize = pt.size,
-        alpha = alpha,
-        pixels = raster.dpi
-      )
+      if (use.alpha.by) {
+        plot + geom_scattermore(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          pointsize = pt.size,
+          alpha = alpha,
+          pixels = raster.dpi
+        )
+      } else {
+        plot + geom_scattermore(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          pointsize = pt.size,
+          pixels = raster.dpi
+        )
+      }
     } else {
       rlang::warn(message = "Seurat uses ggrastr::rasterise to maintain point order with rasterization.", 
                   .frequency = "once",
                   .frequency_id = "Seurat-ggrastr-rasterise")
-      plot + ggrastr::rasterise(geom_point(
-        mapping = aes(
-          x = .data[[dims[1]]],
-          y = .data[[dims[2]]],
-          !!!optional
-        ),
-        size = pt.size,
-        alpha = alpha
-      ))
+      if (use.alpha.by) {
+        plot + ggrastr::rasterise(geom_point(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          size = pt.size,
+          alpha = alpha
+        ))
+      } else {
+        plot + ggrastr::rasterise(geom_point(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          size = pt.size
+        ))
+      }
     }
   } else {
-    plot + geom_point(
-      mapping = aes(
-        x = .data[[dims[1]]],
-        y = .data[[dims[2]]],
-        !!!optional
-      ),
-      size = pt.size,
-      alpha = alpha,
-      stroke = stroke.size
-    )
+    if (use.alpha.by) {
+      plot + geom_point(
+        mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+        size = pt.size,
+        alpha = alpha,
+        stroke = stroke.size
+      )
+    } else {
+      plot + geom_point(
+        mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+        size = pt.size,
+        stroke = stroke.size
+      )
+    }
   }
   plot <- plot +
     guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
