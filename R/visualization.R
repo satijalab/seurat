@@ -3503,6 +3503,12 @@ LinkedFeaturePlot <- function(
   )
   coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  sp_x <- colnames(coords)[1]
+  sp_y <- colnames(coords)[2]
+  dp_x <- dims[1]
+  dp_y <- dims[2]
+  # coordinates should be in image space, so need to flip y when setting or displaying info for points
+  flip_y <- function(pt) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])); pt }
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
   server <- function(input, output, session) {
@@ -3556,10 +3562,13 @@ LinkedFeaturePlot <- function(
           coordinfo = if (is.null(x = input[['sphover']])) {
             input$dimhover
           } else {
-            InvertCoordinate(x = input$sphover)
+            flip_y(input$sphover)
           },
           threshold = 10,
-          maxpoints = 1
+          maxpoints = 1,
+          # specify plot-specific axis columns for nearPoints
+          xvar = if (is.null(x = input$sphover)) dp_x else sp_x,
+          yvar = if (is.null(x = input$sphover)) dp_y else sp_y
         ))
         # TODO: Get newlines, extra information, and background color working
         if (length(x = cell.hover) == 1) {
