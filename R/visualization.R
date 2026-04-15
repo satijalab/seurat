@@ -4392,13 +4392,11 @@ SpatialPlot <- function(
   cells <- unique(CellsByImage(object, images = images, unlist = TRUE))
   if (is.null(x = features)) {
     if (interactive) {
-      return(ISpatialDimPlot(
-        object = object,
-        image = images[1],
-        image.scale = image.scale,
-        group.by = group.by,
-        alpha = alpha
-      ))
+      # default alpha is 1 but interactive plotting requires 
+      # a range for proper cluster selection highlighting
+      if (identical(alpha, c(1, 1))) { 
+        alpha <- c(0.1, 1)
+      }
     }
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
