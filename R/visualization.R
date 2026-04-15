@@ -3637,6 +3637,10 @@ ISpatialDimPlot <- function(
     cells = cells.use
   )
   coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
+  sp_x <- colnames(coords)[1]
+  sp_y <- colnames(coords)[2]
+  # coordinates should be in image space, so need to flip y when setting or displaying info for points
+  flip_y <- function(pt) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])); pt }
   scale.factor <- ScaleFactors(object[[image]])[[image.scale]]
   plot.data <- cbind(coords, group.data)
   plot.data$selected_ <- FALSE
@@ -3653,16 +3657,16 @@ ISpatialDimPlot <- function(
     observeEvent(
       eventExpr = input$click,
       handlerExpr = {
+        click$pt <- flip_y(input$click)
         clicked <- nearPoints(
           df = plot.data,
-          coordinfo = InvertCoordinate(x = input$click),
+          coordinfo = click$pt,
           threshold = 10,
           maxpoints = 1,
-          xvar = "y",
-          yvar = "x"
+          xvar = sp_x,
+          yvar = sp_y
         )
         plot.env$data <- if (nrow(x = clicked) == 1) {
-          cell.clicked <- rownames(x = clicked)
           cell.clicked <- rownames(x = clicked)
           group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
           idx.group <- which(x = plot.data[[group.by]] == group.clicked)
@@ -3697,11 +3701,11 @@ ISpatialDimPlot <- function(
       expr = {
         hovered <- nearPoints(
           df = plot.data,
-          coordinfo = InvertCoordinate(x = input$hover),
+          coordinfo = flip_y(input$hover),
           threshold = 10,
           maxpoints = 1,
-          xvar = "y",
-          yvar = "x"
+          xvar = sp_x,
+          yvar = sp_y
         )
         if (nrow(hovered) == 1) {
           cell.hover <- rownames(hovered)
