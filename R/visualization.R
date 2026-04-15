@@ -3357,7 +3357,7 @@ LinkedDimPlot <- function(
             plot.data
           }
         } else if (input$brush$outputId == 'dimplot') {
-          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE)
+          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE, xvar = dp_x, yvar = dp_y)
         } else if (input$brush$outputId == 'spatialplot') {
           b <- input$brush
           b$ymin <- sp_y_max - (b$ymin - sp_y_min)
