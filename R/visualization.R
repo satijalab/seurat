@@ -5031,63 +5031,69 @@ DotPlot <- function(
 
 #' Quickly Pick Relevant Dimensions
 #'
-#' Plots the standard deviations (or approximate singular values if running PCAFast)
-#' of the principle components for easy identification of an elbow in the graph.
-#' This elbow often corresponds well with the significant dims and is much faster to run than
-#' Jackstraw
+#' Plots per-component standard deviations (or approximate singular values if running PCAFast),
+#' percent variance explained per principal component, or cumulative percent variance explained,
+#' to help pick an elbow in the graph. This elbow often corresponds well with significant
+#' dimensions and is much faster to run than Jackstraw.
 #'
 #' @param object Seurat object
-#' @param ndims Number of dimensions to plot 
+#' @param ndims Number of dimensions to plot (positive integer; capped by stored components)
 #' @param reduction Reduction technique to plot (default is 'pca')
-#' @param plot_type Type of plot to generate. Options are 'stdev' or 'variance'
+#' @param plot_type One of \code{"stdev"} (default), \code{"variance"} (per-PC \% variance), or
+#'   \code{"cumulative_variance"} (running sum of those percentages; equals 100\% at the last
+#'   stored PC when \code{ndims} spans all of them)
 #'
 #' @return A ggplot object
 #'
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot geom_point labs element_line
+#' @importFrom ggplot2 ggplot geom_point labs aes
 #' @export
 #' @concept visualization
 #'
 #' @examples
 #' data("pbmc_small")
 #' ElbowPlot(object = pbmc_small)
+#' ElbowPlot(object = pbmc_small, plot_type = "variance")
+#' ElbowPlot(object = pbmc_small, plot_type = "cumulative_variance")
 #'
-ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stdev", "variance")) {
-  # Ensure plot_type is either "stdev" or "variance"
+ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stdev", "variance", "cumulative_variance")) {
   plot_type <- match.arg(plot_type)
-
+  if (!is.numeric(ndims) || length(ndims) != 1L || !is.finite(ndims) || ndims < 1) {
+    stop("'ndims' must be a finite number >= 1", call. = FALSE)
+  }
+  ndims <- as.integer(floor(ndims))
   data.use <- Stdev(object = object, reduction = reduction)
   if (length(x = data.use) == 0) {
     stop(paste("No standard deviation info stored for", reduction))
+  }
+  if (anyNA(data.use)) {
+    stop("Standard deviations contain NA for reduction ", reduction, call. = FALSE)
+  }
+  den <- sum(data.use^2)
+  if (!is.finite(den) || den == 0) {
+    stop("Cannot compute variance explained: sum of squared standard deviations is not positive for reduction ", reduction, call. = FALSE)
   }
   if (ndims > length(x = data.use)) {
     warning("The object only has information for ", length(x = data.use), " reductions")
     ndims <- length(x = data.use)
   }
-  
-  if (plot_type == "variance") {
-    # Calculate variance explained
-    variance_explained <- data.use^2 / sum(data.use^2) * 100
-    y_label <- "Percentage of Variance Explained"
-    y_data <- variance_explained[1:ndims]
-  } else {
-    # Standard deviation
+  if (plot_type == "stdev") {
     y_label <- "Standard Deviation"
     y_data <- data.use[1:ndims]
+  } else {
+    pct <- data.use^2 / den * 100
+    if (plot_type == "variance") {
+      y_label <- "Percentage of Variance Explained"
+      y_data <- pct[1:ndims]
+    } else {
+      y_label <- "Cumulative % Variance Explained"
+      y_data <- cumsum(pct)[1:ndims]
+    }
   }
-  
   plot <- ggplot(data = data.frame(dims = 1:ndims, y_data = y_data)) +
     geom_point(mapping = aes(x = .data[["dims"]], y = .data[["y_data"]])) +
-    labs(
-      x = gsub(
-        pattern = '_$',
-        replacement = '',
-        x = Key(object = object[[reduction]])
-      ),
-      y = y_label
-    ) +
+    labs(x = gsub(pattern = '_$', replacement = '', x = Key(object = object[[reduction]])), y = y_label) +
     theme_cowplot()
-  
   return(plot)
 }
 

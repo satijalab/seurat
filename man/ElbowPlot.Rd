@@ -8,30 +8,34 @@ ElbowPlot(
   object,
   ndims = 20,
   reduction = "pca",
-  plot_type = c("stdev", "variance")
+  plot_type = c("stdev", "variance", "cumulative_variance")
 )
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{ndims}{Number of dimensions to plot}
+\item{ndims}{Number of dimensions to plot (positive integer; capped by stored components)}
 
 \item{reduction}{Reduction technique to plot (default is 'pca')}
 
-\item{plot_type}{Type of plot to generate. Options are 'stdev' or 'variance'}
+\item{plot_type}{One of \code{"stdev"} (default), \code{"variance"} (per-PC \% variance), or
+\code{"cumulative_variance"} (running sum of those percentages; equals 100\% at the last
+stored PC when \code{ndims} spans all of them)}
 }
 \value{
 A ggplot object
 }
 \description{
-Plots the standard deviations (or approximate singular values if running PCAFast)
-of the principle components for easy identification of an elbow in the graph.
-This elbow often corresponds well with the significant dims and is much faster to run than
-Jackstraw
+Plots per-component standard deviations (or approximate singular values if running PCAFast),
+percent variance explained per principal component, or cumulative percent variance explained,
+to help pick an elbow in the graph. This elbow often corresponds well with significant
+dimensions and is much faster to run than Jackstraw.
 }
 \examples{
 data("pbmc_small")
 ElbowPlot(object = pbmc_small)
+ElbowPlot(object = pbmc_small, plot_type = "variance")
+ElbowPlot(object = pbmc_small, plot_type = "cumulative_variance")
 
 }
 \concept{visualization}
