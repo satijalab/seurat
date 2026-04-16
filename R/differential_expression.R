@@ -2251,33 +2251,64 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- as.list(set_median_umi)
   all_genes <- rownames(x = object[[assay]])
   # correct counts
+  # Recorrect raw UMI counts for one SCT model at a shared target depth
+  # We only recorrect genes whose fitted SCT parameters are all finite
+  # Genes with non finite fitted parameters can produce invalid values during recorrection,
+  # so we exclude them here and add them back later as zero rows to preserve the full feature set
   my.correct_counts <- function(model_name){
-    model_genes <- rownames(x = model_pars_fit[[model_name]])
-      x <- list(
-        model_str = model_str[[model_name]],
-        arguments = arguments[[model_name]],
-        model_pars_fit = as.matrix(x = model_pars_fit[[model_name]]),
-        cell_attr = cell_attr[[model_name]]
-      )
-      cells <- rownames(x = cell_attr[[model_name]])
-      umi <- raw_umi[all_genes, cells]
+    # Retrieve model parameters SCT model per-gene
+    pars <- model_pars_fit[[model_name]]
 
-      umi_corrected <- correct_counts(
-        x = x,
-        umi = umi,
-        verbosity = 0,
-        scale_factor = min_median_umi
-      )
-      missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
-      corrected_counts.list <- NULL
-      gc(verbose = FALSE)
-      empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
-      rownames(x = empty) <- missing_features
-      colnames(x = umi_corrected) <- colnames(x = umi_corrected)
+    # Keep only genes with finite fitted parameters
+    # This is because in split-layer SCT workflows, some sparse genes may have NaN values for
+    # fitted parameters due to low expression levels in some layers
+    valid_genes <- rownames(pars)[
+      is.finite(pars[, "theta"]) &
+      is.finite(pars[, "(Intercept)"]) &
+      is.finite(pars[, "log_umi"])
+    ]
 
-      umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
+    cells <- rownames(cell_attr[[model_name]])
+    # Prepare input list for correct_counts function
+    x <- list(
+      model_str = model_str[[model_name]],
+      arguments = arguments[[model_name]],
+      model_pars_fit = as.matrix(pars[valid_genes, , drop = FALSE]),
+      cell_attr = cell_attr[[model_name]]
+    )
+    # Retrieve raw UMI counts for valid genes and cells
+    umi <- raw_umi[valid_genes, cells, drop = FALSE]
 
-      return(umi_corrected)
+    # Recorrect counts to the common minimum median UMI depth so that counts from different 
+    #SCT models are on the same scale
+    umi_corrected <- correct_counts(
+      x = x,
+      umi = umi,
+      verbosity = 0,
+      scale_factor = min_median_umi
+    )
+
+    # Remove invalid rows to prevent downstream issues with non-finite values in corrected counts
+    # Want to avoid any NaN propagation into SCT assay
+    bad_idx <- which(!is.finite(umi_corrected@x))
+    # correct_counts produces a sparse matrix so we can use the x and i slots for efficiency
+    if (length(bad_idx) > 0) {
+      # For sparse matrices, @x stores nonzero values and @i stores their zero based row indices
+      bad_rows <- unique(umi_corrected@i[bad_idx] + 1) 
+      umi_corrected <- umi_corrected[-bad_rows, , drop = FALSE]
+    }
+    # Add back any genes that were not recorrected for this model (removed above)
+    # This keeps the corrected matrix aligned to the full assay wide gene set
+    missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
+    gc(verbose = FALSE)
+    empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
+    rownames(x = empty) <- missing_features
+    colnames(x = empty) <- colnames(x = umi_corrected)
+
+    # Restore full gene set, original row order
+    umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
+
+    return(umi_corrected)
   }
   corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
                                      FUN = my.correct_counts)
