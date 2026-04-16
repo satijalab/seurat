@@ -2288,20 +2288,18 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
       scale_factor = min_median_umi
     )
 
-    # Safety check to remove any NaN rows that remained after recorrection
-    # If any NaN values remain, set them to 0 to avoid downstream issues
+    # Remove invalid rows to prevent downstream issues with non-finite values in corrected counts
     # Want to avoid any NaN propagation into SCT assay
-    bad_rows <- rownames(umi_corrected)[
-      apply(umi_corrected, 1, function(z) any(!is.finite(z)))
-    ]
-    if (length(bad_rows) > 0) {
-      umi_corrected[bad_rows, ] <- 0
+    bad_idx <- which(!is.finite(umi_corrected@x))
+    # correct_counts produces a sparse matrix so we can use the x and i slots for efficiency
+    if (length(bad_idx) > 0) {
+      # For sparse matrices, @x stores nonzero values and @i stores their zero based row indices
+      bad_rows <- unique(umi_corrected@i[bad_idx] + 1) 
+      umi_corrected <- umi_corrected[-bad_rows, , drop = FALSE]
     }
-
-    # Add back any genes that were not recorrected for this model as zero rows
+    # Add back any genes that were not recorrected for this model (removed above)
     # This keeps the corrected matrix aligned to the full assay wide gene set
     missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
-    corrected_counts.list <- NULL
     gc(verbose = FALSE)
     empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
     rownames(x = empty) <- missing_features
