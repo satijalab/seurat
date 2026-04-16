@@ -5058,10 +5058,10 @@ DotPlot <- function(
 #'
 ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stdev", "variance", "cumulative_variance")) {
   plot_type <- match.arg(plot_type)
-  if (!is.numeric(ndims) || length(ndims) != 1L || !is.finite(ndims) || ndims < 1) {
-    stop("'ndims' must be a finite number >= 1", call. = FALSE)
+  if (!is.numeric(ndims) || length(ndims) != 1L || !is.finite(ndims) || ndims < 1 || ndims != as.integer(ndims)) {
+    stop("'ndims' must be a single positive integer", call. = FALSE)
   }
-  ndims <- as.integer(floor(ndims))
+  ndims <- as.integer(ndims)
   data.use <- Stdev(object = object, reduction = reduction)
   if (length(x = data.use) == 0) {
     stop(paste("No standard deviation info stored for", reduction))
