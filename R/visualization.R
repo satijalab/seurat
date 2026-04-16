@@ -5074,7 +5074,7 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stde
     stop("Cannot compute variance explained: sum of squared standard deviations is not positive for reduction ", reduction, call. = FALSE)
   }
   if (ndims > length(x = data.use)) {
-    warning("The object only has information for ", length(x = data.use), " reductions")
+    warning("The object only has information for ", length(x = data.use), " dimensions")
     ndims <- length(x = data.use)
   }
   if (plot_type == "stdev") {
