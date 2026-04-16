@@ -5069,10 +5069,6 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stde
   if (anyNA(data.use)) {
     stop("Standard deviations contain NA for reduction ", reduction, call. = FALSE)
   }
-  den <- sum(data.use^2)
-  if (!is.finite(den) || den == 0) {
-    stop("Cannot compute variance explained: sum of squared standard deviations is not positive for reduction ", reduction, call. = FALSE)
-  }
   if (ndims > length(x = data.use)) {
     warning("The object only has information for ", length(x = data.use), " dimensions")
     ndims <- length(x = data.use)
@@ -5081,6 +5077,10 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca', plot_type = c("stde
     y_label <- "Standard Deviation"
     y_data <- data.use[1:ndims]
   } else {
+    den <- sum(data.use^2)
+    if (!is.finite(den) || den == 0) {
+      stop("Cannot compute variance explained: sum of squared standard deviations is not positive for reduction ", reduction, call. = FALSE)
+    }
     pct <- data.use^2 / den * 100
     if (plot_type == "variance") {
       y_label <- "Percentage of Variance Explained"
