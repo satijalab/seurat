@@ -33,6 +33,7 @@ SpatialPlot(
   alpha = c(1, 1),
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -62,6 +63,7 @@ SpatialDimPlot(
   image.scale = "lowres",
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   label.box = TRUE,
   interactive = FALSE,
   information = NULL,
@@ -85,6 +87,7 @@ SpatialFeaturePlot(
   image.scale = "lowres",
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   interactive = FALSE,
   information = NULL,
   plot_segmentations = FALSE
@@ -173,6 +176,9 @@ alpha value for each plot.}
 The default is 21, which plots circles - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
+
+\item{stroke.alpha}{Control the opacity of spot borders (when stroke is specified). 
+Set to \code{NA} to use the same alpha as the fill.}
 
 \item{interactive}{Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 session, see \code{\link{ISpatialDimPlot}} or

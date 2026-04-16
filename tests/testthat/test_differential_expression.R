@@ -482,7 +482,42 @@ test_that("BPCells FindAllMarkers gives same results", {
   expect_equal(rownames(results.bp)[1], "HLA-DPB1")
 })
 
+test_that("BPCells FindAllMarkers warns for column-major storage", {
+  skip_on_cran()
+  skip_if_not_installed("BPCells")
+  library(BPCells)
+  library(Matrix)
 
+  mat_bpcells_row <- t(as(t(pbmc_small[['RNA']]$counts), "IterableMatrix"))
+  mat_bpcells_col <- BPCells::transpose_storage_order(mat_bpcells_row)
+
+  expect_equal(BPCells::storage_order(mat_bpcells_col), "col")
+
+  pbmc_small[['RNAbpRowMajor']] <- CreateAssay5Object(counts = mat_bpcells_row)
+  pbmc_small[['RNAbpColMajor']] <- CreateAssay5Object(counts = mat_bpcells_col)
+  pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbpRowMajor")
+  pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbpColMajor")
+
+  fam.results.row <- suppressMessages(
+    suppressWarnings(
+      FindAllMarkers(object = pbmc_small, assay = "RNAbpRowMajor", pseudocount.use = 1)
+    )
+  )
+  fam.results.col <- suppressMessages(
+    expect_warning(
+      FindAllMarkers(object = pbmc_small, assay = "RNAbpColMajor", pseudocount.use = 1),
+      regexp = "Column-major order detected"
+    )
+  )
+  fm.results.col.2 <- suppressMessages(
+    expect_warning(
+        FindMarkers(object = pbmc_small, assay = "RNAbpColMajor", ident.1 = 0, ident.2 = 1),
+        regexp = "Column-major order detected"
+    )
+  )
+  expect_equal(fam.results.col$gene, fam.results.row$gene)
+  expect_equal(fam.results.col$cluster, fam.results.row$cluster)
+})
 
 # Tests for FindConservedMarkers
 # -------------------------------------------------------------------------------

@@ -30,6 +30,8 @@ Seurat uses the following [options()] to configure behaviour:
   Moran's I function available via the Rfast2 package}}
   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
   default behavior of split/multi violin plots}
+  \item{\code{Seurat.warn.findmarkers.bpcells.colmajor}}{Show message about improving
+  memory usage when running FindMarkers with a column-major ordered BPCells IterableMatrix.}
 }
 }
 

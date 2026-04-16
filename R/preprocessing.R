@@ -221,7 +221,7 @@ HTODemux <- function(
     object = object,
     assay = assay,
     layer = 'counts'
-  )[, colnames(x = object)]
+  )
   counts <- as.matrix(x = counts)
   ncenters <- init %||% (nrow(x = data) + 1)
   switch(
@@ -265,7 +265,7 @@ HTODemux <- function(
   discrete[discrete > 0] <- 0
   # for each HTO, we will use the minimum cluster for fitting
   for (iter in rownames(x = data)) {
-    values <- counts[iter, colnames(object)]
+    values <- counts[iter, ]
     #commented out if we take all but the top cluster as background
     #values_negative=values[setdiff(object@cell.names,WhichCells(object,which.max(average.expression[iter,])))]
     values.use <- values[WhichCells(
@@ -4160,6 +4160,11 @@ SCTransform.Assay <- function(
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
+    rlang::warn(
+      "A reference SCT model was provided, therefore counts are not corrected (regardless of do.correct.umi)",
+      .frequency = "once",
+      .frequency_id = "SCTransform-reference-SCTmodel-correct-counts"
+    )
   }
 
   umi <- GetAssayData(object = object, layer = 'counts')
