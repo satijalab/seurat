@@ -2305,7 +2305,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     gc(verbose = FALSE)
     empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
     rownames(x = empty) <- missing_features
-    colnames(x = umi_corrected) <- colnames(x = umi_corrected)
+    colnames(x = empty) <- colnames(x = umi_corrected)
 
     # Restore full gene set, original row order
     umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
