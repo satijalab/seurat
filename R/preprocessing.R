@@ -4298,10 +4298,10 @@ SCTransform.Seurat <- function(
   sct_models <- slot(object = assay.data, name = "SCTModel.list")
   
   # Update umi.assay field for every SCT model 
-  for (i in seq_along(sct_models)) {
-    slot(object = sct_models[[i]], name = "umi.assay") <- assay
-  }
-  slot(object = assay.data, name = "SCTModel.list") <- sct_models
+  slot(object = assay.data, name = "SCTModel.list") <- lapply(sct_models, function(model) {
+    slot(model, name = "umi.assay") <- assay
+    model
+  })
 
   object[[new.assay.name]] <- assay.data
 
