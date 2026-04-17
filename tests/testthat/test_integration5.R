@@ -134,6 +134,68 @@ test_that("IntegrateLayers works with CCAIntegration", {
   expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
 })
 
+test_that("StandardizeBPCells matches C++ Standardize", {
+  skip_on_cran()
+  skip_if_not_installed("BPCells")
+  set.seed(42)
+  m <- matrix(rnorm(200), nrow = 20, ncol = 10)
+  colnames(m) <- paste0("cell", 1:10)
+  rownames(m) <- paste0("gene", 1:20)
+  std_cpp <- Standardize(mat = m, display_progress = FALSE)
+  bm <- as(as(m, "dgCMatrix"), "IterableMatrix")
+  std_bp <- as.matrix(StandardizeBPCells(mat = bm))
+  expect_equal(unname(std_bp), unname(std_cpp), tolerance = 1e-10)
+})
+
+test_that("RunCCA.IterableMatrix matches RunCCA.default", {
+  skip_on_cran()
+  skip_if_not_installed("BPCells")
+  set.seed(42)
+  m1 <- matrix(rnorm(500), nrow = 50, ncol = 10)
+  m2 <- matrix(rnorm(600), nrow = 50, ncol = 12)
+  colnames(m1) <- paste0("a_", 1:10)
+  colnames(m2) <- paste0("b_", 1:12)
+  rownames(m1) <- rownames(m2) <- paste0("gene", 1:50)
+  res_dense <- RunCCA(object1 = m1, object2 = m2, num.cc = 5, seed.use = 42)
+  bm1 <- as(as(m1, "dgCMatrix"), "IterableMatrix")
+  bm2 <- as(as(m2, "dgCMatrix"), "IterableMatrix")
+  res_bp <- RunCCA(object1 = bm1, object2 = bm2, num.cc = 5, seed.use = 42)
+  expect_equal(abs(res_bp$ccv), abs(res_dense$ccv), tolerance = 1e-6)
+  expect_equal(res_bp$d, res_dense$d, tolerance = 1e-6)
+})
+
+test_that("CCAIntegration works with BPCells on-disk data", {
+  skip_on_cran()
+  skip_if_not_installed("BPCells")
+  test.data.bp <- test.data.std
+  for (lyr in Layers(test.data.bp[["RNA"]])) {
+    mat <- LayerData(test.data.bp, assay = "RNA", layer = lyr)
+    bp_mat <- as(as(as.matrix(mat), "dgCMatrix"), "IterableMatrix")
+    LayerData(test.data.bp, assay = "RNA", layer = lyr) <- bp_mat
+  }
+  # BPCells integration should run without converting to dgCMatrix
+  integrated_bp <- suppressWarnings(IntegrateLayers(
+    test.data.bp, method = CCAIntegration,
+    orig.reduction = "pca", new.reduction = "integrated",
+    verbose = FALSE, k.weight = 10
+  ))
+  integrated_mem <- suppressWarnings(IntegrateLayers(
+    test.data.std, method = CCAIntegration,
+    orig.reduction = "pca", new.reduction = "integrated",
+    verbose = FALSE, k.weight = 10
+  ))
+  # the integrated reduction should have the same dimensions
+  expect_equal(dim(integrated_bp[["integrated"]]), dim(integrated_mem[["integrated"]]))
+  expect_equal(
+    rownames(Embeddings(integrated_bp[["integrated"]])),
+    rownames(Embeddings(integrated_mem[["integrated"]]))
+  )
+  expect_equal(
+    colnames(Embeddings(integrated_bp[["integrated"]])),
+    colnames(Embeddings(integrated_mem[["integrated"]]))
+  )
+})
+
 test_that("IntegrateLayers works with RPCAIntegration", {
   integrated <- suppressWarnings(
     IntegrateLayers(

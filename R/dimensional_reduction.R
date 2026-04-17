@@ -491,6 +491,27 @@ ProjectUMAP.Seurat <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Standardize a BPCells IterableMatrix using lazy transforms
+#'
+#' Replaces the C++ \code{Standardize()} for on-disk BPCells matrices.
+#' Each column is centered to mean 0 and scaled to unit variance (sample
+#' variance, n-1 denominator) using lazy BPCells transforms that avoid
+#' materializing the full matrix.
+#'
+#' @param mat A BPCells IterableMatrix
+#'
+#' @return A lazily transformed IterableMatrix
+#'
+#' @keywords internal
+#'
+StandardizeBPCells <- function(mat) {
+  stats <- BPCells::matrix_stats(matrix = mat, col_stats = "variance")$col_stats
+  col_mean <- stats["mean", ]
+  col_sd <- sqrt(stats["variance", ])
+  col_sd[col_sd == 0] <- 1
+  BPCells::multiply_cols(BPCells::add_cols(mat, -col_mean), 1.0 / col_sd)
+}
+
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
@@ -522,6 +543,66 @@ RunCCA.default <- function(
     object2 <- Standardize(mat = object2, display_progress = FALSE)
   }
   mat3 <- crossprod(x = object1, y = object2)
+  cca.svd <- irlba(A = mat3, nv = num.cc)
+  cca.data <- rbind(cca.svd$u, cca.svd$v)
+  colnames(x = cca.data) <- paste0("CC", 1:num.cc)
+  rownames(cca.data) <- c(cells1, cells2)
+  cca.data <- apply(
+    X = cca.data,
+    MARGIN = 2,
+    FUN = function(x) {
+      if (sign(x[1]) == -1) {
+        x <- x * -1
+      }
+      return(x)
+    }
+  )
+  return(list(ccv = cca.data, d = cca.svd$d))
+}
+
+#' @rdname RunCCA
+#' @concept dimensional_reduction
+#' @export
+#' @method RunCCA IterableMatrix
+#'
+RunCCA.IterableMatrix <- function(
+  object1,
+  object2,
+  standardize = TRUE,
+  num.cc = 20,
+  seed.use = 42,
+  verbose = FALSE,
+  ...
+) {
+  if (!inherits(x = object2, what = "IterableMatrix")) {
+    return(RunCCA.default(
+      object1 = as.matrix(x = object1),
+      object2 = as.matrix(x = object2),
+      standardize = standardize,
+      num.cc = num.cc,
+      seed.use = seed.use,
+      verbose = verbose,
+      ...
+    ))
+  }
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  cells1 <- colnames(x = object1)
+  cells2 <- colnames(x = object2)
+  if (standardize) {
+    object1 <- StandardizeBPCells(mat = object1)
+    object2 <- StandardizeBPCells(mat = object2)
+  }
+  n1 <- ncol(x = object1)
+  n2 <- ncol(x = object2)
+  if (n2 <= n1) {
+    obj2_dense <- as.matrix(x = object2)
+    mat3 <- as.matrix(x = t(x = object1) %*% obj2_dense)
+  } else {
+    obj1_dense <- as.matrix(x = object1)
+    mat3 <- as.matrix(x = t(x = obj1_dense) %*% object2)
+  }
   cca.svd <- irlba(A = mat3, nv = num.cc)
   cca.data <- rbind(cca.svd$u, cca.svd$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
