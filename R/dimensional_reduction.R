@@ -512,6 +512,69 @@ StandardizeBPCells <- function(mat) {
   BPCells::multiply_cols(BPCells::add_cols(mat, -col_mean), 1.0 / col_sd)
 }
 
+#' Create a lazy cross-product for two BPCells matrices
+#'
+#' Represents \code{t(m1) \%*\% m2} without materializing either matrix.
+#' Used with \code{irlba}'s \code{mult} parameter so that each SVD iteration
+#' streams two matrix-vector products from disk.
+#'
+#' @param m1 First IterableMatrix (features x cells1)
+#' @param m2 Second IterableMatrix (features x cells2)
+#'
+#' @return A LazyXProd object with \code{dim = c(ncol(m1), ncol(m2))}
+#'
+#' @keywords internal
+#'
+new_lazy_xprod <- function(m1, m2) {
+  obj <- new.env(parent = emptyenv())
+  obj$m1 <- m1
+  obj$m2 <- m2
+  obj$.dim <- c(ncol(x = m1), ncol(x = m2))
+  class(obj) <- "LazyXProd"
+  obj
+}
+
+#' @keywords internal
+#' @export
+dim.LazyXProd <- function(x) x$.dim
+
+#' @keywords internal
+#' @export
+t.LazyXProd <- function(x) {
+  new_lazy_xprod(m1 = x$m2, m2 = x$m1)
+}
+
+#' Multiply a LazyXProd by a dense matrix
+#'
+#' Handles both argument orders used by \code{\link[irlba]{irlba}}:
+#' \itemize{
+#'   \item Forward: \code{mult(A, x)} computes \code{t(m1) \%*\% (m2 \%*\% x)}
+#'   \item Adjoint: \code{mult(x, A)} computes \code{t(m2) \%*\% (m1 \%*\% x)}
+#' }
+#' Each call streams two matrix-vector products without materializing either
+#' IterableMatrix.
+#'
+#' @param X Either a LazyXProd (forward) or dense vector/matrix (adjoint)
+#' @param Y Either a dense vector/matrix (forward) or LazyXProd (adjoint)
+#'
+#' @return A dense matrix
+#'
+#' @keywords internal
+#'
+lazy_xprod_mult <- function(X, Y) {
+  if (inherits(x = X, what = "LazyXProd")) {
+    # Forward: A %*% y = t(m1) %*% (m2 %*% y)
+    temp <- X$m2 %*% Y
+    return(as.matrix(x = t(x = X$m1) %*% temp))
+  }
+  # Adjoint: x %*% A = (t(A) %*% x^T)^T
+  # With A = t(m1) %*% m2, t(A) = t(m2) %*% m1
+  # x %*% A = (t(m2) %*% (m1 %*% x^T))^T
+  X <- rbind(X)
+  temp <- Y$m1 %*% t(x = X)
+  return(t(x = as.matrix(x = t(x = Y$m2) %*% temp)))
+}
+
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
@@ -594,16 +657,10 @@ RunCCA.IterableMatrix <- function(
     object1 <- StandardizeBPCells(mat = object1)
     object2 <- StandardizeBPCells(mat = object2)
   }
-  n1 <- ncol(x = object1)
-  n2 <- ncol(x = object2)
-  if (n2 <= n1) {
-    obj2_dense <- as.matrix(x = object2)
-    mat3 <- as.matrix(x = t(x = object1) %*% obj2_dense)
-  } else {
-    obj1_dense <- as.matrix(x = object1)
-    mat3 <- as.matrix(x = t(x = obj1_dense) %*% object2)
-  }
-  cca.svd <- irlba(A = mat3, nv = num.cc)
+  # Use lazy cross-product: t(object1) %*% object2 is never materialized.
+  # Each irlba iteration streams two matrix-vector products from disk.
+  xprod <- new_lazy_xprod(m1 = object1, m2 = object2)
+  cca.svd <- irlba(A = xprod, nv = num.cc, mult = lazy_xprod_mult)
   cca.data <- rbind(cca.svd$u, cca.svd$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
   rownames(cca.data) <- c(cells1, cells2)
