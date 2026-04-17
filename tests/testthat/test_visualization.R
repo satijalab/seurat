@@ -47,8 +47,8 @@ test_that("ElbowPlot variance and cumulative match PCA variance fractions", {
 })
 
 test_that("ElbowPlot ndims validation and missing Stdev", {
-  expect_error(ElbowPlot(pbmc_small, ndims = 0), "'ndims' must be a finite number")
-  expect_error(ElbowPlot(pbmc_small, ndims = -1), "'ndims' must be a finite number")
+  expect_error(ElbowPlot(pbmc_small, ndims = 0), "'ndims' must be a single positive integer")
+  expect_error(ElbowPlot(pbmc_small, ndims = -1), "'ndims' must be a single positive integer")
   expect_error(ElbowPlot(pbmc_small, reduction = "tsne"), "No standard deviation info stored")
   expect_warning(ElbowPlot(pbmc_small, ndims = 50, reduction = "pca"), "only has information for")
 })
