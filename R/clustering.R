@@ -858,7 +858,9 @@ FindNeighbors.Seurat <- function(
     )
   }
   if (length(x = neighbor.graphs) == 1) {
-    neighbor.graphs <- list(nn = neighbor.graphs)
+    if (length(x = neighbor.graphs) == 1 && !identical(names(neighbor.graphs), "nn")) {
+      neighbor.graphs <- list(nn = neighbor.graphs)
+    }
   }
   graph.name <- graph.name %||%
     if (return.neighbor) {
