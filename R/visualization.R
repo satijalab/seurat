@@ -3954,8 +3954,8 @@ ISpatialFeaturePlot <- function(
 #' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
 #'
 #' @importFrom grDevices png dev.off
-#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel runGadget
-#' @importFrom shiny uiOutput reactiveVal renderUI tags observeEvent stopApp
+#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel
+#' @importFrom shiny uiOutput reactiveVal renderUI tags observeEvent stopApp runGadget
 #'
 #' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
@@ -9581,9 +9581,9 @@ SingleRasterMap <- function(
 #' @return A ggplot2 object
 #'
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot coord_fixed geom_point 
-#' xlim ylim coord_cartesian labs theme_void theme 
-#' scale_fill_brewer scale_y_reverse annotation_custom
+#' @importFrom ggplot2 ggplot coord_fixed geom_point xlim ylim
+#' coord_cartesian labs theme_void theme scale_fill_brewer
+#' scale_y_reverse annotation_custom after_scale
 #'
 #' @keywords internal
 #'

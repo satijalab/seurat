@@ -4,22 +4,20 @@
 
 # Seurat v5
 
-Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
+Seurat is an R toolkit for single-cell genomics, developed and maintained by the [Satija Lab](https://satijalab.org/) at [NYGC](https://www.nygenome.org/).
 
-We are excited to release Seurat v5! This updates introduces new functionality for spatial, multimodal, and scalable single-cell analysis.
+> We are excited to release Seurat v5! This update introduces new functionality for spatial, multimodal, and scalable single-cell analysis.
+>
+> Seurat v5 is backwards-compatible with previous versions, so that users will continue to be able to re-run existing workflows. 
 
-Seurat v5 is backwards-compatible with previous versions, so that users will continue to be able to re-run existing workflows. 
-
-Instructions, documentation, and tutorials can be found at:
+Installation instructions, documentation, and tutorials can be found at:
 
 * https://satijalab.org/seurat
 
-Seurat is also hosted on GitHub, you can view and clone the repository at
+Seurat can be successfully installed in R on any system (Mac OS X, Linux, Windows).
 
-* https://github.com/satijalab/seurat
+Improvements and new features are added on a regular basis. For the most up-to-date development version, refer to the `main` branch. For the most recent version released on CRAN, refer to the `cran` branch.
 
-Seurat has been successfully installed on Mac OS X, Linux, and Windows, using the devtools package to install directly from GitHub
+Please post under [Issues](https://github.com/satijalab/seurat/issues) with any bug reports, feature requests, etc., and use [Discussions](https://github.com/satijalab/seurat/discussions) to engage with the wider Seurat community on analysis questions and other topics. [PRs](https://github.com/satijalab/seurat/pulls) are welcome if you would like to contribute.
 
-Improvements and new features will be added on a regular basis, please post on the [github page](https://github.com/satijalab/seurat) with any questions or if you would like to contribute
-
-For a version history/changelog, please see the [NEWS file](https://github.com/satijalab/seurat/blob/master/NEWS.md).
+For a version history/changelog, please see the [NEWS file](https://github.com/satijalab/seurat/blob/main/NEWS.md).
