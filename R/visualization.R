@@ -3286,15 +3286,16 @@ LinkedDimPlot <- function(
   plot.data$selected_ <- FALSE
   Idents(object = object) <- group.by
 
-  # Retrieve coordinates for tissue plot and dim plot seperately
+  # Retrieve coordinates for tissue plot and dim plot separately
   sp_x <- colnames(coords)[1]
   sp_y <- colnames(coords)[2]
   dp_x <- dims[1]
   dp_y <- dims[2]
-  sp_y_min <- min(plot.data[[sp_y]]); sp_y_max <- max(plot.data[[sp_y]])
+  sp_y_min <- min(plot.data[[sp_y]])
+  sp_y_max <- max(plot.data[[sp_y]])
 
   # Add tiny helper function to flip interactive coordinate points
-  flip_y <- function(pt) { pt$y <- sp_y_max - (pt$y - sp_y_min); pt }
+  flip_y <- function(pt) { if (!is.null(pt$y)) { pt$y <- sp_y_max - (pt$y - sp_y_min) }; pt }
 
   # Setup the server
   server <- function(input, output, session) {
@@ -3316,6 +3317,8 @@ LinkedDimPlot <- function(
       handlerExpr = {
         click$pt <- NULL
         click$invert <- FALSE
+        plot.env$data <- plot.data
+        plot.env$alpha.by <- NULL
         session$resetBrush(brushId = 'brush')
       }
     )
@@ -3357,7 +3360,7 @@ LinkedDimPlot <- function(
             plot.data
           }
         } else if (input$brush$outputId == 'dimplot') {
-          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE)
+          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE, xvar = dp_x, yvar = dp_y)
         } else if (input$brush$outputId == 'spatialplot') {
           b <- input$brush
           b$ymin <- sp_y_max - (b$ymin - sp_y_min)
@@ -3503,6 +3506,12 @@ LinkedFeaturePlot <- function(
   )
   coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  sp_x <- colnames(coords)[1]
+  sp_y <- colnames(coords)[2]
+  dp_x <- dims[1]
+  dp_y <- dims[2]
+  # coordinates should be in image space, so need to flip y when setting or displaying info for points
+  flip_y <- function(pt) { if (!is.null(pt)) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])) }; pt }
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
   server <- function(input, output, session) {
@@ -3556,10 +3565,13 @@ LinkedFeaturePlot <- function(
           coordinfo = if (is.null(x = input[['sphover']])) {
             input$dimhover
           } else {
-            InvertCoordinate(x = input$sphover)
+            flip_y(input$sphover)
           },
           threshold = 10,
-          maxpoints = 1
+          maxpoints = 1,
+          # specify plot-specific axis columns for nearPoints
+          xvar = if (is.null(x = input$sphover)) dp_x else sp_x,
+          yvar = if (is.null(x = input$sphover)) dp_y else sp_y
         ))
         # TODO: Get newlines, extra information, and background color working
         if (length(x = cell.hover) == 1) {
@@ -3628,6 +3640,10 @@ ISpatialDimPlot <- function(
     cells = cells.use
   )
   coords <- GetTissueCoordinates(object = object[[image]], scale = image.scale)
+  sp_x <- colnames(coords)[1]
+  sp_y <- colnames(coords)[2]
+  # coordinates should be in image space, so need to flip y when setting or displaying info for points
+  flip_y <- function(pt) { if (!is.null(pt)) { pt$y <- max(coords[[sp_y]]) - (pt$y - min(coords[[sp_y]])) }; pt }
   scale.factor <- ScaleFactors(object[[image]])[[image.scale]]
   plot.data <- cbind(coords, group.data)
   plot.data$selected_ <- FALSE
@@ -3644,16 +3660,16 @@ ISpatialDimPlot <- function(
     observeEvent(
       eventExpr = input$click,
       handlerExpr = {
+        click$pt <- flip_y(input$click)
         clicked <- nearPoints(
           df = plot.data,
-          coordinfo = InvertCoordinate(x = input$click),
+          coordinfo = click$pt,
           threshold = 10,
           maxpoints = 1,
-          xvar = "y",
-          yvar = "x"
+          xvar = sp_x,
+          yvar = sp_y
         )
         plot.env$data <- if (nrow(x = clicked) == 1) {
-          cell.clicked <- rownames(x = clicked)
           cell.clicked <- rownames(x = clicked)
           group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
           idx.group <- which(x = plot.data[[group.by]] == group.clicked)
@@ -3688,11 +3704,11 @@ ISpatialDimPlot <- function(
       expr = {
         hovered <- nearPoints(
           df = plot.data,
-          coordinfo = InvertCoordinate(x = input$hover),
+          coordinfo = flip_y(input$hover),
           threshold = 10,
           maxpoints = 1,
-          xvar = "y",
-          yvar = "x"
+          xvar = sp_x,
+          yvar = sp_y
         )
         if (nrow(hovered) == 1) {
           cell.hover <- rownames(hovered)
@@ -4379,13 +4395,34 @@ SpatialPlot <- function(
   cells <- unique(CellsByImage(object, images = images, unlist = TRUE))
   if (is.null(x = features)) {
     if (interactive) {
-      return(ISpatialDimPlot(
-        object = object,
-        image = images[1],
-        image.scale = image.scale,
-        group.by = group.by,
-        alpha = alpha
-      ))
+      # default alpha is 1 but interactive plotting requires 
+      # a range for proper cluster selection highlighting
+      if (identical(alpha, c(1, 1))) { 
+        alpha <- c(0.1, 1)
+      }
+      tryCatch(
+         expr = {
+           return(ISpatialDimPlot(
+             object = object,
+             image = images[1],
+             image.scale = image.scale,
+             group.by = group.by,
+             alpha = alpha
+           ))
+         },
+         error = function(e) {
+          # error can occur when image and assay don't match
+          # or when the default assay set doesn't have data corresponding to the default ident etc.
+          if (grepl("arguments imply differing number of rows", conditionMessage(e))) {
+            stop(
+              "Cells were removed due to missing data; check if the specified image and assay are correct.\n",
+              call. = FALSE
+            )
+          } else {
+            stop(e)
+          }
+         }
+      )
     }
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
@@ -8825,47 +8862,60 @@ SingleDimPlot <- function(
   optional  <- list(color = col.by, shape = shape.by, alpha = alpha.by)
   is_symbol <- lengths(optional) > 0
   optional  <- c(rlang::data_syms(optional[is_symbol]), optional[!is_symbol])
-
+  # Separate plotting aesthetics based on whether alpha is defined by a scalar or a mapping variable
+  use.alpha <- is.null(x = alpha.by) 
+  
   plot <- ggplot(data = data)
   plot <- if (isTRUE(x = raster)) {
     # Use geom_point_rast when generating rasterized plots with specified order
     # (although slower, orders points correctly whereas geom_scattermore does not)
     if (!order_rast) {
-      plot + geom_scattermore(
-        mapping = aes(
-          x = .data[[dims[1]]],
-          y = .data[[dims[2]]],
-          !!!optional
-        ),
-        pointsize = pt.size,
-        alpha = alpha,
-        pixels = raster.dpi
-      )
+      if (use.alpha) {
+        plot + geom_scattermore(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          pointsize = pt.size,
+          alpha = alpha,
+          pixels = raster.dpi
+        )
+      } else {
+        plot + geom_scattermore(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          pointsize = pt.size,
+          pixels = raster.dpi
+        )
+      }
     } else {
       rlang::warn(message = "Seurat uses ggrastr::rasterise to maintain point order with rasterization.", 
                   .frequency = "once",
                   .frequency_id = "Seurat-ggrastr-rasterise")
-      plot + ggrastr::rasterise(geom_point(
-        mapping = aes(
-          x = .data[[dims[1]]],
-          y = .data[[dims[2]]],
-          !!!optional
-        ),
-        size = pt.size,
-        alpha = alpha
-      ))
+      if (use.alpha) {
+        plot + ggrastr::rasterise(geom_point(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          size = pt.size,
+          alpha = alpha
+        ))
+      } else {
+        plot + ggrastr::rasterise(geom_point(
+          mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+          size = pt.size
+        ))
+      }
     }
   } else {
-    plot + geom_point(
-      mapping = aes(
-        x = .data[[dims[1]]],
-        y = .data[[dims[2]]],
-        !!!optional
-      ),
-      size = pt.size,
-      alpha = alpha,
-      stroke = stroke.size
-    )
+    if (use.alpha) {
+      plot + geom_point(
+        mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+        size = pt.size,
+        alpha = alpha,
+        stroke = stroke.size
+      )
+    } else {
+      plot + geom_point(
+        mapping = aes(x = .data[[dims[1]]], y = .data[[dims[2]]], !!!optional),
+        size = pt.size,
+        stroke = stroke.size
+      )
+    }
   }
   plot <- plot +
     guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
