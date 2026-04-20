@@ -1,13 +1,21 @@
-# Seurat v5.4.0
+# Seurat v5.5.0
 
 ## Test environments
 * Ubuntu 20.04 (local) (R 4.3.2)
-* macOS 15.6.1 (local) (R 4.5.1)
 * Ubuntu 24.04 (GitHub Actions Runner): R-oldrelease, R-release
+* macOS 15.6.1 (local) (R 4.5.1)
+* [macos-builder](https://mac.r-project.org/macbuilder/submit.html): R-devel
 * [win-builder](https://win-builder.r-project.org/): R-oldrelease, R-release, R-devel
 
 ## R CMD check results
+
+**false positive(s) on R-devel - explained below**
+
+ERRORs on installation in R-devel are false positives and entirely unrelated to changes in this Seurat version. R-devel on win-builder and `r-devel-windows-x86_64` in CRAN checks as of 20 April do not use Rcpp v1.1.1-1, which is the version of Rcpp that addresses new requirements for header files. All other machines running R-devel use Rcpp v1.1.1-1 and thus show status OK on the CRAN status page for Seurat.
+
 **Status: OK**
+
+**4 NOTEs**
 
 ```
 * checking CRAN incoming feasibility ... [42s] NOTE
@@ -44,4 +52,5 @@ Package unavailable to check Rd xrefs: 'BPCells'
 BPCells is listed under "Suggests"; it is hosted on R-universe and used conditionally in Seurat.
 
 ## Reverse dependency check results
-We checked 80 reverse dependencies (40 from CRAN + 40 from Bioconductor), comparing R CMD check results across CRAN and dev versions of this package, and saw no new problems.
+
+We checked 81 reverse dependencies (47 from CRAN + 34 from Bioconductor), comparing R CMD check results across CRAN and dev versions of this package, and saw no new problems.
