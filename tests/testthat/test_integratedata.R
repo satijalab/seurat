@@ -30,7 +30,6 @@ query.list <- lapply(X = query.list, FUN = ScaleData, verbose = FALSE)
 query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
 
 anchors2 <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list[[1]]), k.filter = NA, verbose = FALSE)))
-anchors3 <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
 
 # Tests for IntegrateEmbeddings
 # ------------------------------------------------------------------------------
@@ -90,6 +89,8 @@ test_that("IntegrateData with two objects default work", {
 })
 
 test_that("IntegrateData with three objects default work", {
+  skip_on_cran()
+  anchors3 <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
   expect_error(IntegrateData(anchorset = anchors3, k.weight = 50))
   int3 <- suppressWarnings(IntegrateData(anchorset = anchors3, k.weight = 25, verbose = FALSE))
   expect_true(all(Assays(int3) %in% c("integrated", "RNA")))
@@ -104,6 +105,7 @@ test_that("IntegrateData with three objects default work", {
 })
 
 test_that("Input validates correctly ", {
+  skip_on_cran()
   expect_error(anchorset = anchors2, k.weight = 50, features.to.integrate = "BAD")
   expect_error(IntegrateData(anchorset = anchors2, k.weight = 50, normalization.method = "BAD"))
   expect_error(IntegrateData(anchorset = anchors2, k.weight = 50, weight.reduction = "BAD"))

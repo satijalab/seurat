@@ -66,6 +66,7 @@ test_that("IntegrateLayers works with HarmonyIntegration", {
 })
 
 test_that("IntegrateLayers works with CCAIntegration", {
+  skip_on_cran()
   integrated <- suppressWarnings(
     IntegrateLayers(
       test.data.std,
@@ -135,6 +136,7 @@ test_that("IntegrateLayers works with CCAIntegration", {
 })
 
 test_that("IntegrateLayers works with RPCAIntegration", {
+  skip_on_cran()
   integrated <- suppressWarnings(
     IntegrateLayers(
       test.data.std,
@@ -205,6 +207,7 @@ test_that("IntegrateLayers works with RPCAIntegration", {
 })
 
 test_that("IntegrateLayers works with JointPCAIntegration", {
+  skip_on_cran()
   integrated <- suppressWarnings(
     IntegrateLayers(
       test.data.std,
@@ -274,6 +277,7 @@ test_that("IntegrateLayers works with JointPCAIntegration", {
 })
 
 test_that("IntegrateLayers fails when expected", {
+  skip_on_cran()
   # an error should be raised if a v3 assay is passed in
   expect_error(
     IntegrateLayers(
@@ -359,6 +363,7 @@ test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
 })
 
 test_that("IntegrateLayers works with CCAIntegration & SCTransform", {
+  skip_on_cran()
   integrated <- suppressWarnings(
     IntegrateLayers(
       test.data.sct,
@@ -393,6 +398,7 @@ test_that("IntegrateLayers works with CCAIntegration & SCTransform", {
 })
 
 test_that("IntegrateLayers works with RPCAIntegration & SCTransform", {
+  skip_on_cran()
   integrated <- suppressWarnings(
     IntegrateLayers(
       test.data.sct,
@@ -427,6 +433,7 @@ test_that("IntegrateLayers works with RPCAIntegration & SCTransform", {
 })
 
 test_that("IntegrateLayers works with JointPCAIntegration & SCTransform", {
+  skip_on_cran()
   integrated <- suppressWarnings(
     IntegrateLayers(
       test.data.sct,

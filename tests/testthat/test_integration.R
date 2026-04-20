@@ -50,6 +50,7 @@ test_that("FindTransferAnchors defaults work", {
 })
 
 test_that("FindTransferAnchors catches bad input", {
+  skip_on_cran()
   expect_error(FindTransferAnchors(reference = ref, query = query, reference.assay = "BAD", k.filter = 50))
   expect_error(FindTransferAnchors(reference = ref, query = query, query.assay = "BAD", k.filter = 50))
   expect_error(FindTransferAnchors(reference = ref, query = query, normalization.method = "BAD", k.filter = 50))
@@ -291,6 +292,7 @@ test_that("FindTransferAnchors with default SCT works", {
 })
 
 test_that("Mixing SCT and non-SCT assays fails", {
+  skip_on_cran()
   expect_error(FindTransferAnchors(reference = ref, query = query, reference.assay = "SCT", query.assay = "RNA", k.filter = 50))
   ref.0 <- ref
   ref.2 <- ref
@@ -440,6 +442,7 @@ test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k 
 })
 
 test_that("FindTransferAnchors handles multi-layer queries when mapping.score,k is NOT set", {
+  skip_on_cran()
   anchors <- FindTransferAnchors(
     reference = reference,
     query = multilayer_query,
@@ -466,6 +469,7 @@ context("MappingScore")
 
 test_that("MappingScore works as expected", {
   # Calculate leverage score with and without precomputed query neighbors.
+  skip_on_cran()
   anchors_vanilla <- FindTransferAnchors(
     reference           = reference,
     query               = multilayer_query,
