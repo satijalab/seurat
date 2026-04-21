@@ -74,7 +74,7 @@ NULL
 #'
 #' @concept integration
 #'
-#' @seealso \code{\link[harmony:HarmonyMatrix]{harmony::HarmonyMatrix}()}
+#' @seealso \code{\link[harmony]{RunHarmony}}
 #'
 HarmonyIntegration <- function(
   object,
