@@ -1,3 +1,43 @@
+# Seurat 5.5.0
+
+### Additions
+
+- Added support for `vars.to.regress` and `latent.data` in `ScaleData.IterableMatrix` (BPCells) ([#10300](https://github.com/satijalab/seurat/pull/10300))
+- Added warning to `SCTransform` to notify that `do.correct.umi` is hard set to `F` when a reference SCT model is specified ([#10329](https://github.com/satijalab/seurat/pull/10329), [#10366](https://github.com/satijalab/seurat/pull/10366))
+- Added warning to `FindMarkers`/`FindAllMarkers` when running on an `IterableMatrix` (BPCells) with column-major storage order ([#10365](https://github.com/satijalab/seurat/pull/10365))
+- Added `plot_type` parameter to `ElbowPlot` to switch between default (PCs x standard deviation) and two new options:
+  - PCs x % variance explained ([#8929](https://github.com/satijalab/seurat/pull/8929))
+  - PCs x cumulative % variance explained ([#10369](https://github.com/satijalab/seurat/pull/10369))
+- Added `legend.position` parameter `DimHeatmap` to allow repositioning of legend when `combine = T` ([#9813](https://github.com/satijalab/seurat/pull/9813))
+- Added "selected cells" indicator in `InteractiveSpatialPlot` ([#10254](https://github.com/satijalab/seurat/pull/10254))
+- Added `stroke.alpha` parameter to `SpatialPlot` to be able to control transparency for fill and stroke separately ([#10345](https://github.com/satijalab/seurat/pull/10345))
+- Added support for unnamed `cols` vectors in `SpatialPlot` ([#10298](https://github.com/satijalab/seurat/pull/10298))
+- Added `assay` parameter to `FeaturePlot` to specify assay to pull features from ([#10349](https://github.com/satijalab/seurat/pull/10349))
+
+### Fixes
+
+- Fixed issue with UMAP version parsing in `RunUMAP` ([#10246](https://github.com/satijalab/seurat/pull/10246))
+- Updated `HTODemux` to handle HTO assays containing a subset of cells ([#10362](https://github.com/satijalab/seurat/pull/10362))
+- Updated `Rcpp` error handling ([#10317](https://github.com/satijalab/seurat/pull/10317), [#10353](https://github.com/satijalab/seurat/pull/10353))
+- Fixed issue with `NaN` values being propagated in `PrepSCTFindMarkers` ([#10361](https://github.com/satijalab/seurat/pull/10361))
+- Fixed `umi.assay` labeling for model list in `SCTransform` to match the assay specified ([#10330](https://github.com/satijalab/seurat/pull/10330))
+- Fixed factor-level ordering for metadata columns resulting from `FindClusters` ([#10253](https://github.com/satijalab/seurat/pull/10253))
+- Fixed error in `FindSpatiallyVariableFeatures` from use of `slot` in function cascade ([#10285](https://github.com/satijalab/seurat/pull/10285))
+- Fixed classification of gRNA with less than 5 cells in `RunMixscape` for proper label as "NP" ([#10299](https://github.com/satijalab/seurat/pull/10299))
+- Fixed issue with checking object scope in `as.Seurat.SingleCellExperiment` ([#10339](https://github.com/satijalab/seurat/pull/10339))
+- Fixed `SketchData` to pass the provided argument for `verbose` to `LeverageScore` ([#10145](https://github.com/satijalab/seurat/pull/10145))
+- Fixed `FindConservedMarkers` to pass the provided argument for `min.cells.group` to `FindMarkers` ([#8910](https://github.com/satijalab/seurat/pull/8910))
+- Updated `IntegrateEmbeddings` to respect `dims.to.integrate` when `reference` is specified ([#10172](https://github.com/satijalab/seurat/pull/10172))
+- Fixed list structure of neighbors in `FindNeighbors` when SNN is not computed ([#10364](https://github.com/satijalab/seurat/pull/10364))
+- Updated `DimHeatmap` to add PC labels as individual titles ([#9813](https://github.com/satijalab/seurat/pull/9813))
+- Updated layer-building logic in `Single`/`MultiExIPlot` for ggplot2 v4+ compatibility ([#10333](https://github.com/satijalab/seurat/pull/10333))
+- Fixed `order = T` in rasterized `Dim`/`FeaturePlot`s via `ggrastr`-based rasterization ([#10307](https://github.com/satijalab/seurat/pull/10307), [#10344](https://github.com/satijalab/seurat/pull/10344))
+- Updated `SpatialPlot` coordinate system check when plotting `VisiumV1` images ([#10267](https://github.com/satijalab/seurat/pull/10267))
+- Updated `SpatialPlot` for Visium data to speed up plot construction ([#10345](https://github.com/satijalab/seurat/pull/10345))
+- Fixed interactive functionality of `LinkedDim`/`LinkedFeaturePlot` and interactive mode in `SpatialPlot` ([#10368](https://github.com/satijalab/seurat/pull/10368))
+- Updated coordinate systems used for plot display in `InteractiveSpatialPlot` ([#10254](https://github.com/satijalab/seurat/pull/10254))
+- Fixed coordinate ranges when spatial plots are generated with `crop = F` ([#10278](https://github.com/satijalab/seurat/pull/10278), [#10284](https://github.com/satijalab/seurat/pull/10284))
+
 # Seurat 5.4.0
 
 ### Additions
