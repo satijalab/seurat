@@ -2,16 +2,17 @@
 
 ## Test environments
 * Ubuntu 20.04 (local) (R 4.3.2)
-* Ubuntu 24.04 (GitHub Actions Runner): R-oldrelease, R-release
+* Ubuntu 24.04 (GitHub Actions Runner): R-oldrelease, R-release, R-devel
 * macOS 15.6.1 (local) (R 4.5.1)
 * [macos-builder](https://mac.r-project.org/macbuilder/submit.html): R-devel
 * [win-builder](https://win-builder.r-project.org/): R-oldrelease, R-release, R-devel
 
 ## R CMD check results
 
-**false positive(s) on R-devel - explained below**
+**possible false positive(s) on R-devel - explained below**
 
-ERRORs on installation in R-devel are false positives and entirely unrelated to changes in this Seurat version. R-devel on win-builder and `r-devel-windows-x86_64` in CRAN checks as of 20 April do not use Rcpp v1.1.1-1, which is the version of Rcpp that addresses new requirements for header files. All other machines running R-devel use Rcpp v1.1.1-1 and thus show status OK on the CRAN status page for Seurat.
+* ERRORs on installation in R-devel are false positives and entirely unrelated to changes in this Seurat version; we have seen these stem from downstream dependencies (such as Rcpp) using header files that do not meet the new requirements posed in R-4.6. 
+* As of 21 April, this seems to no longer be an issue, but adding here as a note.
 
 **Status: OK**
 
