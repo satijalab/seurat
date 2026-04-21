@@ -1,5 +1,6 @@
 # Tests for functions dependent on a seurat object
 set.seed(42)
+is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
 
 pbmc.file <- system.file('extdata', 'pbmc_raw.txt', package = 'Seurat')
 pbmc.test <- as.sparse(x = as.matrix(read.table(pbmc.file, sep = "\t", row.names = 1)))
@@ -131,49 +132,44 @@ if(class(object[['RNA']]) == "Assay5")  {
   })
 }
 
-
-
-test_that("NormalizeData scales properly for BPcells", {
+if (is_not_cran_submission) {
   # Tests for BPCells NormalizeData
   # --------------------------------------------------------------------------------
+  test_that("NormalizeData scales properly for BPcells", {
+    library(Matrix)
+    skip_if_not_installed("BPCells")
+    library(BPCells)
+    mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+    object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
 
-  skip_on_cran()
-  library(Matrix)
-  skip_if_not_installed("BPCells")
-  library(BPCells)
-  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
-  object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+    object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
+    object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
 
-  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
-  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
+    expect_equal(as.matrix(object[['RNAbp']]$data), as.matrix(object[['RNA']]$data), tolerance = 1e-6)
+    expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "scale.factor"), 1e6)
+    expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "normalization.method"), "LogNormalize")
+  })
 
-  expect_equal(as.matrix(object[['RNAbp']]$data), as.matrix(object[['RNA']]$data), tolerance = 1e-6)
-  expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "scale.factor"), 1e6)
-  expect_equal(Command(object = object, command = "NormalizeData.RNAbp", value = "normalization.method"), "LogNormalize")
-})
+  test_that("LogNormalize normalizes properly for BPCells", {
+    library(Matrix)
+    skip_if_not_installed("BPCells")
+    library(BPCells)
+    mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+    object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
 
+    object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
+    object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
 
+    normalized.data.bp <- LogNormalize(data = GetAssayData(object = object[["RNAbp"]], layer = "counts"), verbose = FALSE)
+    normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
 
-test_that("LogNormalize normalizes properly for BPCells", {
-  skip_on_cran()
-  library(Matrix)
-  skip_if_not_installed("BPCells")
-  library(BPCells)
-  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
-  object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
-
-  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNAbp")
-  object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6, assay = "RNA")
-
-  normalized.data.bp <- LogNormalize(data = GetAssayData(object = object[["RNAbp"]], layer = "counts"), verbose = FALSE)
-  normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
-
-  expect_equal(
-    as.matrix(normalized.data.bp),
-    as.matrix(normalized.data),
-    tolerance = 1e-6
-  )
-})
+    expect_equal(
+      as.matrix(normalized.data.bp),
+      as.matrix(normalized.data),
+      tolerance = 1e-6
+    )
+  })
+}
 
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
@@ -416,184 +412,183 @@ test_that("SCTransform ncells param works", {
   expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-3)
 })
 
-suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
-object[["SCT"]] <- suppressWarnings({SetAssayData(object = object[["SCT"]], layer = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])})
-object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
-test_that("GetResidual works", {
-  expect_equal(dim(GetAssayData(object = object[["SCT"]], layer = "scale.data")), c(220, 80))
-  expect_equal(
-    GetAssayData(object = object[["SCT"]], layer = "scale.data"),
-    GetAssayData(object = object[["SCT_SAVE"]], layer = "scale.data")
-  )
-  expect_warning(GetResidual(object, features = "asd"))
-})
 
+if (is_not_cran_submission) {
+  suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
+  object[["SCT"]] <- suppressWarnings({SetAssayData(object = object[["SCT"]], layer = "scale.data", new.data = GetAssayData(object = object[["SCT"]], layer = "scale.data")[1:100, ])})
+  object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
+  
+  test_that("GetResidual works", {
+    expect_equal(dim(GetAssayData(object = object[["SCT"]], layer = "scale.data")), c(220, 80))
+    expect_equal(
+      GetAssayData(object = object[["SCT"]], layer = "scale.data"),
+      GetAssayData(object = object[["SCT_SAVE"]], layer = "scale.data")
+    )
+    expect_warning(GetResidual(object, features = "asd"))
+  })
 
-test_that("SCTransform v2 works as expected", {
-  skip_on_cran()
-  skip_if_not_installed("glmGamPoi")
-  object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+  test_that("SCTransform v2 works as expected", {
+    skip_if_not_installed("glmGamPoi")
+    object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 
-  expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5813, tolerance = 1e-4)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 58.65829, tolerance = 1e-6)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 13.75449, tolerance = 1e-6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 141)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 40)
-  expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
-  fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
-  expect_equal(fa["MS4A1", "detection_rate"], 0.15)
-  expect_equal(fa["MS4A1", "gmean"], 0.2027364, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
-  expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
-  expect_equal(fa["FCER2", "theta"], Inf)
-})
+    expect_true("SCT" %in% names(object))
+    expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[1]), 24.5813, tolerance = 1e-4)
+    expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "scale.data"))[5]), 0)
+    expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "data"))[1]), 58.65829, tolerance = 1e-6)
+    expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "data"))[5]), 13.75449, tolerance = 1e-6)
+    expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[1]), 141)
+    expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], layer = "counts"))[5]), 40)
+    expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
+    fa <- SCTResults(object = object, assay = "SCT", slot = "feature.attributes")
+    expect_equal(fa["MS4A1", "detection_rate"], 0.15)
+    expect_equal(fa["MS4A1", "gmean"], 0.2027364, tolerance = 1e-6)
+    expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
+    expect_equal(fa["MS4A1", "residual_mean"], 0.2763993, tolerance = 1e-6)
+    expect_equal(fa["MS4A1", "residual_variance"], 3.023062, tolerance = 1e-6)
+    expect_equal(fa["FCER2", "theta"], Inf)
+  })
 
-test_that("SCTransform `clip.range` param works as expected", {
-  # make a copy of the testing data
-  test.data <- object
-  # override defaults for ease of testing
-  clip.min <- -0.1
-  clip.max <- 0.1
+  test_that("SCTransform `clip.range` param works as expected", {
+    # make a copy of the testing data
+    test.data <- object
+    # override defaults for ease of testing
+    clip.min <- -0.1
+    clip.max <- 0.1
 
-  # for some reason, the clipping seems to be a little fuzzy at the upper end,
-  # since this is expected behaviour we'll need to accomodate the difference
-  clip.max.tolerance <- 0.1
+    # for some reason, the clipping seems to be a little fuzzy at the upper end,
+    # since this is expected behaviour we'll need to accomodate the difference
+    clip.max.tolerance <- 0.1
 
-  test.result <- suppressWarnings(
+    test.result <- suppressWarnings(
+        SCTransform(
+        test.data,
+        clip.range = c(clip.min, clip.max),
+      )
+    )
+    scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
+    expect_true(min(scale.data) >= clip.min)
+    expect_true(max(scale.data) <= (clip.max + clip.max.tolerance))
+
+    # when `ncells` is less than the size of the dataset the residuals will get 
+    # re-clipped in batches, make sure this clipping is done correctly as well
+    test.result <- suppressWarnings(
       SCTransform(
-      test.data,
-      clip.range = c(clip.min, clip.max),
+        test.data,
+        clip.range = c(clip.min, clip.max),
+        ncells = 40
+      )
     )
-  )
-  scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
-  expect_true(min(scale.data) >= clip.min)
-  expect_true(max(scale.data) <= (clip.max + clip.max.tolerance))
+    scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
+    expect_true(min(scale.data) >= clip.min)
+    expect_true(max(scale.data) <= (clip.max + clip.max.tolerance))
+  })
 
-  # when `ncells` is less than the size of the dataset the residuals will get 
-  # re-clipped in batches, make sure this clipping is done correctly as well
-  test.result <- suppressWarnings(
-    SCTransform(
+  test_that("SCTransform `vars.to.regress` param works as expected", {
+    # make a copy of the testing data
+    test.data <- object
+    # add a fake mitochondrial gene to the counts matrix
+    counts <- LayerData(test.data, assay = "RNA", layer = "counts")
+    counts <- rbind(counts, 5)
+    rownames(counts)[nrow(counts)] <- "MT-TEST"
+    # use the fake feature to populate a new meta.data column
+    test.data[[ "percent.mt" ]] <- PercentageFeatureSet(
       test.data,
-      clip.range = c(clip.min, clip.max),
-      ncells = 40
+      pattern="^MT-"
     )
-  )
-  scale.data <- LayerData(test.result[["SCT"]], layer = "scale.data")
-  expect_true(min(scale.data) >= clip.min)
-  expect_true(max(scale.data) <= (clip.max + clip.max.tolerance))
-})
 
-test_that("SCTransform `vars.to.regress` param works as expected", {
-  # make a copy of the testing data
-  test.data <- object
-  # add a fake mitochondrial gene to the counts matrix
-  counts <- LayerData(test.data, assay = "RNA", layer = "counts")
-  counts <- rbind(counts, 5)
-  rownames(counts)[nrow(counts)] <- "MT-TEST"
-  # use the fake feature to populate a new meta.data column
-  test.data[[ "percent.mt" ]] <- PercentageFeatureSet(
-    test.data,
-    pattern="^MT-"
-  )
+    # make sure that `ncells` is smaller than the datset being transformed 
+    # so tha the regression model is trained on a subset of the data - make sure 
+    # the regression is applied to the entire dataset
+    left <- suppressWarnings(
+        SCTransform(
+        test.data,
+        vars.to.regress = NULL,
+        ncells = ncol(test.data) / 2,
+        verbose = FALSE
+      )
+    )
+    right <- suppressWarnings(
+        SCTransform(
+        test.data,
+        vars.to.regress = "percent.mt",
+        ncells = ncol(test.data) / 2,
+        verbose = FALSE
+      )
+    )
+    expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
 
-  # make sure that `ncells` is smaller than the datset being transformed 
-  # so tha the regression model is trained on a subset of the data - make sure 
-  # the regression is applied to the entire dataset
-  left <- suppressWarnings(
+    # if the `assay` points to an `Assay5` instance the regression is handled
+    # using separate logic
+    test.data[["RNAv5"]] <- CreateAssay5Object(
+      counts = LayerData(
+        test.data,
+        assay = "RNA",
+        layer = "counts"
+      )
+    )
+    left <- suppressWarnings(
       SCTransform(
-      test.data,
-      vars.to.regress = NULL,
-      ncells = ncol(test.data) / 2,
-      verbose = FALSE
+        test.data,
+        assay = "RNAv5",
+        vars.to.regress = NULL,
+        ncells = ncol(test.data) / 2,
+        verbose = FALSE
+      )
     )
-  )
-  right <- suppressWarnings(
+    right <- suppressWarnings(
       SCTransform(
-      test.data,
-      vars.to.regress = "percent.mt",
-      ncells = ncol(test.data) / 2,
-      verbose = FALSE
+        test.data,
+        assay = "RNAv5",
+        vars.to.regress = "percent.mt",
+        ncells = ncol(test.data) / 2,
+        verbose = FALSE
+      )
     )
-  )
-  expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
+    expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
+  })
 
-  # if the `assay` points to an `Assay5` instance the regression is handled
-  # using separate logic
-  test.data[["RNAv5"]] <- CreateAssay5Object(
-    counts = LayerData(
-      test.data,
-      assay = "RNA",
-      layer = "counts"
-    )
-  )
-  left <- suppressWarnings(
-    SCTransform(
-      test.data,
-      assay = "RNAv5",
-      vars.to.regress = NULL,
-      ncells = ncol(test.data) / 2,
-      verbose = FALSE
-    )
-  )
-  right <- suppressWarnings(
-    SCTransform(
-      test.data,
-      assay = "RNAv5",
-      vars.to.regress = "percent.mt",
-      ncells = ncol(test.data) / 2,
-      verbose = FALSE
-    )
-  )
-  expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
-})
+  fake.meta.data2 <- data.frame(rep(1:2, ncol(pbmc.test)/2))
+  rownames(fake.meta.data2) <- colnames(pbmc.test)
+  colnames(fake.meta.data2) <- "Condition"
+  object2 <- CreateSeuratObject(counts = pbmc.test,
+                              meta.data = fake.meta.data2)
 
-fake.meta.data2 <- data.frame(rep(1:2, ncol(pbmc.test)/2))
-rownames(fake.meta.data2) <- colnames(pbmc.test)
-colnames(fake.meta.data2) <- "Condition"
-object2 <- CreateSeuratObject(counts = pbmc.test,
-                             meta.data = fake.meta.data2)
+  test_that("`SCTransform` is consistent for multi-layer inputs", {
+    clip.range = c(-1.632993, 1.632993)
+    
+    test_case_v3 <- SplitObject(object2, split.by = "Condition")
+    result_v3_list <- lapply(test_case_v3, SCTransform, clip.range = clip.range)
+    result_v3 <- merge(result_v3_list[[1]], result_v3_list[[2]])
+    
+    test_case_v5 <- object2
+    test_case_v5 <- split(object2, f = object2$Condition)
+    result_v5 <- SCTransform(test_case_v5, clip.range = clip.range)
+    
+    expected <- result_v3[["SCT"]]@data[,colnames(object2)]
+    result <- result_v5[["SCT"]]@data[,colnames(object2)]
+    expect_true(all.equal(expected, result))
+    
+    expected <- result_v3[["SCT"]]@scale.data[,colnames(object2)]
+    result <- result_v5[["SCT"]]@scale.data[,colnames(object2)]
+    expect_true(all.equal(expected[rownames(result), ], result))
+  })
 
-test_that("`SCTransform` is consistent for multi-layer inputs", {
-  skip_on_cran()
-  clip.range = c(-1.632993, 1.632993)
-  
-  test_case_v3 <- SplitObject(object2, split.by = "Condition")
-  result_v3_list <- lapply(test_case_v3, SCTransform, clip.range = clip.range)
-  result_v3 <- merge(result_v3_list[[1]], result_v3_list[[2]])
-  
-  test_case_v5 <- object2
-  test_case_v5 <- split(object2, f = object2$Condition)
-  result_v5 <- SCTransform(test_case_v5, clip.range = clip.range)
-  
-  expected <- result_v3[["SCT"]]@data[,colnames(object2)]
-  result <- result_v5[["SCT"]]@data[,colnames(object2)]
-  expect_true(all.equal(expected, result))
-  
-  expected <- result_v3[["SCT"]]@scale.data[,colnames(object2)]
-  result <- result_v5[["SCT"]]@scale.data[,colnames(object2)]
-  expect_true(all.equal(expected[rownames(result), ], result))
-})
+  test_that("SCTransform is equivalent for BPcells ", {
+    skip_if_not_installed("glmGamPoi")
 
-test_that("SCTransform is equivalent for BPcells ", {
-  skip_on_cran()
-  skip_on_cran()
-  skip_if_not_installed("glmGamPoi")
+    library(Matrix)
+    skip_if_not_installed("BPCells")
+    library(BPCells)
+    mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+    object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+    object <- suppressWarnings(SCTransform(object = object, assay = "RNA", new.assay.name = "SCT",
+                                          verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 
-  library(Matrix)
-  skip_if_not_installed("BPCells")
-  library(BPCells)
-  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
-  object[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
-  object <- suppressWarnings(SCTransform(object = object, assay = "RNA", new.assay.name = "SCT",
-                                         verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
+    object <- suppressWarnings(SCTransform(object = object, assay = "RNAbp", new.assay.name = "SCTbp",
+                                          verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 
-  object <- suppressWarnings(SCTransform(object = object, assay = "RNAbp", new.assay.name = "SCTbp",
-                                         verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
-
-  expect_equal(as.matrix(LayerData(object = object[["SCT"]], layer = "data")),
-               as.matrix(LayerData(object = object[["SCTbp"]], layer = "data")),
-               tolerance = 1e-6)
-})
+    expect_equal(as.matrix(LayerData(object = object[["SCT"]], layer = "data")),
+                as.matrix(LayerData(object = object[["SCTbp"]], layer = "data")),
+                tolerance = 1e-6)
+  })
+}
