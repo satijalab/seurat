@@ -9,11 +9,6 @@
 
 ## R CMD check results
 
-**possible false positive(s) on R-devel - explained below**
-
-* ERRORs on installation in R-devel are false positives and entirely unrelated to changes in this Seurat version; we have seen these stem from downstream dependencies (such as Rcpp) using header files that do not meet the new requirements posed in R-4.6. 
-* As of 21 April, this seems to no longer be an issue, but adding here as a note.
-
 **Status: OK**
 
 **4 NOTEs**
