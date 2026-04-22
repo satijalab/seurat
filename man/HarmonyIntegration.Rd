@@ -107,6 +107,6 @@ obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
 
 }
 \seealso{
-\code{\link[harmony:HarmonyMatrix]{harmony::HarmonyMatrix}()}
+\code{\link[harmony]{RunHarmony}}
 }
 \concept{integration}

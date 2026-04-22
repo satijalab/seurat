@@ -12,3 +12,6 @@ CODE_OF_CONDUCT.md
 ^index\.md$
 ^vignettes$
 ^LICENSE\.md$
+Rplots.pdf
+revdep/
+Seurat.Rcheck/
