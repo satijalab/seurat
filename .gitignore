@@ -8,3 +8,6 @@ src/*.dll
 .DS_Store
 *.pdf
 docs/
+Rplots.pdf
+revdep/
+Seurat.Rcheck/
