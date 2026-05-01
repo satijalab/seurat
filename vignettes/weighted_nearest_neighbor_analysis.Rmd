@@ -38,7 +38,7 @@ This vignette introduces the WNN workflow for the analysis of multimodal single-
 We demonstrate the use of WNN analysis on two single-cell multimodal technologies: CITE-seq and 10x multiome. We define the cellular states based on both modalities, instead of either individual modality.  
 
 # WNN analysis of CITE-seq, RNA + ADT
-We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies from bone marrow. The object contains two assays, RNA and antibody-derived tags (ADT).  
+We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](<https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8>)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies from bone marrow. The object contains two assays, RNA and antibody-derived tags (ADT).  
 
 To run this vignette please install SeuratData, available on [GitHub](https://github.com/satijalab/seurat-data).
 
