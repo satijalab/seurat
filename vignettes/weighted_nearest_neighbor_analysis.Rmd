@@ -15,7 +15,7 @@ knitr::knit_hooks$set(time_it = local({
     if (before) {
       now <<- Sys.time()
     } else {
-      res <- difftime(Sys.time(), now)
+      res <- difftime(Sys.time(), now, units = "secs")
       all_times[[options$label]] <<- res
     }
   }
@@ -35,7 +35,7 @@ This vignette introduces the WNN workflow for the analysis of multimodal single-
 * Learning cell-specific modality 'weights', and constructing a WNN graph that integrates the modalities 
 * Downstream analysis (i.e. visualization, clustering, etc.) of the WNN graph
 
-We demonstrate the use of WNN analysis to two single-cell multimodal technologies: CITE-seq and 10x multiome. We define the cellular states based on both modalities, instead of either individual modality.  
+We demonstrate the use of WNN analysis on two single-cell multimodal technologies: CITE-seq and 10x multiome. We define the cellular states based on both modalities, instead of either individual modality.  
 
 # WNN analysis of CITE-seq, RNA + ADT
 We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies from bone marrow. The object contains two assays, RNA and antibody-derived tags (ADT).  
@@ -66,7 +66,7 @@ bm <- NormalizeData(bm) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA()
 
 DefaultAssay(bm) <- 'ADT'
 # we will use all ADT features for dimensional reduction
-# we set a dimensional reduction name to avoid overwriting the 
+# we set a dimensional reduction name to avoid overwriting the default PCA
 VariableFeatures(bm) <- rownames(bm[["ADT"]])
 bm <- NormalizeData(bm, normalization.method = 'CLR', margin = 2) %>% 
   ScaleData() %>% RunPCA(reduction.name = 'apca')
@@ -85,7 +85,7 @@ bm <- FindMultiModalNeighbors(
 )
 ```
 
-We can now use these results for downstream analysis, such as visualization and clustering. For example, we can create a UMAP visualization of the data based on a weighted combination of RNA and protein data We can also perform graph-based clustering and visualize these results on the UMAP, alongside a set of cell annotations.
+We can now use these results for downstream analysis, such as visualization and clustering. For example, we can create a UMAP visualization of the data based on a weighted combination of RNA and protein data. We can also perform graph-based clustering and visualize these results on the UMAP, alongside a set of cell annotations.
 
 ```{r wumap, fig.width=10}
 bm <- RunUMAP(bm, nn.name = "weighted.nn", reduction.name = "wnn.umap", reduction.key = "wnnUMAP_")
@@ -142,7 +142,7 @@ ggsave(filename = "../output/images/weighted_nearest_neighbor_analysis.jpg", hei
 
 # WNN analysis of 10x Multiome, RNA + ATAC
 
-Here, we demonstrate the use of WNN analysis to a second multimodal technology, the 10x multiome RNA+ATAC kit. We use a dataset that is publicly available on the 10x website, where paired transcriptomes and ATAC-seq profiles are measured in 10,412 PBMCs.
+Here, we demonstrate the use of WNN analysis on a second multimodal technology, the 10x multiome RNA+ATAC kit. We use a dataset that is publicly available on the 10x website, where paired transcriptomes and ATAC-seq profiles are measured in 10,412 PBMCs.
 
 We use the same WNN methods as we use in the previous tab, where we apply integrated multimodal analysis to a CITE-seq dataset. In this example we will demonstrate how to:
 
@@ -240,7 +240,7 @@ pbmc <- RunSVD(pbmc)
 pbmc <- RunUMAP(pbmc, reduction = 'lsi', dims = 2:50, reduction.name = "umap.atac", reduction.key = "atacUMAP_")
 ```
 
-We calculate a WNN graph, representing a weighted combination of RNA and ATAC-seq modalities. We use this graph for UMAP visualization and clustering
+We calculate a WNN graph, representing a weighted combination of RNA and ATAC-seq modalities. We use this graph for UMAP visualization and clustering.
 
 ```{r MultiModalAnalysis}
 pbmc <- FindMultiModalNeighbors(pbmc, reduction.list = list("pca", "lsi"), dims.list = list(1:50, 2:50))
@@ -332,7 +332,7 @@ pbmc <- RunChromVAR(
 
 Finally, we explore the multimodal dataset to identify key regulators of each cell state. Paired data provides a unique opportunity to identify transcription factors (TFs) that satisfy multiple criteria, helping to narrow down the list of putative regulators to the most likely candidates. We aim to identify TFs whose expression is enriched in multiple cell types in the RNA measurements, but *also* have enriched accessibility for their motifs in the ATAC measurements. 
 
-As an example and positive control, the  CCAAT Enhancer Binding Protein (CEBP) family of proteins, including the TF CEBPB, have been repeatedly shown to play important roles in the differentiation and function of myeloid cells including monocytes and dendritic cells. We can see that both the expression of the CEBPB, and the accessibility of the MA0466.2.4 motif (which encodes the binding site for CEBPB), are both enriched in monocytes.
+As an example and positive control, the CCAAT Enhancer Binding Protein (CEBP) family of proteins, including the TF CEBPB, have been repeatedly shown to play important roles in the differentiation and function of myeloid cells including monocytes and dendritic cells. We can see that both the expression of the CEBPB, and the accessibility of the MA0466.2.4 motif (which encodes the binding site for CEBPB), are both enriched in monocytes.
 
 ```{r CEBPB, fig.width=10}
 #returns MA0466.2
@@ -415,8 +415,15 @@ head(topTFs("Plasma"), 3)
 ```
 
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/weighted_nearest_neighbor_analysis_times.csv")
+```{r save_times, echo=FALSE, include=FALSE}
+
+df <- data.frame(
+  chunk = names(all_times),
+  time_sec = as.numeric(unlist(all_times))
+)
+
+write.csv(df, "/brahms/jiangl/vignette_render_times/chunk_times_weighted_nearest_neighbor_analysis.csv", row.names = FALSE)
+
 ```
 
 <details>

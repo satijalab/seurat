@@ -51,7 +51,7 @@ library(ggplot2)
 InstallData('panc8')
 ```
 
-As a demonstration, we will use a subset of technologies to construct a reference. We will then map the remaining datasets onto this reference. We start by selecting cells from four technologies, and performing an analysis without integration.
+As a demonstration, we will use a subset of technologies to construct a reference. We will then map the remaining datasets onto this reference. We start by selecting cells from two technologies, and performing an analysis without integration.
 
 ```{r preprocessing1}
 panc8 <- LoadData('panc8')
@@ -72,7 +72,8 @@ pancreas.ref <- RunUMAP(pancreas.ref, dims = 1:30)
 DimPlot(pancreas.ref,group.by = c("celltype","tech"))
 ```
 
-Next, we integrate the datasets into a shared reference. Please see our [introduction to integration vignette](https://satijalab.org/seurat/articles/integration_introduction)
+Next, we integrate the datasets into a shared reference. Please see our [introduction to integration vignette](https://satijalab.org/seurat/articles/integration_introduction).
+
 ```{r preprocessing3, fig.height = 4}
 pancreas.ref <- IntegrateLayers(
   object = pancreas.ref, method = CCAIntegration,
@@ -171,8 +172,15 @@ p2 <- DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.cell
 p1 + p2
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_reference_mapping.csv")
+```{r save_times, echo=FALSE, include=FALSE}
+
+df <- data.frame(
+  chunk = names(all_times),
+  time_sec = as.numeric(unlist(all_times))
+)
+
+write.csv(df, "/brahms/jiangl/vignette_render_times/chunk_times_integration_mapping.csv", row.names = FALSE)
+
 ```
 
 <details>

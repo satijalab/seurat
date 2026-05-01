@@ -15,7 +15,7 @@ knitr::knit_hooks$set(time_it = local({
     if (before) {
       now <<- Sys.time()
     } else {
-      res <- difftime(Sys.time(), now)
+      res <- difftime(Sys.time(), now, units = "secs")
       all_times[[options$label]] <<- res
     }
   }
@@ -61,7 +61,7 @@ custom_theme <- theme(
 
 # Loading Seurat object containing ECCITE-seq dataset
 
-We use a 111 gRNA ECCITE-seq dataset generated from stimulated THP-1 cells that was recently published from our lab in bioRxiv [Papalexi et al. 2020](https://www.biorxiv.org/content/10.1101/2020.06.28.175596v1). This dataset can be  easily downloaded from the [SeuratData](https://github.com/satijalab/seurat-data) package. 
+We use a 111 gRNA ECCITE-seq dataset generated from stimulated THP-1 cells that was recently published from our lab on bioRxiv [Papalexi et al. 2020](https://www.biorxiv.org/content/10.1101/2020.06.28.175596v1). This dataset can be easily downloaded from the [SeuratData](https://github.com/satijalab/seurat-data) package. 
 
 ```{r eccite.load}
 # Load object.
@@ -77,7 +77,7 @@ eccite <- NormalizeData(
 
 # RNA-based clustering is driven by confounding sources of variation
 
-Here, we follow the standard Seurat workflow to cluster cells based on their gene expression profiles. We expected to obtain perturbation-specific clusters however we saw that clustering is primarily driven by cell cycle phase and replicate ID. We only observed one perturbation-specific cluster containing cells expression IFNgamma pathway gRNAs.
+Here, we follow the standard Seurat workflow to cluster cells based on their gene expression profiles. We expected to obtain perturbation-specific clusters; however, we saw that clustering is primarily driven by cell cycle phase and replicate ID. We only observed one perturbation-specific cluster containing cells expressing IFNgamma pathway gRNAs.
 
 ```{r eccite.pp, fig.height = 10, fig.width = 15}
 # Prepare RNA assay for dimensionality reduction: 
@@ -211,7 +211,7 @@ q3 <- DimPlot(
 
 # Mixscape identifies cells with no detectable perturbation
 
-Here, we are assuming each target gene class is a mixture of two Gaussian distributions one representing the knockout (KO) and the other the non-perturbed (NP) cells. We further assume that the distribution of the NP cells is identical to that of cells expressing non-targeting gRNAs (NT) and we try to estimate the distribution of KO cells using the function `normalmixEM()` from the mixtools package. Next, we calculate the posterior probability that a cell belongs to the KO distribution and classify cells with a probability higher than 0.5 as KOs. Applying this method we identify KOs in 11 target gene classes and detect variation in gRNA targeting efficiency within each class. 
+Here, we are assuming each target gene class is a mixture of two Gaussian distributions, one representing the knockout (KO) and the other the non-perturbed (NP) cells. We further assume that the distribution of the NP cells is identical to that of cells expressing non-targeting gRNAs (NT) and we try to estimate the distribution of KO cells using the function `normalmixEM()` from the mixtools package. Next, we calculate the posterior probability that a cell belongs to the KO distribution and classify cells with a probability higher than 0.5 as KOs. Applying this method we identify KOs in 11 target gene classes and detect variation in gRNA targeting efficiency within each class. 
 
 ```{r eccite.mixscape, fig.height = 20, fig.width = 20, results="hide"}
 # Run mixscape.
@@ -363,8 +363,15 @@ p2 <- p+
 p2
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/mixscape_vignette_times.csv")
+```{r save_times, echo=FALSE, include=FALSE}
+
+df <- data.frame(
+  chunk = names(all_times),
+  time_sec = as.numeric(unlist(all_times))
+)
+
+write.csv(df, "/brahms/jiangl/vignette_render_times/chunk_times_mixscape_vignette.csv", row.names = FALSE)
+
 ```
 
 <details>
