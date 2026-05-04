@@ -1354,6 +1354,7 @@ RunUMAP.default <- function(
   b = NULL,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1480,6 +1481,7 @@ RunUMAP.default <- function(
           negative_sample_rate = negative.sample.rate,
           a = a,
           b = b,
+          init = uwot.init,
           fast_sgd = uwot.sgd,
           approx_pow = uwot.approx_pow,
           verbose = verbose,
@@ -1502,6 +1504,7 @@ RunUMAP.default <- function(
           negative_sample_rate = negative.sample.rate,
           a = a,
           b = b,
+          init = uwot.init,
           fast_sgd = uwot.sgd,
           approx_pow = uwot.approx_pow,
           verbose = verbose,
@@ -1527,6 +1530,7 @@ RunUMAP.default <- function(
           negative_sample_rate = negative.sample.rate,
           a = a,
           b = b,
+          init = uwot.init,
           fast_sgd = uwot.sgd,
           verbose = verbose,
           ret_model = return.model
@@ -1548,6 +1552,7 @@ RunUMAP.default <- function(
           negative_sample_rate = negative.sample.rate,
           a = a,
           b = b,
+          init = uwot.init,
           fast_sgd = uwot.sgd,
           verbose = verbose,
           ret_model = return.model
@@ -1812,6 +1817,8 @@ RunUMAP.Neighbor <- function(
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
 #' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
 #' \code{\link[uwot]{umap}} for more details.
+#' @param uwot.init Set the initialization method to use for \code{\link[uwot]{umap}} or 
+#' \code{\link[uwot]{umap2}} (see these functions for available options). Default is \code{"spectral"}.
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
 #' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
