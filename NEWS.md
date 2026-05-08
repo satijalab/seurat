@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed issue with `FindClusters` not setting metadata properly when a vector of resolutions is passed to `resolution` and a custom cluster name is specified ([#10385](https://github.com/satijalab/seurat/pull/10385))
+
 # Seurat 5.5.0
 
 ### Additions
