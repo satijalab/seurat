@@ -534,14 +534,7 @@ FindClusters.Seurat <- function(
     }
   )
   Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
-
-  # If cluster name is NULL, default cluster name is used (seurat_clusters) when assigning factor levels
-  # Otherwise, use cluster name provided by user
-  if (isTRUE(x = all(cluster.name %in% default.cluster.name))) {
-    object[['seurat_clusters']] <- Idents(object = object)
-  } else {
-    object[[cluster.name]] <- Idents(object = object)
-  }
+  object[['seurat_clusters']] <- Idents(object = object)
 
   cmd <- LogSeuratCommand(object = object, return.command = TRUE)
   slot(object = cmd, name = 'assay.used') <- DefaultAssay(object = object[[graph.name]])
