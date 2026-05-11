@@ -1656,6 +1656,8 @@ RunUMAP.Graph <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42L,
   metric.kwds = NULL,
   densmap = FALSE,
@@ -1707,7 +1709,8 @@ RunUMAP.Graph <- function(
     negative_sample_rate = negative.sample.rate,
     n_epochs = as.integer(x = n.epochs),
     random_state = random.state,
-    init = "spectral",
+    approx_pow = uwot.approx_pow,
+    init = uwot.init,
     metric = metric,
     metric_kwds = metric.kwds,
     verbose = verbose
@@ -1818,7 +1821,8 @@ RunUMAP.Neighbor <- function(
 #' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
 #' \code{\link[uwot]{umap}} for more details.
 #' @param uwot.init Set the initialization method to use for \code{\link[uwot]{umap}} or 
-#' \code{\link[uwot]{umap2}} (see these functions for available options). Default is \code{"spectral"}.
+#' \code{\link[uwot]{umap2}}, which is passed to the \code{init} parameter of these functions.
+#' See these functions for available options. Default is \code{"spectral"}.
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
 #' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
@@ -1885,6 +1889,7 @@ RunUMAP.Seurat <- function(
   b = NULL,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1978,6 +1983,7 @@ RunUMAP.Seurat <- function(
     b = b,
     uwot.sgd = uwot.sgd,
     uwot.approx_pow = uwot.approx_pow,
+    uwot.init = uwot.init,
     seed.use = seed.use,
     metric.kwds = metric.kwds,
     angular.rp.forest = angular.rp.forest,
