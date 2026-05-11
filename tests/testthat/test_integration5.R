@@ -1,6 +1,6 @@
 # Tests for IntegrateLayers
 set.seed(42)
-is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
+is_not_cran_submission <- TRUE
 
 
 # checks that the absolute value of `x` and `y` are within `tolerance`
@@ -39,6 +39,8 @@ if (is_not_cran_submission) {
   test_that("IntegrateLayers works with HarmonyIntegration", {
     skip_if_not_installed("harmony")
 
+    version <- packageVersion("harmony")
+
     integrated <- suppressWarnings(
       IntegrateLayers(
         test.data.std,
@@ -48,22 +50,40 @@ if (is_not_cran_submission) {
         verbose = FALSE
       )
     )
+
     # the integrated reduction should have the same dimensions as the original 
     expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+
     # spot-check a few of the integrated values - since the integrated 
     # reductions sporadically flip sign only compare absolute values
-    expect_abs_equal(
-      Embeddings(integrated[["integrated"]])[5, 5],
-      0.3912
-    )
-    expect_abs_equal(
-      Embeddings(integrated[["integrated"]])[40, 25],
-      0.6668
-    )
-    expect_abs_equal(
-      Embeddings(integrated[["integrated"]])[75, 45],
-      0.7248
-    )
+    # Harmony v2 is a redesigned / optimized version of Harmony v1, so results are expected to differ 
+    if (version < "2.0.0") {
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[5, 5],
+        0.3912
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[40, 25],
+        0.6668
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[75, 45],
+        0.7248
+      )
+    } else {
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[5, 5],
+        0.6228
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[40, 25],
+        0.5019
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[75, 45],
+        0.3661
+      )
+    }
   })
 }
 
@@ -333,6 +353,8 @@ if (is_not_cran_submission) {
   test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
     skip_if_not_installed("harmony")
 
+    version <- packageVersion("harmony")
+
     integrated <- suppressWarnings(
       IntegrateLayers(
         test.data.sct,
@@ -344,20 +366,37 @@ if (is_not_cran_submission) {
     )
     # the integrated reduction should have the same dimensions as the original 
     expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+
     # spot-check a few of the integrated values - since the integrated 
     # reductions sporadically flip sign only compare absolute values
-    expect_abs_equal(
-      Embeddings(integrated[["integrated"]])[5, 5],
-      1.1520
-    )
-    expect_abs_equal(
-      Embeddings(integrated[["integrated"]])[40, 25],
-      1.0302
-    )
-    expect_abs_equal(
-      Embeddings(integrated[["integrated"]])[75, 45],
-      0.1886
-    )
+    # Harmony v2 is a redesigned / optimized version of Harmony v1, so results are expected to differ
+    if (version < "2.0.0") {
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[5, 5],
+        1.1520
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[40, 25],
+        1.0302
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[75, 45],
+        0.1886
+      )
+    } else {
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[5, 5],
+        1.2928
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[40, 25],
+        0.9928
+      )
+      expect_abs_equal(
+        Embeddings(integrated[["integrated"]])[75, 45],
+        0.1917
+      )
+    }
   })
   test_that("IntegrateLayers works with CCAIntegration & SCTransform", {
     integrated <- suppressWarnings(

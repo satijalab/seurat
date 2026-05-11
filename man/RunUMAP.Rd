@@ -32,6 +32,7 @@ RunUMAP(object, ...)
   b = NULL,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -58,6 +59,8 @@ RunUMAP(object, ...)
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42L,
   metric.kwds = NULL,
   densmap = FALSE,
@@ -96,6 +99,7 @@ RunUMAP(object, ...)
   b = NULL,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -186,6 +190,10 @@ right adjoint functor.}
 
 \item{uwot.approx_pow}{Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
 \code{\link[uwot]{umap}} for more details.}
+
+\item{uwot.init}{Set the initialization method to use for \code{\link[uwot]{umap}} or 
+\code{\link[uwot]{umap2}}, which is passed to the \code{init} parameter of these functions.
+See these functions for available options. Default is \code{"spectral"}.}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed}
