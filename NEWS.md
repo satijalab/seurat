@@ -7,6 +7,7 @@
 ### Fixes
 
 - Fixed issue with `FindClusters` not setting metadata properly when a vector of resolutions is passed to `resolution` and a custom cluster name is specified ([#10385](https://github.com/satijalab/seurat/pull/10385))
+- Updated logic in `Parenting` to extract function names from the call stack efficiently, avoiding slowdowns when functions are run with `do.call` ([#10161](https://github.com/satijalab/seurat/pull/10161))
 
 # Seurat 5.5.0
 
