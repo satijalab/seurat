@@ -621,6 +621,20 @@ IntegrateLayers <- function(
   } else {
     abort(message = "'assay' must be a v5 or SCT assay")
   }
+  n.groups <- if (inherits(x = object[[assay]], what = 'SCTAssay')) {
+    length(levels(x = object[[assay]]))
+  } else {
+    length(layers)
+  }
+  if (n.groups < 2L) {
+    abort(message = paste0(
+      "IntegrateLayers requires at least two groups/layers in assay '",
+      assay,
+      "', but found ",
+      n.groups,
+      ". Split the assay by sample/batch (e.g. object[[assay]] <- split(object[[assay]], f = object$batch)) and check that subsetting retained cells from multiple batches."
+    ))
+  }
   if (!is.null(scale.layer)) {
     features <- intersect(
       x = features,
