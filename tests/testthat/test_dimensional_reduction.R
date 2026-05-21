@@ -124,6 +124,19 @@ test_that("`RunPCA` returns total variance", {
   )
 })
 
+test_that("`RunPCA` works as expected", {
+  counts <- get_random_counts()
+  input_v3 <- get_test_data(counts, assay_version = "v3")
+  input_v5 <- get_test_data(counts, assay_version = "v5")
+  inputs <- c(input_v3, input_v5)
+  if (requireNamespace("BPCells", quietly = TRUE)) {
+    counts_bpcells <- t(as(t(counts), Class = "IterableMatrix"))
+    input_bpcells <- get_test_data(counts_bpcells, assay_version = "v5")
+    inputs <- c(inputs, input_bpcells)
+  }
+  test_dimensional_reduction(inputs = inputs, method = RunPCA, npcs = 10)
+})
+
 context("RunICA")
 
 test_that("`RunICA` works as expected", {
