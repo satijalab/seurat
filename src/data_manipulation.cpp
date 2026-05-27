@@ -111,6 +111,26 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   return combined_mat;
 }
 
+// log normalize that is given only the x and p slots from the sparse matrix class
+// x consists of the non-zero values and p are the pointers corresponding to the nnz
+// [[Rcpp::export(rng = false)]]
+NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, bool display_progress = true){
+  NumericVector out(x.size());
+  Progress prog(p.size() - 1, display_progress);
+  // compute col sums and do normalization in one pass
+  for(int i=0; i < p.size() - 1; i++){
+    double col_sum = 0;
+    prog.increment();
+    for(int j=p[i]; j < p[i+1]; j++){
+      col_sum += x[j];
+    }
+    for(int j=p[i]; j < p[i+1]; j++){
+      out[j] = log1p(x[j] / col_sum * scale_factor);
+    }
+  }
+  return(out);
+}
+
 // [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress = true){
   Progress p(data.outerSize(), display_progress);
