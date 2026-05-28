@@ -126,8 +126,10 @@ NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, 
     for(int j = col_start; j < col_end; j++){
       col_sum += x[j];
     }
+    // scale factor and column sum are loop-invariant here - compute once for reuse
+    const double mult = scale_factor / col_sum;
     for(int j = col_start; j < col_end; j++){
-      out[j] = log1p(x[j] / col_sum * scale_factor);
+      out[j] = log1p(x[j] * mult);
     }
   }
   return(out);
