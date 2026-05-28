@@ -5065,8 +5065,8 @@ NormalizeData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  object[[assay]] <- NormalizeData(
-    object = object[[assay]],
+  slot(object, "assays")[[assay]] <- NormalizeData(
+    object = slot(object, "assays")[[assay]],
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose,
