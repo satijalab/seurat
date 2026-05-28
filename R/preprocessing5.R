@@ -328,26 +328,22 @@ NormalizeData.StdAssay <- function(
       x = layer
     ))
   }
-  # To make slot access less frequent while we loop through object layers
+  # Make slot access less frequent while we loop through object layers
   assay_layers <- slot(object = object, name = "layers")
-  feature_map <- slot(object = object, name = "features")
-  cell_map <- slot(object = object, name = "cells")
-  lapply(seq_along(along.with = layer), function(i) {
-    l <- layer[i]; s <- save[i]
+  for (i in seq_along(layer)) {
+    l <- layer[i]
+    s <- save[i]
     if (isTRUE(x = verbose)) {
       message("Normalizing layer: ", l)
     }
-    slot(object = object, name = "layers")[[s]] <<- NormalizeData(
-      object = assay_layers[[l]],
-      normalization.method = normalization.method,
-      scale.factor = scale.factor,
-      margin = margin,
-      verbose = verbose,
-      ...
-    )
-    slot(object = object, name = "features")[[s]] <<- feature_map[[l]]
-    slot(object = object, name = "cells")[[s]] <<- cell_map[[l]]
-  })
+    layer_data <- NormalizeData(object = assay_layers[[l]],
+                                normalization.method = normalization.method,
+                                scale.factor = scale.factor,
+                                margin = margin,
+                                verbose = verbose, ...)
+    # Use the internal layer setter to speed up assignment
+    object <- SetLayerDataInternal(object = object, layer = s, layer_data = layer_data, source = l)
+  }
   return(object)
 }
 
