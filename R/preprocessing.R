@@ -4881,10 +4881,9 @@ LogNormalize.V3Matrix <- function(
   }
   # LogNormSparse takes only x and p slots of the dgCMatrix
   norm.x <- LogNormSparse(x = data@x, p = data@p, scale_factor = scale.factor, display_progress = verbose)
-  # Put the normalized values back into a dgCMatrix structure
-  # Reuse slots from original as needed
-  norm.data <- new(Class = "dgCMatrix", i = data@i, x = norm.x, p = data@p, Dim = data@Dim, Dimnames = data@Dimnames)
-  return(norm.data)
+  # replace x slot with normalized values - all other slots can be reused
+  slot(object = data, name = "x") <- norm.x
+  return(data)
 }
 
 #' @importFrom future.apply future_lapply
