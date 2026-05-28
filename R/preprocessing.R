@@ -4879,9 +4879,11 @@ LogNormalize.V3Matrix <- function(
   if (verbose) {
     cat("Performing log-normalization\n", file = stderr())
   }
-  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
-  colnames(x = norm.data) <- colnames(x = data)
-  rownames(x = norm.data) <- rownames(x = data)
+  # LogNormSparse takes only x and p slots of the dgCMatrix
+  norm.x <- LogNormSparse(x = data@x, p = data@p, scale_factor = scale.factor, display_progress = verbose)
+  # Put the normalized values back into a dgCMatrix structure
+  # Reuse slots from original as needed
+  norm.data <- new(Class = "dgCMatrix", i = data@i, x = norm.x, p = data@p, Dim = data@Dim, Dimnames = data@Dimnames)
   return(norm.data)
 }
 
