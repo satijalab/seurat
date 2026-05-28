@@ -116,15 +116,17 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
 // [[Rcpp::export(rng = false)]]
 NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, bool display_progress = true){
   NumericVector out(x.size());
-  Progress prog(p.size() - 1, display_progress);
+  const int num_cols = p.size() - 1;
+  Progress prog(num_cols, display_progress);
   // compute col sums and do normalization in one pass
-  for(int i=0; i < p.size() - 1; i++){
+  for(int i = 0; i < num_cols; i++){
     double col_sum = 0;
     prog.increment();
-    for(int j=p[i]; j < p[i+1]; j++){
+    const int col_start = p[i]; const int col_end = p[i+1];
+    for(int j = col_start; j < col_end; j++){
       col_sum += x[j];
     }
-    for(int j=p[i]; j < p[i+1]; j++){
+    for(int j = col_start; j < col_end; j++){
       out[j] = log1p(x[j] / col_sum * scale_factor);
     }
   }
