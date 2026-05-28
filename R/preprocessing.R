@@ -5065,7 +5065,7 @@ NormalizeData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- NormalizeData(
+  object[[assay]] <- NormalizeData(
     object = object[[assay]],
     normalization.method = normalization.method,
     scale.factor = scale.factor,
@@ -5073,7 +5073,6 @@ NormalizeData.Seurat <- function(
     margin = margin,
     ...
   )
-  object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
   return(object)
 }
