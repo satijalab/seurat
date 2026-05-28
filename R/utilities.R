@@ -1802,9 +1802,9 @@ SaveAnnoyIndex <- function(
 #' @noRd
 #'
 SetLayerDataInternal <- function(object, layer, layer_data, source) {
-  slot(object = object, name = "layers")[[layer]] <- layer_data
-  slot(object = object, name = "cells")[[layer]] <- slot(object = object, name = "cells")[[source]]
-  slot(object = object, name = "features")[[layer]] <- slot(object = object, name = "features")[[source]]
+  object@layers[[layer]] <- layer_data
+  object@cells[[layer]] <- object@cells[[source]]
+  object@features[[layer]] <- object@features[[source]]
   return(object)
 }
 

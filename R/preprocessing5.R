@@ -329,7 +329,7 @@ NormalizeData.StdAssay <- function(
     ))
   }
   # Make slot access less frequent while we loop through object layers
-  assay_layers <- slot(object = object, name = "layers")
+  assay_layers <- object@layers
   for (i in seq_along(layer)) {
     l <- layer[i]
     s <- save[i]
