@@ -319,6 +319,7 @@ NormalizeData.StdAssay <- function(
   ...
 ) {
   olayer <- layer <- unique(x = layer)
+  # Retrieve all layers matching the pattern provided
   layer <- Layers(object = object, search = layer)
   if (length(x = save) != length(x = layer)) {
     save <- make.unique(names = gsub(
@@ -327,26 +328,26 @@ NormalizeData.StdAssay <- function(
       x = layer
     ))
   }
-  for (i in seq_along(along.with = layer)) {
-    l <- layer[i]
+  # To make slot access less frequent while we loop through object layers
+  assay_layers <- slot(object = object, name = "layers")
+  feature_map <- slot(object = object, name = "features")
+  cell_map <- slot(object = object, name = "cells")
+  lapply(seq_along(along.with = layer), function(i) {
+    l <- layer[i]; s <- save[i]
     if (isTRUE(x = verbose)) {
       message("Normalizing layer: ", l)
     }
-    LayerData(
-      object = object,
-      layer = save[i],
-      features = Features(x = object, layer = l),
-      cells = Cells(x = object, layer = l)
-    ) <- NormalizeData(
-      object = LayerData(object = object, layer = l, fast = NA),
+    slot(object = object, name = "layers")[[s]] <<- NormalizeData(
+      object = assay_layers[[l]],
       normalization.method = normalization.method,
       scale.factor = scale.factor,
       margin = margin,
       verbose = verbose,
       ...
     )
-  }
-  gc(verbose = FALSE)
+    slot(object = object, name = "features")[[s]] <<- feature_map[[l]]
+    slot(object = object, name = "cells")[[s]] <<- cell_map[[l]]
+  })
   return(object)
 }
 
