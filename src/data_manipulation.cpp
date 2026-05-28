@@ -112,24 +112,31 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
 }
 
 // log normalize that is given only the x and p slots from the sparse matrix class
-// x consists of the non-zero values and p are the pointers corresponding to the nnz
+// x consists of the non-zero values and p are the pointers pointing to the same
 // [[Rcpp::export(rng = false)]]
 NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, bool display_progress = true){
   NumericVector out(x.size());
+
+  // we use vector accessor functions to get pointers to the underlying data of the Rcpp vectors
+  // R0 indicates an accessor that returns pointers as const for read-only access
+  const int *ip = INTEGER_RO(p);
+  const double *rx = REAL_RO(x);
+  double *ro = REAL(out);
+
   const int num_cols = p.size() - 1;
   Progress prog(num_cols, display_progress);
   // compute col sums and do normalization in one pass
   for(int i = 0; i < num_cols; i++){
     double col_sum = 0;
     prog.increment();
-    const int col_start = p[i]; const int col_end = p[i+1];
+    const int col_start = ip[i]; const int col_end = ip[i + 1];
     for(int j = col_start; j < col_end; j++){
-      col_sum += x[j];
+      col_sum += rx[j];
     }
     // scale factor and column sum are loop-invariant here - compute once for reuse
     const double mult = scale_factor / col_sum;
     for(int j = col_start; j < col_end; j++){
-      out[j] = log1p(x[j] * mult);
+      ro[j] = log1p(rx[j] * mult);
     }
   }
   return(out);
