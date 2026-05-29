@@ -4,8 +4,7 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-date: 'Compiled: `r Sys.Date()`'
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE}
@@ -34,11 +33,18 @@ knitr::opts_chunk$set(
 
 # Load in the data
 
-The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents a new and exciting frontier for single-cell genomics. For example, [CITE-seq](http://www.nature.com/nmeth/journal/v14/n9/full/nmeth.4380.html) enables the simultaneous measurements of transcriptomes and cell-surface proteins from the same cell. Other exciting multimodal technologies, such as the [10x multiome kit](https://www.10xgenomics.com/products/single-cell-multiome-atac-plus-gene-expression) allow for the paired measurements of cellular transcriptome and chromatin accessibility (i.e scRNA-seq+scATAC-seq). Other modalities that can be measured alongside cellular transcriptomes include genetic perturbations, cellular methylomes, and hashtag oligos from [Cell Hashing](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1). We have designed Seurat to enable for the seamless storage, analysis, and exploration of diverse multimodal single-cell datasets.
+The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents an exciting frontier for single-cell genomics. We have previously highlighted some methods of interest, including [CITE-seq](http://www.nature.com/nmeth/journal/v14/n9/full/nmeth.4380.html), which enables the simultaneous measurements of transcriptomes and cell-surface proteins from the same cell; and the [10x multiome kit](https://www.10xgenomics.com/products/single-cell-multiome-atac-plus-gene-expression), which allows for the paired measurements of cellular transcriptome and chromatin accessibility (i.e scRNA-seq+scATAC-seq). Other modalities that can be measured alongside cellular transcriptomes include genetic perturbations, cellular methylomes, and hashtag oligos (for example, from [Cell Hashing](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1)).
+The field has rapidly expanded over the past few years, and we are excited to see the continued development of new technologies for multimodal single-cell analysis.
 
-In this vignette, we present an introductory workflow for creating a multimodal Seurat object and performing an initial analysis. For example, we demonstrate how to cluster a CITE-seq dataset on the basis of the measured cellular transcriptomes, and subsequently discover cell surface proteins that are enriched in each cluster. We note that Seurat also enables more advanced techniques for the analysis of multimodal data, in particular the application of our [Weighted Nearest Neighbors (WNN) approach](https://doi.org/10.1016/j.cell.2021.04.048) that enables simultaneous clustering of cells based on a weighted combination of both modalities, and you can explore this functionality [here](weighted_nearest_neighbor_analysis.html).
+We have designed Seurat to enable for the seamless storage, analysis, and exploration of diverse multimodal single-cell datasets. We note that Seurat also enables more advanced techniques for the analysis of multimodal data, in particular the application of our [Weighted Nearest Neighbors (WNN) approach](https://doi.org/10.1016/j.cell.2021.04.048) that enables simultaneous clustering of cells based on a weighted combination of both modalities, and you can explore this functionality [here](weighted_nearest_neighbor_analysis.html).
 
-Here, we analyze a dataset of 8,617 cord blood mononuclear cells (CBMCs), where transcriptomic measurements are paired with abundance estimates for 11 surface proteins, whose levels are quantified with DNA-barcoded antibodies. First, we load in two count matrices : one for the RNA measurements, and one for the antibody-derived tags (ADT). You can download the ADT file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz) and the RNA file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz) 
+Here we present an introductory workflow for creating a multimodal Seurat object and performing an initial analysis. For example, we demonstrate how to cluster a CITE-seq dataset on the basis of the measured cellular transcriptomes, and subsequently discover cell surface proteins that are enriched in each cluster. 
+
+- - -
+
+In this vignette, we analyze a dataset of 8,617 cord blood mononuclear cells (CBMCs): transcriptomic measurements are paired with abundance estimates for 11 surface proteins, whose levels are quantified with DNA-barcoded antibodies. 
+
+First, we load in two count matrices--one for the RNA measurements, and one for the antibody-derived tags (ADT). You can download the ADT file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz) and the RNA file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz).
 
 ```{r load_packages}
 library(Seurat)
@@ -49,7 +55,8 @@ library(patchwork)
 ```{r load_data}
 # Load in the RNA UMI matrix
 
-# Note that this dataset also contains ~5% of mouse cells, which we can use as negative controls for the protein measurements. For this reason, the gene expression matrix has HUMAN_ or MOUSE_ appended to the beginning of each gene.
+# Note that this dataset also contains ~5% of mouse cells, which we can use as negative controls for the protein measurements
+# For this reason, the gene expression matrix has HUMAN_ or MOUSE_ appended to the beginning of each gene
 cbmc.rna <- as.sparse(read.csv(file = '/brahms/shared/vignette-data/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz', sep = ',', header = TRUE, row.names = 1))
 
 # To make life a bit easier going forward, we're going to discard all but the top 100 most highly expressed mouse genes, and remove the "HUMAN_" from the CITE-seq prefix
@@ -62,9 +69,9 @@ cbmc.adt <- as.sparse(read.csv(file = '/brahms/shared/vignette-data/GSE100866_CB
 all.equal(colnames(cbmc.rna),colnames(cbmc.adt))
 ```
 
-# Setup a Seurat object, add the RNA and protein data
+# Set up a Seurat object with the RNA and ADT data
 
-Now we create a Seurat object, and add the ADT data as a second assay
+We create a Seurat object with the RNA data, and add the ADT data as a second assay:
 
 ```{r basic_de}
 # creates a Seurat object based on the scRNA-seq data
@@ -73,10 +80,10 @@ cbmc <- CreateSeuratObject(counts = cbmc.rna)
 # We can see that by default, the cbmc object contains an assay storing RNA measurement
 Assays(cbmc)
 
-# create a new assay to store ADT information
+# Create a new assay to store ADT information
 adt_assay <- CreateAssay5Object(counts = cbmc.adt)
 
-# add this assay to the previously created Seurat object
+# Add this assay to the previously created Seurat object
 cbmc[["ADT"]] <- adt_assay
 
 # Validate that the object now contains multiple assays
@@ -84,9 +91,10 @@ Assays(cbmc)
 
 # Extract a list of features measured in the ADT assay
 rownames(cbmc[["ADT"]])
+```
 
-# Note that we can easily switch back and forth between the two assays to specify the default for visualization and analysis
-
+Note that we can easily switch back and forth between the two assays to specify the default for visualization and analysis:
+```{r switch_assay}
 # List the current default assay
 DefaultAssay(cbmc)
 
@@ -105,7 +113,7 @@ The steps below represent a quick clustering of the PBMCs based on the scRNA-seq
 DefaultAssay(cbmc) <- "RNA"
 DefaultAssay(cbmc)
 
-# perform visualization and clustering steps
+# Perform visualization and clustering steps
 cbmc <- NormalizeData(cbmc)
 cbmc <- FindVariableFeatures(cbmc)
 cbmc <- ScaleData(cbmc)
@@ -113,12 +121,13 @@ cbmc <- RunPCA(cbmc, verbose = FALSE)
 cbmc <- FindNeighbors(cbmc, dims = 1:30)
 cbmc <- FindClusters(cbmc, resolution = 0.8, verbose = FALSE)
 cbmc <- RunUMAP(cbmc, dims = 1:30)
+
 DimPlot(cbmc, label = TRUE)
 ```
 
 # Visualize multiple modalities side-by-side
 
-Now that we have obtained clusters from scRNA-seq profiles, we can visualize the expression of either protein or RNA molecules in our dataset. Importantly, Seurat provides a couple ways to switch between modalities, and specify which modality you are interested in analyzing or visualizing. This is particularly important as, in some cases, the same feature can be present in multiple modalities - for example this dataset contains independent measurements of the B cell marker CD19 (both protein and RNA levels).
+Now that we have obtained clusters from scRNA-seq profiles, we can visualize the expression of either protein or RNA molecules in our dataset. Importantly, Seurat provides a couple ways to switch between modalities, and specify which modality you are interested in analyzing or visualizing. This is particularly important as, in some cases, the same feature can be present in multiple modalities--for example, this dataset contains independent measurements of the B cell marker CD19 (both protein and RNA levels).
 
 ```{r vis}
 # Normalize ADT data, 
@@ -136,7 +145,7 @@ p1 <- FeaturePlot(cbmc, "CD19",cols = c("lightgrey","darkgreen")) + ggtitle("CD1
 DefaultAssay(cbmc) <- 'RNA'
 p2 <- FeaturePlot(cbmc, "CD19") + ggtitle("CD19 RNA")
 
-# place plots side-by-side
+# Place plots side-by-side
 p1 | p2
 
 # Alternately, we can use specific assay keys to specify a specific modality
@@ -155,10 +164,10 @@ p1 | p2
 We can leverage our paired CITE-seq measurements to help annotate clusters derived from scRNA-seq, and to identify both protein and RNA markers.
 
 ```{r markers}
-# as we know that CD19 is a B cell marker, we can identify cluster 6 as expressing CD19 on the surface
+# As we know that CD19 is a B cell marker, we can identify cluster 6 as expressing CD19 on the surface
 VlnPlot(cbmc, "adt_CD19")
 
-# we can also identify alternative protein and RNA markers for this cluster through differential expression
+# We can also identify alternative protein and RNA markers for this cluster through differential expression
 adt_markers <- FindMarkers(cbmc,ident.1 = 6, assay = 'ADT')
 rna_markers <- FindMarkers(cbmc,ident.1 = 6, assay = 'RNA')
 
@@ -177,13 +186,14 @@ FeatureScatter(cbmc, feature1 = 'adt_CD3', feature2 = 'rna_CD3E')
 
 FeatureScatter(cbmc, feature1 = 'adt_CD4', feature2 = 'adt_CD8')
 
-# Let's look at the raw (non-normalized) ADT counts. You can see the values are quite high, particularly in comparison to RNA values. This is due to the significantly higher protein copy number in cells, which significantly reduces 'drop-out' in ADT data  
+# Let's look at the raw (non-normalized) ADT counts. You can see the values are quite high, particularly in comparison to RNA values
+# This is due to the significantly higher protein copy number in cells, which significantly reduces 'drop-out' in ADT data  
 FeatureScatter(cbmc, feature1 = 'adt_CD4', feature2 = 'adt_CD8', slot = 'counts')
 ```
 
 # Loading data from 10X multi-modal experiments
 
-Seurat is also able to analyze data from multimodal 10X experiments processed using CellRanger v3; as an example, we recreate the plots above using a dataset of 7,900 peripheral blood mononuclear cells (PBMC), freely available from 10X Genomics [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.0.0/pbmc_10k_protein_v3).
+Seurat is also able to analyze data from multimodal 10X experiments processed using CellRanger >=v3; as an example, we recreate the plots above using a dataset of 7,900 peripheral blood mononuclear cells (PBMC), freely available from 10X Genomics [here](https://www.10xgenomics.com/datasets/10-k-pbm-cs-from-a-healthy-donor-v-3-chemistry-3-standard-3-0-0).
 
 ```{r pbmc10x, fig.height=4.5, fig.width=10}
 pbmc10k.data <- Read10X(data.dir = '/brahms/shared/vignette-data/pbmc10k/filtered_feature_bc_matrix/')
@@ -207,24 +217,23 @@ plot3 <- FeatureScatter(pbmc10k, feature1 = 'adt_CD3', feature2 = 'CD3E', pt.siz
 ```{r save.img, include = TRUE}
 plot <- FeatureScatter(cbmc, feature1 = "adt_CD19", feature2 = "adt_CD3") + NoLegend() +
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18))
-ggsave(filename = "../output/images/citeseq_plot.jpg", height = 7, width = 12, plot = plot, quality = 50)
+plot
+# ggsave(filename = "../output/images/citeseq_plot.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/multimodal_vignette_times.csv")
-```
 
 # Additional functionality for multimodal data in Seurat
 
-Seurat v4 also includes additional functionality for the analysis, visualization, and integration of multimodal datasets. For more information, please explore the resources below:
+Seurat also includes additional functionality for the analysis, visualization, and integration of multimodal datasets. 
 
-* Defining cellular identity from multimodal data using WNN analysis in Seurat v4 [vignette](weighted_nearest_neighbor_analysis.html)
-* Mapping scRNA-seq data onto CITE-seq references [vignette](multimodal_reference_mapping.html)
-* Introduction to the analysis of spatial transcriptomics analysis [vignette](spatial_vignette.html)
-* Analysis of 10x multiome (paired scRNA-seq + ATAC) using WNN analysis [vignette](weighted_nearest_neighbor_analysis.html)
-* Signac: Analysis, interpretation, and exploration of single-cell chromatin datasets [package](https://satijalab.org/signac/)
-* Mixscape: an analytical toolkit for pooled single-cell genetic screens [vignette](mixscape_vignette.html)
-* Bridge integration: mapping multi-omic datasets across molecular modalities [vignette](https://satijalab.org/seurat/articles/seurat5_integration_bridge)
+For more information, please explore the resources below:
+
+* Mapping multi-omic datasets across molecular modalities with bridge integration ([vignette](seurat5_integration_bridge.html))
+* Defining cellular identity from multimodal data using WNN analysis ([vignette](weighted_nearest_neighbor_analysis.html))
+* Mapping scRNA-seq data onto CITE-seq references ([vignette](multimodal_reference_mapping.html))
+* Analyzing spatial transcriptomics data ([vignettes](get_started_v5_new.html#spatial-analysis))
+* `Signac`: Analysis, interpretation, and exploration of single-cell chromatin datasets ([package](https://stuartlab.org/signac/))
+* `Mixscape`: an analytical toolkit for pooled single-cell genetic screens ([vignette](mixscape_vignette.html))
 
 <details>
   <summary>**Session Info**</summary>

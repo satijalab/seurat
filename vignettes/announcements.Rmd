@@ -6,9 +6,15 @@ output:
     df_print: kable
 ---
 
+## **Changelog**
+
+Refer to the changelog [here](../news/index.html) for a full list of updates and changes across versions.
+
+Below, we highlight some of the major changes that users should be aware of when transitioning from Seurat v4 to Seurat v5.
+
 ## **Changes in Seurat v5**
 
-We are excited to release Seurat v5 on CRAN, where it is now the default version for new installs. Seurat v5 is designed to be backwards compatible with Seurat v4 so existing code will continue to run, but we have made some changes to the software that will affect user results. We note that users who aim to reproduce their previous workflows in Seurat v4 can still install this version using the instructions on our [install page](link).
+Seurat v5+ on CRAN is the default version for new installs. Seurat v5 is designed to be backwards compatible with Seurat v4, so existing code will continue to run, but we have made some changes to the software that will affect user results. We note that users who aim to reproduce their previous workflows in Seurat v4 can still install this version using the instructions on our [install page](install_v5.html).
 
 In particular, we have made changes to:
 
