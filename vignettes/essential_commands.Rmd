@@ -1,11 +1,11 @@
 ---
-title: "Seurat Command List"
+title: "Seurat Essential Commands"
 output:
   html_document:
     theme: united
     df_print: kable
   pdf_document: default
-date: 'Compiled: `r Sys.Date()`'
+# date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE}
@@ -21,24 +21,26 @@ knitr::opts_chunk$set(
 )
 ```
 
+Here, we present some essential commands for working with Seurat objects. See also the v5-specific [essential commands](seurat5_essential_commands.html) list.
+
 ```{r load-data, echo=FALSE}
 library(Seurat)
 library(ggplot2)
 library(SeuratData)
 
-# install datasets 
+# install datasets from SeuratData
 InstallData('pbmc3k')
 InstallData('cbmc')
 InstallData('ifnb')
 
-#load in pbmc example
+# load in pbmc example
 pbmc <- LoadData('pbmc3k')
 
 # load in multimodal example
 # type ?cbmc for more info
 cbmc <- LoadData('cbmc')
 
-#load in case/control example
+# load in case/control example
 # type ?ifnb for more info
 ifnb <- LoadData('ifnb')
 
@@ -68,15 +70,18 @@ DimPlot(object = pbmc, reduction = 'umap')
 ```
 
 ```{r chaincmds,eval=FALSE}
-# note that you can chain multiple commands together with %>%
-pbmc <- SCTransform(pbmc) %>% RunPCA() %>% FindNeighbors(dims=1:30) %>% 
-  FindClusters() %>% RunUMAP(dims=1:30)
+# you can also chain commands together with %>% from magrittr/the tidyverse
+pbmc <- SCTransform(pbmc) %>%
+          RunPCA() %>% 
+          FindNeighbors(dims=1:30) %>% 
+          FindClusters() %>% 
+          RunUMAP(dims=1:30)
 ```
 
 # `Seurat` Object Data Access
 
 ## Cell, feature, and layer names
-```{r features-and-cells}
+```{r features_and_cells}
 # Get cell and feature names, and total numbers
 # We show multiple ways to get the same output
 # cell names
@@ -91,7 +96,7 @@ rownames(pbmc)
 num_cells <- ncol(pbmc)
 num_features <- nrow(pbmc)
 
-# List of object  layers
+# List of object layers
 Layers(pbmc)
 
 # working with multimodal objects
@@ -129,7 +134,7 @@ table(Idents(pbmc))
 # Set identity to CD4 T cells for all cells
 Idents(pbmc) <- 'CD4 T cells'
 
-# Set for a selected group of cells
+# Set identity for a selected group of cells
 pbmc.cells <- Cells(pbmc)
 Idents(object = pbmc, cells = pbmc.cells[1:10]) <- 'CD4 T cells'
 
@@ -137,7 +142,7 @@ Idents(object = pbmc, cells = pbmc.cells[1:10]) <- 'CD4 T cells'
 Idents(object = pbmc)
 levels(x = pbmc)
 
-# Stash cell identity classes in metadata
+# Stash cell identity classes in metadata (can also use AddMetadata)
 pbmc[['old.ident']] <- Idents(object = pbmc)
 pbmc <- StashIdent(object = pbmc, save.name = 'old.ident')
 
@@ -169,7 +174,7 @@ pbmc[["RNA"]]$counts
 # Alternate accessor function with the same result
 LayerData(pbmc,assay = 'RNA',layer = 'counts')
 
-# GetAssayData from Seurat v4 is still supported
+# GetAssayData from Seurat v4 is still supported; use "layer" instead of "slot"
 GetAssayData(object = pbmc, assay = 'RNA', layer = 'counts')
 
 # ADT counts matrix (multimodal object)
@@ -178,15 +183,14 @@ cbmc[["ADT"]]$counts
 ```
 
 ```{r setdata, eval = FALSE}
-# Set expression data  
-# assume new.data is a new expression matrix
+# Set expression data (here, new.data is a new expression matrix)
 pbmc[["RNA"]]$counts <- new.data
 
 # Alternate setter function with the same result
 LayerData(pbmc,assay = 'RNA',layer = 'counts') <- new.data
 
 # SetAssayData from Seurat v4 is still supported
-pbmc <- SetAssayData(object = pbmc, layer = 'counts',new.data = new.data)
+pbmc <- SetAssayData(object = pbmc, layer = 'counts', new.data = new.data)
 
 ```
 
@@ -266,14 +270,14 @@ In Seurat v5, merging creates a single object, but keeps the expression informat
 ```{r merging-2, eval=FALSE, results = 'hide'}
 # Merge two Seurat objects
 merged_obj <- merge(x = ifnb_list$CTRL, y = ifnb_list$STIM)
-merged_obj[["RNA"]] <- JoinLayers(merged_obj)
+merged_obj <- JoinLayers(merged_obj)
 
 # Example to merge more than two Seurat objects
 merge(x = pbmc1, y = list(pbmc2, pbmc3))
 ```
 
 ## Merge objects (with integration)
-See [introduction to integration](integration_introduction.html) for more information.
+See the introductory [integration vignette](integration_introduction.html) for more information.
 
 ```{r merging-3, eval=FALSE, results = 'hide'}
 merged_obj <- merge(x = ifnb_list$CTRL, y = ifnb_list$STIM)
@@ -282,19 +286,19 @@ merged_obj <- FindVariableFeatures(merged_obj)
 merged_obj <- ScaleData(merged_obj)
 merged_obj <- RunPCA(merged_obj)
 merged_obj <- IntegrateLayers(
-  object = obj, method = RPCAIntegration,
+  object = merged_obj, method = RPCAIntegration,
   orig.reduction = "pca", new.reduction = 'integrated.rpca',
   verbose = FALSE)
 
 # now that integration is complete, rejoin layers
-merged_obj[["RNA"]] <- JoinLayers(merged_obj)
+merged_obj[["RNA"]] <- JoinLayers(merged_obj[["RNA"]])
 
 ```
 
 # Pseudobulk analysis
 
 ## Group cells together, based on multiple categories
-See [DE vignette](de_vignette.html) for information  on how to add the `donor_id` column to meta data.
+See the [DE vignette](de_vignette.html) for information  on how to add the `donor_id` column to meta data.
 
 ```{r, eval=FALSE}
 # pseudobulk cells only by cell type
@@ -312,7 +316,7 @@ Cells(bulk)
 
 # Visualization in `Seurat` 
 
-Seurat has a vast, ggplot2-based plotting library. All plotting functions will return a ggplot2 plot by default, allowing easy customization with ggplot2.
+Seurat has a vast, ggplot2-based plotting library. All plotting functions will return a ggplot2 plot by default, allowing easy customization.
 
 ```{r visualization}
 
@@ -355,8 +359,8 @@ DoHeatmap(pbmc,heatmap_markers,cells = subset(pbmc,downsample = 100))
 ```
 
 ```{r newthings}
-# New things to try! 
-# Note that plotting functions now return ggplot2 objects, so you can add themes, titles, and options onto them
+# Available in v5.0+!
+# Note that plotting functions return ggplot2 objects, so you can add themes, titles, and options onto them
 VlnPlot(object = pbmc, features = "MS4A1", split.by = "groups")
 DotPlot(object = pbmc, features = c("LYZ", "CCL5", "IL32"), split.by = "groups")
 FeaturePlot(object = pbmc, features = c("MS4A1", "CD79A"), blend = TRUE)
@@ -393,7 +397,7 @@ LabelPoints(plot = plot, points = TopCells(object = pbmc[["pca"]]), repel = TRUE
 
 # Multi-Assay Features
 
-With Seurat, you can easily switch between different assays at the single cell level (such as ADT counts from CITE-seq, or integrated/batch-corrected data). Most functions now take an assay parameter, but you can set a Default Assay to avoid repetitive statements.
+With Seurat, you can easily switch between different assays at the single-cell level (such as ADT counts from CITE-seq, or integrated/batch-corrected data). Most functions now take an assay parameter, but you can set a default assay to avoid repetitive statements.
 
 ```{r multi-assay}
 cbmc <- CreateSeuratObject(counts = cbmc.rna)
@@ -419,12 +423,5 @@ FeatureScatter(object = cbmc, feature1 = "rna_CD3E", feature2 = "adt_CD3")
 
 Users who are particularly interested in some of the technical changes to data storage in Seurat v5 can explore the following resources:
 
-* [SeuratObject manual](https://mojaveazure.github.io/seurat-object/)
-* [Seurat v5 and Assay5 introductory vignette ](seurat5_essential_commands.html)
-
-<details>
-  <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
-```
-</details>
+* [SeuratObject documentation](https://satijalab.github.io/seurat-object/index.html)
+* [Seurat v5+-specific essential commands](seurat5_essential_commands.html)
