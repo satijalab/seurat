@@ -30,6 +30,129 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ScaleColumns_optimized
+NumericMatrix ScaleColumns_optimized(NumericMatrix mat, NumericVector scale);
+RcppExport SEXP _Seurat_ScaleColumns_optimized(SEXP matSEXP, SEXP scaleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type scale(scaleSEXP);
+    rcpp_result_gen = Rcpp::wrap(ScaleColumns_optimized(mat, scale));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ScaleColumnsInPlace_optimized
+NumericMatrix ScaleColumnsInPlace_optimized(NumericMatrix mat, NumericVector scale);
+RcppExport SEXP _Seurat_ScaleColumnsInPlace_optimized(SEXP matSEXP, SEXP scaleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type scale(scaleSEXP);
+    rcpp_result_gen = Rcpp::wrap(ScaleColumnsInPlace_optimized(mat, scale));
+    return rcpp_result_gen;
+END_RCPP
+}
+// TotalColumnVariance_optimized
+double TotalColumnVariance_optimized(NumericMatrix mat);
+RcppExport SEXP _Seurat_TotalColumnVariance_optimized(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(TotalColumnVariance_optimized(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// TotalSparseColumnVariance_optimized
+double TotalSparseColumnVariance_optimized(NumericVector x, IntegerVector p, int rows, int cols);
+RcppExport SEXP _Seurat_TotalSparseColumnVariance_optimized(SEXP xSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    rcpp_result_gen = Rcpp::wrap(TotalSparseColumnVariance_optimized(x, p, rows, cols));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SCTResidualStatsAndCorrected_optimized
+List SCTResidualStatsAndCorrected_optimized(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, double target_log_umi, double min_var, double residual_clip_min, double residual_clip_max, int n_threads, bool compute_corrected);
+RcppExport SEXP _Seurat_SCTResidualStatsAndCorrected_optimized(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP target_log_umiSEXP, SEXP min_varSEXP, SEXP residual_clip_minSEXP, SEXP residual_clip_maxSEXP, SEXP n_threadsSEXP, SEXP compute_correctedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type intercept(interceptSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type slope(slopeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type log_umi(log_umiSEXP);
+    Rcpp::traits::input_parameter< double >::type target_log_umi(target_log_umiSEXP);
+    Rcpp::traits::input_parameter< double >::type min_var(min_varSEXP);
+    Rcpp::traits::input_parameter< double >::type residual_clip_min(residual_clip_minSEXP);
+    Rcpp::traits::input_parameter< double >::type residual_clip_max(residual_clip_maxSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type compute_corrected(compute_correctedSEXP);
+    rcpp_result_gen = Rcpp::wrap(SCTResidualStatsAndCorrected_optimized(x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads, compute_corrected));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SCTPearsonResidualMatrix_optimized
+NumericMatrix SCTPearsonResidualMatrix_optimized(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, IntegerVector feature_index, NumericVector min_var, double clip_min, double clip_max, bool do_center, int n_threads);
+RcppExport SEXP _Seurat_SCTPearsonResidualMatrix_optimized(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP feature_indexSEXP, SEXP min_varSEXP, SEXP clip_minSEXP, SEXP clip_maxSEXP, SEXP do_centerSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type intercept(interceptSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type slope(slopeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type log_umi(log_umiSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type feature_index(feature_indexSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type min_var(min_varSEXP);
+    Rcpp::traits::input_parameter< double >::type clip_min(clip_minSEXP);
+    Rcpp::traits::input_parameter< double >::type clip_max(clip_maxSEXP);
+    Rcpp::traits::input_parameter< bool >::type do_center(do_centerSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(SCTPearsonResidualMatrix_optimized(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastSparseRowScale_optimized
+NumericMatrix FastSparseRowScale_optimized(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, bool scale, bool center, double scale_max);
+RcppExport SEXP _Seurat_FastSparseRowScale_optimized(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastSparseRowScale_optimized(x, i, p, rows, cols, scale, center, scale_max));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastDenseRowScale_optimized
+NumericMatrix FastDenseRowScale_optimized(NumericMatrix mat, bool scale, bool center, double scale_max);
+RcppExport SEXP _Seurat_FastDenseRowScale_optimized(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastDenseRowScale_optimized(mat, scale, center, scale_max));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP _Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {
@@ -402,10 +525,18 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP isnull(SEXP);
+RcppExport SEXP isnull(void *);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
+    {"_Seurat_ScaleColumns_optimized", (DL_FUNC) &_Seurat_ScaleColumns_optimized, 2},
+    {"_Seurat_ScaleColumnsInPlace_optimized", (DL_FUNC) &_Seurat_ScaleColumnsInPlace_optimized, 2},
+    {"_Seurat_TotalColumnVariance_optimized", (DL_FUNC) &_Seurat_TotalColumnVariance_optimized, 1},
+    {"_Seurat_TotalSparseColumnVariance_optimized", (DL_FUNC) &_Seurat_TotalSparseColumnVariance_optimized, 4},
+    {"_Seurat_SCTResidualStatsAndCorrected_optimized", (DL_FUNC) &_Seurat_SCTResidualStatsAndCorrected_optimized, 15},
+    {"_Seurat_SCTPearsonResidualMatrix_optimized", (DL_FUNC) &_Seurat_SCTPearsonResidualMatrix_optimized, 15},
+    {"_Seurat_FastSparseRowScale_optimized", (DL_FUNC) &_Seurat_FastSparseRowScale_optimized, 8},
+    {"_Seurat_FastDenseRowScale_optimized", (DL_FUNC) &_Seurat_FastDenseRowScale_optimized, 4},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
