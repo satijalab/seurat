@@ -27,6 +27,7 @@ SCTransform_rewrite.default <- function(
   vst.flavor = 'v2',
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
+  defer.residual.matrix = FALSE,
   seed.use = 1448145,
   verbose = TRUE,
   ...
@@ -228,24 +229,33 @@ SCTransform_rewrite.default <- function(
       } else {
         genes
       }
-      vst.out$y <- SCTPearsonResidualMatrix_optimized(
-        x = umi@x,
-        i = umi@i,
-        p = umi@p,
-        rows = nrow(x = umi),
-        cols = ncol(x = umi),
-        theta = model.pars[, "theta"],
-        intercept = model.pars[, "(Intercept)"],
-        slope = model.pars[, "log_umi"],
-        log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
-        feature_index = as.integer(x = match(x = scale.data.features, table = genes) - 1L),
-        min_var = min.var,
-        clip_min = min(clip.range),
-        clip_max = max(clip.range),
-        do_center = do.center,
-        n_threads = 1L
-      )
-      dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
+      if (isTRUE(x = defer.residual.matrix)) {
+        vst.out$y <- matrix(
+          data = numeric(length = 0L),
+          nrow = 0L,
+          ncol = ncol(x = umi),
+          dimnames = list(character(length = 0L), colnames(x = umi))
+        )
+      } else {
+        vst.out$y <- SCTPearsonResidualMatrix_optimized(
+          x = umi@x,
+          i = umi@i,
+          p = umi@p,
+          rows = nrow(x = umi),
+          cols = ncol(x = umi),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
+          feature_index = as.integer(x = match(x = scale.data.features, table = genes) - 1L),
+          min_var = min.var,
+          clip_min = min(clip.range),
+          clip_max = max(clip.range),
+          do_center = do.center,
+          n_threads = 1L
+        )
+        dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
+      }
       
       vst.out
     },
@@ -617,11 +627,23 @@ FetchResiduals_rewrite.SCTAssay <- function(
   }
 
   if (isTRUE(x = na.rm)) {
-    keep.features <- !apply(X = residuals, MARGIN = 1, FUN = anyNA)
-    residuals <- residuals[keep.features, , drop = FALSE]
-    features <- intersect(x = features, y = rownames(x = residuals))
+    has.missing.residuals <- any(vapply(
+      X = residuals.list,
+      FUN = function(x) {
+        isTRUE(x = attr(x = x, which = "has_missing_residuals"))
+      },
+      FUN.VALUE = logical(length = 1L)
+    ))
+    if (has.missing.residuals) {
+      keep.features <- !apply(X = residuals, MARGIN = 1, FUN = anyNA)
+      residuals <- residuals[keep.features, , drop = FALSE]
+      features <- intersect(x = features, y = rownames(x = residuals))
+    }
   }
 
+  if (identical(x = rownames(x = residuals), y = features)) {
+    return(residuals)
+  }
   return(residuals[features, , drop = FALSE])
 }
 
@@ -677,19 +699,19 @@ FetchResidualSCTModel_rewrite <- function(
     features.to.compute <- character()
   }
 
-  result <- matrix(
-    data = NA_real_,
-    nrow = length(x = new_features),
-    ncol = length(x = layer.cells),
-    dimnames = list(new_features, layer.cells)
-  )
-
   old.features <- intersect(x = new_features, y = reusable.features)
-  if (length(x = old.features) > 0) {
-    result[old.features, layer.cells] <- existing.scale.data[old.features, layer.cells, drop = FALSE]
-  }
 
   if (length(x = features.to.compute) == 0) {
+    result <- matrix(
+      data = NA_real_,
+      nrow = length(x = new_features),
+      ncol = length(x = layer.cells),
+      dimnames = list(new_features, layer.cells)
+    )
+    if (length(x = old.features) > 0) {
+      result[old.features, layer.cells] <- existing.scale.data[old.features, layer.cells, drop = FALSE]
+    }
+    attr(x = result, which = "has_missing_residuals") <- anyNA(x = result)
     return(result)
   }
 
@@ -702,6 +724,16 @@ FetchResidualSCTModel_rewrite <- function(
     )
   }
   if (length(x = compute.features) == 0) {
+    result <- matrix(
+      data = NA_real_,
+      nrow = length(x = new_features),
+      ncol = length(x = layer.cells),
+      dimnames = list(new_features, layer.cells)
+    )
+    if (length(x = old.features) > 0) {
+      result[old.features, layer.cells] <- existing.scale.data[old.features, layer.cells, drop = FALSE]
+    }
+    attr(x = result, which = "has_missing_residuals") <- anyNA(x = result)
     return(result)
   }
 
@@ -729,6 +761,70 @@ FetchResidualSCTModel_rewrite <- function(
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
   counts <- LayerData(umi.object, layer = layer, cells = layer.cells)
+
+  if (is.null(x = reference.SCT.model) && identical(x = sct.method, y = "default")) {
+    counts <- as.sparse(x = counts)
+    model.pars <- vst.out$model_pars_fit
+    genes <- rownames(x = model.pars)
+    if (!identical(x = genes, y = rownames(x = counts))) {
+      counts <- counts[genes, , drop = FALSE]
+    }
+    min.variance <- vst.out$arguments$min_variance
+    min.var <- if (identical(x = min.variance, y = "umi_median")) {
+      (median(counts@x) / 5) ^ 2
+    } else {
+      min.variance
+    }
+    new.residuals <- SCTPearsonResidualMatrix_optimized(
+      x = counts@x,
+      i = counts@i,
+      p = counts@p,
+      rows = nrow(x = counts),
+      cols = ncol(x = counts),
+      theta = model.pars[, "theta"],
+      intercept = model.pars[, "(Intercept)"],
+      slope = model.pars[, "log_umi"],
+      log_umi = vst.out$cell_attr[colnames(x = counts), "log_umi"],
+      feature_index = as.integer(x = match(x = compute.features, table = genes) - 1L),
+      min_var = min.var,
+      clip_min = clip.min,
+      clip_max = clip.max,
+      do_center = TRUE,
+      n_threads = 1L
+    )
+    dimnames(x = new.residuals) <- list(compute.features, colnames(x = counts))
+    if (
+      length(x = old.features) == 0 &&
+      length(x = missing.features) == 0 &&
+      identical(x = compute.features, y = new_features)
+    ) {
+      attr(x = new.residuals, which = "has_missing_residuals") <- FALSE
+      return(new.residuals)
+    }
+    result <- matrix(
+      data = NA_real_,
+      nrow = length(x = new_features),
+      ncol = length(x = layer.cells),
+      dimnames = list(new_features, layer.cells)
+    )
+    if (length(x = old.features) > 0) {
+      result[old.features, layer.cells] <- existing.scale.data[old.features, layer.cells, drop = FALSE]
+    }
+    result[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
+    attr(x = result, which = "has_missing_residuals") <- anyNA(x = result)
+    return(result)
+  }
+
+  result <- matrix(
+    data = NA_real_,
+    nrow = length(x = new_features),
+    ncol = length(x = layer.cells),
+    dimnames = list(new_features, layer.cells)
+  )
+  if (length(x = old.features) > 0) {
+    result[old.features, layer.cells] <- existing.scale.data[old.features, layer.cells, drop = FALSE]
+  }
+
   cells.vector <- seq_along(along.with = layer.cells)
   cells.grid <- split(x = cells.vector, f = ceiling(x = cells.vector / chunk_size))
   residuals.list <- vector(mode = "list", length = length(x = cells.grid))
@@ -800,6 +896,7 @@ FetchResidualSCTModel_rewrite <- function(
   }
 
   result[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
+  attr(x = result, which = "has_missing_residuals") <- anyNA(x = result)
   return(result)
 }
 
@@ -867,6 +964,7 @@ SCTransform_rewrite.StdAssay <- function(
         vst.flavor = vst.flavor,
         conserve.memory = conserve.memory,
         return.only.var.genes = return.only.var.genes,
+        defer.residual.matrix = TRUE,
         seed.use = seed.use,
         verbose = verbose,
         ...
@@ -950,26 +1048,29 @@ SCTransform_rewrite.StdAssay <- function(
   assay_out <- as(object = assay_out, Class = "SCTAssay")
   slot(object = assay_out, name = "SCTModel.list") <- model.list
 
-  # pre-fill scale.data if pearson residuals are already computed for all layers
-  prefill.features <- Reduce(
-    f = intersect,
-    x = lapply(output_list, function(vst.out) {
-      rownames(x = vst.out$y)
-    })
-  )
-  scale.data.prefill <- do.call(
-    what = cbind,
-    args = lapply(output_list, function(vst.out) {
-      vst.out$y[prefill.features, , drop = FALSE]
-    })
-  )
-  LayerData(assay_out, layer = "scale.data") <- scale.data.prefill
-    
-  # Extract residuals for the selected features and store them in
-  # the outputs scaled.data slot.
+  # pre-fill scale.data if pearson residuals are already computed for all layers.
+  # In the rewrite2 branch, residual matrices are deferred per layer so the final
+  # multi-layer residual matrix is computed exactly once below.
+  prefill.matrices <- lapply(output_list, function(vst.out) {
+    vst.out$y
+  })
+  if (all(vapply(X = prefill.matrices, FUN = nrow, FUN.VALUE = integer(length = 1L)) > 0L)) {
+    prefill.features <- Reduce(
+      f = intersect,
+      x = lapply(prefill.matrices, rownames)
+    )
+    scale.data.prefill <- do.call(
+      what = cbind,
+      args = lapply(prefill.matrices, function(y) {
+        y[prefill.features, , drop = FALSE]
+      })
+    )
+    LayerData(assay_out, layer = "scale.data") <- scale.data.prefill
+  }
+
   residuals <- suppressWarnings(
     FetchResiduals_rewrite(
-      object = assay_out, 
+      object = assay_out,
       umi.object = object,
       features = scale_data_features,
       verbose = FALSE
