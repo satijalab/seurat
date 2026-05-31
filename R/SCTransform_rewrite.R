@@ -118,6 +118,12 @@ SCTransform_rewrite.default <- function(
   # set vst model
   vst.out <- switch(
     EXPR = sct.method,
+    'default' = {
+      vst.args[['return_corrected_umi']] <- FALSE
+      vst.args[['residual_type']] <- 'none'
+      vst.out <- do.call(what = 'vst', args = vst.args)
+      vst.out
+    },
     'reference.model' = {
       if (verbose) {
         message("Using reference SCTModel to calculate pearson residuals")
@@ -149,58 +155,12 @@ SCTransform_rewrite.default <- function(
       vst.out <- do.call(what = 'vst', args = vst.args)
       vst.out$gene_attr$residual_variance <- NA_real_
       vst.out
-    },
-    'default' = {
-      vst.args[['return_corrected_umi']] <- FALSE
-      vst.args[['residual_type']] <- 'none'
-      vst.out <- do.call(what = 'vst', args = vst.args)
-      vst.out
     })
 
   # get residuals
   vst.out <- switch(
     EXPR = sct.method,
-    'reference.model' = {
-      if (is.null(x = residual.features)) {
-        residual.features <- top.features
-      }
-      residual.features <- Reduce(
-        f = intersect,
-        x = list(residual.features, rownames(x = umi), rownames(x = vst.out$model_pars_fit))
-      )
-      residual.feature.mat <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE],
-        verbosity = as.numeric(x = verbose)*2
-      )
-      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
-      ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
-      vst.out$y <- sweep(
-        x = residual.feature.mat,
-        MARGIN = 1,
-        STATS = ref.residuals.mean,
-        FUN = "-"
-      )
-      vst.out
-    },
-    'residual.features' = {
-      residual.features <- intersect(
-        x = residual.features,
-        y = rownames(x = vst.out$gene_attr)
-      )
-      residual.feature.mat <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE],
-        verbosity = as.numeric(x = verbose)*2
-      )
-      vst.out$y <- residual.feature.mat
-      vst.out$gene_attr$residual_mean <- NA_real_
-      vst.out$gene_attr$residual_variance <- NA_real_
-      vst.out$gene_attr[residual.features, "residual_mean"] <- rowMeans2(x = vst.out$y)
-      vst.out$gene_attr[residual.features, "residual_variance"] <- RowVar(x = vst.out$y)
-      vst.out
-    },
-    # Default SCTransform behavior - compute Pearson residuals for all genes
+     # Default SCTransform behavior - compute Pearson residuals for all genes
     # now performed using optimized C++ workflow
     'default' = {
       # setup everything for the optimized C++ workflow
@@ -288,11 +248,71 @@ SCTransform_rewrite.default <- function(
       dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
       
       vst.out
-    })
+    },
+    'reference.model' = {
+      feature.variance <- vst.out$gene_attr[, "residual_variance"]
+      names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
 
+      feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+
+      feature.idx <- if (is.null(x = variable.features.n)) {
+        feature.variance >= variable.features.rv.th
+      } else {
+        seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+      }
+      top.features <- names(x = feature.variance)[feature.idx]
+      if (is.null(x = residual.features)) {
+        residual.features <- top.features
+      }
+
+      residual.features <- Reduce(
+        f = intersect,
+        x = list(residual.features, rownames(x = umi), rownames(x = vst.out$model_pars_fit))
+      )
+      residual.feature.mat <- get_residuals(
+        vst_out = vst.out,
+        umi = umi[residual.features, , drop = FALSE],
+        verbosity = as.numeric(x = verbose)*2
+      )
+      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
+      ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
+      vst.out$y <- sweep(
+        x = residual.feature.mat,
+        MARGIN = 1,
+        STATS = ref.residuals.mean,
+        FUN = "-"
+      )
+      vst.out
+    },
+    'residual.features' = {
+      residual.features <- intersect(
+        x = residual.features,
+        y = rownames(x = vst.out$gene_attr)
+      )
+      residual.feature.mat <- get_residuals(
+        vst_out = vst.out,
+        umi = umi[residual.features, , drop = FALSE],
+        verbosity = as.numeric(x = verbose)*2
+      )
+      vst.out$y <- residual.feature.mat
+      vst.out$gene_attr$residual_mean <- NA_real_
+      vst.out$gene_attr$residual_variance <- NA_real_
+      vst.out$gene_attr[residual.features, "residual_mean"] <- rowMeans2(x = vst.out$y)
+      vst.out$gene_attr[residual.features, "residual_variance"] <- RowVar(x = vst.out$y)
+      vst.out
+    }
+   )
+  # default method already clips residuals
+  if (!identical(x = sct.method, y = "default")) {
+    scale.data <- vst.out$y
+    scale.data[scale.data < clip.range[1]] <- clip.range[1]
+    scale.data[scale.data > clip.range[2]] <- clip.range[2]
+    vst.out$y <- scale.data
+  }
+  
   # User may (not common) want to regress out additional variables after SCTransform
   # Note that centering is already handled by the optimized residual matrix C++
-if (!is.null(x = vars.to.regress) || isTRUE(x = do.scale)) {
+  if (!is.null(x = vars.to.regress) || isTRUE(x = do.scale)) {
     vst.out$y <- ScaleData(
       vst.out$y,
       features = NULL,
