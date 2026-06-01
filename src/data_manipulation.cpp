@@ -115,10 +115,13 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
 // x consists of the non-zero values and p are the pointers pointing to the same
 // [[Rcpp::export(rng = false)]]
 NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, bool display_progress = true){
+  NumericVector out(no_init(x.size()));
+
   // we use vector accessor functions to get pointers to the underlying data of the Rcpp vectors
   // R0 indicates an accessor that returns pointers as const for read-only access
   const int *ip = INTEGER_RO(p);
-  double *rx = REAL(x);
+  const double *rx = REAL_RO(x);
+  double *ro = REAL(out);
 
   const int num_cols = p.size() - 1;
   Progress prog(num_cols, display_progress);
@@ -133,10 +136,10 @@ NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, 
     // scale factor and column sum are loop-invariant here - compute once for reuse
     const double mult = scale_factor / col_sum;
     for(int j = col_start; j < col_end; j++){
-      rx[j] = log1p(rx[j] * mult);
+      ro[j] = log1p(rx[j] * mult);
     }
   }
-  return(x);
+  return(out);
 }
 
 // [[Rcpp::export(rng = false)]]
