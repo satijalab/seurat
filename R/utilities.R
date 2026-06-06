@@ -2767,6 +2767,11 @@ RemoveLastField <- function(string, delim = "_") {
 # @return A vector of row mean
 #
 RowMeanSparse <- function(mat) {
+  if (inherits(x = mat, what = 'DelayedMatrix')) {
+    output <- DelayedMatrixStats::rowMeans2(x = mat)
+    names(x = output) <- rownames(x = mat)
+    return(output)
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_mean_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2784,6 +2789,11 @@ RowMeanSparse <- function(mat) {
 # @return A vector of row sum
 #
 RowSumSparse <- function(mat) {
+  if (inherits(x = mat, what = 'DelayedMatrix')) {
+    output <- DelayedMatrixStats::rowSums2(x = mat)
+    names(x = output) <- rownames(x = mat)
+    return(output)
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_sum_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2801,6 +2811,11 @@ RowSumSparse <- function(mat) {
 # @return A vector of row variance
 #
 RowVarSparse <- function(mat) {
+  if (inherits(x = mat, what = 'DelayedMatrix')) {
+    output <- DelayedMatrixStats::rowVars(x = mat)
+    names(x = output) <- rownames(x = mat)
+    return(output)
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_var_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2825,6 +2840,78 @@ RowSparseCheck <- function(mat) {
     mat <- as.sparse(x = mat)
   }
   return(mat)
+}
+
+#' Check whether a matrix exceeds R's 32-bit indexing limit
+#'
+#' R's in-memory matrix classes (\code{matrix} and \code{\link[Matrix]{dgCMatrix}})
+#' index their entries with 32-bit signed integers, which caps the number of
+#' (non-zero) elements at \code{.Machine$integer.max} (\eqn{2^{31} - 1}, about
+#' 2.1 billion). Beyond this, construction fails with errors such as
+#' \dQuote{'i' slot is too large}. \code{CheckMatrixSize} reports the relevant
+#' element count and, when the limit is approached or exceeded, points to the
+#' large-matrix backends Seurat can use instead (on-disk
+#' \href{https://bnprks.github.io/BPCells}{BPCells} / \code{DelayedArray} /
+#' \code{HDF5Array}). On-disk objects (\code{IterableMatrix}, \code{DelayedMatrix})
+#' already bypass the limit and are reported as such.
+#'
+#' @param object A matrix-like object (e.g. \code{matrix}, \code{dgCMatrix},
+#'   \code{IterableMatrix}, \code{DelayedMatrix})
+#' @param warn Emit a warning when at or near the limit (default \code{TRUE})
+#'
+#' @return Invisibly, a list with \code{n} (relevant element or non-zero count),
+#'   \code{limit} (\code{.Machine$integer.max}), \code{exceeds} (logical), and
+#'   \code{on.disk} (logical; whether \code{object} already uses an out-of-memory
+#'   backend)
+#'
+#' @export
+#' @concept utilities
+#'
+#' @examples
+#' mat <- matrix(0, nrow = 10, ncol = 10)
+#' res <- CheckMatrixSize(mat)
+#' res$exceeds
+#'
+CheckMatrixSize <- function(object, warn = TRUE) {
+  limit <- .Machine$integer.max
+  on.disk <- inherits(x = object, what = c('IterableMatrix', 'DelayedMatrix'))
+  n <- .MatrixElementCount(object = object)
+  exceeds <- !is.na(x = n) && n > limit
+  near <- !is.na(x = n) && n > 0.9 * limit
+  if (isTRUE(x = warn) && (exceeds || near) && !on.disk) {
+    warning(
+      'This matrix has ', format(x = n, big.mark = ','), ' ',
+      ifelse(test = inherits(x = object, what = 'sparseMatrix'),
+             yes = 'non-zero entries', no = 'elements'),
+      ', ', ifelse(test = exceeds, yes = 'which exceeds', no = 'which is near'),
+      " R's 32-bit matrix limit (", format(x = limit, big.mark = ','), '). ',
+      'Use an on-disk backend (BPCells, DelayedArray/HDF5Array) to store ',
+      'matrices of this size; see the BPCells interaction vignette.',
+      call. = FALSE
+    )
+  }
+  invisible(x = list(n = n, limit = limit, exceeds = exceeds, on.disk = on.disk))
+}
+
+# Count the index-relevant elements of a matrix-like object: non-zero entries
+# for sparse, total elements for dense. Returns NA_real_ if it cannot be
+# determined without materializing the object.
+#
+# @param object A matrix-like object
+# @return A numeric scalar (use double to avoid integer overflow), or NA_real_
+#
+.MatrixElementCount <- function(object) {
+  if (inherits(x = object, what = 'dgCMatrix')) {
+    return(length(x = slot(object = object, name = 'x')))
+  }
+  if (inherits(x = object, what = 'sparseMatrix')) {
+    return(as.numeric(x = Matrix::nnzero(x = object)))
+  }
+  d <- tryCatch(expr = dim(x = object), error = function(e) NULL)
+  if (is.null(x = d) || length(x = d) != 2L) {
+    return(NA_real_)
+  }
+  return(prod(as.numeric(x = d)))
 }
 
 # Sweep out array summaries
