@@ -2914,6 +2914,68 @@ CheckMatrixSize <- function(object, warn = TRUE) {
   return(prod(as.numeric(x = d)))
 }
 
+#' Materialize on-disk layers of a Seurat object in memory
+#'
+#' Convert out-of-memory layers (BPCells \code{IterableMatrix},
+#' \code{DelayedMatrix}) of a Seurat object into in-memory sparse matrices
+#' (\code{\link[Matrix]{dgCMatrix}}). The result is fully self-contained, so a
+#' plain \code{\link[base]{saveRDS}} writes it to a single portable file with no
+#' external on-disk matrix directories to keep alongside it -- the same
+#' experience as an AnnData \code{.h5ad}. Use when the data fits in memory; for
+#' layers exceeding the \code{dgCMatrix} \eqn{2^{31}} limit, keep the on-disk
+#' backend and use \code{\link{SaveSeurat}} or \code{\link{SaveSeuratH5}}
+#' instead.
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param assays Assays to materialize; \code{NULL} (default) uses all assays
+#' @param layers Layers to materialize; \code{NULL} (default) materializes every
+#'   on-disk layer found
+#' @param verbose Print progress messages (default \code{TRUE})
+#'
+#' @return \code{object} with its on-disk layers converted to in-memory
+#'   \code{dgCMatrix}
+#'
+#' @export
+#' @concept utilities
+#'
+#' @examples
+#' \dontrun{
+#' # obj has BPCells/DelayedMatrix layers on disk
+#' obj <- AsInMemory(obj)
+#' saveRDS(obj, "object.rds") # single, portable file
+#' }
+#'
+AsInMemory <- function(object, assays = NULL, layers = NULL, verbose = TRUE) {
+  on.disk <- c('IterableMatrix', 'DelayedMatrix')
+  assays <- assays %||% Assays(object = object)
+  for (assay in assays) {
+    assay.layers <- layers %||% Layers(object = object, assay = assay)
+    assay.layers <- intersect(x = assay.layers, y = Layers(object = object, assay = assay))
+    for (lyr in assay.layers) {
+      ldat <- LayerData(object = object, layer = lyr, assay = assay)
+      if (!inherits(x = ldat, what = on.disk)) {
+        next
+      }
+      if (isTRUE(x = verbose)) {
+        message('Materializing layer "', lyr, '" of assay "', assay, '" in memory')
+      }
+      LayerData(object = object, layer = lyr, assay = assay) <- tryCatch(
+        expr = as.sparse(x = ldat),
+        error = function(e) {
+          stop(
+            'Could not materialize layer "', lyr, '" of assay "', assay,
+            '" in memory; it likely exceeds the dgCMatrix 2^31 limit. Keep the ',
+            'on-disk backend and use SaveSeurat() or SaveSeuratH5() to write a ',
+            'single portable file. Original error: ', conditionMessage(e),
+            call. = FALSE
+          )
+        }
+      )
+    }
+  }
+  return(object)
+}
+
 # Sweep out array summaries
 #
 # Reimplmentation of \code{\link[base]{sweep}} to maintain compatability with
