@@ -136,3 +136,42 @@ VST.DelayedMatrix <- function(
   rownames(x = hvf.info) <- rownames(x = data)
   return(hvf.info)
 }
+
+#' @importFrom SeuratObject StitchMatrix SparseEmptyMatrix
+#'
+#' @method StitchMatrix DelayedMatrix
+#' @export
+#'
+StitchMatrix.DelayedMatrix <- function(x, y, rowmap, colmap, ...) {
+  # Combine multiple DelayedMatrix layers (e.g. split-by-batch) into a single
+  # DelayedMatrix, padding absent features with zero rows. Mirrors
+  # StitchMatrix.IterableMatrix but uses lazy DelayedArray rbind/cbind so the
+  # result is never materialized. Needed for JoinLayers/ScaleData/integration
+  # on multi-layer DelayedMatrix-backed objects.
+  if (!is.list(x = y)) {
+    y <- list(y)
+  }
+  rowmap <- droplevels(x = rowmap)
+  colmap <- droplevels(x = colmap)
+  stopifnot(ncol(x = rowmap) == length(x = y) + 1L)
+  stopifnot(ncol(x = colmap) == length(x = y) + 1L)
+  stopifnot(identical(x = colnames(x = rowmap), y = colnames(x = colmap)))
+  y <- c(list(x), y)
+  for (i in seq_along(along.with = y)) {
+    missing_row <- setdiff(x = rownames(x = rowmap), y = rowmap[[i]])
+    if (length(x = missing_row) > 0) {
+      zero_i <- SparseEmptyMatrix(
+        nrow = length(x = missing_row),
+        ncol = ncol(x = y[[i]]),
+        colnames = colmap[[i]],
+        rownames = missing_row
+      )
+      zero_i <- as.DelayedMatrix(x = as(object = zero_i, Class = 'dgCMatrix'))
+      # Use DelayedArray's explicit array binders: bare rbind/cbind would resolve
+      # to base/S4Vectors dispatch (bindCOLS) unless BiocGenerics is attached.
+      y[[i]] <- DelayedArray::arbind(y[[i]], zero_i)[rownames(x = rowmap), ]
+    }
+  }
+  m <- do.call(what = DelayedArray::acbind, args = y)
+  return(m)
+}
