@@ -2,6 +2,9 @@
 
 ### Additions
 
+- Added a `DelayedMatrix` (`DelayedArray`/`HDF5Array`) layer backend for out-of-memory matrices larger than the `dgCMatrix` 2^31 limit, with `LogNormalize`, `VST`, `.CalcN` and `StitchMatrix` methods so `NormalizeData`, `FindVariableFeatures`, `ScaleData`, `RunPCA`, `JoinLayers` and CCA/RPCA/Harmony `IntegrateLayers` run on `DelayedMatrix`-backed objects ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Added `as.DelayedMatrix`, `as.sparse.spam` and `CheckMatrixSize` for ultra-large matrix interoperability, and `AsInMemory` to materialize on-disk layers into a self-contained object that `saveRDS` writes to a single portable file ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Added `SaveSeurat`/`LoadSeurat` (single-file bundle) and `SaveSeuratH5`/`LoadSeuratH5` (single-file HDF5 container, an AnnData `.h5ad` analogue) to write and reload objects with on-disk layers without absolute-path breakage ([#9798](https://github.com/satijalab/seurat/issues/9798))
 - Added `uwot.init` parameter to `RunUMAP` to optionally customize method of UMAP initialization ([#10386](https://github.com/satijalab/seurat/pull/10386))
 
 ### Fixes
