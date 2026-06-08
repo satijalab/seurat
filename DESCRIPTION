@@ -127,6 +127,7 @@ Suggests:
     sf (>= 1.0.0),
     sp,
     spam,
+    SparseArray,
     SingleCellExperiment,
     SummarizedExperiment,
     testthat,

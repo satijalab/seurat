@@ -36,6 +36,23 @@ test_that("as.DelayedMatrix and as.sparse round-trip with dimnames", {
   expect_true(all.equal(as.sparse(d), m) == TRUE)
 })
 
+test_that("in-memory as.DelayedMatrix uses a 64-bit SVT seed and saves to one rds", {
+  skip_if_not_installed("DelayedArray")
+  skip_if_not_installed("SparseArray")
+  m <- .make_counts()
+  d <- as.DelayedMatrix(m)
+  expect_s4_class(d, "DelayedMatrix")
+  expect_true(is(DelayedArray::seed(d), "SVT_SparseMatrix"))
+  expect_identical(dimnames(d), dimnames(m))
+  obj <- suppressWarnings(CreateSeuratObject(counts = d))
+  # plain saveRDS yields a single self-contained file (in-memory, no store)
+  f <- tempfile(fileext = ".rds")
+  saveRDS(obj, f)
+  obj2 <- readRDS(f)
+  expect_true(inherits(LayerData(obj2, "counts"), "DelayedMatrix"))
+  expect_equal(as.matrix(LayerData(obj2, "counts")), as.matrix(m))
+})
+
 test_that("as.DelayedMatrix(ondisk=TRUE) gives a 64-bit on-disk matrix", {
   skip_if_not_installed("DelayedArray")
   skip_if_not_installed("HDF5Array")

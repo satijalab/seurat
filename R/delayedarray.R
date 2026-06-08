@@ -16,14 +16,19 @@ NULL
 #' \code{\link[Matrix]{dgCMatrix}}, \code{IterableMatrix}) are wrapped, preserving
 #' dimnames.
 #'
-#' With \code{ondisk = TRUE} the matrix is realized to an on-disk HDF5 store (a
-#' 10x-style sparse \code{\link[HDF5Array]{TENxMatrix}}). This is the 64-bit
-#' path: the HDF5 store keeps a 64-bit non-zero-count pointer, so the resulting
-#' \code{DelayedMatrix} can represent more than \eqn{2^{31}} non-zero entries and
-#' is processed block-wise without ever materializing the whole matrix in memory.
-#' An in-memory \code{DelayedMatrix} (\code{ondisk = FALSE}) is only as large as
-#' its seed allows -- a \code{dgCMatrix} seed is still bounded by the
-#' \eqn{2^{31}} limit.
+#' For sparse input the in-memory result (\code{ondisk = FALSE}) is backed by a
+#' \code{\link[SparseArray]{SVT_SparseMatrix}} seed when the \pkg{SparseArray}
+#' package is available. Because that representation stores non-zeros in a
+#' per-column tree rather than a single flat index vector, it can hold more than
+#' \eqn{2^{31}} non-zero entries entirely in RAM (unlike a \code{dgCMatrix}
+#' seed, which is bounded by the \eqn{2^{31}} limit), while still carrying
+#' dimnames -- so a plain \code{\link[base]{saveRDS}} writes the whole object to
+#' one self-contained file, like an AnnData held in memory.
+#'
+#' With \code{ondisk = TRUE} the matrix is instead realized to an on-disk HDF5
+#' store (a 10x-style sparse \code{\link[HDF5Array]{TENxMatrix}}), whose 64-bit
+#' non-zero-count pointer likewise lifts the \eqn{2^{31}} limit while keeping the
+#' data out of memory.
 #'
 #' @param x A matrix-like object
 #' @param ondisk Realize \code{x} to a 64-bit on-disk HDF5 (\code{TENxMatrix})
@@ -71,6 +76,13 @@ as.DelayedMatrix <- function(x, ondisk = FALSE, file = NULL, ...) {
   }
   if (inherits(x = x, what = 'DelayedMatrix')) {
     return(x)
+  }
+  # In-memory: use a 64-bit SVT_SparseMatrix seed for sparse input so the result
+  # can hold > 2^31 non-zeros in RAM (a dgCMatrix seed would cap it). Falls back
+  # to a plain wrap when SparseArray is unavailable.
+  if (inherits(x = x, what = 'sparseMatrix') &&
+      requireNamespace('SparseArray', quietly = TRUE)) {
+    x <- as(object = x, Class = 'SVT_SparseMatrix')
   }
   return(DelayedArray::DelayedArray(seed = x))
 }
