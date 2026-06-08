@@ -4,15 +4,22 @@
 \alias{as.DelayedMatrix}
 \title{Coerce to a DelayedMatrix}
 \usage{
-as.DelayedMatrix(x, ...)
+as.DelayedMatrix(x, ondisk = FALSE, file = NULL, ...)
 }
 \arguments{
 \item{x}{A matrix-like object}
 
+\item{ondisk}{Realize \code{x} to a 64-bit on-disk HDF5 (\code{TENxMatrix})
+store rather than wrapping it in memory (default \code{FALSE})}
+
+\item{file}{Path to the HDF5 file to create when \code{ondisk = TRUE}
+(default: a temporary \code{.h5} file)}
+
 \item{...}{Ignored}
 }
 \value{
-A \code{\link[DelayedArray]{DelayedMatrix}}
+A \code{\link[DelayedArray]{DelayedMatrix}}; a
+\code{\link[HDF5Array]{TENxMatrix}} when \code{ondisk = TRUE}
 }
 \description{
 Wrap a matrix-like object in a \code{\link[DelayedArray]{DelayedMatrix}} so it
@@ -21,12 +28,24 @@ objects are returned unchanged; other inputs (\code{matrix},
 \code{\link[Matrix]{dgCMatrix}}, \code{IterableMatrix}) are wrapped, preserving
 dimnames.
 }
+\details{
+With \code{ondisk = TRUE} the matrix is realized to an on-disk HDF5 store (a
+10x-style sparse \code{\link[HDF5Array]{TENxMatrix}}). This is the 64-bit
+path: the HDF5 store keeps a 64-bit non-zero-count pointer, so the resulting
+\code{DelayedMatrix} can represent more than \eqn{2^{31}} non-zero entries and
+is processed block-wise without ever materializing the whole matrix in memory.
+An in-memory \code{DelayedMatrix} (\code{ondisk = FALSE}) is only as large as
+its seed allows -- a \code{dgCMatrix} seed is still bounded by the
+\eqn{2^{31}} limit.
+}
 \examples{
 \dontrun{
 mat <- Matrix::rsparsematrix(100, 20, 0.1)
 rownames(mat) <- paste0("g", 1:100)
 colnames(mat) <- paste0("c", 1:20)
 d <- as.DelayedMatrix(mat)
+# 64-bit, on-disk:
+d64 <- as.DelayedMatrix(mat, ondisk = TRUE)
 }
 
 }

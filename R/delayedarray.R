@@ -16,10 +16,24 @@ NULL
 #' \code{\link[Matrix]{dgCMatrix}}, \code{IterableMatrix}) are wrapped, preserving
 #' dimnames.
 #'
+#' With \code{ondisk = TRUE} the matrix is realized to an on-disk HDF5 store (a
+#' 10x-style sparse \code{\link[HDF5Array]{TENxMatrix}}). This is the 64-bit
+#' path: the HDF5 store keeps a 64-bit non-zero-count pointer, so the resulting
+#' \code{DelayedMatrix} can represent more than \eqn{2^{31}} non-zero entries and
+#' is processed block-wise without ever materializing the whole matrix in memory.
+#' An in-memory \code{DelayedMatrix} (\code{ondisk = FALSE}) is only as large as
+#' its seed allows -- a \code{dgCMatrix} seed is still bounded by the
+#' \eqn{2^{31}} limit.
+#'
 #' @param x A matrix-like object
+#' @param ondisk Realize \code{x} to a 64-bit on-disk HDF5 (\code{TENxMatrix})
+#'   store rather than wrapping it in memory (default \code{FALSE})
+#' @param file Path to the HDF5 file to create when \code{ondisk = TRUE}
+#'   (default: a temporary \code{.h5} file)
 #' @param ... Ignored
 #'
-#' @return A \code{\link[DelayedArray]{DelayedMatrix}}
+#' @return A \code{\link[DelayedArray]{DelayedMatrix}}; a
+#'   \code{\link[HDF5Array]{TENxMatrix}} when \code{ondisk = TRUE}
 #'
 #' @export
 #' @concept utilities
@@ -30,18 +44,33 @@ NULL
 #' rownames(mat) <- paste0("g", 1:100)
 #' colnames(mat) <- paste0("c", 1:20)
 #' d <- as.DelayedMatrix(mat)
+#' # 64-bit, on-disk:
+#' d64 <- as.DelayedMatrix(mat, ondisk = TRUE)
 #' }
 #'
-as.DelayedMatrix <- function(x, ...) {
+as.DelayedMatrix <- function(x, ondisk = FALSE, file = NULL, ...) {
   if (!requireNamespace('DelayedArray', quietly = TRUE)) {
     stop("Package 'DelayedArray' must be installed to create a DelayedMatrix.",
          call. = FALSE)
   }
-  if (inherits(x = x, what = 'DelayedMatrix')) {
-    return(x)
-  }
   if (inherits(x = x, what = 'IterableMatrix')) {
     x <- as.sparse(x = x)
+  }
+  if (isTRUE(x = ondisk)) {
+    if (!requireNamespace('HDF5Array', quietly = TRUE)) {
+      stop("Package 'HDF5Array' must be installed for an on-disk DelayedMatrix.",
+           call. = FALSE)
+    }
+    file <- file %||% tempfile(fileext = '.h5')
+    if (!inherits(x = x, what = 'DelayedArray')) {
+      x <- DelayedArray::DelayedArray(seed = x)
+    }
+    return(HDF5Array::writeTENxMatrix(
+      x = x, filepath = file, group = 'matrix', verbose = FALSE
+    ))
+  }
+  if (inherits(x = x, what = 'DelayedMatrix')) {
+    return(x)
   }
   return(DelayedArray::DelayedArray(seed = x))
 }

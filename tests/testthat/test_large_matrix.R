@@ -36,6 +36,24 @@ test_that("as.DelayedMatrix and as.sparse round-trip with dimnames", {
   expect_true(all.equal(as.sparse(d), m) == TRUE)
 })
 
+test_that("as.DelayedMatrix(ondisk=TRUE) gives a 64-bit on-disk matrix", {
+  skip_if_not_installed("DelayedArray")
+  skip_if_not_installed("HDF5Array")
+  m <- .make_counts()
+  d <- as.DelayedMatrix(m, ondisk = TRUE)
+  expect_s4_class(d, "DelayedMatrix")
+  expect_true(is(d, "TENxMatrix"))
+  expect_identical(dimnames(d), dimnames(m))
+  expect_equal(as.matrix(d), as.matrix(m))
+  # element/index space is 64-bit safe (a sparse > 2^31-element matrix)
+  big <- as.DelayedMatrix(
+    Matrix::sparseMatrix(i = c(1L, 80000L), j = c(1L, 40000L), x = 1,
+                         dims = c(80000L, 40000L)),
+    ondisk = TRUE
+  )
+  expect_gt(length(big), .Machine$integer.max)
+})
+
 test_that("DelayedMatrix preprocessing matches dgCMatrix", {
   skip_if_not_installed("DelayedArray")
   skip_if_not_installed("DelayedMatrixStats")
