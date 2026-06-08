@@ -112,6 +112,38 @@ test_that("DelayedMatrix-backed object runs PCA", {
   expect_equal(ncol(Embeddings(dly, "pca")), 10)
 })
 
+test_that("non-block-native ops materialize and match dgCMatrix", {
+  skip_if_not_installed("DelayedArray")
+  skip_if_not_installed("SparseArray")
+  m <- .make_counts(ncell = 100)
+  ref <- suppressWarnings(NormalizeData(CreateSeuratObject(counts = m), verbose = FALSE))
+  dly <- suppressWarnings(NormalizeData(
+    CreateSeuratObject(counts = as.DelayedMatrix(m)), verbose = FALSE
+  ))
+  ref$cond <- rep(c("a", "b"), 50)
+  dly$cond <- rep(c("a", "b"), 50)
+  # CLR / RC normalization
+  for (nm in c("CLR", "RC")) {
+    a <- as.matrix(LayerData(suppressWarnings(
+      NormalizeData(ref, normalization.method = nm, verbose = FALSE)), "data"))
+    b <- as.matrix(LayerData(suppressWarnings(
+      NormalizeData(dly, normalization.method = nm, verbose = FALSE)), "data"))
+    expect_equal(a, b, tolerance = 1e-6)
+  }
+  # mean.var.plot variable features
+  expect_equal(
+    VariableFeatures(suppressWarnings(FindVariableFeatures(
+      ref, selection.method = "mvp", verbose = FALSE))),
+    VariableFeatures(suppressWarnings(FindVariableFeatures(
+      dly, selection.method = "mvp", verbose = FALSE)))
+  )
+  # pseudobulk summaries
+  expect_equal(
+    as.matrix(suppressWarnings(AggregateExpression(ref, group.by = "cond", verbose = FALSE))$RNA),
+    as.matrix(suppressWarnings(AggregateExpression(dly, group.by = "cond", verbose = FALSE))$RNA)
+  )
+})
+
 context("Multi-layer / integration on DelayedMatrix")
 
 test_that("split DelayedMatrix layers join and integrate", {
