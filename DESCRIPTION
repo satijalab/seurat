@@ -37,7 +37,7 @@ Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-univ
 Depends:
     R (>= 4.0.0),
     methods,
-    SeuratObject (>= 5.0.2)
+    SeuratObject (>= 5.4.0.9000)
 Imports:
     cluster,
     cowplot,
