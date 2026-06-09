@@ -178,5 +178,5 @@ VST.DelayedMatrix <- function(
   return(hvf.info)
 }
 
-# StitchMatrix.DelayedMatrix lives in SeuratObject (>= 5.4.0.9000), alongside
+# StitchMatrix.DelayedMatrix lives in SeuratObject (>= 5.4.0.9002), alongside
 # StitchMatrix.IterableMatrix, so multi-layer DelayedMatrix assays can be joined.
