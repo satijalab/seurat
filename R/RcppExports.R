@@ -5,6 +5,14 @@ RunModularityClusteringCpp <- function(SNN, modularityFunction, resolution, algo
     .Call('_Seurat_RunModularityClusteringCpp', PACKAGE = 'Seurat', SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename)
 }
 
+SCTResidualStatsAndCorrected_optimized <- function(x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads = 1L, compute_corrected = TRUE) {
+    .Call('_Seurat_SCTResidualStatsAndCorrected_optimized', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads, compute_corrected)
+}
+
+SCTPearsonResidualMatrix_optimized <- function(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center = TRUE, n_threads = 1L) {
+    .Call('_Seurat_SCTPearsonResidualMatrix_optimized', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads)
+}
+
 RunUMISampling <- function(data, sample_val, upsample = FALSE, display_progress = TRUE) {
     .Call('_Seurat_RunUMISampling', PACKAGE = 'Seurat', data, sample_val, upsample, display_progress)
 }

@@ -10,6 +10,11 @@ SCTransform_rewrite <- function(object, ...) {
   UseMethod(generic = 'SCTransform_rewrite', object = object)
 }
 
+#' @rdname SCTransform_rewrite
+#' @concept preprocessing
+#' @export
+#' @method SCTransform_rewrite default
+#'
 SCTransform_rewrite.default <- function(
   object,
   cell.attr,
@@ -532,10 +537,17 @@ SCTransform_rewrite.Seurat <- function(
   return(object)
 }
 
+#' @concept preprocessing
+#' @export
+#'
 FetchResiduals_rewrite <- function(object, ...) {
   UseMethod(generic = "FetchResiduals_rewrite", object = object)
 }
 
+#' @concept preprocessing
+#' @export
+#' @method FetchResiduals_rewrite SCTAssay
+#'
 FetchResiduals_rewrite.SCTAssay <- function(
   object,
   umi.object,
@@ -647,6 +659,9 @@ FetchResiduals_rewrite.SCTAssay <- function(
   return(residuals[features, , drop = FALSE])
 }
 
+#' @concept preprocessing
+#' @export
+#'
 FetchResidualSCTModel_rewrite <- function(
   object,
   umi.object,

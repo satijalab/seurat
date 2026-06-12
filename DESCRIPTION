@@ -134,6 +134,7 @@ LazyData: true
 RoxygenNote: 7.3.3
 Collate:
     'RcppExports.R'
+    'SCTransform_rewrite.R'
     'reexports.R'
     'generics.R'
     'clustering.R'
