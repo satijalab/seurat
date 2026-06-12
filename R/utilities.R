@@ -2059,8 +2059,8 @@ as.data.frame.Matrix <- function(
     if (has_valid_names) {
       palette <- cols[vals]
       if (anyNA(palette)) {
-        warning("Missing color mappings for ", paste(vals[is.na(palette)], collapse = ", "), 
-                call. = FALSE, 
+        warning("Missing color mappings for ", paste(vals[is.na(palette)], collapse = ", "),
+                call. = FALSE,
                 immediate. = TRUE)
       }
     } else {
@@ -3108,6 +3108,9 @@ CreateCategoryMatrix <- function(
     X = colnames(x = category.matrix),
     FUN = function(name) {
       name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
+      if (length(group.by) == 1) {
+        return(name)
+      }
       return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
     }))
   rownames(category.matrix) <- cells.name
