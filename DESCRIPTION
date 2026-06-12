@@ -37,7 +37,7 @@ Additional_repositories: https://satijalab.r-universe.dev, https://bnprks.r-univ
 Depends:
     R (>= 4.0.0),
     methods,
-    SeuratObject (>= 5.0.2)
+    SeuratObject (>= 5.4.0.9002)
 Imports:
     cluster,
     cowplot,
@@ -100,6 +100,7 @@ Suggests:
     data.table,
     DESeq2,
     DelayedArray,
+    DelayedMatrixStats,
     enrichR,
     GenomicRanges,
     GenomeInfoDb,
@@ -107,6 +108,7 @@ Suggests:
     ggrastr,
     harmony,
     hdf5r,
+    HDF5Array,
     IRanges,
     leidenbase,
     limma,
@@ -116,6 +118,7 @@ Suggests:
     mixtools,
     monocle,
     presto,
+    rhdf5,
     rsvd,
     R.utils,
     Rfast2,
@@ -123,6 +126,8 @@ Suggests:
     S4Vectors,
     sf (>= 1.0.0),
     sp,
+    spam,
+    SparseArray,
     SingleCellExperiment,
     SummarizedExperiment,
     testthat,
@@ -153,3 +158,7 @@ Collate:
     'sketching.R'
     'tree.R'
     'utilities.R'
+    'spam.R'
+    'delayedarray.R'
+    'save-portable.R'
+    'save-h5.R'
