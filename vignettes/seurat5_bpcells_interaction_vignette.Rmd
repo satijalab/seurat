@@ -114,8 +114,32 @@ SaveSeuratRds(
   file = "obj.Rds")
 ```
 
+### Portable single-file objects
 
-If needed, a layer with an on-disk matrix can be converted to an in-memory matrix using the `as()` function. For the purposes of this demo, we'll subset the object so that it takes up less space in memory. 
+When an object needs to be moved or shared, the absolute paths embedded in on-disk layers can be inconvenient. Seurat provides two ways to write a self-contained, portable object -- analogous to an AnnData `.h5ad`.
+
+`SaveSeurat()` bundles the object together with all of its on-disk matrix stores into a single archive; `LoadSeurat()` extracts it and reconnects the layers automatically, so the file can be copied or shared without worrying about paths.
+
+```{r, eval=FALSE}
+SaveSeurat(object = brain, file = "brain.seurat")
+brain <- LoadSeurat("brain.seurat")
+```
+
+`SaveSeuratH5()` writes the object to a single HDF5 file (the closest analogue to a `.h5ad`), storing each layer as an on-disk sparse dataset that `LoadSeuratH5()` reopens lazily as a `DelayedMatrix`.
+
+```{r, eval=FALSE}
+SaveSeuratH5(object = brain, file = "brain.h5")
+brain <- LoadSeuratH5("brain.h5")
+```
+
+If the data fits in memory, `AsInMemory()` materializes the on-disk layers so a plain `saveRDS()` yields a single portable file with no external stores.
+
+```{r, eval=FALSE}
+brain <- AsInMemory(brain)
+saveRDS(brain, "brain.rds")
+```
+
+If needed, a layer with an on-disk matrix can be converted to an in-memory matrix using the `as()` function. For the purposes of this demo, we'll subset the object so that it takes up less space in memory.
 ```{r}
 brain <- subset(brain, downsample = 1000)
 brain[["RNA"]]$counts <- as(object = brain[["RNA"]]$counts, Class = "dgCMatrix")
