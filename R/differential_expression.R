@@ -2263,7 +2263,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     # This is because in split-layer SCT workflows, some sparse genes may have NaN values for
     # fitted parameters due to low expression levels in some layers
     valid_genes <- rownames(pars)[
-      is.finite(pars[, "theta"]) &
+      !is.na(pars[, "theta"]) &
       is.finite(pars[, "(Intercept)"]) &
       is.finite(pars[, "log_umi"])
     ]

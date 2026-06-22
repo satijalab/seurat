@@ -307,6 +307,133 @@ if (is_not_cran_submission) {
     expect_equal(nrow(x = markers.bp), 228)
     expect_equal(rownames(markers.bp)[1], "HLA-DPB1")
   })
+
+  # set up a multi-model SCT object for PrepSCTFindMarkers tests
+  sct1 <- suppressWarnings(SCTransform(pbmc_small[, 1:40], variable.features.n = 20, vst.flavor = "v1", verbose = FALSE, seed.use = 123))
+  sct2 <- suppressWarnings(SCTransform(pbmc_small[, 41:80], variable.features.n = 20, vst.flavor = "v1", verbose = FALSE, seed.use = 123))
+  sct_merged <- merge(x = sct1, y = sct2)
+
+  test_that("PrepSCTFindMarkers matches correct_counts for unchanged SCT models", {
+    model_name <- "model1.1"
+    sct <- sct_merged[["SCT"]]
+    model <- slot(sct, name = "SCTModel.list")[[model_name]]
+    cell_attributes <- slot(model, name = "cell.attributes")
+    model_cells <- rownames(cell_attributes)
+    feature_attributes <- slot(model, name = "feature.attributes")
+
+    valid_genes <- rownames(feature_attributes)[!is.na(feature_attributes[, "theta"]) &
+                                                is.finite(feature_attributes[, "(Intercept)"]) &
+                                                is.finite(feature_attributes[, "log_umi"])]
+
+    raw_counts <- GetAssayData(sct_merged, assay = SCTResults(sct, slot = "umi.assay")[[model_name]], layer = "counts")
+
+    expected_counts <- sctransform::correct_counts(
+      list(model_str = SCTResults(sct, slot = "model")[[model_name]],
+        arguments = SCTResults(sct, slot = "arguments")[[model_name]],
+        model_pars_fit = as.matrix(feature_attributes[valid_genes, c("theta", "(Intercept)", "log_umi"), drop = FALSE]),
+        cell_attr = cell_attributes),
+      umi = raw_counts[valid_genes, model_cells, drop = FALSE],
+      verbosity = 0,
+      scale_factor = min(unlist(lapply(SCTResults(sct, slot = "cell.attributes"), function(x) median(x[, "umi"]))))
+    )
+
+    result <- PrepSCTFindMarkers(sct_merged, verbose = FALSE)
+
+    # PrepSCTFindMarkers recorrection should match sctransform::correct_counts at the same shared median UMI depth
+    result_counts <- GetAssayData(result, assay = "SCT", layer = "counts")[rownames(expected_counts), model_cells, drop = FALSE]
+    result_data <- GetAssayData(result, assay = "SCT", layer = "data")[rownames(expected_counts), model_cells, drop = FALSE]
+
+    expect_equal(as.matrix(result_counts), as.matrix(expected_counts))
+    expect_equal(as.matrix(result_data), as.matrix(log1p(expected_counts)))
+  })
+
+  test_that("PrepSCTFindMarkers keeps infinite theta genes with valid corrected counts", {
+    sct_test <- sct_merged
+    model_name <- "model1.1"
+    model <- slot(sct_test[["SCT"]], name = "SCTModel.list")[[model_name]]
+    cell_attributes <- slot(model, name = "cell.attributes")
+    model_cells <- rownames(cell_attributes)
+    feature_attributes <- slot(model, name = "feature.attributes")
+    counts <- GetAssayData(sct_test, assay = "SCT", layer = "counts")
+    before_counts <- counts[rownames(feature_attributes), model_cells, drop = FALSE]
+    nonzero_genes <- names(sort(Matrix::rowSums(before_counts > 0), decreasing = TRUE))
+
+    # set a single gene with finite intercept and log_umi to have infinite theta (valid)
+    infinite_theta_gene <- nonzero_genes[is.finite(feature_attributes[nonzero_genes, "(Intercept)"]) &
+                                        is.finite(feature_attributes[nonzero_genes, "log_umi"])][[1]]
+    feature_attributes[infinite_theta_gene, "theta"] <- Inf
+    slot(slot(sct_test[["SCT"]], name = "SCTModel.list")[[model_name]], name = "feature.attributes") <- feature_attributes
+
+    result <- PrepSCTFindMarkers(sct_test, verbose = FALSE)
+    result_counts <- GetAssayData(result, assay = "SCT", layer = "counts")
+    result_counts <- result_counts[infinite_theta_gene, model_cells, drop = FALSE]
+
+    # check that infinite theta is retained, and corrected counts are valid (not all zero or non-finite)
+    expect_false(is.finite(feature_attributes[infinite_theta_gene, "theta"]))
+    expect_gt(Matrix::rowSums(before_counts[infinite_theta_gene, , drop = FALSE] > 0), expected = 0)
+    expect_gt(Matrix::rowSums(result_counts > 0), expected = 0)
+  })
+
+  test_that("PrepSCTFindMarkers excludes missing theta genes", {
+    sct_test <- sct_merged
+    model_name <- "model1.1"
+    model <- slot(sct_test[["SCT"]], name = "SCTModel.list")[[model_name]]
+    cell_attributes <- slot(model, name = "cell.attributes")
+    model_cells <- rownames(cell_attributes)
+    feature_attributes <- slot(model, name = "feature.attributes")
+    counts <- GetAssayData(sct_test, assay = "SCT", layer = "counts")
+
+    before_counts <- counts[rownames(feature_attributes), model_cells, drop = FALSE]
+
+    nonzero_genes <- names(sort(Matrix::rowSums(before_counts > 0), decreasing = TRUE))
+
+    # set a single gene with finite intercept and log_umi to have missing/NA theta (invalid)
+    # this gene should be filtered out in PrepSCTFindMarkers, then added back in the original order w/ all zero corrected counts
+    missing_theta_gene <- nonzero_genes[is.finite(feature_attributes[nonzero_genes, "(Intercept)"]) &
+                                        is.finite(feature_attributes[nonzero_genes, "log_umi"])][[1]]
+
+    feature_attributes[missing_theta_gene, "theta"] <- NA
+    slot(slot(sct_test[["SCT"]], name = "SCTModel.list")[[model_name]], name = "feature.attributes") <- feature_attributes
+
+    result <- PrepSCTFindMarkers(sct_test, verbose = FALSE)
+    result_counts <- GetAssayData(result, assay = "SCT", layer = "counts")
+    result_counts <- result_counts[missing_theta_gene, model_cells, drop = FALSE]
+
+    # check that missing theta is excluded, and corrected counts are all zero for this gene
+    expect_equal(unlist(unname(Matrix::rowSums(result_counts > 0))), expected = 0)
+
+    # check that it is in the same order as the original assay and has finite counts (not NaN or Inf)
+    expect_identical(rownames(result_counts), missing_theta_gene)
+    expect_true(all(is.finite(result_counts@x)))
+  })
+
+  test_that("PrepSCTFindMarkers drops rows with NaN corrected counts", {
+    sct_test <- sct_merged
+    model_name <- "model1.1"
+    model <- slot(sct_test[["SCT"]], name = "SCTModel.list")[[model_name]]
+    cell_attributes <- slot(model, name = "cell.attributes")
+    model_cells <- rownames(cell_attributes)
+    feature_attributes <- slot(model, name = "feature.attributes")
+    counts <- GetAssayData(sct_test, assay = "SCT", layer = "counts")
+    before_counts <- counts[rownames(feature_attributes), model_cells, drop = FALSE]
+    nonzero_genes <- names(sort(Matrix::rowSums(before_counts > 0), decreasing = TRUE))
+
+    # set a single gene with finite intercept and log_umi to have theta = 0, which causes sctransform::correct_counts to produce NaN values for this gene
+    nan_counts_gene <- nonzero_genes[is.finite(feature_attributes[nonzero_genes, "(Intercept)"]) &
+                                    is.finite(feature_attributes[nonzero_genes, "log_umi"])][[3]]
+    feature_attributes[nan_counts_gene, "theta"] <- 0
+
+    slot(slot(sct_test[["SCT"]], name = "SCTModel.list")[[model_name]], name = "feature.attributes") <- feature_attributes
+
+    result <- PrepSCTFindMarkers(sct_test, verbose = FALSE)
+    result_counts <- GetAssayData(result, assay = "SCT", layer = "counts")
+
+    result_counts <- result_counts[nan_counts_gene, model_cells, drop = FALSE]
+
+    # check that the gene with NaN corrected counts is dropped, and thus has zero non-zero counts in the result
+    expect_equal(unlist(unname(Matrix::rowSums(result_counts > 0))), expected = 0)
+    expect_true(all(is.finite(result_counts@x)))
+  })
 }
 
 results <- suppressWarnings(
@@ -558,4 +685,3 @@ if (requireNamespace('metap', quietly = TRUE)) {
     expect_equal(rownames(markers.missing)[1], "HLA-DPB1")
   })
 }
-
