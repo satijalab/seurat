@@ -111,7 +111,7 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   return combined_mat;
 }
 
-// log normalize that is given only the x and p slots from the sparse matrix class
+// log normalize that uses the x and p slots from the sparse matrix class
 // x consists of the non-zero values and p are the pointers pointing to the same
 // [[Rcpp::export(rng = false)]]
 NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, bool display_progress = true){
@@ -124,19 +124,33 @@ NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, 
   double *ro = REAL(out);
 
   const int num_cols = p.size() - 1;
-  Progress prog(num_cols, display_progress);
-  // compute col sums and do normalization in one pass
-  for(int i = 0; i < num_cols; i++){
-    double col_sum = 0;
-    prog.increment();
-    const int col_start = ip[i]; const int col_end = ip[i + 1];
-    for(int j = col_start; j < col_end; j++){
-      col_sum += rx[j];
+  if (display_progress == true){
+    Progress prog(num_cols, display_progress);
+    // compute col sums and do normalization in one pass
+    for(int i = 0; i < num_cols; i++){
+      double col_sum = 0;
+      prog.increment();
+      const int col_start = ip[i]; const int col_end = ip[i + 1];
+      for(int j = col_start; j < col_end; j++){
+        col_sum += rx[j];
+      }
+      // scale factor and column sum are loop-invariant here - compute once for reuse
+      const double mult = scale_factor / col_sum;
+      for(int j = col_start; j < col_end; j++){
+        ro[j] = log1p(rx[j] * mult);
+      }
     }
-    // scale factor and column sum are loop-invariant here - compute once for reuse
-    const double mult = scale_factor / col_sum;
-    for(int j = col_start; j < col_end; j++){
-      ro[j] = log1p(rx[j] * mult);
+  } else {
+    for(int i = 0; i < num_cols; i++){
+      double col_sum = 0;
+      const int col_start = ip[i]; const int col_end = ip[i + 1];
+      for(int j = col_start; j < col_end; j++){
+        col_sum += rx[j];
+      }
+      const double mult = scale_factor / col_sum;
+      for(int j = col_start; j < col_end; j++){
+        ro[j] = log1p(rx[j] * mult);
+      }
     }
   }
   return(out);
