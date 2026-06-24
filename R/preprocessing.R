@@ -4885,9 +4885,6 @@ LogNormalize.V3Matrix <- function(
   return(data)
 }
 
-#' @importFrom future.apply future_lapply
-#' @importFrom future nbrOfWorkers
-#'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
 #'   \item \dQuote{\code{LogNormalize}}: Feature counts for each cell are
@@ -4903,7 +4900,7 @@ LogNormalize.V3Matrix <- function(
 #' @param margin If performing CLR normalization, normalize across features (1) or cells (2)
 # @param across If performing CLR normalization, normalize across either "features" or "cells".
 #' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
-#' @param verbose display progress bar for normalization procedure
+#' @param verbose Whether to display a progress bar, if running in a single thread
 #'
 #' @rdname NormalizeData
 #' @concept preprocessing
@@ -4922,92 +4919,32 @@ NormalizeData.V3Matrix <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  normalized.data <- if (nbrOfWorkers() > 1) {
-    norm.function <- switch(
-      EXPR = normalization.method,
-      'LogNormalize' = LogNormalize,
-      'CLR' = CustomNormalize,
-      'RC' = RelativeCounts,
-      stop("Unknown normalization method: ", normalization.method)
-    )
-    if (normalization.method != 'CLR') {
-      margin <- 2
-    }
-    tryCatch(
-      expr = Parenting(parent.find = 'Seurat', margin = margin),
-      error = function(e) {
-        invisible(x = NULL)
-      }
-    )
-    dsize <- switch(
-      EXPR = margin,
-      '1' = nrow(x = object),
-      '2' = ncol(x = object),
-      stop("'margin' must be 1 or 2")
-    )
-    chunk.points <- ChunkPoints(
-      dsize = dsize,
-      csize = block.size %||% ceiling(x = dsize / nbrOfWorkers())
-    )
-    normalized.data <- future_lapply(
-      X = 1:ncol(x = chunk.points),
-      FUN = function(i) {
-        block <- chunk.points[, i]
-        data <- if (margin == 1) {
-          object[block[1]:block[2], , drop = FALSE]
-        } else {
-          object[, block[1]:block[2], drop = FALSE]
-        }
-        clr_function <- function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        }
-        args <- list(
-          data = data,
-          scale.factor = scale.factor,
-          verbose = FALSE,
-          custom_function = clr_function, margin = margin
-        )
-        args <- args[names(x = formals(fun = norm.function))]
-        return(do.call(
-          what = norm.function,
-          args = args
-        ))
-      }
-    )
-    do.call(
-      what = switch(
-        EXPR = margin,
-        '1' = 'rbind',
-        '2' = 'cbind',
-        stop("'margin' must be 1 or 2")
-      ),
-      args = normalized.data
-    )
-  } else {
-    switch(
-      EXPR = normalization.method,
-      'LogNormalize' = LogNormalize(
-        data = object,
-        scale.factor = scale.factor,
-        verbose = verbose
-      ),
-      'CLR' = CustomNormalize(
-        data = object,
-        custom_function = function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        },
-        margin = margin,
-        verbose = verbose
-        # across = across
-      ),
-      'RC' = RelativeCounts(
-        data = object,
-        scale.factor = scale.factor,
-        verbose = verbose
-      ),
-      stop("Unkown normalization method: ", normalization.method)
-    )
+  if (!is.null(block.size)) {
+    old_nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
+    req_nthreads <- ceiling(length(Cells(object = object)) / block.size)
+    setOption(x = "Seurat.nthreads", value = req_nthreads)
+    on.exit(expr = setOption(x = "Seurat.nthreads", value = old_nthreads), add = TRUE)
   }
+  normalized.data <- switch(EXPR = normalization.method,
+                            'LogNormalize' = LogNormalize(
+                              data = object,
+                              scale.factor = scale.factor,
+                              verbose = verbose
+                            ),
+                            'CLR' = CustomNormalize(
+                              data = object,
+                              custom_function = function(x) {
+                                return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
+                              },
+                              margin = margin,
+                              verbose = verbose
+                            ),
+                            'RC' = RelativeCounts(
+                              data = object,
+                              scale.factor = scale.factor,
+                              verbose = verbose
+                            ),
+                            stop("Unknown normalization method: ", normalization.method))
   return(normalized.data)
 }
 
