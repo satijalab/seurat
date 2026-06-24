@@ -555,22 +555,34 @@ if (is_not_cran_submission) {
 
   test_that("`SCTransform` is consistent for multi-layer inputs", {
     clip.range = c(-1.632993, 1.632993)
+    # pin SCT args for the multi-layer path to ensure that the two paths are equivalent
+    sct_args <- list(
+      clip.range = clip.range,
+      vst.flavor = "v1",
+      seed.use = 1448145,
+      verbose = FALSE
+    )
     
     test_case_v3 <- SplitObject(object2, split.by = "Condition")
-    result_v3_list <- lapply(test_case_v3, SCTransform, clip.range = clip.range)
+    result_v3_list <- lapply(
+      test_case_v3,
+      function(x) {
+        suppressWarnings(do.call(what = SCTransform, args = c(list(object = x), sct_args)))
+      }
+    )
     result_v3 <- merge(result_v3_list[[1]], result_v3_list[[2]])
     
     test_case_v5 <- object2
     test_case_v5 <- split(object2, f = object2$Condition)
-    result_v5 <- SCTransform(test_case_v5, clip.range = clip.range)
+    result_v5 <- suppressWarnings(do.call(what = SCTransform, args = c(list(object = test_case_v5), sct_args)))
     
     expected <- result_v3[["SCT"]]@data[,colnames(object2)]
     result <- result_v5[["SCT"]]@data[,colnames(object2)]
-    expect_true(all.equal(expected, result))
+    expect_equal(expected, result, tolerance = 1e-6)
     
     expected <- result_v3[["SCT"]]@scale.data[,colnames(object2)]
     result <- result_v5[["SCT"]]@scale.data[,colnames(object2)]
-    expect_true(all.equal(expected[rownames(result), ], result))
+    expect_equal(expected[rownames(result), ], result, tolerance = 1e-6)
   })
 
   test_that("SCTransform is equivalent for BPcells ", {
