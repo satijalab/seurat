@@ -251,7 +251,6 @@ NormalizeData.default <- function(
 ) {
   normalization.method <- normalization.method[1L]
   normalization.method <- match.arg(arg = normalization.method)
-  # TODO: enable parallelization via future
   normalized <- switch(
     EXPR = normalization.method,
     'LogNormalize' = {
@@ -340,9 +339,11 @@ NormalizeData.StdAssay <- function(
                                 normalization.method = normalization.method,
                                 scale.factor = scale.factor,
                                 margin = margin,
-                                verbose = verbose, ...)
-    # Use the internal layer setter to speed up assignment
-    object <- SetLayerDataInternal(object = object, layer = s, layer_data = layer_data, source = l)
+                                verbose = verbose, ...)    
+    # set data directly to avoid unnecessary validation and slot access          
+    object@layers[[s]] <- layer_data
+    object@cells[[s]] <- object@cells[[l]]
+    object@features[[s]] <- object@features[[l]]
   }
   return(object)
 }
