@@ -2,6 +2,7 @@
 #' @importFrom methods slot slot<-
 #' @importFrom lifecycle deprecated deprecate_soft deprecate_stop
 #' deprecate_warn is_present
+#' @importFrom RcppParallel RcppParallelLibs
 #' @importFrom rlang !!! .data
 #' abort
 #' data_sym
@@ -60,6 +61,7 @@ NULL
 
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
+  Seurat.nthreads = 1,
   Seurat.warn.umap.uwot = TRUE,
   Seurat.checkdots = "warn",
   Seurat.presto.wilcox.msg = TRUE, #CHANGE
