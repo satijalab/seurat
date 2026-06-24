@@ -156,19 +156,6 @@ NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, 
   return(out);
 }
 
-// [[Rcpp::export(rng = false)]]
-Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress = true){
-  Progress p(data.outerSize(), display_progress);
-  Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.rows());
-  for (int k=0; k < data.outerSize(); ++k){
-    p.increment();
-    for (Eigen::SparseMatrix<double>::InnerIterator it(data, k); it; ++it){
-      it.valueRef() = log1p(double(it.value()) / colSums[k] * scale_factor);
-    }
-  }
-  return data;
-}
-
 /* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R.
  Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 
