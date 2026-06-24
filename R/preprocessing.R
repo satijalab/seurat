@@ -4869,9 +4869,6 @@ LogNormalize.V3Matrix <- function(
   verbose = TRUE,
   ...
 ) {
-  # if (is.data.frame(x = data)) {
-  #   data <- as.matrix(x = data)
-  # }
   if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
@@ -4879,9 +4876,10 @@ LogNormalize.V3Matrix <- function(
   if (verbose) {
     cat("Performing log-normalization\n", file = stderr())
   }
-  # LogNormSparse takes only x and p slots of the dgCMatrix
-  # replace x slot with normalized values - all other slots can be reused
-  data@x <- LogNormSparse(x = data@x, p = data@p, scale_factor = scale.factor, display_progress = verbose)
+  nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
+  # LogNorm takes only x and p slots of the dgCMatrix
+  # then replaces the x slot with normalized values - all other slots can be reused
+  data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, display_progress = verbose && nthreads == 1)
   return(data)
 }
 
