@@ -1,4 +1,5 @@
 #include <RcppEigen.h>
+#include <RcppParallel.h>
 #include <progress.hpp>
 #include <cmath>
 #include <unordered_map>
@@ -9,6 +10,7 @@
 using namespace Rcpp;
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RcppProgress)]]
+// [[Rcpp::depends(RcppParallel)]]
 
 
 
@@ -111,10 +113,49 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   return combined_mat;
 }
 
+// log-normalize a given column of a sparse matrix
+inline void LogNormColumn(
+  const int col,
+  const int *ip,
+  const double *rx,
+  double *ro,
+  const int scale_factor
+) {
+  double col_sum = 0;
+  const int col_start = ip[col];
+  const int col_end = ip[col + 1];
+  for (int j = col_start; j < col_end; j++) {
+    col_sum += rx[j];
+  }
+  // scale factor and column sum are loop-invariant here - compute once for reuse
+  const double mult = scale_factor / col_sum;
+  for (int j = col_start; j < col_end; j++) {
+    ro[j] = log1p(rx[j] * mult);
+  }
+}
+
+// worker struct for parallel processing
+struct LogNormWorker : public RcppParallel::Worker {
+  const int *ip;
+  const double *rx;
+  double *ro;
+  const int scale_factor;
+
+  LogNormWorker(const int *ip, const double *rx, double *ro, const int scale_factor)
+    : ip(ip), rx(rx), ro(ro), scale_factor(scale_factor) {}
+
+  // each worker is given a range of columns to process
+  void operator()(std::size_t begin, std::size_t end) {
+    for (std::size_t i = begin; i < end; i++) {
+      LogNormColumn(i, ip, rx, ro, scale_factor);
+    }
+  }
+};
+
 // log normalize that uses the x and p slots from the sparse matrix class
-// x consists of the non-zero values and p are the pointers pointing to the same
+// x consists of the actual non-zero values and p consists of offsets for the start of each matrix column
 // [[Rcpp::export(rng = false)]]
-NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, bool display_progress = true){
+NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool display_progress = true){
   NumericVector out(no_init(x.size()));
 
   // we use vector accessor functions to get pointers to the underlying data of the Rcpp vectors
@@ -124,33 +165,19 @@ NumericVector LogNormSparse(NumericVector x, IntegerVector p, int scale_factor, 
   double *ro = REAL(out);
 
   const int num_cols = p.size() - 1;
-  if (display_progress == true){
+  if (nthreads > 1) {
+    LogNormWorker worker(ip, rx, ro, scale_factor);
+    RcppParallel::parallelFor(0, num_cols, worker, 1, nthreads);
+  } else if (display_progress == true){
     Progress prog(num_cols, display_progress);
     // compute col sums and do normalization in one pass
     for(int i = 0; i < num_cols; i++){
-      double col_sum = 0;
       prog.increment();
-      const int col_start = ip[i]; const int col_end = ip[i + 1];
-      for(int j = col_start; j < col_end; j++){
-        col_sum += rx[j];
-      }
-      // scale factor and column sum are loop-invariant here - compute once for reuse
-      const double mult = scale_factor / col_sum;
-      for(int j = col_start; j < col_end; j++){
-        ro[j] = log1p(rx[j] * mult);
-      }
+      LogNormColumn(i, ip, rx, ro, scale_factor);
     }
   } else {
     for(int i = 0; i < num_cols; i++){
-      double col_sum = 0;
-      const int col_start = ip[i]; const int col_end = ip[i + 1];
-      for(int j = col_start; j < col_end; j++){
-        col_sum += rx[j];
-      }
-      const double mult = scale_factor / col_sum;
-      for(int j = col_start; j < col_end; j++){
-        ro[j] = log1p(rx[j] * mult);
-      }
+      LogNormColumn(i, ip, rx, ro, scale_factor);
     }
   }
   return(out);
@@ -493,4 +520,3 @@ List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat) {
   List neighbors = List::create(nn_idx, nn_dist);
   return(neighbors);
 }
-
