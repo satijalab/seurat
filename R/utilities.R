@@ -1789,25 +1789,6 @@ SaveAnnoyIndex <- function(
   index$save(path.expand(path = file))
 }
 
-#' Set the data for a new layer based on an existing layer (no checks)
-
-#' Allows for faster layer creation when data is already known to be valid. 
-#' Intended for internal use only, as it bypasses typical checks for layer creation and should be used with caution.
-#' @param object A Seurat object
-#' @param layer Name of the new layer to create
-#' @param layer_data The data to set for the new layer
-#' @param source The layer to pull cell and feature names from
-#' @return A Seurat object with the new layer added
-#' @keywords internal
-#' @noRd
-#'
-SetLayerDataInternal <- function(object, layer, layer_data, source) {
-  object@layers[[layer]] <- layer_data
-  object@cells[[layer]] <- object@cells[[source]]
-  object@features[[layer]] <- object@features[[source]]
-  return(object)
-}
-
 #' Find the Quantile of Data
 #'
 #' Converts a quantile in character form to a number regarding some data.
