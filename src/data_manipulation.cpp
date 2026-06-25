@@ -113,13 +113,41 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   return combined_mat;
 }
 
+/* autozyme >>> >>> >>> */
+//
+// Xie, E., Cheng, L., Cai, Y., Shireman, J., & Kendziorski, C. (2026). 
+// AutoZyme: An Autonomous Agentic Framework to Optimize Bioinformatics Software. 
+// bioRxiv. https://doi.org/10.64898/2026.06.12.731250
+// 
+inline double approx_log(double x) {
+    static const double LN2 = 0.6931471805599453;
+    uint64_t bits;
+    std::memcpy(&bits, &x, sizeof(bits));
+    int exp_raw = (int)((bits >> 52) & 0x7FF) - 1023;
+    bits = (bits & 0x000FFFFFFFFFFFFFULL) | 0x3FF0000000000000ULL;
+    double m;
+    std::memcpy(&m, &bits, sizeof(m));
+    if (m > 1.4142135623730951) { m *= 0.5; exp_raw++; }
+    double f = (m - 1.0) / (m + 1.0);
+    double f2 = f * f;
+    double poly = 1.0 + f2 * (1.0/3.0 + f2 * (1.0/5.0 + f2 * (1.0/7.0 + f2 * (1.0/9.0 + f2 * (1.0/11.0)))));
+    return (double)exp_raw * LN2 + 2.0 * f * poly;
+}
+
+inline double approx_log1p(double x) {
+    if (x < 1e-4) return x * (1.0 - x * 0.5);
+    return approx_log(1.0 + x);
+}
+/* <<< <<< <<< autozyme */
+
 // log-normalize a given column of a sparse matrix
 inline void LogNormColumn(
   const int col,
   const int *ip,
   const double *rx,
   double *ro,
-  const int scale_factor
+  const int scale_factor,
+  const bool approx
 ) {
   double col_sum = 0;
   const int col_start = ip[col];
@@ -130,7 +158,7 @@ inline void LogNormColumn(
   // scale factor and column sum are loop-invariant here - compute once for reuse
   const double mult = scale_factor / col_sum;
   for (int j = col_start; j < col_end; j++) {
-    ro[j] = log1p(rx[j] * mult);
+    ro[j] = approx ? approx_log1p(rx[j] * mult) : log1p(rx[j] * mult);
   }
 }
 
@@ -140,14 +168,15 @@ struct LogNormWorker : public RcppParallel::Worker {
   const double *rx;
   double *ro;
   const int scale_factor;
+  const bool approx;
 
-  LogNormWorker(const int *ip, const double *rx, double *ro, const int scale_factor)
-    : ip(ip), rx(rx), ro(ro), scale_factor(scale_factor) {}
+  LogNormWorker(const int *ip, const double *rx, double *ro, const int scale_factor, const bool approx)
+    : ip(ip), rx(rx), ro(ro), scale_factor(scale_factor), approx(approx) {}
 
   // each worker is given a range of columns to process
   void operator()(std::size_t begin, std::size_t end) {
     for (std::size_t i = begin; i < end; i++) {
-      LogNormColumn(i, ip, rx, ro, scale_factor);
+      LogNormColumn(i, ip, rx, ro, scale_factor, approx);
     }
   }
 };
@@ -155,7 +184,7 @@ struct LogNormWorker : public RcppParallel::Worker {
 // log normalize that uses the x and p slots from the sparse matrix class
 // x consists of the actual non-zero values and p consists of offsets for the start of each matrix column
 // [[Rcpp::export(rng = false)]]
-NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool display_progress = true){
+NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool approx, bool display_progress = true){
   NumericVector out(no_init(x.size()));
 
   // we use vector accessor functions to get pointers to the underlying data of the Rcpp vectors
@@ -166,18 +195,18 @@ NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nt
 
   const int num_cols = p.size() - 1;
   if (nthreads > 1) {
-    LogNormWorker worker(ip, rx, ro, scale_factor);
+    LogNormWorker worker(ip, rx, ro, scale_factor, approx);
     RcppParallel::parallelFor(0, num_cols, worker, 1, nthreads);
   } else if (display_progress == true){
     Progress prog(num_cols, display_progress);
     // compute col sums and do normalization in one pass
     for(int i = 0; i < num_cols; i++){
       prog.increment();
-      LogNormColumn(i, ip, rx, ro, scale_factor);
+      LogNormColumn(i, ip, rx, ro, scale_factor, approx);
     }
   } else {
     for(int i = 0; i < num_cols; i++){
-      LogNormColumn(i, ip, rx, ro, scale_factor);
+      LogNormColumn(i, ip, rx, ro, scale_factor, approx);
     }
   }
   return(out);
