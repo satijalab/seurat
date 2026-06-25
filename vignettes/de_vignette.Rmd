@@ -55,22 +55,9 @@ monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = NULL, 
 head(monocyte.de.markers)
 ```
 
-### Perform DE analysis within the same cell type across conditions
+### Perform DE analysis within the same cell type across conditions using pseudobulk expression
 
-Since this dataset contains treatment information (control versus stimulated with interferon-beta), we can also ask what genes change in different conditions for cells of the same type. First, we create a column in the `meta.data` slot to hold both the cell type and treatment information and switch the current `Idents` to that column. Then we use `FindMarkers()` to find the genes that are different between control and stimulated CD14 monocytes.
-
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
-ifnb$celltype.stim <- paste(ifnb$seurat_annotations, ifnb$stim, sep = "_")
-Idents(ifnb) <- "celltype.stim"
-mono.de <- FindMarkers(ifnb, ident.1 = "CD14 Mono_STIM", ident.2 = "CD14 Mono_CTRL", verbose = FALSE)
-head(mono.de, n = 10)
-```
-
-However, the p-values obtained from this analysis should be interpreted with caution, because these tests treat each cell as an independent replicate and ignore inherent correlations between cells originating from the same sample. Such analyses have been shown to find a large number of false positive associations, as has been demonstrated by [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2), [Zimmerman et al., 2021](https://www.nature.com/articles/s41467-021-21038-1), [Junttila et al., 2022](https://academic.oup.com/bib/article/23/5/bbac286/6649780), and others. Below, we show how pseudobulking can be used to account for such within-sample correlation. 
-
-#### Perform DE analysis after pseudobulking
-
-To pseudobulk, we will use [AggregateExpression()](https://satijalab.org/seurat/reference/aggregateexpression) to sum together gene counts of all the cells from the same sample for each cell type. This results in one gene expression profile per sample and cell type. We can then perform DE analysis using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) on the sample level. This treats the samples, rather than the individual cells, as independent observations.
+Since this dataset contains treatment information (control versus stimulated with interferon-beta), we can also ask what genes change in different conditions for cells of the same type. Pseudobulk gene expression profiles sum the counts from all cells from each biological sample (e.g. individual donor, cell line, or animal), which is the appropriate unit of analysis for statistical testing of differential expression between conditions. To pseudobulk, we will use [AggregateExpression()](https://satijalab.org/seurat/reference/aggregateexpression) to sum together gene counts of all the cells from the same sample for each cell type. This results in one gene expression profile per sample and cell type. We can then perform DE analysis using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) on the sample level. This treats the samples, rather than the individual cells, as independent observations.
 
 First, we need to retrieve the sample information for each cell. This is not loaded in the metadata, so we will load it from the [Github repo](https://github.com/yelabucsf/demuxlet_paper_code/tree/master/) of the source data for the original paper.
 
@@ -125,6 +112,17 @@ bulk.mono.de <- FindMarkers(object = pseudo_ifnb,
                          ident.2 = "CD14 Mono_CTRL",
                          test.use = "DESeq2")
 head(bulk.mono.de, n = 15)
+
+### Comparison with pseudoreplicate (single cell) DE analysis
+
+Treating individual cells as the unit of analysis (i.e. pseudoreplication) can lead to low p-values due to the large number of cells in single cell studies, but does not account for variability between samples. Here we will explore the difference between pseudobulk and single-cell based DE analysis. First, we create a column in the `meta.data` slot to hold both the cell type and treatment information and switch the current `Idents` to that column. Then we use `FindMarkers()` to find the genes that are different between control and stimulated CD14 monocytes.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+ifnb$celltype.stim <- paste(ifnb$seurat_annotations, ifnb$stim, sep = "_")
+Idents(ifnb) <- "celltype.stim"
+mono.de <- FindMarkers(ifnb, ident.1 = "CD14 Mono_STIM", ident.2 = "CD14 Mono_CTRL", verbose = FALSE)
+head(mono.de, n = 10)
+```
 
 # compare the DE P-values between the single-cell level and the pseudobulk level results
 names(bulk.mono.de) <- paste0(names(bulk.mono.de), ".bulk")
