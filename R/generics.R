@@ -101,7 +101,7 @@ FindClusters <- function(object, ...) {
 
 #' Gene expression markers of identity classes
 #'
-#' Finds markers (differentially expressed genes) for identity classes
+#' Finds markers (differentially expressed genes) for each of the identity classes in a dataset. Note that differential expression between groups (e.g. treatment conditions) should be take into account biological variation across samples, e.g. by using pseudobulk expression profiles. See the vignette "Differential expression testing" for detailed discussion
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods and to specific DE methods
