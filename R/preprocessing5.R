@@ -314,6 +314,7 @@ NormalizeData.StdAssay <- function(
   margin = 1L,
   layer = 'counts',
   save = 'data',
+  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -339,6 +340,7 @@ NormalizeData.StdAssay <- function(
                                 normalization.method = normalization.method,
                                 scale.factor = scale.factor,
                                 margin = margin,
+                                approx = approx,
                                 verbose = verbose, ...)    
     # set data directly to avoid unnecessary validation and slot access          
     object@layers[[s]] <- layer_data
