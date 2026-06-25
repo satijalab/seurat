@@ -15,6 +15,7 @@ NormalizeData(object, ...)
   scale.factor = 10000,
   margin = 1,
   block.size = NULL,
+  approx = FALSE,
   verbose = TRUE,
   ...
 )
@@ -24,6 +25,7 @@ NormalizeData(object, ...)
   normalization.method = "LogNormalize",
   scale.factor = 10000,
   margin = 1,
+  approx = FALSE,
   verbose = TRUE,
   ...
 )
@@ -34,6 +36,7 @@ NormalizeData(object, ...)
   normalization.method = "LogNormalize",
   scale.factor = 10000,
   margin = 1,
+  approx = FALSE,
   verbose = TRUE,
   ...
 )

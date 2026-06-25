@@ -12,7 +12,14 @@ LogNormalize(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
 
 \method{LogNormalize}{data.frame}(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
 
-\method{LogNormalize}{V3Matrix}(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
+\method{LogNormalize}{V3Matrix}(
+  data,
+  scale.factor = 10000,
+  margin = 2L,
+  approx = FALSE,
+  verbose = TRUE,
+  ...
+)
 
 \method{LogNormalize}{default}(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
 }
