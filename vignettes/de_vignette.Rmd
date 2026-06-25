@@ -12,6 +12,8 @@ date: 'Compiled: `r Sys.Date()`'
 
 This vignette highlights some example workflows for performing differential expression in Seurat. For demonstration purposes, we will be using the interferon-beta stimulated human PBMCs dataset ([ifnb](https://www.nature.com/articles/nbt.4042)) that is available via the [SeuratData](https://github.com/satijalab/seurat-data) package.
 
+A key consideration for differential expression testing with single cell data is the unit of analysis. Analyses which treat individual cells as independent replicates do not account for biological variability, e.g. between different cells from different individuals or lines. Such pseudoreplicate-based analyses and have been shown to find a large number of false positive associations [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2), [Zimmerman et al., 2021](https://www.nature.com/articles/s41467-021-21038-1), [Junttila et al., 2022](https://academic.oup.com/bib/article/23/5/bbac286/6649780). Below, we show how pseudobulking can be used to account for such within-sample correlation. 
+
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(Seurat)
 library(SeuratData)
@@ -28,6 +30,7 @@ The bulk of Seurat’s differential expression features can be accessed through 
 ifnb <- NormalizeData(ifnb)
 
 # Find DE features between CD16 Mono and CD1 Mono
+# Note that this test treats individual cells as the unit of analysis, which may be justified for comparing cell types within an individual. A significant p-value for a gene supports the conclusion that the gene has a different mean expression level in CD16 Mono vs. CD1 Mono cells from *this donor*. However, the findings should be interpreted cautiously since they do not necessarily support generalization of such differential expression to cells from *other donors*. See the section on pseudobulk analysis below.
 Idents(ifnb) <- "seurat_annotations"
 monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = "CD14 Mono")
 # view results
