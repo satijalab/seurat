@@ -402,10 +402,12 @@ PrepDR_fast <- function(
   return(data.use)
 }
 
-# Copy of PrepDR5 that additionally carries the per-feature variances it already
-# computes (for the kept features, in returned-row order) on the result as a
-# "feature.var" attribute, so RunPCA_fast.default can reuse them for
-# total.variance. Variance method and feature selection are identical to PrepDR5.
+# Copy of PrepDR5 (with its feature-selection bug fixed; see PrepDR5 in
+# dimensional_reduction.R) that additionally (a) subsets to the requested features
+# BEFORE computing variance so the variance pass is fast, and (b) carries the
+# per-feature variances it computes (for the kept features, in returned-row order)
+# on the result as a "feature.var" attribute, so RunPCA_fast.default can reuse them
+# for total.variance. Feature selection matches the fixed PrepDR5 exactly.
 PrepDR5_fast <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
   layer <- layer[1L]
   olayer <- layer
@@ -413,21 +415,39 @@ PrepDR5_fast <- function(object, features = NULL, layer = 'scale.data', verbose 
   if (is.null(layer)) {
     abort(paste0("No layer matching pattern '", olayer, "' not found. Please run ScaleData and retry"))
   }
-  data.use <- LayerData(object = object, layer = layer)
   features <- features %||% VariableFeatures(object = object)
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
+  # CHANGE: load ONLY the requested features and compute variance on that subset
+  # with RowVar / RowVarSparse (C++). The original PrepDR5 ran a slow R apply(var)
+  # over the ENTIRE scaled matrix (all genes); when ScaleData has scaled every gene
+  # this dominated RunPCA_fast (e.g. ~31s of ~45s on pbmcsca, mostly aperm inside
+  # apply). Restricting to the requested features first also fixes PrepDR5's
+  # length-mismatch selection bug (and the fixed PrepDR5 now selects identically).
+  features.use <- features[features %in% Features(x = object, layer = layer)]
+  if (!isTRUE(x = all.equal(features, features.use))) {
+    missing_features <- setdiff(x = features, y = features.use)
+    if (length(x = missing_features) > 0) {
+      warning(paste("The following features were not available: ",
+                    paste(missing_features, collapse = ", "), ".", sep = ""),
+              immediate. = TRUE)
+    }
+  }
+  data.use <- LayerData(object = object, layer = layer, features = features.use)
   if (is(data.use, "IterableMatrix")) {
     features.var <- BPCells::matrix_stats(matrix=data.use, row_stats="variance")$row_stats["variance",]
+  } else if (inherits(x = data.use, what = 'dgCMatrix')) {
+    features.var <- RowVarSparse(mat = data.use)
   } else {
-    features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+    features.var <- RowVar(x = data.use)
   }
-  features.keep <- features[features.var > 0]
+  names(x = features.var) <- features.use
+  features.keep <- features.use[features.var > 0]
   if (!length(x = features.keep)) {
     stop("None of the requested features have any variance", call. = FALSE)
-  } else if (length(x = features.keep) < length(x = features)) {
-    exclude <- setdiff(x = features, y = features.keep)
+  } else if (length(x = features.keep) < length(x = features.use)) {
+    exclude <- setdiff(x = features.use, y = features.keep)
     if (isTRUE(x = verbose)) {
       warning(
         "The following ",
@@ -438,21 +458,9 @@ PrepDR5_fast <- function(object, features = NULL, layer = 'scale.data', verbose 
         immediate. = TRUE
       )
     }
+    data.use <- data.use[features.keep, , drop = FALSE]
   }
-  features <- features.keep
-  features <- features[!is.na(x = features)]
-  features.use <- features[features %in% rownames(data.use)]
-  if(!isTRUE(all.equal(features, features.use))) {
-    missing_features <- setdiff(features, features.use)
-    if(length(missing_features) > 0) {
-    warning_message <- paste("The following features were not available: ",
-                             paste(missing_features, collapse = ", "),
-                             ".", sep = "")
-    warning(warning_message, immediate. = TRUE)
-    }
-  }
-  data.use <- data.use[features.use, ]
   # CHANGE: carry the kept-feature variances for reuse in RunPCA_fast.default.
-  attr(x = data.use, which = 'feature.var') <- features.var[features.use]
+  attr(x = data.use, which = 'feature.var') <- features.var[features.keep]
   return(data.use)
 }
