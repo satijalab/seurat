@@ -134,6 +134,8 @@ LazyData: true
 RoxygenNote: 7.3.3
 Collate:
     'RcppExports.R'
+    'RunPCA_fast.R'
+    'ScaleData_fast.R'
     'reexports.R'
     'generics.R'
     'clustering.R'

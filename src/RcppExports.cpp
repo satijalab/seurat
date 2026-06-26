@@ -30,6 +30,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+
+// EigenGramPCA
+List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object, int npcs, bool weight_by_var);
+RcppExport SEXP _Seurat_EigenGramPCA(SEXP objectSEXP, SEXP npcsSEXP, SEXP weight_by_varSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type object(objectSEXP);
+    Rcpp::traits::input_parameter< int >::type npcs(npcsSEXP);
+    Rcpp::traits::input_parameter< bool >::type weight_by_var(weight_by_varSEXP);
+    rcpp_result_gen = Rcpp::wrap(EigenGramPCA(object, npcs, weight_by_var));
+    return rcpp_result_gen;
+END_RCPP
+}
+
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP _Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {
@@ -406,6 +420,7 @@ RcppExport SEXP isnull(SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
+    {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 3},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},

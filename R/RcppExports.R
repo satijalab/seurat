@@ -5,6 +5,10 @@ RunModularityClusteringCpp <- function(SNN, modularityFunction, resolution, algo
     .Call('_Seurat_RunModularityClusteringCpp', PACKAGE = 'Seurat', SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename)
 }
 
+EigenGramPCA <- function(object, npcs, weight_by_var) {
+    .Call('_Seurat_EigenGramPCA', PACKAGE = 'Seurat', object, npcs, weight_by_var)
+}
+
 RunUMISampling <- function(data, sample_val, upsample = FALSE, display_progress = TRUE) {
     .Call('_Seurat_RunUMISampling', PACKAGE = 'Seurat', data, sample_val, upsample, display_progress)
 }
@@ -120,4 +124,3 @@ row_mean_dgcmatrix <- function(x, i, rows, cols) {
 row_var_dgcmatrix <- function(x, i, rows, cols) {
     .Call('_Seurat_row_var_dgcmatrix', PACKAGE = 'Seurat', x, i, rows, cols)
 }
-
