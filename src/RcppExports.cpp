@@ -44,6 +44,42 @@ BEGIN_RCPP
 END_RCPP
 }
 
+// FastSparseRowScale_optimized
+NumericMatrix FastSparseRowScale_optimized(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, IntegerVector features, bool scale, bool center, double scale_max, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_FastSparseRowScale_optimized(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP featuresSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type features(featuresSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastSparseRowScale_optimized(x, i, p, rows, cols, features, scale, center, scale_max, nthreads, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastDenseRowScale_optimized
+NumericMatrix FastDenseRowScale_optimized(NumericMatrix mat, IntegerVector features, bool scale, bool center, double scale_max, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_FastDenseRowScale_optimized(SEXP matSEXP, SEXP featuresSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type features(featuresSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastDenseRowScale_optimized(mat, features, scale, center, scale_max, nthreads, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP _Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {
@@ -421,6 +457,8 @@ RcppExport SEXP isnull(SEXP);
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 3},
+    {"_Seurat_FastSparseRowScale_optimized", (DL_FUNC) &_Seurat_FastSparseRowScale_optimized, 11},
+    {"_Seurat_FastDenseRowScale_optimized", (DL_FUNC) &_Seurat_FastDenseRowScale_optimized, 7},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},

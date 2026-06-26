@@ -13,6 +13,10 @@ ScaleData_fast <- function(object, ...) {
 #' @importFrom future.apply future_lapply
 #'
 #' @inheritParams ScaleData
+#' @param nthreads Number of threads to use for the single-call fast path
+#' (centering/scaling without regression, splitting, or multiple workers).
+#' Values greater than 1 enable RcppParallel threading; the progress bar is
+#' only shown when \code{nthreads = 1}.
 #'
 #' @rdname ScaleData_fast
 #' @concept preprocessing
@@ -31,14 +35,18 @@ ScaleData_fast.default <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   verbose = TRUE,
   ...
 ) {
   CheckDots(...)
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
-  object <- object[features, , drop = FALSE]
-  object.names <- dimnames(x = object)
+  # CHANGE: Defer the row-subset of `object` (previously performed here) so the
+  # fast path below can pass the full matrix plus feature indices into C++ and
+  # select the requested rows there, avoiding an extra sparse-matrix copy. The
+  # general path performs the subset further down, exactly as before.
+  object.names <- list(features, colnames(x = object))
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   suppressWarnings(expr = Parenting(
     parent.find = "ScaleData_fast.Assay",
@@ -48,6 +56,70 @@ ScaleData_fast.default <- function(
   split.by <- split.by %||% TRUE
   split.cells <- split(x = colnames(x = object), f = split.by)
   CheckGC()
+  # CHANGE: Fast path. When no regression is requested, the data are not split,
+  # and only one worker is available, compute the row statistics and materialise
+  # the final dense matrix in a single C++ call. This avoids the per-block
+  # subsetting, sparse transpose and dense intermediate copies that dominate on
+  # large data. Feature selection happens inside C++ (via `features`), so we
+  # operate on the full (un-subset) matrix here. `nthreads > 1` enables
+  # RcppParallel threading; the progress bar is shown only on the serial path.
+  if (
+    is.null(x = vars.to.regress) &&
+    is.null(x = latent.data) &&
+    length(x = split.cells) == 1 &&
+    nbrOfWorkers() == 1
+  ) {
+    if (verbose && (do.scale || do.center)) {
+      msg <- paste(
+        na.omit(object = c(
+          ifelse(test = do.center, yes = 'centering', no = NA_character_),
+          ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+        )),
+        collapse = ' and '
+      )
+      msg <- paste0(
+        toupper(x = substr(x = msg, start = 1, stop = 1)),
+        substr(x = msg, start = 2, stop = nchar(x = msg)),
+        ' data matrix'
+      )
+      message(msg)
+    }
+    # 0-based row indices of the requested features within the full matrix.
+    feature.idx <- match(x = features, table = rownames(x = object)) - 1L
+    if (inherits(x = object, what = 'dgTMatrix')) {
+      object <- as(object = object, Class = 'dgCMatrix')
+    }
+    if (is(object = object, class2 = 'dgCMatrix')) {
+      scaled.data <- FastSparseRowScale_optimized(
+        x = object@x,
+        i = object@i,
+        p = object@p,
+        rows = nrow(x = object),
+        cols = ncol(x = object),
+        features = feature.idx,
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        nthreads = nthreads,
+        display_progress = verbose
+      )
+    } else {
+      scaled.data <- FastDenseRowScale_optimized(
+        mat = as.matrix(x = object),
+        features = feature.idx,
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        nthreads = nthreads,
+        display_progress = verbose
+      )
+    }
+    dimnames(x = scaled.data) <- object.names
+    return(scaled.data)
+  }
+  # General path: perform the row-subset the remaining (regression / split /
+  # multi-worker) code paths expect.
+  object <- object[features, , drop = FALSE]
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
       latent.data <- data.frame(row.names = colnames(x = object))
@@ -157,42 +229,9 @@ ScaleData_fast.default <- function(
     )
     message(msg)
   }
-  # CHANGE: When no regression was performed, there is no split, and
-  # only one worker is available, compute the row statistics and materialize the
-  # final dense matrix in a single C++ call instead of running the R-level
-  # feature-blocking loop. This avoids the per-block subsetting, sparse
-  # transpose, and dense intermediate copies that dominate on large data. 
-  if (
-    is.null(x = vars.to.regress) &&
-    is.null(x = latent.data) &&
-    length(x = split.cells) == 1 &&
-    nbrOfWorkers() == 1
-  ) {
-    if (inherits(x = object, what = 'dgTMatrix')) {
-      object <- as(object = object, Class = 'dgCMatrix')
-    }
-    if (is(object = object, class2 = 'dgCMatrix')) {
-      scaled.data <- FastSparseRowScale_optimized(
-        x = object@x,
-        i = object@i,
-        p = object@p,
-        rows = nrow(x = object),
-        cols = ncol(x = object),
-        scale = do.scale,
-        center = do.center,
-        scale_max = scale.max
-      )
-    } else {
-      scaled.data <- FastDenseRowScale_optimized(
-        mat = as.matrix(x = object),
-        scale = do.scale,
-        center = do.center,
-        scale_max = scale.max
-      )
-    }
-    dimnames(x = scaled.data) <- object.names
-    return(scaled.data)
-  }
+  # NOTE: The single-call fast path is handled earlier (before the row-subset),
+  # so the remaining code only runs for the regression / split / multi-worker
+  # cases that still require R-level feature blocking.
   if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
     scale.function <- FastSparseRowScale
   } else {
@@ -308,6 +347,7 @@ ScaleData_fast.Assay <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   verbose = TRUE,
   ...
 ) {
@@ -333,6 +373,7 @@ ScaleData_fast.Assay <- function(
       scale.max = scale.max,
       block.size = block.size,
       min.cells.to.block = min.cells.to.block,
+      nthreads = nthreads,
       verbose = verbose,
       ...
     )
@@ -368,6 +409,7 @@ ScaleData_fast.StdAssay <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   save = 'scale.data',
   verbose = TRUE,
   ...
@@ -419,6 +461,7 @@ ScaleData_fast.StdAssay <- function(
         scale.max = scale.max,
         block.size = block.size,
         min.cells.to.block = min.cells.to.block,
+        nthreads = nthreads,
         verbose = verbose,
         ...
       )
@@ -452,6 +495,7 @@ ScaleData_fast.StdAssay <- function(
       scale.max = scale.max,
       block.size = block.size,
       min.cells.to.block = min.cells.to.block,
+      nthreads = nthreads,
       verbose = verbose,
       ...
     )
@@ -480,6 +524,7 @@ ScaleData_fast.Seurat <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   verbose = TRUE,
   ...
 ) {
@@ -506,6 +551,7 @@ ScaleData_fast.Seurat <- function(
     scale.max = scale.max,
     block.size = block.size,
     min.cells.to.block = min.cells.to.block,
+    nthreads = nthreads,
     verbose = verbose,
     ...
   )

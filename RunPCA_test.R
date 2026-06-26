@@ -38,5 +38,6 @@ for (data in datasets) {
 }
 
 old_time
+old_time/new_time
 new_time
 diffs

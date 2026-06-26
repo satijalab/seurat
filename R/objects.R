@@ -1,6 +1,7 @@
 #' @include reexports.R
 #' @include generics.R
 #' @importFrom Rcpp evalCpp
+#' @importFrom RcppParallel RcppParallelLibs
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
 #' slot<- setMethod new signature slotNames is setAs setValidity .hasSlot

@@ -9,6 +9,14 @@ EigenGramPCA <- function(object, npcs, weight_by_var) {
     .Call('_Seurat_EigenGramPCA', PACKAGE = 'Seurat', object, npcs, weight_by_var)
 }
 
+FastSparseRowScale_optimized <- function(x, i, p, rows, cols, features = as.integer( c()), scale = TRUE, center = TRUE, scale_max = 10, nthreads = 1L, display_progress = FALSE) {
+    .Call('_Seurat_FastSparseRowScale_optimized', PACKAGE = 'Seurat', x, i, p, rows, cols, features, scale, center, scale_max, nthreads, display_progress)
+}
+
+FastDenseRowScale_optimized <- function(mat, features = as.integer( c()), scale = TRUE, center = TRUE, scale_max = 10, nthreads = 1L, display_progress = FALSE) {
+    .Call('_Seurat_FastDenseRowScale_optimized', PACKAGE = 'Seurat', mat, features, scale, center, scale_max, nthreads, display_progress)
+}
+
 RunUMISampling <- function(data, sample_val, upsample = FALSE, display_progress = TRUE) {
     .Call('_Seurat_RunUMISampling', PACKAGE = 'Seurat', data, sample_val, upsample, display_progress)
 }

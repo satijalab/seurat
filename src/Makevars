@@ -1,1 +1,9 @@
 CXX_STD = CXX17
+
+# RcppParallel (TBB) flags for the threaded ScaleData kernels.
+PKG_CXXFLAGS += $(shell "$(R_HOME)/bin/Rscript" -e "RcppParallel::CxxFlags()")
+PKG_LIBS += $(shell "$(R_HOME)/bin/Rscript" -e "RcppParallel::RcppParallelLibs()")
+# RcppParallel ships TBB with install name @rpath/libtbb.dylib but RcppParallelLibs()
+# does not emit an rpath, so dlopen() cannot find it at load time. Embed an rpath
+# pointing at RcppParallel's lib directory to resolve @rpath at runtime.
+PKG_LIBS += -Wl,-rpath,$(shell "$(R_HOME)/bin/Rscript" -e "cat(system.file('lib', package='RcppParallel'))")
