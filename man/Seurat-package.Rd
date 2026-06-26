@@ -47,6 +47,11 @@ Useful links:
 \author{
 \strong{Maintainer}: Rahul Satija \email{seurat@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
 
+Authors:
+\itemize{
+  \item Rahul Satija \email{seurat@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
+}
+
 Other contributors:
 \itemize{
   \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID}) [contributor]
