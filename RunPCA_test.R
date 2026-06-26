@@ -1,5 +1,6 @@
 devtools::install('.') ##IMPORTANT: otherwise Eigen will not be compiled correctly
 library(SeuratData)
+library(Seurat)
 
 datasets <- list('bmcite','pbmc3k','cbmc',
                  'hcabm40k','pbmcsca','ifnb')
@@ -10,7 +11,8 @@ names(old_time) <- names(new_time) <- names(diffs) <- datasets
 for (data in datasets) {
   obj <- LoadData(data)
   obj <- NormalizeData(obj)
-  obj <- ScaleData_fast((obj))
+  obj <- ScaleData_fast(obj,scale.max=Inf) #required for consistency in original RunPCA btwn approx=T vs F
+  obj <- FindVariableFeatures(obj)
   
   st <- Sys.time()
   obj1 <- RunPCA(obj,approx=T)
@@ -37,5 +39,4 @@ for (data in datasets) {
 
 old_time
 new_time
-old_time/new_time
 diffs

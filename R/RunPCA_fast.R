@@ -1,23 +1,26 @@
 #' Fast PCA dimensional reduction
 #'
 #' Faster variant of \code{\link{RunPCA}}. For the common case (a dense scaled
-#' feature-by-cell matrix) the default \code{approx = FALSE} computes PCA
-#' exactly via the Gram matrix and a symmetric eigendecomposition
-#' (\code{EigenGramPCA}), using Eigen's own BLAS-independent kernels. 
+#' feature-by-cell matrix) the default \code{approx = TRUE} computes PCA via the
+#' Gram matrix and a Lanczos top-k eigendecomposition (\code{EigenGramPCA}), using
+#' Eigen's own BLAS-independent kernels. This replaces \code{irlba} on dense input:
+#' it converges to the same truncated SVD, but tighter (tol 1e-10) and faster.
 #'
 #' Dispatch:
 #' \itemize{
-#'   \item \code{approx = FALSE} (default), dense input: Gram + eigendecomposition,
-#'     with \code{prcomp} retained only as a safety net if the eigen path errors.
-#'   \item \code{approx = TRUE}: the original \code{irlba} path.
+#'   \item \code{approx = TRUE} (default), dense input: Gram + Lanczos top-k
+#'     eigendecomposition, with \code{prcomp} retained only as a safety net if the
+#'     eigen path errors.
+#'   \item \code{approx = FALSE}, dense input: exact PCA via \code{prcomp} (as in
+#'     base \code{\link{RunPCA}}).
 #'   \item Sparse (\code{dgCMatrix}) or on-disk (\code{IterableMatrix}) input:
-#'     \code{approx} is forced to \code{TRUE}, preserving the existing
-#'     \code{irlba} / BPCells behavior.
+#'     \code{approx} is forced to \code{TRUE} and the existing \code{irlba} /
+#'     BPCells SVD path is used (the dense Gram path does not apply).
 #'   \item \code{rev.pca = TRUE}: unchanged from \code{\link{RunPCA}}.
 #' }
-#' The Gram eigendecomposition is \eqn{O(\mathrm{nfeatures}^3)}, so for very large
-#' feature sets (more than several thousand) \code{irlba} (\code{approx = TRUE})
-#' becomes faster.
+#' The Gram path costs \eqn{O(\mathrm{nfeatures}^2 \times \mathrm{ncells})} to form
+#' the Gram matrix; the eigendecomposition computes only the top \code{npcs} pairs
+#' via a Lanczos solver (\code{Spectra}).
 #'
 #' A second, behavior-neutral optimization avoids computing per-feature variances
 #' twice: \code{PrepDR}/\code{PrepDR5} already compute them to drop zero-variance
@@ -55,9 +58,7 @@ RunPCA_fast.default <- function(
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
-  # CHANGE: default flipped from TRUE to FALSE so the exact Gram path is the
-  # default; approx = TRUE selects the original irlba path (see else branch).
-  approx = FALSE,
+  approx = TRUE,
   ...
 ) {
   if (!is.null(x = seed.use)) {
@@ -83,10 +84,9 @@ RunPCA_fast.default <- function(
     }
     svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
  }
-  # CHANGE: the Gram + eigendecomposition exact path (approx = FALSE) only
-  # applies to dense in-memory matrices. For sparse (dgCMatrix) and on-disk
-  # (IterableMatrix) inputs, keep the existing approximate (irlba / BPCells)
-  # behavior by forcing approx = TRUE.
+  # CHANGE: sparse (dgCMatrix) and on-disk (IterableMatrix) inputs cannot use the
+  # dense Gram path nor an exact prcomp; force approx = TRUE so they take the
+  # irlba / BPCells SVD path below.
   if (!inherits(x = object, what = 'matrix')) {
     approx <- TRUE
   }
@@ -111,22 +111,14 @@ RunPCA_fast.default <- function(
     } else {
       sum(feature.var)
     }
-    if (approx) {
-      npcs <- min(npcs, nrow(x = object) - 1)
-      pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
-      feature.loadings <- pca.results$v
-      sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
-      if (weight.by.var) {
-        cell.embeddings <- pca.results$u %*% diag(pca.results$d)
-      } else {
-        cell.embeddings <- pca.results$u
-      }
-    } else {
-      # CHANGE: exact PCA via the Gram matrix + symmetric eigendecomposition
-      # (EigenGramPCA), using Eigen's own BLAS-independent kernels. This is the
-      # default and, for the typical dense scaled matrix, is markedly faster than
-      # the iterative SVD while being exact for the leading components. prcomp is
-      # retained purely as a safety net if the eigen path errors.
+    if (approx && inherits(x = object, what = 'matrix')) {
+      # CHANGE: dense approximate PCA (the default) goes through the Gram matrix +
+      # Lanczos top-k eigendecomposition (EigenGramPCA), using Eigen's own
+      # BLAS-independent kernels, instead of irlba. It converges to the same
+      # truncated SVD but tighter (tol 1e-10) and is faster across dataset sizes
+      # (irlba paid a per-cell iterative cost; the top-k solver also avoids the
+      # full-spectrum eigendecomposition). prcomp is retained purely as a safety
+      # net if the eigen path errors.
       npcs <- min(npcs, nrow(x = object))
       gram.results <- tryCatch(
         expr = EigenGramPCA(
@@ -149,6 +141,28 @@ RunPCA_fast.default <- function(
         } else {
           cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
         }
+      }
+    } else if (approx) {
+      # Sparse (dgCMatrix) / on-disk (IterableMatrix): unchanged irlba / BPCells
+      # SVD path (the dense Gram path does not apply to these inputs).
+      npcs <- min(npcs, nrow(x = object) - 1)
+      pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
+      feature.loadings <- pca.results$v
+      sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
+      if (weight.by.var) {
+        cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+      } else {
+        cell.embeddings <- pca.results$u
+      }
+    } else {
+      npcs <- min(npcs, nrow(x = object))
+      pca.results <- prcomp(x = t(object), rank. = npcs, ...)
+      feature.loadings <- pca.results$rotation
+      sdev <- pca.results$sdev
+      if (weight.by.var) {
+        cell.embeddings <- pca.results$x
+      } else {
+        cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
       }
     }
   }
