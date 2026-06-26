@@ -2,6 +2,12 @@
 
 ### Additions
 
+### Fixes
+
+# Seurat 5.5.1
+
+### Additions
+
 - Added `uwot.init` parameter to `RunUMAP` to optionally customize method of UMAP initialization ([#10386](https://github.com/satijalab/seurat/pull/10386))
 
 ### Fixes
