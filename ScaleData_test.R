@@ -38,6 +38,5 @@ for (data in datasets) {
 
 old_time
 new_time
-old_time[c('hcabm40k','pbmcsca')] <- 60*old_time[c('hcabm40k','pbmcsca')] # in seconds
 old_time/new_time
 diffs
