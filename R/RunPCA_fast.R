@@ -402,12 +402,11 @@ PrepDR_fast <- function(
   return(data.use)
 }
 
-# Copy of PrepDR5 (with its feature-selection bug fixed; see PrepDR5 in
-# dimensional_reduction.R) that additionally (a) subsets to the requested features
+# Copy of PrepDR5 that additionally (a) subsets to the requested features
 # BEFORE computing variance so the variance pass is fast, and (b) carries the
 # per-feature variances it computes (for the kept features, in returned-row order)
 # on the result as a "feature.var" attribute, so RunPCA_fast.default can reuse them
-# for total.variance. Feature selection matches the fixed PrepDR5 exactly.
+# for total.variance. Feature selection matches PrepDR5 exactly.
 PrepDR5_fast <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
   layer <- layer[1L]
   olayer <- layer
@@ -420,11 +419,11 @@ PrepDR5_fast <- function(object, features = NULL, layer = 'scale.data', verbose 
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
   # CHANGE: load ONLY the requested features and compute variance on that subset
-  # with RowVar / RowVarSparse (C++). The original PrepDR5 ran a slow R apply(var)
-  # over the ENTIRE scaled matrix (all genes); when ScaleData has scaled every gene
-  # this dominated RunPCA_fast (e.g. ~31s of ~45s on pbmcsca, mostly aperm inside
-  # apply). Restricting to the requested features first also fixes PrepDR5's
-  # length-mismatch selection bug (and the fixed PrepDR5 now selects identically).
+  # with RowVar / RowVarSparse (C++). PrepDR5 loads the ENTIRE scaled matrix (all
+  # genes) and subsets afterwards; when ScaleData has scaled every gene that extra
+  # load/copy dominated RunPCA_fast (e.g. ~31s of ~45s on pbmcsca). Restricting the
+  # load to the requested features avoids it. Feature selection is otherwise
+  # identical to PrepDR5.
   features.use <- features[features %in% Features(x = object, layer = layer)]
   if (!isTRUE(x = all.equal(features, features.use))) {
     missing_features <- setdiff(x = features, y = features.use)
