@@ -1326,6 +1326,32 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   if (!all(assay %in% Assays(object = x))) {
     stop("One or more of the assays you are trying to convert is not in the Seurat object")
   }
+
+  # filter dim reducs to keep only those in assays being converted
+  all_reducs <- .FilterObjects(object = x, classes.keep = "DimReduc")
+  reduc_assays <- sapply(X = all_reducs, FUN = function(i) {
+    DefaultAssay(object = x[[i]])
+  })
+  names(x = reduc_assays) <- all_reducs
+  good_reducs <- names(reduc_assays[reduc_assays %in% assay])
+
+  # Equal Number of Cells check assays
+  cell_nums <- sapply(X = assay, FUN = function(y) {
+    length(x = Cells(x = x, assay = y))
+  })
+  if (!all(cell_nums == cell_nums[1])) {
+    stop("One or more of assays do not have them same number of cells. Ensure all assays have same number of cells before converting.")
+  }
+
+  # Equal Number of Cells check reductions
+  dim_cell_nums <- sapply(X = good_reducs, function(z) {
+    length(x = Cells(x = x[[z]]))
+  })
+  if (!all(dim_cell_nums == dim_cell_nums[1])) {
+    stop("One or more of reductions do not have them same number of cells. Ensure all reductions have same number of cells before converting.")
+  }
+
+  # convert assay data
   if (DefaultAssay(object = x) %in% assay) {
     assay <- union(DefaultAssay(object = x), assay)
   }
@@ -1378,7 +1404,9 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       )
     }
   }
-  for (dr in .FilterObjects(object = x, classes.keep = "DimReduc")) {
+
+  # convert reductions
+  for (dr in good_reducs) {
     assay.used <- DefaultAssay(object = x[[dr]])
     swap.exp <- assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name
     if (swap.exp) {
@@ -1740,7 +1768,7 @@ GetTissueCoordinates.VisiumV2 <- function(
   # do some cleanup of the resulting data.frame to make it play nice
   # with `SpatialPlot` - namely set rownames and re-order the columns so
   # that the actual position values appear first
-  
+
   # avoid extra processing for Segmentation objects,
   # otherwise "duplicate 'row.names' are not allowed" error occurs
   if (!(inherits(object[[which]], "Segmentation"))) {
@@ -2147,10 +2175,10 @@ VariableFeatures.SCTAssay <- function(
 #' @concept spatial
 #'
 ScaleFactors.SlideSeq <- function(object, ...) {
-  # The concept of image scale factors comes from the 10x Visium platform. 
+  # The concept of image scale factors comes from the 10x Visium platform.
   # Although SlideSeq has no equivalent, we still want to provide the generic
   # so that the all of our concrete `SpatialImage` classes implement the same
-  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # interface, so we'll return an S3 `scalefactors` object with all values set
   # to 1.
   return(scalefactors())
 }
@@ -2161,10 +2189,10 @@ ScaleFactors.SlideSeq <- function(object, ...) {
 #' @concept spatial
 #'
 ScaleFactors.STARmap <- function(object, ...) {
-  # The concept of image scale factors comes from the 10x Visium platform. 
+  # The concept of image scale factors comes from the 10x Visium platform.
   # Although STARmap has no equivalent, we still want to provide the generic
   # so that the all of our concrete `SpatialImage` classes implement the same
-  # interface, so we'll return an S3 `scalefactors` object with all values set 
+  # interface, so we'll return an S3 `scalefactors` object with all values set
   # to 1.
   return(scalefactors())
 }
