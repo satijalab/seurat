@@ -4920,10 +4920,9 @@ NormalizeData.V3Matrix <- function(
     return(object)
   }
   if (!is.null(block.size)) {
-    old_nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
     req_nthreads <- ceiling(length(Cells(object = object)) / block.size)
-    setOption(x = "Seurat.nthreads", value = req_nthreads)
-    on.exit(expr = setOption(x = "Seurat.nthreads", value = old_nthreads), add = TRUE)
+    old_options <- options(Seurat.nthreads = req_nthreads)
+    on.exit(expr = options(old_options), add = TRUE)
   }
   normalized.data <- switch(EXPR = normalization.method,
                             'LogNormalize' = LogNormalize(
