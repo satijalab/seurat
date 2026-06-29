@@ -4880,7 +4880,7 @@ LogNormalize.V3Matrix <- function(
   nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
   # LogNorm takes only x and p slots of the dgCMatrix
   # then replaces the x slot with normalized values - all other slots can be reused
-  data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, approx = approx, display_progress = verbose && nthreads == 1)
+  data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, approx = approx, display_progress = verbose)
   return(data)
 }
 
