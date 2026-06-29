@@ -1335,16 +1335,25 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
     stop("One or more of assays do not have them same number of cells. Ensure all assays have same number of cells before converting.")
   }
 
+  # filter dim reducs to keep only those in assays being converted
+  all_reducs <- .FilterObjects(object = marsh_myeloid, classes.keep = "DimReduc")
+
+  reduc_assays <- sapply(X = all_reducs, FUN = function(i) {
+    DefaultAssay(object = marsh_myeloid[[i]])
+  })
+  names(x = reduc_assays) <- all_reducs
+
+  good_reducs <- names(reduc_assays[reduc_assays %in% assay])
+
   # Equal Number of Cells check reductions
-  reduc_names <- Reductions(object = x)
-  dim_cell_nums <- sapply(X = reduc_names, function(z) {
+  dim_cell_nums <- sapply(X = good_reducs, function(z) {
     nrow(x = Embeddings(object = x, reduction = z))
   })
   if (!all(dim_cell_nums == dim_cell_nums[1])) {
     stop("One or more of reductions do not have them same number of cells. Ensure all reductions have same number of cells before converting.")
   }
 
-
+  # convert assay data
   if (DefaultAssay(object = x) %in% assay) {
     assay <- union(DefaultAssay(object = x), assay)
   }
@@ -1397,16 +1406,6 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       )
     }
   }
-
-  # filter dim reducs to keep only those in assays being converted
-  all_reducs <- .FilterObjects(object = marsh_myeloid, classes.keep = "DimReduc")
-
-  reduc_assays <- sapply(X = all_reducs, FUN = function(i) {
-    DefaultAssay(object = marsh_myeloid[[i]])
-  })
-  names(x = reduc_assays) <- all_reducs
-
-  good_reducs <- names(reduc_assays[reduc_assays %in% assay])
 
   # convert reductions
   for (dr in good_reducs) {
