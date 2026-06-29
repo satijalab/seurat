@@ -141,14 +141,7 @@ inline double approx_log1p(double x) {
 /* <<< <<< <<< autozyme */
 
 // log-normalize a given column of a sparse matrix
-inline void LogNormColumn(
-  const int col,
-  const int *ip,
-  const double *rx,
-  double *ro,
-  const int scale_factor,
-  const bool approx
-) {
+inline void LogNormColumn(const int col, const int *ip, const double *rx, double *ro, const int scale_factor, const bool approx) {
   double col_sum = 0;
   const int col_start = ip[col];
   const int col_end = ip[col + 1];
@@ -181,10 +174,24 @@ struct LogNormWorker : public RcppParallel::Worker {
   }
 };
 
+inline void LogNormSerial(const int num_cols, const int *ip, const double *rx, double *ro, const int scale_factor, const bool approx, const bool display_progress) {
+  Progress prog(num_cols, display_progress);
+  // compute col sums and do normalization in one pass
+  for(int i = 0; i < num_cols; i++){
+    LogNormColumn(i, ip, rx, ro, scale_factor, approx);
+    prog.increment(1);
+  }
+}
+
+inline void LogNormParallel(const int num_cols, const int *ip, const double *rx, double *ro, const int scale_factor, const bool approx, const int nthreads, const bool display_progress) {
+    LogNormWorker worker(ip, rx, ro, scale_factor, approx);
+    RcppParallel::parallelFor(0, num_cols, worker, 1, nthreads);
+}
+
 // log normalize that uses the x and p slots from the sparse matrix class
 // x consists of the actual non-zero values and p consists of offsets for the start of each matrix column
 // [[Rcpp::export(rng = false)]]
-NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool approx, bool display_progress = true){
+NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool approx, bool display_progress) {
   NumericVector out(no_init(x.size()));
 
   // we use vector accessor functions to get pointers to the underlying data of the Rcpp vectors
@@ -195,19 +202,9 @@ NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nt
 
   const int num_cols = p.size() - 1;
   if (nthreads > 1) {
-    LogNormWorker worker(ip, rx, ro, scale_factor, approx);
-    RcppParallel::parallelFor(0, num_cols, worker, 1, nthreads);
-  } else if (display_progress == true){
-    Progress prog(num_cols, display_progress);
-    // compute col sums and do normalization in one pass
-    for(int i = 0; i < num_cols; i++){
-      prog.increment();
-      LogNormColumn(i, ip, rx, ro, scale_factor, approx);
-    }
+    LogNormParallel(num_cols, ip, rx, ro, scale_factor, approx, nthreads, display_progress);
   } else {
-    for(int i = 0; i < num_cols; i++){
-      LogNormColumn(i, ip, rx, ro, scale_factor, approx);
-    }
+    LogNormSerial(num_cols, ip, rx, ro, scale_factor, approx, display_progress);
   }
   return(out);
 }
