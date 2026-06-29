@@ -41,33 +41,28 @@ context("Log Normalization")
 
 mat <- as(matrix(1:16, ncol = 4, nrow = 4), "sparseMatrix")
 
-test_that("Log Normalization returns expected values", {
+test_that("Log normalization returns expected values", {
   mat.norm.r <- log1p(sweep(mat, 2, Matrix::colSums(mat), FUN = "/") * 1e4)
   mat.norm <- mat
-  mat.norm@x <- LogNorm(x = mat@x, p = mat@p, scale_factor = 1e4, nthreads = 1L, display_progress = FALSE)
+  mat.norm@x <- LogNorm(x = mat@x, p = mat@p, scale_factor = 1e4, nthreads = 1L, approx = FALSE, display_progress = FALSE)
   expect_equal(mat.norm[1, ], mat.norm.r[1, ])
   expect_equal(mat.norm[4, 4], mat.norm.r[4, 4])
 })
 
-test_that("Log normalization (sparse) is thread-safe", {
+test_that("Log normalization produces consistent results when using multiple threads", {
   mat.norm.r <- log1p(sweep(mat, 2, Matrix::colSums(mat), FUN = "/") * 1e4)
-  mat.norm.x1 <- LogNorm(
-    x = mat@x,
-    p = mat@p,
-    scale_factor = 1e4,
-    nthreads = 1L,
-    display_progress = FALSE
-  )
-  mat.norm.x2 <- LogNorm(
-    x = mat@x,
-    p = mat@p,
-    scale_factor = 1e4,
-    nthreads = 2L,
-    display_progress = FALSE
-  )
+  mat.norm.x1 <- LogNorm(x = mat@x, p = mat@p, scale_factor = 1e4, nthreads = 1L, approx = F, display_progress = F)
+  mat.norm.x2 <- LogNorm(x = mat@x, p = mat@p, scale_factor = 1e4, nthreads = 2L, approx = F, display_progress = F)
 
   expect_equal(mat.norm.x1, mat.norm.x2)
   expect_equal(mat.norm.x2, mat.norm.r@x)
+})
+
+test_that("Log normalization produces results within tolerance when using approximate log normalization", {
+  mat.norm.r <- log1p(sweep(mat, 2, Matrix::colSums(mat), FUN = "/") * 1e4)
+  mat.norm.x1 <- LogNorm(x = mat@x, p = mat@p, scale_factor = 1e4, nthreads = 1L, approx = T, display_progress = F)
+
+  expect_equal(mat.norm.x1, mat.norm.r@x, tolerance = 1e-6)
 })
 
 # Tests for scaling data
