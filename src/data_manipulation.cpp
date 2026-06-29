@@ -184,8 +184,21 @@ inline void LogNormSerial(const int num_cols, const int *ip, const double *rx, d
 }
 
 inline void LogNormParallel(const int num_cols, const int *ip, const double *rx, double *ro, const int scale_factor, const bool approx, const int nthreads, const bool display_progress) {
+  if (display_progress) {
+    Progress prog(num_cols, true);
+    LogNormWorker worker(ip, rx, ro, scale_factor, approx);
+    // show ~100 progress increments
+    // use at least 512 columns per block to avoid too many small calls
+    const int block_size = std::max(512, num_cols / 100);
+    for (int i = 0; i < num_cols; i += block_size) {
+      const int end = std::min(i + block_size, num_cols);
+      RcppParallel::parallelFor(i, end, worker, 1, nthreads);
+      prog.increment(end - i);
+    }
+  } else {
     LogNormWorker worker(ip, rx, ro, scale_factor, approx);
     RcppParallel::parallelFor(0, num_cols, worker, 1, nthreads);
+  }
 }
 
 // log normalize that uses the x and p slots from the sparse matrix class
