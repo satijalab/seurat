@@ -1345,7 +1345,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
 
   # Equal Number of Cells check reductions
   dim_cell_nums <- sapply(X = good_reducs, function(z) {
-    length(x = Cells(x = x[["full.umap"]]))
+    length(x = Cells(x = x[[z]]))
   })
   if (!all(dim_cell_nums == dim_cell_nums[1])) {
     stop("One or more of reductions do not have them same number of cells. Ensure all reductions have same number of cells before converting.")
