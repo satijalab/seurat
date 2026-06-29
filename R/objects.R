@@ -1397,7 +1397,19 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       )
     }
   }
-  for (dr in .FilterObjects(object = x, classes.keep = "DimReduc")) {
+
+  # filter dim reducs to keep only those in assays being converted
+  all_reducs <- .FilterObjects(object = marsh_myeloid, classes.keep = "DimReduc")
+
+  reduc_assays <- sapply(X = all_reducs, FUN = function(i) {
+    DefaultAssay(object = marsh_myeloid[[i]])
+  })
+  names(x = reduc_assays) <- all_reducs
+
+  good_reducs <- names(reduc_assays[reduc_assays %in% assay])
+
+  # convert reductions
+  for (dr in good_reducs) {
     assay.used <- DefaultAssay(object = x[[dr]])
     swap.exp <- assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name
     if (swap.exp) {
