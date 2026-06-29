@@ -8,9 +8,23 @@
 \alias{LogNormalize.default}
 \title{Normalize Raw Data}
 \usage{
-LogNormalize(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
+LogNormalize(
+  data,
+  scale.factor = 10000,
+  margin = 2L,
+  approx = FALSE,
+  verbose = TRUE,
+  ...
+)
 
-\method{LogNormalize}{data.frame}(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
+\method{LogNormalize}{data.frame}(
+  data,
+  scale.factor = 10000,
+  margin = 2L,
+  approx = FALSE,
+  verbose = TRUE,
+  ...
+)
 
 \method{LogNormalize}{V3Matrix}(
   data,
@@ -21,7 +35,14 @@ LogNormalize(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
   ...
 )
 
-\method{LogNormalize}{default}(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
+\method{LogNormalize}{default}(
+  data,
+  scale.factor = 10000,
+  margin = 2L,
+  approx = FALSE,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}
@@ -29,6 +50,8 @@ LogNormalize(data, scale.factor = 10000, margin = 2L, verbose = TRUE, ...)
 \item{scale.factor}{Scale the data; default is \code{1e4}}
 
 \item{margin}{Margin to normalize over}
+
+\item{approx}{Use approximate log-normalization for sparse matrices}
 
 \item{verbose}{Print progress}
 

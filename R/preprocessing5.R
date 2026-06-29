@@ -189,6 +189,7 @@ LogNormalize.default <- function(
   data,
   scale.factor = 1e4,
   margin = 2L,
+  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -226,6 +227,7 @@ LogNormalize.IterableMatrix <- function(
     data,
     scale.factor = 1e4,
     margin = 2L,
+    approx = FALSE,
     verbose = TRUE,
     ...
 ) {

@@ -4847,12 +4847,14 @@ LogNormalize.data.frame <- function(
   data,
   scale.factor = 1e4,
   margin = 2L,
+  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
   return(LogNormalize(
     data = as.matrix(x = data),
     scale.factor = scale.factor,
+    approx = approx,
     verbose = verbose,
     ...
   ))
@@ -4899,6 +4901,7 @@ LogNormalize.V3Matrix <- function(
 #' @param margin If performing CLR normalization, normalize across features (1) or cells (2)
 # @param across If performing CLR normalization, normalize across either "features" or "cells".
 #' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
+#' @param approx Use approximate log-normalization for sparse matrices
 #' @param verbose Whether to display a progress bar, if running in a single thread
 #'
 #' @rdname NormalizeData
