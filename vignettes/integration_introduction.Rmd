@@ -48,17 +48,13 @@ The following tutorial is designed to give you an overview of the kinds of compa
 
 For convenience, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
 
-```{r, include = FALSE}
-options(SeuratData.repo.use = "http://seurat.nygenome.org")
-```
-
 ```{r data}
 library(Seurat)
 library(SeuratData)
 library(patchwork)
 ```
 
-```{r installdata, eval=FALSE}
+```{r installdata}
 # install dataset
 InstallData('ifnb')
 ```
@@ -82,8 +78,7 @@ ifnb
 We can first analyze the dataset without integration. The resulting clusters are defined both by cell type and stimulation condition, which creates challenges for downstream analysis. 
 
 ```{r}
-
-# run standard anlaysis workflow
+# run standard analysis workflow
 ifnb <- NormalizeData(ifnb)
 ifnb <- FindVariableFeatures(ifnb)
 ifnb <- ScaleData(ifnb)
@@ -92,7 +87,7 @@ ifnb <- RunPCA(ifnb)
 
 ```{r unintegratedUMAP, fig.height=5}
 ifnb <- FindNeighbors(ifnb, dims=1:30, reduction = 'pca')
-ifnb <- FindClusters(ifnb, resolution = 2, cluster.name = "unintegrated_clusters")
+ifnb <- FindClusters(ifnb, resolution = 2)
 ifnb <- RunUMAP(ifnb, dims = 1:30, reduction = 'pca', reduction.name = 'umap.unintegrated')
 DimPlot(ifnb, reduction = 'umap.unintegrated', group.by=c('stim','seurat_clusters'))
 ```
@@ -147,8 +142,6 @@ The `DotPlot()` function with the `split.by` parameter can be useful for viewing
 
 
 ```{r splitdotplot, fig.height = 10}
-
-#NEEDS TO BE FIXED AND SET ORDER CORRECTLY
 Idents(ifnb) <- factor(
  Idents(ifnb),
  levels = c("pDC", "Eryth","Mk", "DC", "CD14 Mono", "CD16 Mono", "B Activated", "B", "CD8 T", "NK", "T activated", "CD4 Naive T", "CD4 Memory T"))
@@ -233,17 +226,17 @@ ifnb <- FindNeighbors(ifnb,reduction = 'integrated.dr',dims = 1:30)
 ifnb <- FindClusters(ifnb,resolution = 0.6)
 ifnb <- RunUMAP(ifnb,dims = 1:30,reduction = 'integrated.dr')
 DimPlot(ifnb,reduction = 'umap',group.by = c("stim","seurat_annotations"))
+```
 
-
+```{r sct.de, fig.height = 5}
 # perform differential expression
 ifnb <- PrepSCTFindMarkers(ifnb)
 ifnb$celltype.stim <- paste(ifnb$seurat_annotations, ifnb$stim, sep = "_")
 Idents(ifnb) <- 'celltype.stim'
 b.interferon.response <- FindMarkers(ifnb, ident.1 = "B_STIM", ident.2 = "B_CTRL", verbose = FALSE)
-
+head(b.interferon.response, n = 15)
 ```
 
-```
 
 <details>
   <summary>**Session Info**</summary>

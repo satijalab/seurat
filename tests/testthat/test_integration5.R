@@ -1,6 +1,6 @@
 # Tests for IntegrateLayers
 set.seed(42)
-is_not_cran_submission <- TRUE
+is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
 
 
 # checks that the absolute value of `x` and `y` are within `tolerance`

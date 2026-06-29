@@ -2,12 +2,21 @@
 
 ### Additions
 
+### Fixes
+
+# Seurat 5.5.1
+
+### Additions
+
 - Added `uwot.init` parameter to `RunUMAP` to optionally customize method of UMAP initialization ([#10386](https://github.com/satijalab/seurat/pull/10386))
 
 ### Fixes
 
+- Fixed bug in `PrepSCTFindMarkers` in the multi-model case that produced zero counts for some valid genes due to an incorrect filter for theta ([#10410](https://github.com/satijalab/seurat/pull/10410))
 - Fixed issue with `FindClusters` not setting metadata properly when a vector of resolutions is passed to `resolution` and a custom cluster name is specified ([#10385](https://github.com/satijalab/seurat/pull/10385))
 - Updated logic in `Parenting` to extract function names from the call stack efficiently, avoiding slowdowns when functions are run with `do.call` ([#10161](https://github.com/satijalab/seurat/pull/10161))
+- Fixed bug in `PrepDR5` affecting `RunPCA` on v5 objects, where supplied features could be incorrectly dropped when non-supplied features had zero variance ([#10398](https://github.com/satijalab/seurat/pull/10398))
+- Updated `LabelClusters` to use `fill` argument for label background color in `geom_label*` when specified, instead of the default per-cluster color ([#10404](https://github.com/satijalab/seurat/pull/10404))
 
 # Seurat 5.5.0
 

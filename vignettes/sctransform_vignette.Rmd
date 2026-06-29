@@ -2,10 +2,10 @@
 title: "Using sctransform in Seurat"
 author: Saket Choudhary, Christoph Hafemeister & Rahul Satija
 output:
-   html_document:
+  html_document:
     theme: united
     df_print: kable
-date: 'Compiled: `r Sys.Date()`'
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include = FALSE}
@@ -22,7 +22,7 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
+  tidy = FALSE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
@@ -34,9 +34,9 @@ knitr::opts_chunk$set(
 Biological heterogeneity in single-cell RNA-seq data is often confounded by technical factors including sequencing depth. The number of molecules detected in each cell can vary significantly between cells, even within the same celltype.
 Interpretation of scRNA-seq data requires effective pre-processing and normalization to remove this technical variability. 
 
-In [our manuscript](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02584-9) we introduce a modeling framework for the normalization and variance stabilization of molecular count data from scRNA-seq experiments. This procedure omits the need for heuristic steps including pseudocount addition or log-transformation and improves common downstream analytical tasks such as variable gene selection, dimensional reduction, and differential expression. We named this method `sctransform`.
+In [Hafemeister and Satija, 2019](https://link.springer.com/article/10.1186/s13059-019-1874-1), we introduced a modeling framework, `sctransform`, for the normalization and variance stabilization of molecular count data from scRNA-seq experiments. This procedure omits the need for heuristic steps including pseudocount addition or log-transformation and improves common downstream analytical tasks such as variable gene selection, dimensional reduction, and differential expression.
 
-Inspired by important and rigorous work from [Lause et al](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02451-7), we released an [updated manuscript](https://link.springer.com/article/10.1186/s13059-021-02584-9) and updated the sctransform software to a v2 version, which is now the default in Seurat v5.
+Inspired by important and rigorous work from [Lause et al](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02451-7), we released an [updated manuscript](https://link.springer.com/article/10.1186/s13059-021-02584-9) and updated the `sctransform` software to version v2, which is now the default in Seurat v5.
 
 
 ```{r packages}
@@ -54,11 +54,11 @@ pbmc <- CreateSeuratObject(counts = pbmc_data)
 
 # Apply sctransform normalization
 
- * Note that this single command replaces `NormalizeData()`, `ScaleData()`, and `FindVariableFeatures()`.
- * Transformed data will be available in the SCT assay, which is set as the default after running sctransform
- * During normalization, we can also remove confounding sources of variation, for example, mitochondrial mapping percentage
- * In Seurat v5, SCT v2 is applied by default. You can revert to v1 by setting `vst.flavor = 'v1'`
- * The [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package substantially improves speed and is used by default if installed, with instructions [here](install.html)
+The single command `SCTransform()` replaces `NormalizeData()`, `ScaleData()`, and `FindVariableFeatures()`. The `glmGamPoi` [package](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) substantially improves speed and is used by default if installed.
+
+In Seurat v5, SCT v2 is applied by default. You can revert to v1 by setting `vst.flavor = 'v1'`. During normalization, we can also remove confounding sources of variation, for example, mitochondrial mapping percentage. 
+
+After running `SCTransform()`, transformed data is available in the "SCT" assay, which is set as the default assay. This means that all downstream commands will use the sctransform-normalized data by default.
 
 ```{r apply_sct, warning=FALSE, message=FALSE}
 # store mitochondrial percentage in object meta data
@@ -77,13 +77,14 @@ pbmc <- RunUMAP(pbmc, dims = 1:30, verbose = FALSE)
 
 pbmc <- FindNeighbors(pbmc, dims = 1:30, verbose = FALSE)
 pbmc <- FindClusters(pbmc, verbose = FALSE)
+
 DimPlot(pbmc, label = TRUE) 
 ```
 
 <details>
   <summary>**Why can we choose more PCs when using sctransform?**</summary>
   
-In the [standard Seurat workflow](pbmc3k_tutorial.html) we focus on 10 PCs for this dataset, though we highlight that the results are similar with higher settings for this parameter. Interestingly, we've found that when using sctransform, we often benefit by pushing this parameter even higher. We believe this is because the sctransform workflow performs more effective normalization, strongly removing technical effects from the data. 
+In the [standard Seurat workflow](pbmc3k_tutorial.html), we focus on 10 PCs for this dataset, though we highlight that the results are similar with higher settings for this parameter. Interestingly, we've found that when using sctransform, we often benefit by pushing this parameter even higher. We believe this is because the sctransform workflow performs more effective normalization, strongly removing technical effects from the data. 
 
 Even after standard log-normalization, variation in sequencing depth is still a confounding factor (see [Figure 1](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)), and this effect can subtly influence higher PCs. In sctransform, this effect is substantially mitigated (see [Figure 3](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)). This means that higher PCs are more likely to represent subtle, but biologically relevant, sources of heterogeneity -- so including them may improve downstream analysis.
 
@@ -92,9 +93,14 @@ In addition, sctransform returns 3,000 variable features by default, instead of 
 For example, the following code replicates the full end-to-end workflow, in a single command:
 
 ```{r oneliner, eval=FALSE}
-pbmc <- CreateSeuratObject(pbmc_data) %>% PercentageFeatureSet(pattern = "^MT-",col.name = 'percent.mt') %>% SCTransform(vars.to.regress = 'percent.mt') %>%
-  RunPCA() %>% FindNeighbors(dims = 1:30) %>% RunUMAP(dims = 1:30) %>% FindClusters()
-  
+library(dplyr)
+pbmc <- CreateSeuratObject(pbmc_data) %>% 
+          PercentageFeatureSet(pattern = "^MT-",col.name = 'percent.mt') %>% 
+          SCTransform(vars.to.regress = 'percent.mt') %>%
+          RunPCA() %>% 
+          FindNeighbors(dims = 1:30) %>% 
+          RunUMAP(dims = 1:30) %>% 
+          FindClusters()
 ```
 
 </details>
@@ -102,11 +108,10 @@ pbmc <- CreateSeuratObject(pbmc_data) %>% PercentageFeatureSet(pattern = "^MT-",
 <details>
   <summary>**Where are normalized values stored for sctransform?**</summary>
 
+The results of sctransform are stored in the "SCT" assay. You can learn more about multi-assay data and commands in Seurat in our [vignette](multimodal_vignette.html), [command cheat sheet](essential_commands.html#multi-assay-features), and SeuratObject [documentation](https://satijalab.github.io/seurat-object/).
 
-The results of sctransfrom are stored in the "SCT" assay. You can learn more about multi-assay data and commands in Seurat in our [vignette](multimodal_vignette.html), [command cheat sheet](essential_commands.html#multi-assay-features), or [developer guide](https://github.com/satijalab/seurat/wiki/Assay).
-
-* `pbmc[["SCT"]]$scale.data` contains the residuals (normalized values), and is used directly as input to PCA. Please note that this matrix is non-sparse, and can therefore take up a lot of memory if stored for all genes. To save memory, we store these values only for variable genes, by setting the return.only.var.genes = TRUE by default in the `SCTransform()` function call.
-* To assist with visualization and interpretation, we also convert Pearson residuals back to ‘corrected’ UMI counts. You can interpret these as the UMI counts we would expect to observe if all cells were sequenced to the same depth. If you want to see exactly how we do this, please look at the correct function [here](https://github.com/ChristophH/sctransform/blob/master/R/denoise.R).
+* `pbmc[["SCT"]]$scale.data` contains the residuals (normalized values), and is used directly as input to PCA. Please note that this matrix is non-sparse, and can therefore take up a lot of memory if stored for all genes. To save memory, we store these values only for variable genes, by setting `return.only.var.genes = TRUE` by default in the call to `SCTransform()`.
+* To assist with visualization and interpretation, we also convert Pearson residuals back to ‘corrected’ UMI counts. You can interpret these as the UMI counts we would expect to observe if all cells were sequenced to the same depth. If you want to see exactly how we do this, please look at the `correct` function [here](https://github.com/satijalab/sctransform/blob/master/R/denoise.R).
 * The 'corrected' UMI counts are stored in `pbmc[["SCT"]]$counts`. We store log-normalized versions of these corrected counts in `pbmc[["SCT"]]$data`, which are very helpful for visualization.
 
 ------
@@ -130,9 +135,6 @@ FeaturePlot(pbmc, features = c("CD8A", "GZMK", "CCL5", "S100A4", "ANXA1", "CCR7"
 FeaturePlot(pbmc, features = c("CD3D", "ISG15", "TCL1A", "FCER2", "XCL1", "FCGR3A"), pt.size = 0.2, ncol = 3)
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/sctransform_vignette_times.csv")
-```
 
 <details>
   <summary>**Session Info**</summary>

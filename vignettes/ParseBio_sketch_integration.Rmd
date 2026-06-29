@@ -51,7 +51,7 @@ library(ggplot2)
 library(ggrepel)
 library(patchwork)
 # set this option when analyzing large datasets
-options(future.globals.maxSize = 3e9)
+options(future.globals.maxSize = 5e10)
 ```
 ## Create a Seurat object containing data from 24 patients
 We downloaded the original dataset and donor metadata from [Parse Biosciences](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip). While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](seurat5_bpcells_interaction_vignette.html).
@@ -76,7 +76,7 @@ object
 ```
 
 ## Perform integration on the sketched cells across samples
-Next we perform integrative analysis on the 'atoms' from each of the datasets. Here, we perform integration using the streamlined [Seurat v5 integration worfklow](seurat5_integration.html), and utilize the reference-based `RPCAIntegration` method. The function performs all corrections in low-dimensional space (rather than on the expression values themselves) to further improve speed and memory usage, and outputs a merged Seurat object where all cells have been placed in an integrated low-dimensional space (stored as `integrated.rpca`). 
+Next we perform integrative analysis on the 'atoms' from each of the datasets. Here, we perform integration using the streamlined [Seurat v5 integration workflow](seurat5_integration.html), and utilize the reference-based `RPCAIntegration` method. The function performs all corrections in low-dimensional space (rather than on the expression values themselves) to further improve speed and memory usage, and outputs a merged Seurat object where all cells have been placed in an integrated low-dimensional space (stored as `integrated.rpca`). 
 However, we emphasize that you can perform integration here using any analysis technique that places cells across datasets into a shared space. This includes CCA Integration, Harmony, and scVI. We demonstrate how to use these tools in Seurat v5 [here](seurat5_integration.html).
 ```{r}
 DefaultAssay(object) <- 'sketch'
@@ -130,7 +130,7 @@ object <- ProjectIntegration(object = object,
 object <- ProjectData(object = object,
                       sketched.assay =  'sketch',
                       assay = 'RNA',
-                      sketched.reduction = 'integrated.rpca.full',
+                      sketched.reduction = 'integrated.rpca',
                       full.reduction = 'integrated.rpca.full',
                       dims = 1:30,
                       refdata = list(celltype.full = 'celltype.manual')
@@ -142,15 +142,16 @@ object <- ProjectData(object = object,
 object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , reduction.name = 'umap.full', reduction.key = 'UMAP_full_')
 ```
 
-```{r, fig.width=10, fig.height=10, eval = FALSE}
+```{r, fig.width=10, fig.height=10}
 p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.1)
 p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.full', alpha = 0.1)
+
 p1 + p2 + plot_layout(ncol = 1)
 ```
 
 ## Compare healthy and diabetic samples
 
-By integrating all samples together, we can now compare healthy and diabetic cells in matched cell states. To maximize statistical power, we want to use all cells - not just the sketched cells - to perform this analysis. As recommended by [Soneson et all.](https://www.nature.com/articles/nmeth.4612) and [Crowell et al.](https://www.nature.com/articles/s41467-020-19894-4), we use an aggregation-based (pseudobulk) workflow. We aggregate all cells within the same cell type and sample using the `AggregateExpression` function. This returns a Seurat object where each 'cell' represents the pseudobulk profile of one cell type in one individual.
+By integrating all samples together, we can now compare healthy and diabetic cells in matched cell states. To maximize statistical power, we want to use all cells - not just the sketched cells - to perform this analysis. As recommended by [Soneson et al.](https://www.nature.com/articles/nmeth.4612) and [Crowell et al.](https://www.nature.com/articles/s41467-020-19894-4), we use an aggregation-based (pseudobulk) workflow. We aggregate all cells within the same cell type and sample using the `AggregateExpression` function. This returns a Seurat object where each 'cell' represents the pseudobulk profile of one cell type in one individual.
 
 After we aggregate cells, we can perform celltype-specific differential expression between healthy and diabetic samples using DESeq2. We demonstrate this for CD14 monocytes.
 
@@ -158,6 +159,7 @@ After we aggregate cells, we can perform celltype-specific differential expressi
 bulk <- AggregateExpression(object, return.seurat = T, slot = 'counts',
             assays  = 'RNA', group.by = c("celltype.full","sample", 'disease'))
 ```
+
 ```{r}
 # each sample is an individual-specific celltype-specific pseudobulk profile
 tail(Cells(bulk))

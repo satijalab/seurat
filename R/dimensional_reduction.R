@@ -2544,9 +2544,9 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
   if (is(data.use, "IterableMatrix")) {
-    features.var <- BPCells::matrix_stats(matrix=data.use, row_stats="variance")$row_stats["variance",]
+    features.var <- BPCells::matrix_stats(matrix=data.use[features,], row_stats="variance")$row_stats["variance",]
   } else {
-    features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+    features.var <- apply(X = data.use[features,], MARGIN = 1L, FUN = var)
   }
   features.keep <- features[features.var > 0]
   if (!length(x = features.keep)) {

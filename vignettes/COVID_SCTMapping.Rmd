@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r, warning=F, message=F}
-devtools::load_all()
+library(Seurat)
 library(BPCells)
 library(dplyr)
 library(patchwork)

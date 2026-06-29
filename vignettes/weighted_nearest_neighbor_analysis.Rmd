@@ -8,6 +8,7 @@ date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE}
+options(future.globals.maxSize = 1024^3 * 10) # 10 GB
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
   now <- NULL
@@ -15,7 +16,7 @@ knitr::knit_hooks$set(time_it = local({
     if (before) {
       now <<- Sys.time()
     } else {
-      res <- difftime(Sys.time(), now)
+      res <- difftime(Sys.time(), now, units = "secs")
       all_times[[options$label]] <<- res
     }
   }
@@ -35,10 +36,10 @@ This vignette introduces the WNN workflow for the analysis of multimodal single-
 * Learning cell-specific modality 'weights', and constructing a WNN graph that integrates the modalities 
 * Downstream analysis (i.e. visualization, clustering, etc.) of the WNN graph
 
-We demonstrate the use of WNN analysis to two single-cell multimodal technologies: CITE-seq and 10x multiome. We define the cellular states based on both modalities, instead of either individual modality.  
+We demonstrate the use of WNN analysis on two single-cell multimodal technologies: CITE-seq and 10x multiome. We define the cellular states based on both modalities, instead of either individual modality.  
 
 # WNN analysis of CITE-seq, RNA + ADT
-We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies from bone marrow. The object contains two assays, RNA and antibody-derived tags (ADT).  
+We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](<https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8>)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies from bone marrow. The object contains two assays, RNA and antibody-derived tags (ADT).  
 
 To run this vignette please install SeuratData, available on [GitHub](https://github.com/satijalab/seurat-data).
 
@@ -66,7 +67,7 @@ bm <- NormalizeData(bm) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA()
 
 DefaultAssay(bm) <- 'ADT'
 # we will use all ADT features for dimensional reduction
-# we set a dimensional reduction name to avoid overwriting the 
+# we set a dimensional reduction name to avoid overwriting the default PCA
 VariableFeatures(bm) <- rownames(bm[["ADT"]])
 bm <- NormalizeData(bm, normalization.method = 'CLR', margin = 2) %>% 
   ScaleData() %>% RunPCA(reduction.name = 'apca')
@@ -85,7 +86,7 @@ bm <- FindMultiModalNeighbors(
 )
 ```
 
-We can now use these results for downstream analysis, such as visualization and clustering. For example, we can create a UMAP visualization of the data based on a weighted combination of RNA and protein data We can also perform graph-based clustering and visualize these results on the UMAP, alongside a set of cell annotations.
+We can now use these results for downstream analysis, such as visualization and clustering. For example, we can create a UMAP visualization of the data based on a weighted combination of RNA and protein data. We can also perform graph-based clustering and visualize these results on the UMAP, alongside a set of cell annotations.
 
 ```{r wumap, fig.width=10}
 bm <- RunUMAP(bm, nn.name = "weighted.nn", reduction.name = "wnn.umap", reduction.key = "wnnUMAP_")
@@ -136,13 +137,13 @@ Finally, we can visualize the modality weights that were learned for each cell. 
 library(ggplot2)
 plot <-  VlnPlot(bm, features = "RNA.weight", group.by = 'celltype.l2', sort = TRUE, pt.size = 0.1) +
   NoLegend() + xlab("") + ggtitle("RNA Modality Weights") + theme(plot.title = element_text(hjust = 0.5, size = 30), axis.text = element_text(size = 20))
- 
-ggsave(filename = "../output/images/weighted_nearest_neighbor_analysis.jpg", height = 7, width = 12, plot = plot, quality = 50)
+plot
+# ggsave(filename = "../output/images/weighted_nearest_neighbor_analysis.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 # WNN analysis of 10x Multiome, RNA + ATAC
 
-Here, we demonstrate the use of WNN analysis to a second multimodal technology, the 10x multiome RNA+ATAC kit. We use a dataset that is publicly available on the 10x website, where paired transcriptomes and ATAC-seq profiles are measured in 10,412 PBMCs.
+Here, we demonstrate the use of WNN analysis on a second multimodal technology, the 10x multiome RNA+ATAC kit. We use a dataset that is publicly available on the 10x website, where paired transcriptomes and ATAC-seq profiles are measured in 10,412 PBMCs.
 
 We use the same WNN methods as we use in the previous tab, where we apply integrated multimodal analysis to a CITE-seq dataset. In this example we will demonstrate how to:
 
@@ -169,6 +170,7 @@ library(Signac)
 library(EnsDb.Hsapiens.v86)
 library(dplyr)
 library(ggplot2)
+library(GenomeInfoDb)
 ```
 
 <!-- # Create multimodal PBMC object -->
@@ -177,7 +179,7 @@ We'll create a Seurat object based on the gene expression data, and then add in 
 
 ```{r CreateObject}
 # the 10x hdf5 file contains both data types. 
-inputdata.10x <- Read10X_h5("../data/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
+inputdata.10x <- Read10X_h5("/brahms/choudharys/github/signac/vignette_data/multiomic/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
 
 # extract RNA and ATAC data
 rna_counts <- inputdata.10x$`Gene Expression`
@@ -196,7 +198,7 @@ annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
 seqlevelsStyle(annotations) <- 'UCSC'
 genome(annotations) <- "hg38"
 
-frag.file <- "../data/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
+frag.file <- "/brahms/choudharys/github/signac/vignette_data/multiomic/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
 chrom_assay <- CreateChromatinAssay(
    counts = atac_counts,
    sep = c(":", "-"),
@@ -240,7 +242,7 @@ pbmc <- RunSVD(pbmc)
 pbmc <- RunUMAP(pbmc, reduction = 'lsi', dims = 2:50, reduction.name = "umap.atac", reduction.key = "atacUMAP_")
 ```
 
-We calculate a WNN graph, representing a weighted combination of RNA and ATAC-seq modalities. We use this graph for UMAP visualization and clustering
+We calculate a WNN graph, representing a weighted combination of RNA and ATAC-seq modalities. We use this graph for UMAP visualization and clustering.
 
 ```{r MultiModalAnalysis}
 pbmc <- FindMultiModalNeighbors(pbmc, reduction.list = list("pca", "lsi"), dims.list = list(1:50, 2:50))
@@ -288,7 +290,7 @@ tcells <- subset(pbmc, idents = tcell.names)
 CoveragePlot(tcells, region = 'CD8A', features = 'CD8A', assay = 'ATAC', expression.assay = 'SCT', peaks = FALSE)
 ```
 
-Next, we will examine the accessible regions of each cell to determine enriched motifs. As described in the [Signac motifs vignette](https://stuartlab.org/signac/articles/motif_vignette.html), there are a few ways to do this, but we will use the [chromVAR](https://www.nature.com/articles/nmeth.4401) package from the Greenleaf lab. This calculates a per-cell accessibility score for known motifs, and adds these scores as a third assay (`chromvar`) in the Seurat object.
+Next, we will examine the accessible regions of each cell to determine enriched motifs. As described in the [Signac motifs vignette](https://stuartlab.org/signac/articles/motif_vignette.html), there are a few ways to do this, but we will use the [chromVAR](https://www.nature.com/articles/nmeth.4401) package from the Greenleaf lab directly (the `RunChromVAR()` wrapper was removed in recent Signac releases). This calculates a per-cell accessibility score for known motifs, and adds these scores as a third assay (`chromvar`) in the Seurat object.
 
 To continue, please make sure you have the following packages installed. 
 
@@ -323,16 +325,32 @@ motif.matrix <- CreateMotifMatrix(features = granges(pbmc), pwm = pwm_set, genom
 motif.object <- CreateMotifObject(data = motif.matrix, pwm = pwm_set)
 pbmc <- SetAssayData(pbmc, assay = 'ATAC', layer = 'motifs', new.data = motif.object)
 
-# Note that this step can take 30-60 minutes 
-pbmc <- RunChromVAR(
-  object = pbmc,
-  genome = BSgenome.Hsapiens.UCSC.hg38
+# Build chromVAR input object from ATAC counts
+peak_counts <- GetAssayData(pbmc, assay = "ATAC", layer = "counts")
+chromvar_input <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(counts = peak_counts),
+  rowRanges = granges(pbmc)
 )
+chromvar_input <- chromVAR::addGCBias(chromvar_input, genome = BSgenome.Hsapiens.UCSC.hg38)
+motif_ix <- GetMotifData(pbmc, assay = "ATAC", slot = "data")
+bg_peaks <- chromVAR::getBackgroundPeaks(chromvar_input)
+
+# Note that this step can take 30-60 minutes
+dev <- chromVAR::computeDeviations(
+  object = chromvar_input,
+  annotations = motif_ix,
+  background_peaks = bg_peaks
+)
+chromvar_scores <- chromVAR::deviationScores(dev)
+
+# Store per-cell motif accessibility as a third assay
+pbmc[["chromvar"]] <- CreateAssayObject(counts = chromvar_scores)
+pbmc <- SetAssayData(pbmc, assay = "chromvar", layer = "data", new.data = chromvar_scores)
 ```
 
 Finally, we explore the multimodal dataset to identify key regulators of each cell state. Paired data provides a unique opportunity to identify transcription factors (TFs) that satisfy multiple criteria, helping to narrow down the list of putative regulators to the most likely candidates. We aim to identify TFs whose expression is enriched in multiple cell types in the RNA measurements, but *also* have enriched accessibility for their motifs in the ATAC measurements. 
 
-As an example and positive control, the  CCAAT Enhancer Binding Protein (CEBP) family of proteins, including the TF CEBPB, have been repeatedly shown to play important roles in the differentiation and function of myeloid cells including monocytes and dendritic cells. We can see that both the expression of the CEBPB, and the accessibility of the MA0466.2.4 motif (which encodes the binding site for CEBPB), are both enriched in monocytes.
+As an example and positive control, the CCAAT Enhancer Binding Protein (CEBP) family of proteins, including the TF CEBPB, have been repeatedly shown to play important roles in the differentiation and function of myeloid cells including monocytes and dendritic cells. We can see that both the expression of the CEBPB, and the accessibility of the MA0466.2.4 motif (which encodes the binding site for CEBPB), are both enriched in monocytes.
 
 ```{r CEBPB, fig.width=10}
 #returns MA0466.2
@@ -415,9 +433,6 @@ head(topTFs("Plasma"), 3)
 ```
 
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/weighted_nearest_neighbor_analysis_times.csv")
-```
 
 <details>
   <summary>**Session Info**</summary>

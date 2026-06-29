@@ -36,13 +36,14 @@ Developed in collaboration with the Technology Innovation Group at NYGC, Cell Ha
 This vignette will give a brief demonstration on how to work with data produced with Cell Hashing in Seurat. Applied to two datasets, we can successfully demultiplex cells to their the original sample-of-origin, and identify cross-sample doublets.
 
 <div class="panel panel-primary">
-  <div class="panel-heading">The demultiplexing function `HTODemux()` implements the following procedure: </div/
+  <div class="panel-heading">The demultiplexing function `HTODemux()` implements the following procedure: </div>
   <div class="panel-body"> <ul>
   <li> We perform a k-medoid clustering on the normalized HTO values, which initially separates cells into K(# of samples)+1 clusters. </li>
   <li> We calculate a 'negative' distribution for HTO. For each HTO, we use the cluster with the lowest average value as the negative group. </li>
   <li> For each HTO, we fit a negative binomial distribution to the negative cluster. We use the 0.99 quantile of this distribution as a threshold. </li>
   <li> Based on these thresholds, each cell is classified as positive or negative for each HTO. </li>
   <li> Cells that are positive for more than one HTOs are annotated as doublets. </li>
+  </ul></div>
 </div>
 
 
@@ -54,7 +55,7 @@ This vignette will give a brief demonstration on how to work with data produced 
   <div class="panel-body"> <ul>
   <li> Data represent peripheral blood mononuclear cells (PBMCs) from eight different donors. </li>
   <li> Cells from each donor are uniquely labeled, using CD45 as a hashing antibody.</li>
-  <li> Samples were subsequently pooled, and run on a single lane of the the 10X Chromium v2 system.
+  <li> Samples were subsequently pooled, and run on a single lane of the the 10X Chromium v2 system.</li>
   <li> You can download the count matrices for RNA and HTO [here](https://www.dropbox.com/sh/ntc33ium7cg1za1/AAD_8XIDmu4F7lJ-5sp-rGFYa?dl=0), or the FASTQ files from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE108313)</li>
   </ul></div>
 
@@ -275,9 +276,6 @@ hto12 <- RunTSNE(hto12, dims = 1:5, perplexity = 100)
 DimPlot(hto12) + NoLegend()
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/hashing_vignette_times.csv")
-```
 
 <details>
   <summary>**Session Info**</summary>

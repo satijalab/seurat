@@ -19,7 +19,7 @@ vdat <- read_yaml(file = "archive.yaml")
 ```
 In version 4, the Seurat documentation was transitioned to pkgdown. Here we provide access to all previous versions of the documentation.
 
-# Version 2-3 tutorials
+# Version 4.3, 2-3 tutorials
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 for (i in 1:length(x = vdat$vignettes)) {

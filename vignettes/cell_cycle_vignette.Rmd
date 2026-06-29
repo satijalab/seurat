@@ -81,14 +81,6 @@ marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
 DimPlot(marrow)
 ```
 
-```{r save.img, include=TRUE}
-library(ggplot2)
-plot <- DimPlot(marrow) + 
-    theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
-    guides(colour = guide_legend(override.aes = list(size = 10)))
-ggsave(filename = "../output/images/cell_cycle_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
-```
-
 We score single cells based on the scoring strategy described in [Tirosh *et al*. 2016](http://science.sciencemag.org/content/352/6282/189). See `?AddModuleScore()` in Seurat for more information, this function can be used to calculate supervised module scores for any gene list.
 
 # Regress out cell cycle scores during data scaling
@@ -137,9 +129,7 @@ marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
 DimPlot(marrow)
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/cell_cycle_vignette_times.csv")
-```
+
 
 <details>
   <summary>**Session Info**</summary>

@@ -6310,16 +6310,24 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
-
   if (box) {
+    # Use fill for box color and default to cluster color if not provided
+    dots <- list(...)
+    if ("fill" %in% names(x = dots)) {
+      box.color <- dots$fill
+      dots$fill <- NULL # Make sure fill isn't passed to the geom twice
+    } else {
+      box.color <- labels.loc$color
+    }
     geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
-    plot <- plot + geom.use(
+    plot <- plot + exec(
+      .fn = geom.use,
       data = labels.loc,
       mapping = aes(x = .data[[xynames['x']]], y = .data[[xynames['y']]], label = .data[[id]]),
-      fill = labels.loc$color,
+      fill = box.color,
       show.legend = FALSE,
       inherit.aes = FALSE,
-      ...
+      !!!dots
     )
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
