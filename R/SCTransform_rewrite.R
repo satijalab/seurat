@@ -1069,6 +1069,7 @@ SCTransform_rewrite.StdAssay <- function(
   prefill.matrices <- lapply(output_list, function(vst.out) {
     vst.out$y
   })
+  prefill.features <- character()
   if (all(vapply(X = prefill.matrices, FUN = nrow, FUN.VALUE = integer(length = 1L)) > 0L)) {
     prefill.features <- Reduce(
       f = intersect,
@@ -1081,6 +1082,29 @@ SCTransform_rewrite.StdAssay <- function(
       })
     )
     LayerData(assay_out, layer = "scale.data") <- scale.data.prefill
+  }
+
+  # In reference mode the final FetchResiduals_rewrite() below is intentionally
+  # called WITHOUT reference.SCT.model and instead reuses the per-layer reference
+  # residuals prefilled above. This is correct only while every scale.data feature
+  # is covered by the prefill: any feature not prefilled would be recomputed
+  # without reference centering (query-centered) and be silently wrong. That
+  # invariant provably holds today (scale_data_features is a subset of the shared
+  # reference model's features present in all layers), so guard it here to fail
+  # loudly if a future change ever breaks it.
+  if (!is.null(x = reference.SCT.model)) {
+    missing.prefill <- setdiff(x = scale_data_features, y = prefill.features)
+    if (length(x = missing.prefill) > 0) {
+      stop(
+        "SCTransform_rewrite (reference model, multi-layer): ",
+        length(x = missing.prefill),
+        " scale.data feature(s) are not covered by the per-layer reference ",
+        "residuals and would be recomputed without reference centering: ",
+        paste(utils::head(x = missing.prefill, n = 10L), collapse = ", "),
+        if (length(x = missing.prefill) > 10L) ", ..." else "",
+        call. = FALSE
+      )
+    }
   }
 
   residuals <- suppressWarnings(
