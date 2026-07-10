@@ -203,7 +203,7 @@ SCTransform_rewrite.default <- function(
         min_var = min.var,
         residual_clip_min = min(res.clip.range),
         residual_clip_max = max(res.clip.range),
-        n_threads = 1L,
+        n_threads = getOption(x = "Seurat.nthreads", default = 1L),
         compute_corrected = do.correct.umi
       )
       vst.out$gene_attr[genes, "residual_mean"] <- stats$residual_mean
@@ -257,7 +257,7 @@ SCTransform_rewrite.default <- function(
           clip_min = min(clip.range),
           clip_max = max(clip.range),
           do_center = do.center,
-          n_threads = 1L
+          n_threads = getOption(x = "Seurat.nthreads", default = 1L)
         )
         dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
       }
@@ -805,7 +805,7 @@ FetchResidualSCTModel_rewrite <- function(
       clip_min = clip.min,
       clip_max = clip.max,
       do_center = TRUE,
-      n_threads = 1L
+      n_threads = getOption(x = "Seurat.nthreads", default = 1L)
     )
     dimnames(x = new.residuals) <- list(compute.features, colnames(x = counts))
     if (

@@ -1,11 +1,13 @@
 #include <Rcpp.h>
+#include <RcppParallel.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <thread>
 #include <vector>
 
 using namespace Rcpp;
+
+// [[Rcpp::depends(RcppParallel)]]
 
 inline double sct_model_var(double mu, double theta) {
   if (R_finite(theta)) {
@@ -28,20 +30,6 @@ inline double sct_round0(double value) {
   return std::nearbyint(value);
 }
 
-inline int sct_thread_count(int requested, int cols) {
-  if (cols <= 1) {
-    return 1;
-  }
-  int threads = requested;
-  if (threads < 1) {
-    threads = static_cast<int>(std::thread::hardware_concurrency());
-  }
-  if (threads < 1) {
-    threads = 1;
-  }
-  return std::min(threads, cols);
-}
-
 inline S4 sct_corrected_matrix(
   const std::vector<int>& corrected_i,
   const std::vector<int>& corrected_p,
@@ -58,14 +46,87 @@ inline S4 sct_corrected_matrix(
   return corrected;
 }
 
-struct SCTStatsWorkerResult {
-  int start = 0;
-  int end = 0;
+// Reducer for per-gene residual mean/variance across a range of cells (columns).
+// Writes no shared output; accumulates per-row sums that are merged in join().
+struct SCTStatsReducer : public RcppParallel::Worker {
+  const int* p;
+  const int* i;
+  const double* x;
+  const int rows;
+  const double* log_umi_ptr;
+  const double* theta_ptr;
+  const double* slope_ptr;
+  const std::vector<double>& exp_intercept;
+  const bool common_slope;
+  const double first_slope;
+  const double min_var;
+  const double residual_clip_min;
+  const double residual_clip_max;
   std::vector<double> residual_sum;
   std::vector<double> residual_sq_sum;
-  std::vector<int> corrected_i;
-  std::vector<double> corrected_x;
-  std::vector<int> corrected_p;
+
+  SCTStatsReducer(
+    const int* p,
+    const int* i,
+    const double* x,
+    int rows,
+    const double* log_umi_ptr,
+    const double* theta_ptr,
+    const double* slope_ptr,
+    const std::vector<double>& exp_intercept,
+    bool common_slope,
+    double first_slope,
+    double min_var,
+    double residual_clip_min,
+    double residual_clip_max
+  ) : p(p), i(i), x(x), rows(rows), log_umi_ptr(log_umi_ptr),
+      theta_ptr(theta_ptr), slope_ptr(slope_ptr), exp_intercept(exp_intercept),
+      common_slope(common_slope), first_slope(first_slope), min_var(min_var),
+      residual_clip_min(residual_clip_min), residual_clip_max(residual_clip_max),
+      residual_sum(rows, 0.0), residual_sq_sum(rows, 0.0) {}
+
+  SCTStatsReducer(const SCTStatsReducer& other, RcppParallel::Split)
+    : p(other.p), i(other.i), x(other.x), rows(other.rows),
+      log_umi_ptr(other.log_umi_ptr), theta_ptr(other.theta_ptr),
+      slope_ptr(other.slope_ptr), exp_intercept(other.exp_intercept),
+      common_slope(other.common_slope), first_slope(other.first_slope),
+      min_var(other.min_var), residual_clip_min(other.residual_clip_min),
+      residual_clip_max(other.residual_clip_max),
+      residual_sum(other.rows, 0.0), residual_sq_sum(other.rows, 0.0) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    for (std::size_t col = begin; col < end; ++col) {
+      int ptr = p[col];
+      const int ptr_end = p[col + 1];
+      const double log_umi_col = log_umi_ptr[col];
+      const double common_factor = common_slope ? std::exp(first_slope * log_umi_col) : 0.0;
+      for (int row = 0; row < rows; ++row) {
+        double y_value = 0.0;
+        if (ptr < ptr_end && i[ptr] == row) {
+          y_value = x[ptr];
+          ++ptr;
+        }
+        const double mu_original = common_slope ?
+          exp_intercept[row] * common_factor :
+          exp_intercept[row] * std::exp(slope_ptr[row] * log_umi_col);
+        double variance_original = sct_model_var(mu_original, theta_ptr[row]);
+        if (variance_original < min_var) {
+          variance_original = min_var;
+        }
+        const double residual = (y_value - mu_original) / std::sqrt(variance_original);
+        const double clipped_residual = sct_clip(residual, residual_clip_min, residual_clip_max);
+        residual_sum[row] += clipped_residual;
+        residual_sq_sum[row] += clipped_residual * clipped_residual;
+      }
+    }
+  }
+
+  void join(const SCTStatsReducer& rhs) {
+    for (int row = 0; row < rows; ++row) {
+      residual_sum[row] += rhs.residual_sum[row];
+      residual_sq_sum[row] += rhs.residual_sq_sum[row];
+    }
+  }
 };
 
 // [[Rcpp::export(rng = false)]]
@@ -93,6 +154,9 @@ List SCTResidualStatsAndCorrected_optimized(
   const double* intercept_ptr = REAL(intercept);
   const double* slope_ptr = REAL(slope);
   const double* log_umi_ptr = REAL(log_umi);
+  const int* i_ptr = INTEGER(i);
+  const int* p_ptr = INTEGER(p);
+  const double* x_ptr = REAL(x);
   std::vector<double> exp_intercept(rows);
   std::vector<double> target_mu(rows);
   std::vector<double> target_sqrt_var(rows);
@@ -117,30 +181,50 @@ List SCTResidualStatsAndCorrected_optimized(
     }
   }
 
-  const int threads = sct_thread_count(n_threads, cols);
-  if (threads == 1) {
-    std::vector<double> residual_sum(rows, 0.0);
-    std::vector<double> residual_sq_sum(rows, 0.0);
+  // Residual mean/variance: parallel reduction over cells when requested.
+  SCTStatsReducer reducer(
+    p_ptr, i_ptr, x_ptr, rows, log_umi_ptr, theta_ptr, slope_ptr,
+    exp_intercept, common_slope, first_slope,
+    min_var, residual_clip_min, residual_clip_max
+  );
+  if (n_threads > 1 && cols > 1) {
+    RcppParallel::parallelReduce(0, cols, reducer, 1, n_threads);
+  } else {
+    reducer(0, cols);
+  }
+
+  const double cols_d = static_cast<double>(cols);
+  const double denom = static_cast<double>(cols - 1);
+  for (int row = 0; row < rows; ++row) {
+    residual_mean[row] = reducer.residual_sum[row] / cols_d;
+    residual_variance[row] = (
+      reducer.residual_sq_sum[row] - reducer.residual_sum[row] * reducer.residual_sum[row] / cols_d
+    ) / denom;
+  }
+
+  List out = List::create(
+    _["residual_mean"] = residual_mean,
+    _["residual_variance"] = residual_variance
+  );
+
+  // Corrected counts are assembled serially to preserve CSC column ordering.
+  if (compute_corrected) {
     std::vector<int> corrected_i;
     std::vector<double> corrected_x;
     std::vector<int> corrected_p(cols + 1, 0);
-    if (compute_corrected) {
-      corrected_i.reserve(x.size());
-      corrected_x.reserve(x.size());
-    }
+    corrected_i.reserve(x.size());
+    corrected_x.reserve(x.size());
 
     for (int col = 0; col < cols; ++col) {
-      if (compute_corrected) {
-        corrected_p[col] = static_cast<int>(corrected_i.size());
-      }
-      int ptr = p[col];
-      const int ptr_end = p[col + 1];
+      corrected_p[col] = static_cast<int>(corrected_i.size());
+      int ptr = p_ptr[col];
+      const int ptr_end = p_ptr[col + 1];
       const double log_umi_col = log_umi_ptr[col];
       const double common_factor = common_slope ? std::exp(first_slope * log_umi_col) : 0.0;
       for (int row = 0; row < rows; ++row) {
         double y_value = 0.0;
-        if (ptr < ptr_end && i[ptr] == row) {
-          y_value = x[ptr];
+        if (ptr < ptr_end && i_ptr[ptr] == row) {
+          y_value = x_ptr[ptr];
           ++ptr;
         }
         const double mu_original = common_slope ?
@@ -151,170 +235,144 @@ List SCTResidualStatsAndCorrected_optimized(
           variance_original = min_var;
         }
         const double residual = (y_value - mu_original) / std::sqrt(variance_original);
-        const double clipped_residual = sct_clip(residual, residual_clip_min, residual_clip_max);
-        residual_sum[row] += clipped_residual;
-        residual_sq_sum[row] += clipped_residual * clipped_residual;
-
-        if (compute_corrected) {
-          double corrected = target_mu[row] + residual * target_sqrt_var[row];
-          corrected = sct_round0(corrected);
-          if (corrected < 0.0) {
-            corrected = 0.0;
-          }
-          if (corrected != 0.0) {
-            corrected_i.push_back(row);
-            corrected_x.push_back(corrected);
-          }
+        double corrected = target_mu[row] + residual * target_sqrt_var[row];
+        corrected = sct_round0(corrected);
+        if (corrected < 0.0) {
+          corrected = 0.0;
+        }
+        if (corrected != 0.0) {
+          corrected_i.push_back(row);
+          corrected_x.push_back(corrected);
         }
       }
     }
-    if (compute_corrected) {
-      corrected_p[cols] = static_cast<int>(corrected_i.size());
-    }
-
-    const double cols_d = static_cast<double>(cols);
-    const double denom = static_cast<double>(cols - 1);
-    for (int row = 0; row < rows; ++row) {
-      residual_mean[row] = residual_sum[row] / cols_d;
-      residual_variance[row] = (
-        residual_sq_sum[row] - residual_sum[row] * residual_sum[row] / cols_d
-      ) / denom;
-    }
-
-    List out = List::create(
-      _["residual_mean"] = residual_mean,
-      _["residual_variance"] = residual_variance
-    );
-    if (compute_corrected) {
-      S4 corrected = sct_corrected_matrix(corrected_i, corrected_p, corrected_x, rows, cols);
-      out["corrected"] = corrected;
-    }
-    return out;
+    corrected_p[cols] = static_cast<int>(corrected_i.size());
+    out["corrected"] = sct_corrected_matrix(corrected_i, corrected_p, corrected_x, rows, cols);
   }
 
-  std::vector<SCTStatsWorkerResult> results(threads);
-  std::vector<std::thread> workers;
-  workers.reserve(threads);
-  const int chunk = (cols + threads - 1) / threads;
-
-  for (int thread = 0; thread < threads; ++thread) {
-    const int start = thread * chunk;
-    const int end = std::min(cols, start + chunk);
-    results[thread].start = start;
-    results[thread].end = end;
-    workers.emplace_back([&, thread, start, end]() {
-      SCTStatsWorkerResult& result = results[thread];
-      result.residual_sum.assign(rows, 0.0);
-      result.residual_sq_sum.assign(rows, 0.0);
-      if (compute_corrected) {
-        result.corrected_p.assign(end - start + 1, 0);
-        const R_xlen_t start_nnz = p[start];
-        const R_xlen_t end_nnz = p[end];
-        const R_xlen_t reserve_nnz = std::max<R_xlen_t>(end_nnz - start_nnz, 1);
-        result.corrected_i.reserve(static_cast<size_t>(reserve_nnz));
-        result.corrected_x.reserve(static_cast<size_t>(reserve_nnz));
-      }
-
-      for (int col = start; col < end; ++col) {
-        if (compute_corrected) {
-          result.corrected_p[col - start] = result.corrected_i.size();
-        }
-        int ptr = p[col];
-        const int ptr_end = p[col + 1];
-        const double log_umi_col = log_umi_ptr[col];
-        const double common_factor = common_slope ? std::exp(first_slope * log_umi_col) : 0.0;
-        for (int row = 0; row < rows; ++row) {
-          double y_value = 0.0;
-          if (ptr < ptr_end && i[ptr] == row) {
-            y_value = x[ptr];
-            ++ptr;
-          }
-          const double mu_original = common_slope ?
-            exp_intercept[row] * common_factor :
-            exp_intercept[row] * std::exp(slope_ptr[row] * log_umi_col);
-          double variance_original = sct_model_var(mu_original, theta_ptr[row]);
-          if (variance_original < min_var) {
-            variance_original = min_var;
-          }
-          const double residual = (y_value - mu_original) / std::sqrt(variance_original);
-          const double clipped_residual = sct_clip(residual, residual_clip_min, residual_clip_max);
-          result.residual_sum[row] += clipped_residual;
-          result.residual_sq_sum[row] += clipped_residual * clipped_residual;
-
-          if (compute_corrected) {
-            double corrected = target_mu[row] + residual * target_sqrt_var[row];
-            corrected = sct_round0(corrected);
-            if (corrected < 0.0) {
-              corrected = 0.0;
-            }
-            if (corrected != 0.0) {
-              result.corrected_i.push_back(row);
-              result.corrected_x.push_back(corrected);
-            }
-          }
-        }
-      }
-      if (compute_corrected) {
-        result.corrected_p[end - start] = result.corrected_i.size();
-      }
-    });
-  }
-  for (std::thread& worker : workers) {
-    worker.join();
-  }
-
-  std::vector<double> residual_sum(rows, 0.0);
-  std::vector<double> residual_sq_sum(rows, 0.0);
-  size_t corrected_nnz = 0;
-  for (int thread = 0; thread < threads; ++thread) {
-    if (compute_corrected) {
-      corrected_nnz += results[thread].corrected_i.size();
-    }
-    for (int row = 0; row < rows; ++row) {
-      residual_sum[row] += results[thread].residual_sum[row];
-      residual_sq_sum[row] += results[thread].residual_sq_sum[row];
-    }
-  }
-
-  std::vector<int> corrected_i;
-  std::vector<double> corrected_x;
-  std::vector<int> corrected_p(cols + 1, 0);
-  size_t offset = 0;
-  if (compute_corrected) {
-    corrected_i.reserve(corrected_nnz);
-    corrected_x.reserve(corrected_nnz);
-    for (int thread = 0; thread < threads; ++thread) {
-      const SCTStatsWorkerResult& result = results[thread];
-      const int local_cols = result.end - result.start;
-      for (int local_col = 0; local_col < local_cols; ++local_col) {
-        corrected_p[result.start + local_col] = static_cast<int>(offset + result.corrected_p[local_col]);
-      }
-      corrected_i.insert(corrected_i.end(), result.corrected_i.begin(), result.corrected_i.end());
-      corrected_x.insert(corrected_x.end(), result.corrected_x.begin(), result.corrected_x.end());
-      offset += result.corrected_i.size();
-    }
-    corrected_p[cols] = static_cast<int>(offset);
-  }
-
-  const double cols_d = static_cast<double>(cols);
-  const double denom = static_cast<double>(cols - 1);
-  for (int row = 0; row < rows; ++row) {
-    residual_mean[row] = residual_sum[row] / cols_d;
-    residual_variance[row] = (
-      residual_sq_sum[row] - residual_sum[row] * residual_sum[row] / cols_d
-    ) / denom;
-  }
-
-  List out = List::create(
-    _["residual_mean"] = residual_mean,
-    _["residual_variance"] = residual_variance
-  );
-  if (compute_corrected) {
-    S4 corrected = sct_corrected_matrix(corrected_i, corrected_p, corrected_x, rows, cols);
-    out["corrected"] = corrected;
-  }
   return out;
 }
+
+// Reducer that fills the dense residual matrix (disjoint columns) and, as a
+// side reduction, accumulates the per-row sums used for optional centering.
+struct SCTResidualMatrixReducer : public RcppParallel::Worker {
+  double* out_ptr;
+  const int selected;
+  const int* p;
+  const int* i;
+  const double* x;
+  const double* log_umi_ptr;
+  const std::vector<double>& selected_exp_intercept;
+  const std::vector<double>& selected_slope;
+  const std::vector<double>& selected_theta;
+  const std::vector<double>& selected_min_var;
+  const std::vector<int>& row_to_selected;
+  const bool common_slope;
+  const double first_slope;
+  const double clip_min;
+  const double clip_max;
+  std::vector<double> local_y;
+  std::vector<int> local_touched;
+  std::vector<double> row_sum;
+
+  SCTResidualMatrixReducer(
+    double* out_ptr,
+    int selected,
+    const int* p,
+    const int* i,
+    const double* x,
+    const double* log_umi_ptr,
+    const std::vector<double>& selected_exp_intercept,
+    const std::vector<double>& selected_slope,
+    const std::vector<double>& selected_theta,
+    const std::vector<double>& selected_min_var,
+    const std::vector<int>& row_to_selected,
+    bool common_slope,
+    double first_slope,
+    double clip_min,
+    double clip_max
+  ) : out_ptr(out_ptr), selected(selected), p(p), i(i), x(x),
+      log_umi_ptr(log_umi_ptr), selected_exp_intercept(selected_exp_intercept),
+      selected_slope(selected_slope), selected_theta(selected_theta),
+      selected_min_var(selected_min_var), row_to_selected(row_to_selected),
+      common_slope(common_slope), first_slope(first_slope),
+      clip_min(clip_min), clip_max(clip_max),
+      local_y(selected, 0.0), row_sum(selected, 0.0) {
+    local_touched.reserve(selected);
+  }
+
+  SCTResidualMatrixReducer(const SCTResidualMatrixReducer& other, RcppParallel::Split)
+    : out_ptr(other.out_ptr), selected(other.selected), p(other.p), i(other.i),
+      x(other.x), log_umi_ptr(other.log_umi_ptr),
+      selected_exp_intercept(other.selected_exp_intercept),
+      selected_slope(other.selected_slope), selected_theta(other.selected_theta),
+      selected_min_var(other.selected_min_var), row_to_selected(other.row_to_selected),
+      common_slope(other.common_slope), first_slope(other.first_slope),
+      clip_min(other.clip_min), clip_max(other.clip_max),
+      local_y(other.selected, 0.0), row_sum(other.selected, 0.0) {
+    local_touched.reserve(other.selected);
+  }
+
+  void operator()(std::size_t begin, std::size_t end) {
+    for (std::size_t col = begin; col < end; ++col) {
+      local_touched.clear();
+      for (int ptr = p[col]; ptr < p[col + 1]; ++ptr) {
+        const int selected_row = row_to_selected[i[ptr]];
+        if (selected_row >= 0) {
+          local_y[selected_row] = x[ptr];
+          local_touched.push_back(selected_row);
+        }
+      }
+
+      double* out_col = out_ptr + static_cast<R_xlen_t>(col) * selected;
+      const double log_umi_col = log_umi_ptr[col];
+      const double common_factor = common_slope ? std::exp(first_slope * log_umi_col) : 0.0;
+      for (int idx = 0; idx < selected; ++idx) {
+        const double mu = common_slope ?
+          selected_exp_intercept[idx] * common_factor :
+          selected_exp_intercept[idx] * std::exp(selected_slope[idx] * log_umi_col);
+        double variance = sct_model_var(mu, selected_theta[idx]);
+        if (variance < selected_min_var[idx]) {
+          variance = selected_min_var[idx];
+        }
+        const double residual = (local_y[idx] - mu) / std::sqrt(variance);
+        const double clipped = sct_clip(residual, clip_min, clip_max);
+        out_col[idx] = clipped;
+        row_sum[idx] += clipped;
+      }
+
+      for (std::vector<int>::const_iterator it = local_touched.begin(); it != local_touched.end(); ++it) {
+        local_y[*it] = 0.0;
+      }
+    }
+  }
+
+  void join(const SCTResidualMatrixReducer& rhs) {
+    for (int idx = 0; idx < selected; ++idx) {
+      row_sum[idx] += rhs.row_sum[idx];
+    }
+  }
+};
+
+// Worker that subtracts each selected gene's residual mean (centering).
+struct SCTCenterWorker : public RcppParallel::Worker {
+  double* out_ptr;
+  const int selected;
+  const std::vector<double>& row_sum;
+  const double inv_cols;
+
+  SCTCenterWorker(double* out_ptr, int selected, const std::vector<double>& row_sum, double inv_cols)
+    : out_ptr(out_ptr), selected(selected), row_sum(row_sum), inv_cols(inv_cols) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    for (std::size_t col = begin; col < end; ++col) {
+      double* out_col = out_ptr + static_cast<R_xlen_t>(col) * selected;
+      for (int idx = 0; idx < selected; ++idx) {
+        out_col[idx] -= row_sum[idx] * inv_cols;
+      }
+    }
+  }
+};
 
 // [[Rcpp::export(rng = false)]]
 NumericMatrix SCTPearsonResidualMatrix_optimized(
@@ -337,7 +395,6 @@ NumericMatrix SCTPearsonResidualMatrix_optimized(
   const int selected = feature_index.size();
   NumericMatrix out = no_init_matrix(selected, cols);
   double* out_ptr = REAL(out);
-  const int threads = sct_thread_count(n_threads, cols);
 
   std::vector<int> row_to_selected(rows, -1);
   for (int idx = 0; idx < selected; ++idx) {
@@ -348,6 +405,9 @@ NumericMatrix SCTPearsonResidualMatrix_optimized(
   const double* intercept_ptr = REAL(intercept);
   const double* slope_ptr = REAL(slope);
   const double* log_umi_ptr = REAL(log_umi);
+  const int* i_ptr = INTEGER(i);
+  const int* p_ptr = INTEGER(p);
+  const double* x_ptr = REAL(x);
   std::vector<double> selected_theta(selected);
   std::vector<double> selected_exp_intercept(selected);
   std::vector<double> selected_slope(selected);
@@ -368,80 +428,27 @@ NumericMatrix SCTPearsonResidualMatrix_optimized(
       common_slope = false;
     }
   }
-  std::vector<double> row_sum(selected, 0.0);
-  std::vector<std::vector<double> > thread_row_sums(threads, std::vector<double>(selected, 0.0));
-  std::vector<std::thread> workers;
-  workers.reserve(threads);
-  const int chunk = (cols + threads - 1) / threads;
 
-  for (int thread = 0; thread < threads; ++thread) {
-    const int start = thread * chunk;
-    const int end = std::min(cols, start + chunk);
-    workers.emplace_back([&, thread, start, end]() {
-      std::vector<double> local_y(selected, 0.0);
-      std::vector<int> local_touched;
-      local_touched.reserve(selected);
-      std::vector<double>& local_row_sum = thread_row_sums[thread];
+  const bool run_parallel = (n_threads > 1 && cols > 1);
 
-      for (int col = start; col < end; ++col) {
-        local_touched.clear();
-        for (int ptr = p[col]; ptr < p[col + 1]; ++ptr) {
-          const int selected_row = row_to_selected[i[ptr]];
-          if (selected_row >= 0) {
-            local_y[selected_row] = x[ptr];
-            local_touched.push_back(selected_row);
-          }
-        }
-
-        double* out_col = out_ptr + static_cast<R_xlen_t>(col) * selected;
-        const double log_umi_col = log_umi_ptr[col];
-        const double common_factor = common_slope ? std::exp(first_slope * log_umi_col) : 0.0;
-        for (int idx = 0; idx < selected; ++idx) {
-          const double mu = common_slope ?
-            selected_exp_intercept[idx] * common_factor :
-            selected_exp_intercept[idx] * std::exp(selected_slope[idx] * log_umi_col);
-          double variance = sct_model_var(mu, selected_theta[idx]);
-          if (variance < selected_min_var[idx]) {
-            variance = selected_min_var[idx];
-          }
-          const double residual = (local_y[idx] - mu) / std::sqrt(variance);
-          const double clipped = sct_clip(residual, clip_min, clip_max);
-          out_col[idx] = clipped;
-          local_row_sum[idx] += clipped;
-        }
-
-        for (std::vector<int>::const_iterator it = local_touched.begin(); it != local_touched.end(); ++it) {
-          local_y[*it] = 0.0;
-        }
-      }
-    });
-  }
-  for (std::thread& worker : workers) {
-    worker.join();
-  }
-
-  for (int thread = 0; thread < threads; ++thread) {
-    for (int idx = 0; idx < selected; ++idx) {
-      row_sum[idx] += thread_row_sums[thread][idx];
-    }
+  // Fill residuals (disjoint columns) and accumulate per-gene sums for centering.
+  SCTResidualMatrixReducer reducer(
+    out_ptr, selected, p_ptr, i_ptr, x_ptr, log_umi_ptr,
+    selected_exp_intercept, selected_slope, selected_theta, selected_min_var,
+    row_to_selected, common_slope, first_slope, clip_min, clip_max
+  );
+  if (run_parallel) {
+    RcppParallel::parallelReduce(0, cols, reducer, 1, n_threads);
+  } else {
+    reducer(0, cols);
   }
 
   if (do_center) {
-    workers.clear();
-    for (int thread = 0; thread < threads; ++thread) {
-      const int start = thread * chunk;
-      const int end = std::min(cols, start + chunk);
-      workers.emplace_back([&, start, end]() {
-        for (int col = start; col < end; ++col) {
-          double* out_col = out_ptr + static_cast<R_xlen_t>(col) * selected;
-          for (int idx = 0; idx < selected; ++idx) {
-            out_col[idx] -= row_sum[idx] / static_cast<double>(cols);
-          }
-        }
-      });
-    }
-    for (std::thread& worker : workers) {
-      worker.join();
+    SCTCenterWorker center(out_ptr, selected, reducer.row_sum, 1.0 / static_cast<double>(cols));
+    if (run_parallel) {
+      RcppParallel::parallelFor(0, cols, center, 1, n_threads);
+    } else {
+      center(0, cols);
     }
   }
 
