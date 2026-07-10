@@ -181,6 +181,14 @@ SCTransform_rewrite.default <- function(
       } else {
         min.variance
       }
+      # Persist the resolved numeric min_var in the model. Downstream residual
+      # recomputation (FetchResiduals / GetResidual, old or _rewrite worker) reads
+      # arguments$min_variance and only recomputes (median(nonzeros)/5)^2 when it is
+      # the string "umi_median". That recompute is order/subset dependent (e.g. the
+      # old worker uses only the first chunk_size cells), so it can diverge from the
+      # value used here for scale.data. Storing the resolved value makes later
+      # residuals deterministic and consistent with scale.data.
+      vst.out$arguments$min_variance <- min.var
       # should be set already by the vst call but just fixing in case its null
       res.clip.range <- vst.out$arguments$res_clip_range %||%
         c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
