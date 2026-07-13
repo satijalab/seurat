@@ -9033,6 +9033,7 @@ SingleExIPlot <- function(
   }
   feature <- colnames(x = data)
   data$ident <- idents
+  data$feature <- factor(x = feature, levels = feature)
   if ((is.character(x = sort) && nchar(x = sort) > 0) || sort) {
     data$ident <- factor(
       x = data$ident,
