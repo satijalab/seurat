@@ -7296,7 +7296,30 @@ ExIPlot <- function(
   if (!(fill.by %in% c("feature", "ident"))) {
     stop("`fill.by` must be either `feature` or `ident`")
   }
-  if (same.y.lims && is.null(x = y.max)) {
+  # for ridge plots, figure out the y-axis limits for all features if requested
+  ridge.axis.lims <- NULL
+  if (same.y.lims && type == 'ridge') {
+    data.lims <- vapply(
+      X = features,
+      FUN = function(feature) {
+        values <- data[[feature]]
+        # add noise following logic in MultiExIPlot
+        if (log) {
+          noise <- rnorm(n = nrow(x = data)) / 200
+          values <- values + 1
+        } else {
+          noise <- rnorm(n = nrow(x = data)) / 100000
+        }
+        values <- if (add.noise) values + noise else values
+        range(values, finite = TRUE)
+      },
+      FUN.VALUE = numeric(length = 2L)
+    )
+    ridge.axis.lims <- c(min(data.lims[1, ]), max(data.lims[2, ]))
+    if (!is.null(x = y.max)) {
+      ridge.axis.lims[[2]] <- y.max
+    }
+  } else if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
   }
   if (isTRUE(x = stack)) {
@@ -7338,6 +7361,15 @@ ExIPlot <- function(
       ))
     }
   )
+  # apply the same y-axis limits to all ridge plots if requested
+  if (type == 'ridge' && !is.null(x = ridge.axis.lims)) {
+    plots <- lapply(
+      X = plots,
+      FUN = function(plot) {
+        plot + (if (log) scale_x_log10(expand = c(0, 0), limits = ridge.axis.lims) else scale_x_continuous(expand = c(0, 0), limits = ridge.axis.lims))
+      }
+    )
+  }
   label.fxn <- switch(
     EXPR = type,
     'violin' = if (stack) {
