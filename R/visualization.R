@@ -8967,6 +8967,7 @@ SingleDimPlot <- function(
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
 #' @param log plot Y axis on log10 scale
+#' @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 #' @param add.noise determine if adding small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
@@ -9000,6 +9001,7 @@ SingleExIPlot <- function(
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  fill.by = 'ident',
   add.noise = TRUE,
   raster = NULL,
   raster.dpi = NULL
