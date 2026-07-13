@@ -551,7 +551,7 @@ RidgePlot <- function(
   layer = 'data',
   stack = FALSE,
   combine = TRUE,
-  fill.by = 'feature'
+  fill.by = NULL
 ) {
   if (is_present(arg = slot)) {
     deprecate_soft(
@@ -561,6 +561,7 @@ RidgePlot <- function(
     )
     layer <- slot %||% layer
   }
+  fill.by <- fill.by %||% if (stack) 'feature' else 'ident'
   return(ExIPlot(
     object = object,
     type = 'ridge',
