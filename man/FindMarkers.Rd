@@ -252,7 +252,10 @@ statistics as columns (p-values, ROC score, etc., depending on the test used (\c
 }
 }
 \description{
-Finds markers (differentially expressed genes) for identity classes
+Finds markers (differentially expressed genes) for each of the identity classes in a dataset. Note that differential expression between groups (e.g. treatment conditions) should account for biological variation across samples, e.g. by using pseudobulk expression profiles.
+See the
+\code{\link[=vignette("de_vignette")]{Differential expression vignette}}
+for more examples.
 }
 \details{
 p-value adjustment is performed using bonferroni correction based on
@@ -302,6 +305,8 @@ fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }
 \seealso{
+\link[=vignette("de_vignette")]{Differential expression vignette}
+
 \code{FoldChange}
 }
 \concept{differential_expression}
