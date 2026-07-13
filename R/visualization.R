@@ -7292,6 +7292,9 @@ ExIPlot <- function(
       type <- "violin"
     }
   }
+  if (!(fill.by %in% c("feature", "ident"))) {
+    stop("`fill.by` must be either `feature` or `ident`")
+  }
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
   }
@@ -7327,6 +7330,7 @@ ExIPlot <- function(
         pt.size = pt.size,
         alpha = alpha,
         log = log,
+        fill.by = fill.by,
         add.noise = add.noise,
         raster = raster,
         raster.dpi = raster.dpi
