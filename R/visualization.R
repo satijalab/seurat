@@ -9074,7 +9074,7 @@ SingleExIPlot <- function(
     type <- 'violin'
   } else {
     vln.geom <- geom_violin
-    fill <- 'ident'
+    fill <- fill.by
   }
   switch(
     EXPR = type,
