@@ -9121,13 +9121,12 @@ SingleExIPlot <- function(
       geom <- list(
         geom_density_ridges(scale = 4),
         theme_ridges(),
-        scale_y_discrete(expand = c(0.01, 0)),
-        scale_x_continuous(expand = c(0, 0))
+        scale_y_discrete(expand = c(0.01, 0))
       )
       jitter <- geom_jitter(width = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
-      log.scale <- scale_x_log10()
-      axis.scale <- function(...) {
-        invisible(x = NULL)
+      log.scale <- scale_x_log10(expand = c(0, 0))
+      axis.scale <- function(x.min, x.max) {
+        scale_x_continuous(expand = c(0, 0), limits = c(x.min, x.max))
       }
     },
     stop("Unknown plot type: ", type)
