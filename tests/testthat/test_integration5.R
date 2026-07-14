@@ -226,6 +226,28 @@ test_that("IntegrateLayers works with RPCAIntegration", {
   expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
 })
 
+if (is_not_cran_submission) {
+  test_that("IntegrateLayers with RPCAIntegration completes under multicore futures", {
+    skip_if_not(future::supportsMulticore())
+    oplan <- future::plan()
+    on.exit(future::plan(oplan), add = TRUE)
+    future::plan(strategy = "multicore", workers = 2)
+
+    integrated <- suppressWarnings(
+      IntegrateLayers(
+        test.data.std,
+        method = RPCAIntegration,
+        orig.reduction = "pca",
+        new.reduction = "integrated",
+        verbose = FALSE,
+        k.weight = 10
+      )
+    )
+
+    expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+  })
+}
+
 test_that("IntegrateLayers works with JointPCAIntegration", {
   integrated <- suppressWarnings(
     IntegrateLayers(
