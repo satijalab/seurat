@@ -977,19 +977,12 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # nearest k elements in the index) and 'nn.dists' (the distances of the nearest
 # k elements)
 #
-#' @importFrom future plan
-#' @importFrom future.apply future_lapply
-#
 AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
   convert <- methods::is(index, "Rcpp_AnnoyAngular")
-  if (!inherits(x = plan(), what = "multicore")) {
-    oplan <- plan(strategy = "sequential")
-    on.exit(plan(oplan), add = TRUE)
-  }
-  res <- future_lapply(X = 1:n, FUN = function(x) {
+  res <- lapply(X = 1:n, FUN = function(x) {
     res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance
     if (convert) {
