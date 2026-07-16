@@ -548,30 +548,11 @@ VST.dgCMatrix <- function(
   verbose = TRUE,
   ...
 ) {
-  nfeatures <- nrow(x = data)
-  hvf.info <- EmptyDF(n = nfeatures)
-  # Calculate feature means
-  hvf.info$mean <- Matrix::rowMeans(x = data)
-  # Calculate feature variance
-  hvf.info$variance <- SparseRowVar2(
-    mat = data,
-    mu = hvf.info$mean,
-    display_progress = verbose
-  )
-  hvf.info$variance.expected <- 0L
-  not.const <- hvf.info$variance > 0
-  fit <- loess(
-    formula = log10(x = variance) ~ log10(x = mean),
-    data = hvf.info[not.const, , drop = TRUE],
-    span = span
-  )
-  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-  hvf.info$variance.standardized <- SparseRowVarStd(
-    mat = data,
-    mu = hvf.info$mean,
-    sd = sqrt(x = hvf.info$variance.expected),
-    vmax = clip %||% sqrt(x = ncol(x = data)),
-    display_progress = verbose
+  hvf.info <- .FindVariableFeaturesVSTInfo(
+    object = data,
+    loess.span = span,
+    clip.max = clip,
+    verbose = verbose
   )
   # Set variable features
   hvf.info$variable <- FALSE
