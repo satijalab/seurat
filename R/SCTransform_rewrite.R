@@ -292,11 +292,48 @@ SCTransform_rewrite.default <- function(
         f = intersect,
         x = list(residual.features, rownames(x = umi), rownames(x = vst.out$model_pars_fit))
       )
-      residual.feature.mat <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE],
-        verbosity = as.numeric(x = verbose)*2
-      )
+      sub <- umi[residual.features, , drop = FALSE]
+      min.variance <- vst.out$arguments$min_variance
+      # Fast path: reproduce sctransform::get_residuals() with the optimized
+      # kernel. get_residuals() is called here with its defaults, so match them:
+      # res_clip_range = +/- sqrt(ncol(sub)), the scalar variance floor from the
+      # model, and do_center = FALSE (reference centering by the reference
+      # residual_mean is applied by the sweep below, not by the kernel).
+      # "model_mean"/"model_median" use a per-gene variance floor -> fall back to
+      # get_residuals() for exact behavior.
+      if (min.variance %in% c("model_mean", "model_median")) {
+        residual.feature.mat <- get_residuals(
+          vst_out = vst.out,
+          umi = sub,
+          verbosity = as.numeric(x = verbose) * 2
+        )
+      } else {
+        model.pars <- vst.out$model_pars_fit[residual.features, , drop = FALSE]
+        min.var <- if (identical(x = min.variance, y = "umi_median")) {
+          (median(x = sub@x) / 5) ^ 2
+        } else {
+          min.variance
+        }
+        res.clip.range <- c(-sqrt(x = ncol(x = sub)), sqrt(x = ncol(x = sub)))
+        residual.feature.mat <- SCTPearsonResidualMatrix_optimized(
+          x = sub@x,
+          i = sub@i,
+          p = sub@p,
+          rows = nrow(x = sub),
+          cols = ncol(x = sub),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = sub), "log_umi"],
+          feature_index = as.integer(x = seq_len(length.out = nrow(x = sub)) - 1L),
+          min_var = min.var,
+          clip_min = min(res.clip.range),
+          clip_max = max(res.clip.range),
+          do_center = FALSE,
+          n_threads = getOption(x = "Seurat.nthreads", default = 1L)
+        )
+        dimnames(x = residual.feature.mat) <- dimnames(x = sub)
+      }
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
       vst.out$y <- sweep(
