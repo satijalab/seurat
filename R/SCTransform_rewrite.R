@@ -1098,6 +1098,12 @@ SCTransform_rewrite.StdAssay <- function(
   model.list <- lapply(
     X = output_list,
     FUN = function(vst.out) {
+      # Persist the SCT clip range in each model (as SCTransform_rewrite.Assay
+      # does). Without this, v5/StdAssay-built models store no sct.clip.range,
+      # so when such a model is later used as a reference the projection clip
+      # (clip.range <- vst.out$arguments$sct.clip.range) is NULL and clipping
+      # silently becomes a no-op.
+      vst.out$arguments$sct.clip.range <- clip.range
       PrepVSTResults(
         vst.res = vst.out,
         cell.names = rownames(x = vst.out$cell_attr)
