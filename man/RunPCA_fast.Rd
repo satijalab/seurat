@@ -22,6 +22,7 @@ RunPCA_fast(object, ...)
   reduction.key = "PC_",
   seed.use = 42,
   approx = TRUE,
+  nthreads = 1,
   ...
 )
 
@@ -37,6 +38,7 @@ RunPCA_fast(object, ...)
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
+  nthreads = 1,
   ...
 )
 
@@ -53,6 +55,7 @@ RunPCA_fast(object, ...)
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
+  nthreads = 1,
   ...
 )
 
@@ -69,6 +72,7 @@ RunPCA_fast(object, ...)
   reduction.name = "pca",
   reduction.key = "PC_",
   seed.use = 42,
+  nthreads = 1,
   ...
 )
 }
@@ -102,6 +106,13 @@ NULL will not set a seed.}
 
 \item{approx}{Use truncated singular value decomposition to approximate PCA}
 
+\item{nthreads}{Number of threads to use for the dense Gram path
+(\code{EigenGramPCA}). Values \code{> 1} parallelize the Gram-matrix
+formation and the cell-embedding multiply via RcppParallel (TBB), with
+results numerically identical to the single-threaded path. Ignored for the
+sparse / on-disk (irlba / BPCells) and exact \code{prcomp} paths. Defaults
+to \code{1} (serial).}
+
 \item{features}{Features to compute PCA on. If features=NULL, PCA will be run
 using the variable features for the Assay. Note that the features must be present
 in the scaled data. Any requested features that are not scaled or have 0 variance
@@ -110,18 +121,33 @@ will be dropped, and the PCA will be run using the remaining features.}
 \item{reduction.name}{dimensional reduction name,  pca by default}
 }
 \description{
-Drop-in faster variant of \code{\link{RunPCA}} with as few changes from the
-original implementation as possible. Two output-preserving optimizations are
-applied on the common code path:
-\enumerate{
-  \item The approximate SVD is run on the feature-by-cell matrix directly and
-    the left/right singular vectors are swapped, instead of materializing a
-    full dense \code{t(object)} copy just to feed \code{irlba}.
-  \item Per-feature variances in the v5 (\code{StdAssay}) data-prep step are
-    computed with the C++ \code{RowVar}/\code{RowVarSparse} helpers instead of
-    a row-wise \code{apply(..., FUN = var)} loop.
+Faster variant of \code{\link{RunPCA}}. For the common case (a dense scaled
+feature-by-cell matrix) the default \code{approx = TRUE} computes PCA via the
+Gram matrix and a Lanczos top-k eigendecomposition (\code{EigenGramPCA}), using
+Eigen's own BLAS-independent kernels. This replaces \code{irlba} on dense input:
+it converges to the same truncated SVD, but tighter (tol 1e-10) and faster.
 }
-Results match \code{\link{RunPCA}} up to the usual \code{irlba} convergence
-tolerance (singular vectors may differ by sign, as is standard for PCA).
+\details{
+Dispatch:
+\itemize{
+  \item \code{approx = TRUE} (default), dense input: Gram + Lanczos top-k
+    eigendecomposition, with \code{prcomp} retained only as a safety net if the
+    eigen path errors.
+  \item \code{approx = FALSE}, dense input: exact PCA via \code{prcomp} (as in
+    base \code{\link{RunPCA}}).
+  \item Sparse (\code{dgCMatrix}) or on-disk (\code{IterableMatrix}) input:
+    \code{approx} is forced to \code{TRUE} and the existing \code{irlba} /
+    BPCells SVD path is used (the dense Gram path does not apply).
+  \item \code{rev.pca = TRUE}: unchanged from \code{\link{RunPCA}}.
+}
+The Gram path costs \eqn{O(\mathrm{nfeatures}^2 \times \mathrm{ncells})} to form
+the Gram matrix; the eigendecomposition computes only the top \code{npcs} pairs
+via a Lanczos solver (\code{Spectra}).
+
+A second, behavior-neutral optimization avoids computing per-feature variances
+twice: \code{PrepDR}/\code{PrepDR5} already compute them to drop zero-variance
+features, so those values are carried through (as a \code{"feature.var"}
+attribute) and reused for the \code{total.variance} statistic instead of a
+second \code{RowVar} pass.
 }
 \concept{dimensional_reduction}

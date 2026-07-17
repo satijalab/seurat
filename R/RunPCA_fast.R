@@ -38,6 +38,12 @@ RunPCA_fast <- function(object, ...) {
 }
 
 #' @inheritParams RunPCA
+#' @param nthreads Number of threads to use for the dense Gram path
+#'   (\code{EigenGramPCA}). Values \code{> 1} parallelize the Gram-matrix
+#'   formation and the cell-embedding multiply via RcppParallel (TBB), with
+#'   results numerically identical to the single-threaded path. Ignored for the
+#'   sparse / on-disk (irlba / BPCells) and exact \code{prcomp} paths. Defaults
+#'   to \code{1} (serial).
 #'
 #' @importFrom irlba irlba
 #' @importFrom stats prcomp
@@ -59,6 +65,7 @@ RunPCA_fast.default <- function(
   reduction.key = "PC_",
   seed.use = 42,
   approx = TRUE,
+  nthreads = 1,
   ...
 ) {
   if (!is.null(x = seed.use)) {
@@ -124,7 +131,8 @@ RunPCA_fast.default <- function(
         expr = EigenGramPCA(
           object = object,
           npcs = npcs,
-          weight_by_var = weight.by.var
+          weight_by_var = weight.by.var,
+          nthreads = nthreads
         ),
         error = function(e) NULL
       )
@@ -208,6 +216,7 @@ RunPCA_fast.Assay <- function(
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
+  nthreads = 1,
   ...
 ) {
   data.use <- PrepDR_fast(
@@ -226,6 +235,7 @@ RunPCA_fast.Assay <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
+    nthreads = nthreads,
     ...
   )
   return(reduction.data)
@@ -249,6 +259,7 @@ RunPCA_fast.StdAssay <- function(
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
+  nthreads = 1,
   ...
 ) {
   data.use <- PrepDR5_fast(
@@ -268,6 +279,7 @@ RunPCA_fast.StdAssay <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
+    nthreads = nthreads,
     ...
   ))
 }
@@ -292,6 +304,7 @@ RunPCA_fast.Seurat <- function(
   reduction.name = "pca",
   reduction.key = "PC_",
   seed.use = 42,
+  nthreads = 1,
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -307,6 +320,7 @@ RunPCA_fast.Seurat <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
+    nthreads = nthreads,
     ...
   )
   object[[reduction.name]] <- reduction.data
@@ -330,6 +344,7 @@ RunPCA_fast.Seurat5 <- function(
   reduction.name = "pca",
   reduction.key = "PC_",
   seed.use = 42,
+  nthreads = 1,
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -345,6 +360,7 @@ RunPCA_fast.Seurat5 <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
+    nthreads = nthreads,
     ...
   )
   object[[reduction.name]] <- reduction.data

@@ -1,4 +1,5 @@
 #include <RcppEigen.h>
+#include <RcppParallel.h>
 // CHANGE: Spectra (header-only, Eigen-native; the library RSpectra wraps) gives a
 // partial *top-k* symmetric eigensolver. The previous full SelfAdjointEigenSolver
 // computed all nfeatures eigenpairs even though only npcs are needed, an O(nfeatures^3)
@@ -12,8 +13,69 @@
 
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RSpectra)]]
+// [[Rcpp::depends(RcppParallel)]]
 
 using namespace Rcpp;
+
+// CHANGE: multithreading for the two dense GEMM-like stages of the Gram path
+// (Gram formation and embeddings), via RcppParallel (TBB) — the same threading
+// vehicle ScaleData_fast uses, and independent of OpenMP / any threaded BLAS.
+// Both workers write DISJOINT output regions (columns of the Gram / rows of the
+// embeddings), so no reduction is needed and each output entry is a single dot
+// product computed in fixed cell order: results are deterministic regardless of
+// thread count. The eigendecomposition (on the small nfeatures x nfeatures Gram)
+// is left serial.
+
+// Stage 1: form the lower triangle of the Gram matrix X X' by output-column
+// blocks. For a contiguous column range [begin, end) the only rows needed (lower
+// triangle: global row >= global col) start at `begin`, so we multiply the bottom
+// rows of X by the block's rows and copy each column's lower part into XtX. Only
+// the lower triangle is filled, exactly as the previous rankUpdate<Lower> did, and
+// that is what Spectra::DenseSymMatProd / SelfAdjointEigenSolver read below.
+struct GramWorker : public RcppParallel::Worker {
+  const Eigen::Map<Eigen::MatrixXd> X;  // nfeatures x ncells (lightweight view)
+  Eigen::MatrixXd& XtX;                 // nfeatures x nfeatures, lower triangle
+  const int nfeatures;
+
+  GramWorker(const Eigen::Map<Eigen::MatrixXd> X, Eigen::MatrixXd& XtX)
+    : X(X), XtX(XtX), nfeatures(static_cast<int>(X.rows())) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    const int b = static_cast<int>(begin);
+    const int e = static_cast<int>(end);
+    const int width = e - b;
+    // block(r, c) = XtX(b + r, b + c) for r in [0, nfeatures - b), c in [0, width)
+    Eigen::MatrixXd block =
+      X.bottomRows(nfeatures - b) * X.middleRows(b, width).transpose();
+    for (int c = 0; c < width; ++c) {
+      const int col = b + c;                 // global column index
+      // lower triangle of this column: global rows col .. nfeatures - 1, which is
+      // block rows c .. (nfeatures - b - 1).
+      XtX.col(col).segment(col, nfeatures - col) =
+        block.col(c).segment(c, nfeatures - b - c);
+    }
+  }
+};
+
+// Stage 3: embeddings = X' U (ncells x npcs), parallelized over cells (rows of the
+// output). Each thread computes a disjoint block of embedding rows.
+struct EmbeddingWorker : public RcppParallel::Worker {
+  const Eigen::Map<Eigen::MatrixXd> X;  // nfeatures x ncells
+  const Eigen::MatrixXd& loadings;      // nfeatures x npcs
+  Eigen::MatrixXd& embeddings;          // ncells x npcs
+
+  EmbeddingWorker(const Eigen::Map<Eigen::MatrixXd> X,
+                  const Eigen::MatrixXd& loadings,
+                  Eigen::MatrixXd& embeddings)
+    : X(X), loadings(loadings), embeddings(embeddings) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    const int b = static_cast<int>(begin);
+    const int width = static_cast<int>(end) - b;
+    embeddings.middleRows(b, width) =
+      X.middleCols(b, width).transpose() * loadings;
+  }
+};
 
 // Approximate PCA via the Gram matrix and a top-k symmetric eigendecomposition,
 // using Eigen's own (BLAS-independent) kernels. `object` is the feature-by-cell
@@ -25,17 +87,31 @@ using namespace Rcpp;
 // tighter (tol 1e-10); for the well-separated leading components of scaled data
 // this is numerically indistinguishable from exact.
 //
+// `nthreads` (default 1) threads the two GEMM-like stages (Gram + embeddings) via
+// RcppParallel; nthreads <= 1 keeps the original serial Eigen expressions.
+//
 // [[Rcpp::export(rng = false)]]
 List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
                   int npcs,
-                  bool weight_by_var) {
+                  bool weight_by_var,
+                  int nthreads = 1) {
   const int nfeatures = object.rows();
   const int ncells = object.cols();
   npcs = std::min(npcs, nfeatures);
 
   // Gram matrix X X' (features x features); only the lower triangle is formed.
   Eigen::MatrixXd XtX = Eigen::MatrixXd::Zero(nfeatures, nfeatures);
-  XtX.selfadjointView<Eigen::Lower>().rankUpdate(object);
+  if (nthreads <= 1) {
+    XtX.selfadjointView<Eigen::Lower>().rankUpdate(object);
+  } else {
+    // Parallel Gram by output-column blocks (see GramWorker). Fine grain lets TBB
+    // balance the unequal per-column work of a triangular fill.
+    GramWorker gram_worker(object, XtX);
+    const std::size_t grain = std::max<std::size_t>(
+      1, static_cast<std::size_t>(nfeatures) /
+           (static_cast<std::size_t>(nthreads) * 8));
+    RcppParallel::parallelFor(0, nfeatures, gram_worker, grain, nthreads);
+  }
 
   // The loadings are the top npcs eigenvectors of XX' (descending) and d the
   // square-roots of the corresponding eigenvalues.
@@ -80,7 +156,16 @@ List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
     }
   }
 
-  Eigen::MatrixXd embeddings = object.transpose() * loadings;  // X' U = V D
+  Eigen::MatrixXd embeddings(ncells, npcs);  // X' U = V D
+  if (nthreads <= 1) {
+    embeddings.noalias() = object.transpose() * loadings;
+  } else {
+    EmbeddingWorker emb_worker(object, loadings, embeddings);
+    const std::size_t grain = std::max<std::size_t>(
+      1, static_cast<std::size_t>(ncells) /
+           (static_cast<std::size_t>(nthreads) * 8));
+    RcppParallel::parallelFor(0, ncells, emb_worker, grain, nthreads);
+  }
   if (!weight_by_var) {
     for (int j = 0; j < npcs; ++j) {
       if (d(j) > 0) {

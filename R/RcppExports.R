@@ -5,8 +5,8 @@ RunModularityClusteringCpp <- function(SNN, modularityFunction, resolution, algo
     .Call('_Seurat_RunModularityClusteringCpp', PACKAGE = 'Seurat', SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename)
 }
 
-EigenGramPCA <- function(object, npcs, weight_by_var) {
-    .Call('_Seurat_EigenGramPCA', PACKAGE = 'Seurat', object, npcs, weight_by_var)
+EigenGramPCA <- function(object, npcs, weight_by_var, nthreads = 1L) {
+    .Call('_Seurat_EigenGramPCA', PACKAGE = 'Seurat', object, npcs, weight_by_var, nthreads)
 }
 
 FastSparseRowScale_optimized <- function(x, i, p, rows, cols, features = as.integer( c()), scale = TRUE, center = TRUE, scale_max = 10, nthreads = 1L, display_progress = FALSE) {
@@ -132,3 +132,4 @@ row_mean_dgcmatrix <- function(x, i, rows, cols) {
 row_var_dgcmatrix <- function(x, i, rows, cols) {
     .Call('_Seurat_row_var_dgcmatrix', PACKAGE = 'Seurat', x, i, rows, cols)
 }
+

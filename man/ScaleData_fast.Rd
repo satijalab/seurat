@@ -23,6 +23,7 @@ ScaleData_fast(object, ...)
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   verbose = TRUE,
   ...
 )
@@ -40,6 +41,7 @@ ScaleData_fast(object, ...)
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   verbose = TRUE,
   ...
 )
@@ -59,6 +61,7 @@ ScaleData_fast(object, ...)
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   save = "scale.data",
   verbose = TRUE,
   ...
@@ -77,6 +80,7 @@ ScaleData_fast(object, ...)
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
+  nthreads = 1,
   verbose = TRUE,
   ...
 )
@@ -118,6 +122,11 @@ additional memory cost.}
 
 \item{min.cells.to.block}{If object contains fewer than this number of cells,
 don't block for scaling calculations.}
+
+\item{nthreads}{Number of threads to use for the single-call fast path
+(centering/scaling without regression, splitting, or multiple workers).
+Values greater than 1 enable RcppParallel threading; the progress bar is
+only shown when \code{nthreads = 1}.}
 
 \item{verbose}{Displays a progress bar for scaling procedure}
 

@@ -30,20 +30,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-
 // EigenGramPCA
-List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object, int npcs, bool weight_by_var);
-RcppExport SEXP _Seurat_EigenGramPCA(SEXP objectSEXP, SEXP npcsSEXP, SEXP weight_by_varSEXP) {
+List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object, int npcs, bool weight_by_var, int nthreads);
+RcppExport SEXP _Seurat_EigenGramPCA(SEXP objectSEXP, SEXP npcsSEXP, SEXP weight_by_varSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type object(objectSEXP);
     Rcpp::traits::input_parameter< int >::type npcs(npcsSEXP);
     Rcpp::traits::input_parameter< bool >::type weight_by_var(weight_by_varSEXP);
-    rcpp_result_gen = Rcpp::wrap(EigenGramPCA(object, npcs, weight_by_var));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(EigenGramPCA(object, npcs, weight_by_var, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
-
 // FastSparseRowScale_optimized
 NumericMatrix FastSparseRowScale_optimized(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, IntegerVector features, bool scale, bool center, double scale_max, int nthreads, bool display_progress);
 RcppExport SEXP _Seurat_FastSparseRowScale_optimized(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP featuresSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
@@ -456,7 +455,7 @@ RcppExport SEXP isnull(SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
-    {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 3},
+    {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 4},
     {"_Seurat_FastSparseRowScale_optimized", (DL_FUNC) &_Seurat_FastSparseRowScale_optimized, 11},
     {"_Seurat_FastDenseRowScale_optimized", (DL_FUNC) &_Seurat_FastDenseRowScale_optimized, 7},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
