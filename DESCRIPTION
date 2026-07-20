@@ -119,6 +119,7 @@ Suggests:
     rsvd,
     R.utils,
     Rfast2,
+    RcppParallel,
     rtracklayer,
     S4Vectors,
     sf (>= 1.0.0),
@@ -147,7 +148,6 @@ Collate:
     'integration5.R'
     'mixscape.R'
     'objects.R'
-    'find_variable_features_helpers.R'
     'preprocessing.R'
     'preprocessing5.R'
     'roxygen.R'
