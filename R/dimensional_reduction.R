@@ -2543,16 +2543,35 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
-  if (is(data.use, "IterableMatrix")) {
-    features.var <- BPCells::matrix_stats(matrix=data.use[features,], row_stats="variance")$row_stats["variance",]
-  } else {
-    features.var <- apply(X = data.use[features,], MARGIN = 1L, FUN = var)
+  # FIX: restrict to the requested features that are present, then compute the
+  # per-feature variance on that SUBSET (as the v3 PrepDR already does). Previously
+  # variance was computed over every feature in the layer and the resulting
+  # length-(all features) logical was indexed into the length-(requested features)
+  # vector `features`; that length mismatch spuriously dropped legitimate variable
+  # features (it depended on the storage positions of unrelated zero-variance
+  # genes). Subsetting first keeps the logical and the feature vector aligned.
+  features.use <- features[features %in% rownames(x = data.use)]
+  if (!isTRUE(x = all.equal(features, features.use))) {
+    missing_features <- setdiff(x = features, y = features.use)
+    if (length(x = missing_features) > 0) {
+      warning(paste("The following features were not available: ",
+                    paste(missing_features, collapse = ", "), ".", sep = ""),
+              immediate. = TRUE)
+    }
   }
-  features.keep <- features[features.var > 0]
+  data.use <- data.use[features.use, , drop = FALSE]
+  if (is(data.use, "IterableMatrix")) {
+    features.var <- BPCells::matrix_stats(matrix=data.use, row_stats="variance")$row_stats["variance",]
+  } else if (inherits(x = data.use, what = 'dgCMatrix')) {
+    features.var <- RowVarSparse(mat = data.use)
+  } else {
+    features.var <- RowVar(x = data.use)
+  }
+  features.keep <- features.use[features.var > 0]
   if (!length(x = features.keep)) {
     stop("None of the requested features have any variance", call. = FALSE)
-  } else if (length(x = features.keep) < length(x = features)) {
-    exclude <- setdiff(x = features, y = features.keep)
+  } else if (length(x = features.keep) < length(x = features.use)) {
+    exclude <- setdiff(x = features.use, y = features.keep)
     if (isTRUE(x = verbose)) {
       warning(
         "The following ",
@@ -2563,20 +2582,8 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
         immediate. = TRUE
       )
     }
+    data.use <- data.use[features.keep, , drop = FALSE]
   }
-  features <- features.keep
-  features <- features[!is.na(x = features)]
-  features.use <- features[features %in% rownames(data.use)]
-  if(!isTRUE(all.equal(features, features.use))) {
-    missing_features <- setdiff(features, features.use)
-    if(length(missing_features) > 0) {
-    warning_message <- paste("The following features were not available: ",
-                             paste(missing_features, collapse = ", "),
-                             ".", sep = "")
-    warning(warning_message, immediate. = TRUE)
-    }
-  }
-  data.use <- data.use[features.use, ]
   return(data.use)
 }
 

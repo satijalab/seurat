@@ -25,8 +25,12 @@ Standardize <- function(mat, display_progress = TRUE) {
     .Call('_Seurat_Standardize', PACKAGE = 'Seurat', mat, display_progress)
 }
 
-FastSparseRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
-    .Call('_Seurat_FastSparseRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
+FastSparseRowScale <- function(x, i, p, rows, cols, features = as.integer( c()), scale = TRUE, center = TRUE, scale_max = 10, nthreads = 1L, display_progress = FALSE) {
+    .Call('_Seurat_FastSparseRowScale', PACKAGE = 'Seurat', x, i, p, rows, cols, features, scale, center, scale_max, nthreads, display_progress)
+}
+
+FastDenseRowScale <- function(mat, features = as.integer( c()), scale = TRUE, center = TRUE, scale_max = 10, nthreads = 1L, display_progress = FALSE) {
+    .Call('_Seurat_FastDenseRowScale', PACKAGE = 'Seurat', mat, features, scale, center, scale_max, nthreads, display_progress)
 }
 
 FastSparseRowScaleWithKnownStats <- function(mat, mu, sigma, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
@@ -91,6 +95,10 @@ IntegrateDataC <- function(integration_matrix, weights, expression_cells2) {
 
 ScoreHelper <- function(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress) {
     .Call('_Seurat_ScoreHelper', PACKAGE = 'Seurat', snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress)
+}
+
+EigenGramPCA <- function(object, npcs, weight_by_var, nthreads = 1L) {
+    .Call('_Seurat_EigenGramPCA', PACKAGE = 'Seurat', object, npcs, weight_by_var, nthreads)
 }
 
 SCTResidualStatsAndCorrected <- function(x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads = 1L, compute_corrected = TRUE) {
