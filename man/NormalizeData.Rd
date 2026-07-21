@@ -15,7 +15,6 @@ NormalizeData(object, ...)
   scale.factor = 10000,
   margin = 1,
   block.size = NULL,
-  approx = FALSE,
   verbose = TRUE,
   ...
 )
@@ -25,7 +24,6 @@ NormalizeData(object, ...)
   normalization.method = "LogNormalize",
   scale.factor = 10000,
   margin = 1,
-  approx = FALSE,
   verbose = TRUE,
   ...
 )
@@ -36,7 +34,6 @@ NormalizeData(object, ...)
   normalization.method = "LogNormalize",
   scale.factor = 10000,
   margin = 1,
-  approx = FALSE,
   verbose = TRUE,
   ...
 )
@@ -63,8 +60,6 @@ NormalizeData(object, ...)
 \item{margin}{If performing CLR normalization, normalize across features (1) or cells (2)}
 
 \item{block.size}{How many cells should be run in each chunk, will try to split evenly across threads}
-
-\item{approx}{Use approximate log-normalization for sparse matrices}
 
 \item{verbose}{Whether to display a progress bar, if running in a single thread}
 
