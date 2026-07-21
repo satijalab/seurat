@@ -74,6 +74,7 @@ Imports:
     Rcpp (>= 1.0.7),
     RcppAnnoy (>= 0.0.18),
     RcppHNSW,
+    RcppParallel,
     reticulate,
     rlang,
     ROCR,
@@ -119,7 +120,6 @@ Suggests:
     rsvd,
     R.utils,
     Rfast2,
-    RcppParallel,
     rtracklayer,
     S4Vectors,
     sf (>= 1.0.0),
@@ -129,6 +129,7 @@ Suggests:
     testthat,
     VGAM
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress, RcppParallel
+SystemRequirements: GNU make
 BuildManual: true
 Encoding: UTF-8
 LazyData: true
