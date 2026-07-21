@@ -1,6 +1,7 @@
 #include <RcppEigen.h>
 #include <RcppParallel.h>
 #include <progress.hpp>
+#include <algorithm>
 #include <cmath>
 #include <unordered_map>
 #include <fstream>
@@ -8,11 +9,11 @@
 #include <Rinternals.h>
 
 using namespace Rcpp;
+using namespace RcppParallel;
+
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RcppProgress)]]
 // [[Rcpp::depends(RcppParallel)]]
-
-
 
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample = false, bool display_progress=true){
@@ -603,60 +604,341 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
 }
 
 
-/* use this if you know the row means */
-// [[Rcpp::export(rng = false)]]
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
-                            NumericVector mu,
-                            bool display_progress){
-  mat = mat.transpose();
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
-  }
-  Progress p(mat.outerSize(), display_progress);
-  NumericVector allVars = no_init(mat.cols());
-  for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
-    double colSum = 0;
-    int nZero = mat.rows();
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
-      nZero -= 1;
-      colSum += pow(it.value() - mu[k], 2);
+struct SparseRowMeanVarWorker : public Worker {
+  const int* p;
+  const int* i;
+  const double* x;
+  const int rows;
+  std::vector<double> sum;
+  std::vector<double> sumsq;
+
+  SparseRowMeanVarWorker(
+    const int* p,
+    const int* i,
+    const double* x,
+    const int rows
+  ) : p(p), i(i), x(x), rows(rows), sum(rows, 0.0), sumsq(rows, 0.0) {}
+
+  SparseRowMeanVarWorker(const SparseRowMeanVarWorker& other, Split)
+    : p(other.p), i(other.i), x(other.x), rows(other.rows),
+      sum(rows, 0.0), sumsq(rows, 0.0) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    for (std::size_t col = begin; col < end; ++col) {
+      for (int idx = p[col]; idx < p[col + 1]; ++idx) {
+        const int row = i[idx];
+        const double value = x[idx];
+        sum[row] += value;
+        sumsq[row] += value * value;
+      }
     }
-    colSum += pow(mu[k], 2) * nZero;
-    allVars[k] = colSum / (mat.rows() - 1);
   }
-  return(allVars);
+
+  void join(const SparseRowMeanVarWorker& rhs) {
+    for (int row = 0; row < rows; ++row) {
+      sum[row] += rhs.sum[row];
+      sumsq[row] += rhs.sumsq[row];
+    }
+  }
+};
+
+struct SparseRowVarStdWorker : public Worker {
+  const int* p;
+  const int* i;
+  const double* x;
+  const double* mu;
+  const double* inv_sd;
+  const double* clip_threshold;
+  const double vmax;
+  const int rows;
+  std::vector<double> sumsq;
+  std::vector<int> nnz;
+
+  SparseRowVarStdWorker(
+    const int* p,
+    const int* i,
+    const double* x,
+    const double* mu,
+    const double* inv_sd,
+    const double* clip_threshold,
+    const double vmax,
+    const int rows
+  ) : p(p), i(i), x(x), mu(mu), inv_sd(inv_sd), clip_threshold(clip_threshold),
+      vmax(vmax), rows(rows), sumsq(rows, 0.0), nnz(rows, 0) {}
+
+  SparseRowVarStdWorker(const SparseRowVarStdWorker& other, Split)
+    : p(other.p), i(other.i), x(other.x), mu(other.mu), inv_sd(other.inv_sd),
+      clip_threshold(other.clip_threshold), vmax(other.vmax), rows(other.rows),
+      sumsq(rows, 0.0), nnz(rows, 0) {}
+
+  void operator()(std::size_t begin, std::size_t end) {
+    for (std::size_t col = begin; col < end; ++col) {
+      for (int idx = p[col]; idx < p[col + 1]; ++idx) {
+        const int row = i[idx];
+        if (inv_sd[row] == 0.0) {
+          continue;
+        }
+        double value_sq;
+        if (x[idx] > clip_threshold[row]) {
+          value_sq = vmax * vmax;
+        } else {
+          const double value = (x[idx] - mu[row]) * inv_sd[row];
+          value_sq = value * value;
+        }
+        sumsq[row] += value_sq;
+        nnz[row] += 1;
+      }
+    }
+  }
+
+  void join(const SparseRowVarStdWorker& rhs) {
+    for (int row = 0; row < rows; ++row) {
+      sumsq[row] += rhs.sumsq[row];
+      nnz[row] += rhs.nnz[row];
+    }
+  }
+};
+
+inline void SparseRowMeanVarParallel(
+  NumericVector means,
+  NumericVector vars,
+  const int* p_ptr,
+  const int* i_ptr,
+  const double* x_ptr,
+  const int rows,
+  const int cols,
+  const int nthreads,
+  const bool display_progress
+) {
+  const double cols_d = static_cast<double>(cols);
+  const double denom = static_cast<double>(cols - 1);
+  const int block_size = std::max(512, cols / 100);
+
+  if (display_progress) {
+    Progress prog(cols + rows, true);
+    for (int begin = 0; begin < cols; begin += block_size) {
+      const int end = std::min(begin + block_size, cols);
+      SparseRowMeanVarWorker worker(p_ptr, i_ptr, x_ptr, rows);
+      parallelReduce(begin, end, worker, 1, nthreads);
+      for (int row = 0; row < rows; ++row) {
+        REAL(means)[row] += worker.sum[row];
+        REAL(vars)[row] += worker.sumsq[row];
+      }
+      prog.increment(end - begin);
+    }
+    for (int row = 0; row < rows; ++row) {
+      prog.increment();
+      const double sum = REAL(means)[row];
+      REAL(means)[row] = sum / cols_d;
+      REAL(vars)[row] = (REAL(vars)[row] - (sum * sum / cols_d)) / denom;
+    }
+  } else {
+    SparseRowMeanVarWorker worker(p_ptr, i_ptr, x_ptr, rows);
+    parallelReduce(0, cols, worker, 1, nthreads);
+    for (int row = 0; row < rows; ++row) {
+      const double sum = worker.sum[row];
+      REAL(means)[row] = sum / cols_d;
+      REAL(vars)[row] = (worker.sumsq[row] - (sum * sum / cols_d)) / denom;
+    }
+  }
+}
+
+inline void SparseRowVarStdParallel(
+  NumericVector vars,
+  IntegerVector nnz,
+  const int* p_ptr,
+  const int* i_ptr,
+  const double* x_ptr,
+  const double* mu_ptr,
+  const double* inv_sd_ptr,
+  const double* zero_value_sq_ptr,
+  const double* clip_threshold_ptr,
+  const int rows,
+  const int cols,
+  const double vmax,
+  const int nthreads,
+  const bool display_progress
+) {
+  const double denom = static_cast<double>(cols - 1);
+  const int block_size = std::max(512, cols / 100);
+
+  if (display_progress) {
+    Progress prog(rows + cols + rows, true);
+    for (int row = 0; row < rows; ++row) {
+      prog.increment();
+    }
+    for (int begin = 0; begin < cols; begin += block_size) {
+      const int end = std::min(begin + block_size, cols);
+      SparseRowVarStdWorker worker(
+        p_ptr, i_ptr, x_ptr, mu_ptr, inv_sd_ptr, clip_threshold_ptr, vmax, rows
+      );
+      parallelReduce(begin, end, worker, 1, nthreads);
+      for (int row = 0; row < rows; ++row) {
+        REAL(vars)[row] += worker.sumsq[row];
+        INTEGER(nnz)[row] += worker.nnz[row];
+      }
+      prog.increment(end - begin);
+    }
+    for (int row = 0; row < rows; ++row) {
+      prog.increment();
+      if (inv_sd_ptr[row] == 0.0) {
+        continue;
+      }
+      const int nzero = cols - INTEGER(nnz)[row];
+      REAL(vars)[row] = (REAL(vars)[row] + (zero_value_sq_ptr[row] * nzero)) / denom;
+    }
+  } else {
+    SparseRowVarStdWorker worker(
+      p_ptr, i_ptr, x_ptr, mu_ptr, inv_sd_ptr, clip_threshold_ptr, vmax, rows
+    );
+    parallelReduce(0, cols, worker, 1, nthreads);
+    for (int row = 0; row < rows; ++row) {
+      if (inv_sd_ptr[row] == 0.0) {
+        continue;
+      }
+      const int nzero = cols - worker.nnz[row];
+      REAL(vars)[row] = (worker.sumsq[row] + (zero_value_sq_ptr[row] * nzero)) / denom;
+    }
+  }
+}
+
+// [[Rcpp::export(rng = false)]]
+List SparseRowMeanVar(
+  NumericVector x,
+  IntegerVector i,
+  IntegerVector p,
+  int rows,
+  int cols,
+  int nthreads,
+  bool display_progress
+) {
+  NumericVector means(rows);
+  NumericVector vars(rows);
+  const double* x_ptr = REAL(x);
+  const int* i_ptr = INTEGER(i);
+  const int* p_ptr = INTEGER(p);
+
+  if (nthreads > 1) {
+    SparseRowMeanVarParallel(
+      means, vars, p_ptr, i_ptr, x_ptr, rows, cols, nthreads, display_progress
+    );
+  } else {
+    double* means_ptr = REAL(means);
+    double* vars_ptr = REAL(vars);
+    const R_xlen_t x_size = x.size();
+    const double cols_d = static_cast<double>(cols);
+    const double denom = static_cast<double>(cols - 1);
+    Progress prog(x_size + rows, display_progress);
+
+    for (R_xlen_t idx = 0; idx < x_size; ++idx) {
+      prog.increment();
+      const int row = i_ptr[idx];
+      const double value = x_ptr[idx];
+      means_ptr[row] += value;
+      vars_ptr[row] += value * value;
+    }
+    for (int row = 0; row < rows; ++row) {
+      prog.increment();
+      const double sum = means_ptr[row];
+      means_ptr[row] = sum / cols_d;
+      vars_ptr[row] = (vars_ptr[row] - (sum * sum / cols_d)) / denom;
+    }
+  }
+  return List::create(
+    _["mean"] = means,
+    _["variance"] = vars
+  );
 }
 
 /* standardize matrix rows using given mean and standard deviation,
    clip values larger than vmax to vmax,
    then return variance for each row */
 // [[Rcpp::export(rng = false)]]
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
-                              NumericVector mu,
-                              NumericVector sd,
-                              double vmax,
-                              bool display_progress){
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
-  }
-  mat = mat.transpose();
-  NumericVector allVars(mat.cols());
-  Progress p(mat.outerSize(), display_progress);
-  for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
-    if (sd[k] == 0) continue;
-    double colSum = 0;
-    int nZero = mat.rows();
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
-    {
-      nZero -= 1;
-      colSum += pow(std::min(vmax, (it.value() - mu[k]) / sd[k]), 2);
+NumericVector SparseRowVarStd(
+  NumericVector x,
+  IntegerVector i,
+  IntegerVector p,
+  NumericVector mu,
+  NumericVector sd,
+  int rows,
+  int cols,
+  double vmax,
+  int nthreads,
+  bool display_progress
+) {
+  NumericVector vars(rows);
+  std::vector<double> inv_sd(rows, 0.0);
+  std::vector<double> zero_value_sq(rows, 0.0);
+  std::vector<double> clip_threshold(rows, 0.0);
+  const double* x_ptr = REAL(x);
+  const int* i_ptr = INTEGER(i);
+  const int* p_ptr = INTEGER(p);
+  const double* mu_ptr = REAL(mu);
+  const double* sd_ptr = REAL(sd);
+  double* vars_ptr = REAL(vars);
+
+  for (int row = 0; row < rows; ++row) {
+    if (sd_ptr[row] == 0.0 || R_IsNA(sd_ptr[row])) {
+      continue;
     }
-    colSum += pow((0 - mu[k]) / sd[k], 2) * nZero;
-    allVars[k] = colSum / (mat.rows() - 1);
+    inv_sd[row] = 1.0 / sd_ptr[row];
+    const double zero_value = -mu_ptr[row] * inv_sd[row];
+    zero_value_sq[row] = zero_value * zero_value;
+    clip_threshold[row] = mu_ptr[row] + (vmax * sd_ptr[row]);
   }
-  return(allVars);
+
+  if (nthreads > 1) {
+    IntegerVector nnz(rows);
+    SparseRowVarStdParallel(
+      vars,
+      nnz,
+      p_ptr,
+      i_ptr,
+      x_ptr,
+      mu_ptr,
+      inv_sd.data(),
+      zero_value_sq.data(),
+      clip_threshold.data(),
+      rows,
+      cols,
+      vmax,
+      nthreads,
+      display_progress
+    );
+  } else {
+    const R_xlen_t x_size = x.size();
+    const double denom = static_cast<double>(cols - 1);
+    Progress prog(rows + x_size + rows, display_progress);
+
+    for (int row = 0; row < rows; ++row) {
+      prog.increment();
+      vars_ptr[row] = zero_value_sq[row] * static_cast<double>(cols);
+    }
+
+    for (R_xlen_t idx = 0; idx < x_size; ++idx) {
+      prog.increment();
+      const int row = i_ptr[idx];
+      if (inv_sd[row] == 0.0) {
+        continue;
+      }
+      double value_sq;
+      if (x_ptr[idx] > clip_threshold[row]) {
+        value_sq = vmax * vmax;
+      } else {
+        const double value = (x_ptr[idx] - mu_ptr[row]) * inv_sd[row];
+        value_sq = value * value;
+      }
+      vars_ptr[row] += value_sq - zero_value_sq[row];
+    }
+    for (int row = 0; row < rows; ++row) {
+      prog.increment();
+      if (inv_sd[row] == 0.0) {
+        continue;
+      }
+      vars_ptr[row] /= denom;
+    }
+  }
+  return vars;
 }
 
 /* Calculate the variance to mean ratio (VMR) in non-logspace (return answer in

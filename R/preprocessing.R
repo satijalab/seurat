@@ -4531,31 +4531,11 @@ FindVariableFeatures.V3Matrix <- function(
     object <- as.sparse(x = object)
   }
   if (selection.method == "vst") {
-    if (clip.max == 'auto') {
-      clip.max <- sqrt(x = ncol(x = object))
-    }
-    hvf.info <- data.frame(mean = rowMeans(x = object))
-    hvf.info$variance <- SparseRowVar2(
-      mat = object,
-      mu = hvf.info$mean,
-      display_progress = verbose
-    )
-    hvf.info$variance.expected <- 0
-    hvf.info$variance.standardized <- 0
-    not.const <- hvf.info$variance > 0
-    fit <- loess(
-      formula = log10(x = variance) ~ log10(x = mean),
-      data = hvf.info[not.const, ],
-      span = loess.span
-    )
-    hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-    # use c function to get variance after feature standardization
-    hvf.info$variance.standardized <- SparseRowVarStd(
-      mat = object,
-      mu = hvf.info$mean,
-      sd = sqrt(hvf.info$variance.expected),
-      vmax = clip.max,
-      display_progress = verbose
+    hvf.info <- .FindVariableFeaturesVSTInfo(
+      object = object,
+      loess.span = loess.span,
+      clip.max = clip.max,
+      verbose = verbose
     )
     colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   } else {

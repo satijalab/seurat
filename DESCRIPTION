@@ -120,6 +120,7 @@ Suggests:
     rsvd,
     R.utils,
     Rfast2,
+    RcppParallel,
     rtracklayer,
     S4Vectors,
     sf (>= 1.0.0),

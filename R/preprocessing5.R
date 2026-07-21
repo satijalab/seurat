@@ -530,6 +530,50 @@ VST.IterableMatrix <- function(
   return(hvf.info)
 }
 
+.FindVariableFeaturesVSTInfo <- function(
+  object,
+  loess.span = 0.3,
+  clip.max = "auto",
+  verbose = TRUE
+) {
+  if (clip.max == "auto" || is.null(x = clip.max)) {
+    clip.max <- sqrt(x = ncol(x = object))
+  }
+  hvf.info <- as.data.frame(
+    x = SparseRowMeanVar(
+      x = object@x,
+      i = object@i,
+      p = object@p,
+      rows = nrow(x = object),
+      cols = ncol(x = object),
+      nthreads = .GetSeuratNThreads(),
+      display_progress = verbose
+    )
+  )
+  rownames(x = hvf.info) <- rownames(x = object)
+  hvf.info$variance.expected <- 0
+  not.const <- hvf.info$variance > 0
+  fit <- loess(
+    formula = log10(x = variance) ~ log10(x = mean),
+    data = hvf.info[not.const, ],
+    span = loess.span
+  )
+  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+  hvf.info$variance.standardized <- SparseRowVarStd(
+    x = object@x,
+    i = object@i,
+    p = object@p,
+    mu = hvf.info$mean,
+    sd = sqrt(x = hvf.info$variance.expected),
+    rows = nrow(x = object),
+    cols = ncol(x = object),
+    vmax = clip.max,
+    nthreads = .GetSeuratNThreads(),
+    display_progress = verbose
+  )
+  return(hvf.info)
+}
+
 #' @importFrom Matrix rowMeans
 #' @importFrom SeuratObject EmptyDF
 #'
@@ -546,30 +590,11 @@ VST.dgCMatrix <- function(
   verbose = TRUE,
   ...
 ) {
-  nfeatures <- nrow(x = data)
-  hvf.info <- EmptyDF(n = nfeatures)
-  # Calculate feature means
-  hvf.info$mean <- Matrix::rowMeans(x = data)
-  # Calculate feature variance
-  hvf.info$variance <- SparseRowVar2(
-    mat = data,
-    mu = hvf.info$mean,
-    display_progress = verbose
-  )
-  hvf.info$variance.expected <- 0L
-  not.const <- hvf.info$variance > 0
-  fit <- loess(
-    formula = log10(x = variance) ~ log10(x = mean),
-    data = hvf.info[not.const, , drop = TRUE],
-    span = span
-  )
-  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-  hvf.info$variance.standardized <- SparseRowVarStd(
-    mat = data,
-    mu = hvf.info$mean,
-    sd = sqrt(x = hvf.info$variance.expected),
-    vmax = clip %||% sqrt(x = ncol(x = data)),
-    display_progress = verbose
+  hvf.info <- .FindVariableFeaturesVSTInfo(
+    object = data,
+    loess.span = span,
+    clip.max = clip,
+    verbose = verbose
   )
   # Set variable features
   hvf.info$variable <- FALSE
