@@ -4847,14 +4847,12 @@ LogNormalize.data.frame <- function(
   data,
   scale.factor = 1e4,
   margin = 2L,
-  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
   return(LogNormalize(
     data = as.matrix(x = data),
     scale.factor = scale.factor,
-    approx = approx,
     verbose = verbose,
     ...
   ))
@@ -4868,7 +4866,6 @@ LogNormalize.V3Matrix <- function(
   data,
   scale.factor = 1e4,
   margin = 2L,
-  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -4882,7 +4879,7 @@ LogNormalize.V3Matrix <- function(
   nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
   # LogNorm takes only x and p slots of the dgCMatrix
   # then replaces the x slot with normalized values - all other slots can be reused
-  data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, approx = approx, display_progress = verbose)
+  data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, display_progress = verbose)
   return(data)
 }
 
@@ -4901,7 +4898,6 @@ LogNormalize.V3Matrix <- function(
 #' @param margin If performing CLR normalization, normalize across features (1) or cells (2)
 # @param across If performing CLR normalization, normalize across either "features" or "cells".
 #' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
-#' @param approx Use approximate log-normalization for sparse matrices
 #' @param verbose Whether to display a progress bar, if running in a single thread
 #'
 #' @rdname NormalizeData
@@ -4914,7 +4910,6 @@ NormalizeData.V3Matrix <- function(
   scale.factor = 1e4,
   margin = 1,
   block.size = NULL,
-  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -4931,7 +4926,6 @@ NormalizeData.V3Matrix <- function(
                             'LogNormalize' = LogNormalize(
                               data = object,
                               scale.factor = scale.factor,
-                              approx = approx,
                               verbose = verbose
                             ),
                             'CLR' = CustomNormalize(
@@ -4961,7 +4955,6 @@ NormalizeData.Assay <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   margin = 1,
-  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -4972,7 +4965,6 @@ NormalizeData.Assay <- function(
       object = GetAssayData(object = object, layer = 'counts'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
-      approx = approx,
       verbose = verbose,
       margin = margin,
       ...
@@ -5001,7 +4993,6 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   margin = 1,
-  approx = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -5010,7 +5001,6 @@ NormalizeData.Seurat <- function(
     object = slot(object, "assays")[[assay]],
     normalization.method = normalization.method,
     scale.factor = scale.factor,
-    approx = approx,
     verbose = verbose,
     margin = margin,
     ...

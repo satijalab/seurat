@@ -73,17 +73,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // LogNorm
-NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool approx, bool display_progress);
-RcppExport SEXP _Seurat_LogNorm(SEXP xSEXP, SEXP pSEXP, SEXP scale_factorSEXP, SEXP nthreadsSEXP, SEXP approxSEXP, SEXP display_progressSEXP) {
+NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_LogNorm(SEXP xSEXP, SEXP pSEXP, SEXP scale_factorSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
     Rcpp::traits::input_parameter< int >::type scale_factor(scale_factorSEXP);
     Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< bool >::type approx(approxSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(LogNorm(x, p, scale_factor, nthreads, approx, display_progress));
+    rcpp_result_gen = Rcpp::wrap(LogNorm(x, p, scale_factor, nthreads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -412,7 +411,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
-    {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 6},
+    {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 5},
     {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
     {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 5},
     {"_Seurat_FastSparseRowScaleWithKnownStats", (DL_FUNC) &_Seurat_FastSparseRowScaleWithKnownStats, 7},
