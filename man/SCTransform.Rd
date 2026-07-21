@@ -28,6 +28,7 @@ SCTransform(object, ...)
   vst.flavor = "v2",
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
+  defer.residual.matrix = FALSE,
   seed.use = 1448145,
   verbose = TRUE,
   ...

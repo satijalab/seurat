@@ -312,6 +312,54 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// SCTResidualStatsAndCorrected
+List SCTResidualStatsAndCorrected(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, double target_log_umi, double min_var, double residual_clip_min, double residual_clip_max, int n_threads, bool compute_corrected);
+RcppExport SEXP _Seurat_SCTResidualStatsAndCorrected(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP target_log_umiSEXP, SEXP min_varSEXP, SEXP residual_clip_minSEXP, SEXP residual_clip_maxSEXP, SEXP n_threadsSEXP, SEXP compute_correctedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type intercept(interceptSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type slope(slopeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type log_umi(log_umiSEXP);
+    Rcpp::traits::input_parameter< double >::type target_log_umi(target_log_umiSEXP);
+    Rcpp::traits::input_parameter< double >::type min_var(min_varSEXP);
+    Rcpp::traits::input_parameter< double >::type residual_clip_min(residual_clip_minSEXP);
+    Rcpp::traits::input_parameter< double >::type residual_clip_max(residual_clip_maxSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type compute_corrected(compute_correctedSEXP);
+    rcpp_result_gen = Rcpp::wrap(SCTResidualStatsAndCorrected(x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads, compute_corrected));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SCTPearsonResidualMatrix
+NumericMatrix SCTPearsonResidualMatrix(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, IntegerVector feature_index, NumericVector min_var, double clip_min, double clip_max, bool do_center, int n_threads);
+RcppExport SEXP _Seurat_SCTPearsonResidualMatrix(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP feature_indexSEXP, SEXP min_varSEXP, SEXP clip_minSEXP, SEXP clip_maxSEXP, SEXP do_centerSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type intercept(interceptSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type slope(slopeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type log_umi(log_umiSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type feature_index(feature_indexSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type min_var(min_varSEXP);
+    Rcpp::traits::input_parameter< double >::type clip_min(clip_minSEXP);
+    Rcpp::traits::input_parameter< double >::type clip_max(clip_maxSEXP);
+    Rcpp::traits::input_parameter< bool >::type do_center(do_centerSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(SCTPearsonResidualMatrix(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ComputeSNN
 Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
 RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
@@ -430,6 +478,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 9},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
     {"_Seurat_ScoreHelper", (DL_FUNC) &_Seurat_ScoreHelper, 7},
+    {"_Seurat_SCTResidualStatsAndCorrected", (DL_FUNC) &_Seurat_SCTResidualStatsAndCorrected, 15},
+    {"_Seurat_SCTPearsonResidualMatrix", (DL_FUNC) &_Seurat_SCTPearsonResidualMatrix, 15},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},

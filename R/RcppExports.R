@@ -93,6 +93,14 @@ ScoreHelper <- function(snn, query_pca, query_dists, corrected_nns, k_snn, subtr
     .Call('_Seurat_ScoreHelper', PACKAGE = 'Seurat', snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress)
 }
 
+SCTResidualStatsAndCorrected <- function(x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads = 1L, compute_corrected = TRUE) {
+    .Call('_Seurat_SCTResidualStatsAndCorrected', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads, compute_corrected)
+}
+
+SCTPearsonResidualMatrix <- function(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center = TRUE, n_threads = 1L) {
+    .Call('_Seurat_SCTPearsonResidualMatrix', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads)
+}
+
 ComputeSNN <- function(nn_ranked, prune) {
     .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_ranked, prune)
 }

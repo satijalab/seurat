@@ -3877,6 +3877,7 @@ SCTransform.default <- function(
   vst.flavor = 'v2',
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
+  defer.residual.matrix = FALSE,
   seed.use = 1448145,
   verbose = TRUE,
   ...
@@ -3968,6 +3969,12 @@ SCTransform.default <- function(
   # set vst model
   vst.out <- switch(
     EXPR = sct.method,
+    'default' = {
+      vst.args[['return_corrected_umi']] <- FALSE
+      vst.args[['residual_type']] <- 'none'
+      vst.out <- do.call(what = 'vst', args = vst.args)
+      vst.out
+    },
     'reference.model' = {
       if (verbose) {
         message("Using reference SCTModel to calculate pearson residuals")
@@ -3999,54 +4006,179 @@ SCTransform.default <- function(
       vst.out <- do.call(what = 'vst', args = vst.args)
       vst.out$gene_attr$residual_variance <- NA_real_
       vst.out
-    },
-    'conserve.memory' = {
-      return.only.var.genes <- TRUE
-      vst.args[['residual_type']] <- 'none'
-      vst.out <- do.call(what = 'vst', args = vst.args)
-      feature.variance <- get_residual_var(
-        vst_out = vst.out,
-        umi = umi,
-        residual_type = residual.type,
-        res_clip_range = res.clip.range
-      )
-      vst.out$gene_attr$residual_variance <- NA_real_
-      vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
-      vst.out
-    },
-    'default' = {
-      vst.out <- do.call(what = 'vst', args = vst.args)
-      vst.out
     })
-
-  feature.variance <- vst.out$gene_attr[,"residual_variance"]
-  names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
-  if (verbose) {
-    message('Determine variable features')
-  }
-  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(x = variable.features.n)) {
-    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(x = feature.variance))]
-  } else {
-    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
-  }
 
   # get residuals
   vst.out <- switch(
     EXPR = sct.method,
+     # Default SCTransform behavior - compute Pearson residuals for all genes
+    # now performed using optimized C++ workflow
+    'default' = {
+      # setup everything for the optimized C++ workflow
+      model.pars <- vst.out$model_pars_fit
+      genes <- rownames(x = model.pars)
+      if (!identical(x = genes, y = rownames(x = umi))) {
+        umi <- umi[genes, , drop = FALSE]
+      }
+      min.variance <- vst.out$arguments$min_variance
+      min.var <- if (identical(x = min.variance, y = "umi_median")) {
+        (median(umi@x) / 5) ^ 2
+      } else {
+        min.variance
+      }
+      # Persist the resolved numeric min_var in the model. Downstream residual
+      # recomputation (FetchResiduals / GetResidual, old or _rewrite worker) reads
+      # arguments$min_variance and only recomputes (median(nonzeros)/5)^2 when it is
+      # the string "umi_median". That recompute is order/subset dependent (e.g. the
+      # old worker uses only the first chunk_size cells), so it can diverge from the
+      # value used here for scale.data. Storing the resolved value makes later
+      # residuals deterministic and consistent with scale.data.
+      vst.out$arguments$min_variance <- min.var
+      # should be set already by the vst call but just fixing in case its null
+      res.clip.range <- vst.out$arguments$res_clip_range %||%
+        c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+
+      # Compute residual statistics and corrected UMI counts
+      # Note: does not compute residual matrix yet (saves a lot of memory)
+      # Just computes the residual variance for each gene and (if asked for) corrected UMI counts
+      # One of key optims was to compute corrected counts if needed at this stage, not later
+      stats <- SCTResidualStatsAndCorrected(
+        x = umi@x,
+        i = umi@i,
+        p = umi@p,
+        rows = nrow(x = umi),
+        cols = ncol(x = umi),
+        theta = model.pars[, "theta"],
+        intercept = model.pars[, "(Intercept)"],
+        slope = model.pars[, "log_umi"],
+        log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
+        target_log_umi = median(vst.out$cell_attr[, "log_umi"]),
+        min_var = min.var,
+        residual_clip_min = min(res.clip.range),
+        residual_clip_max = max(res.clip.range),
+        n_threads = getOption(x = "Seurat.nthreads", default = 1L),
+        compute_corrected = do.correct.umi
+      )
+      vst.out$gene_attr[genes, "residual_mean"] <- stats$residual_mean
+      vst.out$gene_attr[genes, "residual_variance"] <- stats$residual_variance
+    
+      # Determine variable features
+      feature.variance <- vst.out$gene_attr[, "residual_variance"]
+      names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+      feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+      feature.idx <- if (is.null(x = variable.features.n)) {
+        feature.variance >= variable.features.rv.th
+      } else {
+        seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+      }
+      top.features <- names(x = feature.variance)[feature.idx]
+
+      # Store corrected UMI counts if requested, if not just restore original counts matrix
+      if (do.correct.umi) {
+        vst.out$umi_corrected <- stats$corrected
+        dimnames(x = vst.out$umi_corrected) <- dimnames(x = umi)
+      } else {
+        vst.out$umi_corrected <- umi
+      }
+
+      # Compute matrix of Pearson residuals for features to be included in scale.data
+      scale.data.features <- if (return.only.var.genes) {
+        top.features
+      } else {
+        genes
+      }
+      if (isTRUE(x = defer.residual.matrix)) {
+        vst.out$y <- matrix(
+          data = numeric(length = 0L),
+          nrow = 0L,
+          ncol = ncol(x = umi),
+          dimnames = list(character(length = 0L), colnames(x = umi))
+        )
+      } else {
+        vst.out$y <- SCTPearsonResidualMatrix(
+          x = umi@x,
+          i = umi@i,
+          p = umi@p,
+          rows = nrow(x = umi),
+          cols = ncol(x = umi),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
+          feature_index = as.integer(x = match(x = scale.data.features, table = genes) - 1L),
+          min_var = min.var,
+          clip_min = min(clip.range),
+          clip_max = max(clip.range),
+          do_center = do.center,
+          n_threads = getOption(x = "Seurat.nthreads", default = 1L)
+        )
+        dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
+      }
+      
+      vst.out
+    },
     'reference.model' = {
+      feature.variance <- vst.out$gene_attr[, "residual_variance"]
+      names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+
+      feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+
+      feature.idx <- if (is.null(x = variable.features.n)) {
+        feature.variance >= variable.features.rv.th
+      } else {
+        seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+      }
+      top.features <- names(x = feature.variance)[feature.idx]
       if (is.null(x = residual.features)) {
         residual.features <- top.features
       }
+
       residual.features <- Reduce(
         f = intersect,
         x = list(residual.features, rownames(x = umi), rownames(x = vst.out$model_pars_fit))
       )
-      residual.feature.mat <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE],
-        verbosity = as.numeric(x = verbose)*2
-      )
+      sub <- umi[residual.features, , drop = FALSE]
+      min.variance <- vst.out$arguments$min_variance
+      # Fast path: reproduce sctransform::get_residuals() with the optimized
+      # kernel. get_residuals() is called here with its defaults, so match them:
+      # res_clip_range = +/- sqrt(ncol(sub)), the scalar variance floor from the
+      # model, and do_center = FALSE (reference centering by the reference
+      # residual_mean is applied by the sweep below, not by the kernel).
+      # "model_mean"/"model_median" use a per-gene variance floor -> fall back to
+      # get_residuals() for exact behavior.
+      if (min.variance %in% c("model_mean", "model_median")) {
+        residual.feature.mat <- get_residuals(
+          vst_out = vst.out,
+          umi = sub,
+          verbosity = as.numeric(x = verbose) * 2
+        )
+      } else {
+        model.pars <- vst.out$model_pars_fit[residual.features, , drop = FALSE]
+        min.var <- if (identical(x = min.variance, y = "umi_median")) {
+          (median(x = sub@x) / 5) ^ 2
+        } else {
+          min.variance
+        }
+        res.clip.range <- c(-sqrt(x = ncol(x = sub)), sqrt(x = ncol(x = sub)))
+        residual.feature.mat <- SCTPearsonResidualMatrix(
+          x = sub@x,
+          i = sub@i,
+          p = sub@p,
+          rows = nrow(x = sub),
+          cols = ncol(x = sub),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = sub), "log_umi"],
+          feature_index = as.integer(x = seq_len(length.out = nrow(x = sub)) - 1L),
+          min_var = min.var,
+          clip_min = min(res.clip.range),
+          clip_max = max(res.clip.range),
+          do_center = FALSE,
+          n_threads = getOption(x = "Seurat.nthreads", default = 1L)
+        )
+        dimnames(x = residual.feature.mat) <- dimnames(x = sub)
+      }
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
       vst.out$y <- sweep(
@@ -4073,53 +4205,35 @@ SCTransform.default <- function(
       vst.out$gene_attr[residual.features, "residual_mean"] <- rowMeans2(x = vst.out$y)
       vst.out$gene_attr[residual.features, "residual_variance"] <- RowVar(x = vst.out$y)
       vst.out
-    },
-    'conserve.memory' = {
-      vst.out$y <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[top.features, ],
-        residual_type = residual.type,
-        res_clip_range = res.clip.range,
-        verbosity = as.numeric(x = verbose)*2
-      )
-      vst.out$gene_attr$residual_mean <- NA_real_
-      vst.out$gene_attr[top.features, "residual_mean"] = rowMeans2(x =  vst.out$y)
-      if (do.correct.umi & residual.type == 'pearson') {
-        vst.out$umi_corrected <- correct_counts(
-          x = vst.out,
-          umi = umi,
-          verbosity = as.numeric(x = verbose) * 1
-        )
-      }
-      vst.out
-    },
-    'default' = {
-      if (return.only.var.genes) {
-        vst.out$y <- vst.out$y[top.features, ]
-      }
-      vst.out
-    })
+    }
+   )
+  # default method already clips residuals
+  if (!identical(x = sct.method, y = "default")) {
+    scale.data <- vst.out$y
+    scale.data[scale.data < clip.range[1]] <- clip.range[1]
+    scale.data[scale.data > clip.range[2]] <- clip.range[2]
+    vst.out$y <- scale.data
+  }
+  
+  # User may (not common) want to regress out additional variables after SCTransform
+  # Note that centering is already handled by the optimized residual matrix C++
+  if (!is.null(x = vars.to.regress) || isTRUE(x = do.scale)) {
+    vst.out$y <- ScaleData(
+      vst.out$y,
+      features = NULL,
+      vars.to.regress = vars.to.regress,
+      latent.data = latent.data,
+      model.use = 'linear',
+      use.umi = FALSE,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = Inf,
+      block.size = 750,
+      min.cells.to.block = 3000,
+      verbose = verbose
+    )
+  }
 
-  scale.data <- vst.out$y
-  # clip the residuals
-  scale.data[scale.data < clip.range[1]] <- clip.range[1]
-  scale.data[scale.data > clip.range[2]] <- clip.range[2]
-  # 2nd regression
-  scale.data <- ScaleData(
-    scale.data,
-    features = NULL,
-    vars.to.regress = vars.to.regress,
-    latent.data = latent.data,
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = do.scale,
-    do.center = do.center,
-    scale.max = Inf,
-    block.size = 750,
-    min.cells.to.block = 3000,
-    verbose = verbose
-  )
-  vst.out$y <- scale.data
   vst.out$variable_features <- residual.features %||% top.features
   if (!do.correct.umi) {
     vst.out$umi_corrected <- umi
