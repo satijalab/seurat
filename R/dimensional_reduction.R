@@ -1404,6 +1404,7 @@ RunUMAP.default <- function(
     }
     umap.method <- "uwot-predict"
   }
+  nthreads <- getOption(x = "Seurat.nthreads", default = 1)
   umap.output <- switch(
     EXPR = umap.method,
     'umap-learn' = {
@@ -1468,7 +1469,7 @@ RunUMAP.default <- function(
         umap(
           X = NULL,
           nn_method = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_components = as.integer(x = n.components),
           metric = metric,
           n_epochs = n.epochs,
@@ -1490,7 +1491,7 @@ RunUMAP.default <- function(
       } else {
         umap(
           X = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_neighbors = as.integer(x = n.neighbors),
           n_components = as.integer(x = n.components),
           metric = metric,
@@ -1517,7 +1518,7 @@ RunUMAP.default <- function(
         umap2(
           X = NULL,
           nn_method = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_components = as.integer(x = n.components),
           metric = metric,
           n_epochs = n.epochs,
@@ -1538,7 +1539,7 @@ RunUMAP.default <- function(
       } else {
         umap2(
           X = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_neighbors = as.integer(x = n.neighbors),
           n_components = as.integer(x = n.components),
           metric = metric,
@@ -1593,7 +1594,7 @@ RunUMAP.default <- function(
           X = NULL,
           nn_method = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_epochs = n.epochs,
           verbose = verbose
         )
@@ -1601,7 +1602,7 @@ RunUMAP.default <- function(
         umap_transform(
           X = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_epochs = n.epochs,
           verbose = verbose
         )
