@@ -3184,12 +3184,3 @@ BuildNicheAssay <- function(
 
   return(object)
 }
-
-.GetSeuratNThreads <- function() {
-  nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
-  nthreads <- suppressWarnings(expr = as.integer(x = nthreads[[1L]]))
-  if (length(x = nthreads) != 1L || is.na(x = nthreads) || nthreads < 1L) {
-    nthreads <- 1L
-  }
-  return(nthreads)
-}
