@@ -5103,6 +5103,60 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
+FastSparseRowScaleInternal <- FastSparseRowScale
+
+FastSparseRowScale <- function(
+  mat,
+  features = as.integer(x = c()),
+  scale = TRUE,
+  center = TRUE,
+  scale_max = 10,
+  nthreads = 1L,
+  display_progress = FALSE
+) {
+  if (inherits(x = mat, what = "dgTMatrix")) {
+    mat <- as(object = mat, Class = "dgCMatrix")
+  }
+  if (!inherits(x = mat, what = "dgCMatrix")) {
+    stop("FastSparseRowScale requires a dgCMatrix or dgTMatrix", call. = FALSE)
+  }
+  rows <- nrow(x = mat)
+  cols <- ncol(x = mat)
+  result <- FastSparseRowScaleInternal(
+    x = mat@x,
+    i = mat@i,
+    p = mat@p,
+    rows = rows,
+    cols = cols,
+    features,
+    scale,
+    center,
+    scale_max,
+    nthreads,
+    display_progress
+  )
+  if (isTRUE(x = scale)) {
+    selected <- if (length(x = features)) {
+      features + 1L
+    } else {
+      seq_len(length.out = rows)
+    }
+    row.sum <- Matrix::rowSums(x = mat[selected, , drop = FALSE])
+    row.sq.sum <- Matrix::rowSums(x = mat[selected, , drop = FALSE] ^ 2)
+    variance.numerator <- if (isTRUE(x = center)) {
+      row.sq.sum - (row.sum * row.sum / cols)
+    } else {
+      row.sq.sum
+    }
+    sigma <- sqrt(x = variance.numerator / (cols - 1))
+    invalid <- which(x = !(sigma > 0) | is.na(x = sigma))
+    if (length(x = invalid)) {
+      result[invalid, ] <- NaN
+    }
+  }
+  return(result)
+}
+
 #' @importFrom future nbrOfWorkers
 #'
 #' @param features Vector of features names to scale/center. Default is variable features.
