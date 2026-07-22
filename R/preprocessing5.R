@@ -1071,6 +1071,11 @@ SCTransform.IterableMatrix <- function(
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
+    rlang::warn(
+      "A reference SCT model was provided, therefore counts are not corrected (regardless of do.correct.umi)",
+      .frequency = "once",
+      .frequency_id = "SCTransform-reference-SCTmodel-correct-counts"
+    )
   }
   sampled_cells <- sample.int(n = ncol(x = object), size = min(ncells, ncol(x = object)))
   umi <- as.sparse(x = object[, sampled_cells])
@@ -1158,7 +1163,15 @@ SCTransform.StdAssay <- function(
   verbose = TRUE,
   ...
 ) {
-  
+  if (!is.null(reference.SCT.model)){
+    do.correct.umi <- FALSE
+    do.center <- FALSE
+    rlang::warn(
+      "A reference SCT model was provided, therefore counts are not corrected (regardless of do.correct.umi)",
+      .frequency = "once",
+      .frequency_id = "SCTransform-reference-SCTmodel-correct-counts"
+    )
+  }
 
   # Extract counts layers
   layer_names <- Layers(object, search = layer)
@@ -1194,7 +1207,7 @@ SCTransform.StdAssay <- function(
         vst.flavor = vst.flavor,
         conserve.memory = conserve.memory,
         return.only.var.genes = return.only.var.genes,
-        defer.residual.matrix = TRUE,
+        defer.residual.matrix = is.null(x = vars.to.regress),
         seed.use = seed.use,
         verbose = verbose,
         ...

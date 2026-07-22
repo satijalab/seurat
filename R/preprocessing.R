@@ -4218,6 +4218,12 @@ SCTransform.default <- function(
   # User may (not common) want to regress out additional variables after SCTransform
   # Note that centering is already handled by the optimized residual matrix C++
   if (!is.null(x = vars.to.regress) || isTRUE(x = do.scale)) {
+    if (is.null(x = rownames(x = vst.out$y)) && nrow(x = vst.out$y) == nrow(x = vst.out$gene_attr)) {
+      rownames(x = vst.out$y) <- rownames(x = vst.out$gene_attr)
+    }
+    if (is.null(x = colnames(x = vst.out$y)) && ncol(x = vst.out$y) == nrow(x = vst.out$cell_attr)) {
+      colnames(x = vst.out$y) <- rownames(x = vst.out$cell_attr)
+    }
     vst.out$y <- ScaleData(
       vst.out$y,
       features = NULL,
@@ -5257,7 +5263,7 @@ ScaleData.default <- function(
       object <- as(object = object, Class = 'dgCMatrix')
     }
     if (is(object = object, class2 = 'dgCMatrix')) {
-      scaled.data <- FastSparseRowScale(
+      scaled.data <- FastSparseRowScaleInternal(
         x = object@x,
         i = object@i,
         p = object@p,
@@ -5335,7 +5341,7 @@ ScaleData.default <- function(
           return(RegressOutMatrix(
             data.expr = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
             latent.data = latent.data[split.cells[[group]], , drop = FALSE],
-            features.regress = features,
+            features.regress = NULL,
             model.use = model.use,
             use.umi = use.umi,
             verbose = FALSE
@@ -5369,7 +5375,7 @@ ScaleData.default <- function(
           return(RegressOutMatrix(
             data.expr = object[, split.cells[[x]], drop = FALSE],
             latent.data = latent.data[split.cells[[x]], , drop = FALSE],
-            features.regress = features,
+            features.regress = NULL,
             model.use = model.use,
             use.umi = use.umi,
             verbose = verbose
@@ -6270,6 +6276,9 @@ RegressOutMatrix <- function(
   if (any(bypass)) {
     return(data.expr)
   }
+  if (nrow(x = data.expr) == 0) {
+    return(data.expr)
+  }
   # Check model.use
   possible.models <- c("linear", "poisson", "negbinom")
   if (!model.use %in% possible.models) {
@@ -6281,7 +6290,7 @@ RegressOutMatrix <- function(
   }
   # Check features.regress
   if (is.null(x = features.regress)) {
-    features.regress <- 1:nrow(x = data.expr)
+    features.regress <- seq_len(length.out = nrow(x = data.expr))
   }
   if (is.character(x = features.regress)) {
     features.regress <- intersect(x = features.regress, y = rownames(x = data.expr))
