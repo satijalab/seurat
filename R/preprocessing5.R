@@ -539,6 +539,7 @@ VST.IterableMatrix <- function(
   if (clip.max == "auto" || is.null(x = clip.max)) {
     clip.max <- sqrt(x = ncol(x = object))
   }
+  nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
   hvf.info <- as.data.frame(
     x = SparseRowMeanVar(
       x = object@x,
@@ -546,7 +547,7 @@ VST.IterableMatrix <- function(
       p = object@p,
       rows = nrow(x = object),
       cols = ncol(x = object),
-      nthreads = .GetSeuratNThreads(),
+      nthreads = nthreads,
       display_progress = verbose
     )
   )
@@ -568,7 +569,7 @@ VST.IterableMatrix <- function(
     rows = nrow(x = object),
     cols = ncol(x = object),
     vmax = clip.max,
-    nthreads = .GetSeuratNThreads(),
+    nthreads = nthreads,
     display_progress = verbose
   )
   return(hvf.info)
