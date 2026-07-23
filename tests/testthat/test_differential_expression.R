@@ -652,6 +652,32 @@ if (requireNamespace('metap', quietly = TRUE)) {
     expect_equal(markers[, "max_pval"], unname(obj = apply(X = markers, MARGIN = 1, FUN = function(x) max(x[c("g1_p_val", "g2_p_val")]))))
   })
 
+  test_that("FindConservedMarkers names the supplied meta method", {
+    markers.sumlog <- suppressWarnings(FindConservedMarkers(
+      object = pbmc_small,
+      ident.1 = 0,
+      grouping.var = "groups",
+      meta.method = metap::sumlog,
+      verbose = FALSE,
+      base = exp(1),
+      pseudocount.use = 1
+    ))
+    stored.method <- metap::sumlog
+    markers.stored <- suppressWarnings(FindConservedMarkers(
+      object = pbmc_small,
+      ident.1 = 0,
+      grouping.var = "groups",
+      meta.method = stored.method,
+      verbose = FALSE,
+      base = exp(1),
+      pseudocount.use = 1
+    ))
+
+    expect_true("sumlog_p_val" %in% colnames(x = markers.sumlog))
+    expect_false("minimump_p_val" %in% colnames(x = markers.sumlog))
+    expect_equal(markers.sumlog, markers.stored)
+  })
+
   test_that("FindConservedMarkers errors when expected", {
     expect_error(FindConservedMarkers(pbmc_small))
     expect_error(FindConservedMarkers(pbmc_small, ident.1 = 0))
