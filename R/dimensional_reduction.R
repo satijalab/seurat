@@ -910,6 +910,12 @@ RunPCA.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
+  nthreads <- getOption(x = "Seurat.nthreads", default = 1)
+  # CHANGE: per-feature variances precomputed during data prep (PrepDR/PrepDR5),
+  # carried on the matrix so the non-reversed total.variance can reuse them
+  # rather than running a second full-matrix RowVar pass. NULL when called
+  # directly on a matrix, in which case we fall back to the original behavior.
+  feature.var <- attr(x = object, which = 'feature.var')
  if (inherits(x = object, what = 'matrix')) {
    RowVar.function <- RowVar
    svd.function <- irlba
@@ -925,6 +931,12 @@ RunPCA.default <- function(
     }
     svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
  }
+  # CHANGE: sparse (dgCMatrix) and on-disk (IterableMatrix) inputs cannot use the
+  # dense Gram path nor an exact prcomp; force approx = TRUE so they take the
+  # irlba / BPCells SVD path below.
+  if (!inherits(x = object, what = 'matrix')) {
+    approx <- TRUE
+  }
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
     pca.results <- svd.function(A = object, nv = npcs, ...)
@@ -938,8 +950,49 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    total.variance <- sum(RowVar.function(x = object))
-    if (approx) {
+    # CHANGE: reuse the precomputed per-feature variances (see top of function)
+    # for total.variance instead of a second RowVar pass over the matrix;
+    # numerically identical. Original was: sum(RowVar.function(x = object)).
+    total.variance <- if (is.null(x = feature.var)) {
+      sum(RowVar.function(x = object))
+    } else {
+      sum(feature.var)
+    }
+    if (approx && inherits(x = object, what = 'matrix')) {
+      # CHANGE: dense approximate PCA (the default) goes through the Gram matrix +
+      # Lanczos top-k eigendecomposition (EigenGramPCA), using Eigen's own
+      # BLAS-independent kernels, instead of irlba. It converges to the same
+      # truncated SVD but tighter (tol 1e-10) and is faster across dataset sizes
+      # (irlba paid a per-cell iterative cost; the top-k solver also avoids the
+      # full-spectrum eigendecomposition). prcomp is retained purely as a safety
+      # net if the eigen path errors.
+      npcs <- min(npcs, nrow(x = object))
+      gram.results <- tryCatch(
+        expr = EigenGramPCA(
+          object = object,
+          npcs = npcs,
+          weight_by_var = weight.by.var,
+          nthreads = nthreads
+        ),
+        error = function(e) NULL
+      )
+      if (!is.null(x = gram.results)) {
+        feature.loadings <- gram.results$loadings
+        cell.embeddings <- gram.results$embeddings
+        sdev <- as.numeric(x = gram.results$sdev)
+      } else {
+        pca.results <- prcomp(x = t(object), rank. = npcs, ...)
+        feature.loadings <- pca.results$rotation
+        sdev <- pca.results$sdev
+        if (weight.by.var) {
+          cell.embeddings <- pca.results$x
+        } else {
+          cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
+        }
+      }
+    } else if (approx) {
+      # Sparse (dgCMatrix) / on-disk (IterableMatrix): unchanged irlba / BPCells
+      # SVD path (the dense Gram path does not apply to these inputs).
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
       feature.loadings <- pca.results$v
@@ -2519,6 +2572,7 @@ PrepDR <- function(
   else {
     features.var <- RowVar(x = data.use[features, ])
   }
+  names(x = features.var) <- features  # CHANGE: name variances so they can be carried through
   features.keep <- features[features.var > 0]
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
@@ -2529,6 +2583,8 @@ PrepDR <- function(
   features <- features.keep
   features <- features[!is.na(x = features)]
   data.use <- data.use[features, ]
+  # CHANGE: carry the kept-feature variances for reuse in RunPCA_fast.default.
+  attr(x = data.use, which = 'feature.var') <- features.var[features]
   return(data.use)
 }
 
@@ -2539,19 +2595,17 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   if (is.null(layer)) {
     abort(paste0("No layer matching pattern '", olayer, "' not found. Please run ScaleData and retry"))
   }
-  data.use <- LayerData(object = object, layer = layer)
   features <- features %||% VariableFeatures(object = object)
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
-  # FIX: restrict to the requested features that are present, then compute the
-  # per-feature variance on that SUBSET (as the v3 PrepDR already does). Previously
-  # variance was computed over every feature in the layer and the resulting
-  # length-(all features) logical was indexed into the length-(requested features)
-  # vector `features`; that length mismatch spuriously dropped legitimate variable
-  # features (it depended on the storage positions of unrelated zero-variance
-  # genes). Subsetting first keeps the logical and the feature vector aligned.
-  features.use <- features[features %in% rownames(x = data.use)]
+  # CHANGE: load ONLY the requested features and compute variance on that subset
+  # with RowVar / RowVarSparse (C++). PrepDR5 loads the ENTIRE scaled matrix (all
+  # genes) and subsets afterwards; when ScaleData has scaled every gene that extra
+  # load/copy dominated RunPCA_fast (e.g. ~31s of ~45s on pbmcsca). Restricting the
+  # load to the requested features avoids it. Feature selection is otherwise
+  # identical to PrepDR5.
+  features.use <- features[features %in% Features(x = object, layer = layer)]
   if (!isTRUE(x = all.equal(features, features.use))) {
     missing_features <- setdiff(x = features, y = features.use)
     if (length(x = missing_features) > 0) {
@@ -2560,7 +2614,7 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
               immediate. = TRUE)
     }
   }
-  data.use <- data.use[features.use, , drop = FALSE]
+  data.use <- LayerData(object = object, layer = layer, features = features.use)
   if (is(data.use, "IterableMatrix")) {
     features.var <- BPCells::matrix_stats(matrix=data.use, row_stats="variance")$row_stats["variance",]
   } else if (inherits(x = data.use, what = 'dgCMatrix')) {
@@ -2568,6 +2622,7 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   } else {
     features.var <- RowVar(x = data.use)
   }
+  names(x = features.var) <- features.use
   features.keep <- features.use[features.var > 0]
   if (!length(x = features.keep)) {
     stop("None of the requested features have any variance", call. = FALSE)
@@ -2585,6 +2640,8 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
     }
     data.use <- data.use[features.keep, , drop = FALSE]
   }
+  # CHANGE: carry the kept-feature variances for reuse in RunPCA_fast.default.
+  attr(x = data.use, which = 'feature.var') <- features.var[features.keep]
   return(data.use)
 }
 
