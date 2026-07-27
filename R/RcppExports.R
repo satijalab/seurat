@@ -109,16 +109,8 @@ SCTPearsonResidualMatrix <- function(x, i, p, rows, cols, theta, intercept, slop
     .Call('_Seurat_SCTPearsonResidualMatrix', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads)
 }
 
-ComputeSNN <- function(nn_ranked, prune) {
-    .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_ranked, prune)
-}
-
-WriteEdgeFile <- function(snn, filename, display_progress) {
-    invisible(.Call('_Seurat_WriteEdgeFile', PACKAGE = 'Seurat', snn, filename, display_progress))
-}
-
-DirectSNNToFile <- function(nn_ranked, prune, display_progress, filename) {
-    .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_ranked, prune, display_progress, filename)
+ComputeSNN <- function(nn_ranked, prune, nthreads = -1L) {
+    .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_ranked, prune, nthreads)
 }
 
 SNN_SmallestNonzero_Dist <- function(snn, mat, n, nearest_dist) {
