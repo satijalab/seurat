@@ -2189,6 +2189,11 @@ VariableFeaturePlot <- function(
     method = selection.method,
     status = TRUE
   )
+  if (is.null(hvf.info)){
+    stop("HVFinfo() failed to retrieve variable feature information.
+          Perhaps, these are not available because FindVariableFeatures() is run on split layers and the layers are subsequently joined.
+          It is not recommended to run split layers when a global feature variance is requested.")  
+  }
   status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]
   var.status <- c('no', 'yes')[unlist(hvf.info[[status.col]]) + 1]
   if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
