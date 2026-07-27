@@ -120,7 +120,8 @@ FindMultiModalNeighbors  <- function(
   if (verbose) {
     message("Constructing multimodal SNN graph")
   }
-  snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN)
+  nthreads <- getOption("Seurat.nthreads", 1)
+  snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN, nthreads = nthreads)
   rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(x = object)
   snn.matrix <- as.Graph(x = snn.matrix )
   slot(object = snn.matrix, name = "assay.used") <- first.assay
@@ -653,7 +654,7 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
     }
-    knn.mat <- matrix(data = 0, ncol = k.param, nrow = n.cells)
+    knn.mat <- matrix(data = 0L, ncol = k.param, nrow = n.cells)
     knd.mat <- knn.mat
     for (i in 1:n.cells) {
       knn.mat[i, ] <- order(object[i, ])[1:k.param]
@@ -661,6 +662,7 @@ FindNeighbors.default <- function(
     }
     nn.ranked <- knn.mat[, 1:k.param]
   }
+  storage.mode(x = nn.ranked) <- "integer"
   # convert nn.ranked into a Graph
   j <- as.numeric(x = t(x = nn.ranked))
   i <- ((1:length(x = j)) - 1) %/% k.param + 1
@@ -672,9 +674,11 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing SNN")
     }
+    nthreads <- getOption("Seurat.nthreads", 1)
     snn.matrix <- ComputeSNN(
       nn_ranked = nn.ranked,
-      prune = prune.SNN
+      prune = prune.SNN,
+      nthreads = nthreads
     )
     rownames(x = snn.matrix) <- rownames(x = object)
     colnames(x = snn.matrix) <- rownames(x = object)
@@ -1239,9 +1243,11 @@ FindModalityWeights  <- function(
     snn.graph.list <- lapply(
       X = sigma.nn.list,
       FUN = function(nn) {
+        nthreads <- getOption("Seurat.nthreads", 1)
         snn.matrix <- ComputeSNN(
-          nn_ranked =  Indices(object = nn)[, 1:s.nn],
-          prune = prune.SNN
+          nn_ranked = Indices(object = nn)[, 1:s.nn],
+          prune = prune.SNN,
+          nthreads = nthreads
         )
         colnames(x = snn.matrix) <- rownames(x = snn.matrix) <- Cells(x = object)
         return (snn.matrix)
