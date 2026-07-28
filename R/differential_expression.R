@@ -763,7 +763,7 @@ FindMarkers.SCTAssay <- function(
   )
   if (test.use %in% DEmethods_counts()){
     # set slot to counts
-    if (slot !="counts") {
+    if (slot != "counts") {
       message(paste0("Setting slot to counts for ", test.use, " (counts based test: "))
       slot <- "counts"
     }
@@ -1058,21 +1058,23 @@ FoldChange.default <- function(
   ...
 ) {
   features <- features %||% rownames(x = object)
-  # Calculate percent expressed
   thresh.min <- 0
+  # Subset each group's slice a single time and reuse it for both the
+  # percent-expressed and mean-expression computations.
+  mat.1 <- object[features, cells.1, drop = FALSE]
+  mat.2 <- object[features, cells.2, drop = FALSE]
+  # Calculate percent expressed
   pct.1 <- round(
-    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
-      length(x = cells.1),
+    x = rowSums(x = mat.1 > thresh.min) / length(x = cells.1),
     digits = 3
   )
   pct.2 <- round(
-    x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
-      length(x = cells.2),
+    x = rowSums(x = mat.2 > thresh.min) / length(x = cells.2),
     digits = 3
   )
   # Calculate fold change
-  data.1 <- mean.fxn(object[features, cells.1, drop = FALSE])
-  data.2 <- mean.fxn(object[features, cells.2, drop = FALSE])
+  data.1 <- mean.fxn(mat.1)
+  data.2 <- mean.fxn(mat.2)
   fc <- (data.1 - data.2)
   fc.results <- as.data.frame(x = cbind(fc, pct.1, pct.2))
   colnames(fc.results) <- c(fc.name, "pct.1", "pct.2")
@@ -1104,17 +1106,15 @@ FoldChange.Assay <- function(
   data <- GetAssayData(object = object, layer = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   scaledata.mean.fxn <- rowMeans
   counts.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
   }
   if (!is.null(x = norm.method)) {
     # For anything apart from log normalization set to rowMeans
-    if (norm.method!="LogNormalize") {
+    if (norm.method != "LogNormalize") {
       new.mean.fxn <- counts.mean.fxn
     } else {
       new.mean.fxn <- counts.mean.fxn
@@ -1182,7 +1182,6 @@ FoldChange.SCTAssay <- function(
   pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, layer = slot)
   default.mean.fxn <- function(x) {
-    # return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     return(log(x = (rowSums(x = expm1(x = x)) + pseudocount.use)/NCOL(x), base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
@@ -1190,7 +1189,6 @@ FoldChange.SCTAssay <- function(
     'data' = default.mean.fxn,
     'scale.data' = rowMeans,
     'counts' = function(x) {
-      # return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
       return(log(x = (rowSums(x = x) + pseudocount.use)/NCOL(x), base = base))
     },
     default.mean.fxn
@@ -2018,6 +2016,47 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
   return(ret)
 }
 
+# Run a per-feature DE test on a sparse matrix by densifying in row-blocks.
+#
+# The fallback test loops (DiffExpTest, DiffTTest, MarkerTest) extract one gene
+# row per iteration. On a column-major (CSC / dgCMatrix) matrix each such row
+# extraction is O(nnz), so the loop is O(nnz * ngenes). Densifying the working
+# subset makes per-gene row access O(ncol), which is dramatically faster.
+#
+# To keep peak memory bounded, the subset is densified at most `block.elems`
+# elements at a time (a block of ceiling(block.elems / ncol) features). Normal-
+# sized comparisons fit in a single block, in which case this is a plain
+# `as.matrix()` and the wrapped test function runs exactly as it would on a
+# dense input (identical output, single progress bar). Only very wide/large
+# feature sets are split, which bounds the extra dense allocation.
+#
+# The wrapped test functions return a feature-rownamed data.frame and treat each
+# gene independently, so row-binding the per-block results preserves feature
+# rownames and values. (MarkerTest additionally sorts its rows by AUC; that
+# intermediate order is re-established downstream in FindMarkers_optimize by the
+# nocorrect-test ordering, so blocking does not change the final result.)
+RunDEBlocked <- function(data.use, testfun, ..., block.elems = 2e7) {
+  # Non-sparse input (e.g. densify = TRUE) already has fast row access.
+  if (!inherits(x = data.use, what = "sparseMatrix")) {
+    return(testfun(data.use = data.use, ...))
+  }
+  n <- nrow(x = data.use)
+  block <- max(1L, floor(x = block.elems / ncol(x = data.use)))
+  if (block >= n) {
+    return(testfun(data.use = as.matrix(x = data.use), ...))
+  }
+  idx <- split(x = seq_len(length.out = n), f = ceiling(x = seq_len(length.out = n) / block))
+  do.call(
+    what = rbind,
+    args = unname(obj = lapply(
+      X = idx,
+      FUN = function(rows) {
+        testfun(data.use = as.matrix(x = data.use[rows, , drop = FALSE]), ...)
+      }
+    ))
+  )
+}
+
 PerformDE <- function(
   object,
   cells.1,
@@ -2062,20 +2101,23 @@ PerformDE <- function(
       limma = TRUE,
       ...
     ),
-    'bimod' = DiffExpTest(
+    'bimod' = RunDEBlocked(
       data.use = data.use,
+      testfun = DiffExpTest,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
-    'roc' = MarkerTest(
+    'roc' = RunDEBlocked(
       data.use = data.use,
+      testfun = MarkerTest,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
-    't' = DiffTTest(
+    't' = RunDEBlocked(
       data.use = data.use,
+      testfun = DiffTTest,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
@@ -2484,7 +2526,6 @@ WilcoxDETest <- function(
   limma = FALSE,
   ...
 ) {
-  data.use <- data.use[, c(cells.1, cells.2), drop = FALSE]
   j <- seq_len(length.out = length(x = cells.1))
   my.sapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
@@ -2503,7 +2544,6 @@ WilcoxDETest <- function(
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
   if (presto.check[1] && (!limma)) {
-    data.use <- data.use[, rownames(group.info), drop = FALSE]
     res <- presto::wilcoxauc(X = data.use, y = group.info[, "group"])
     res <- res[1:(nrow(x = res)/2),]
     p_val <- res$pval
@@ -2521,6 +2561,11 @@ WilcoxDETest <- function(
         "\nThis message will be shown once per session"
       )
       options(Seurat.presto.wilcox.msg = FALSE)
+    }
+    # These fallback paths extract one gene row per iteration; convert the
+    # column-major subset to row-major once so per-gene access is efficient.
+    if (inherits(x = data.use, what = "CsparseMatrix")) {
+      data.use <- as(object = data.use, Class = "RsparseMatrix")
     }
     if (limma.check[1] && overflow.check) {
       p_val <- my.sapply(
@@ -2540,11 +2585,16 @@ WilcoxDETest <- function(
         --------------------------------------------"
         )
       } else {
-        data.use <- data.use[, rownames(x = group.info), drop = FALSE]
+        # Use the vector interface of wilcox.test rather than the formula
+        # interface, which re-parses a model.frame for every gene. Columns of
+        # data.use are ordered c(cells.1, cells.2), so `j` selects group 1 and
+        # the remaining columns are group 2 (matching the factor level order
+        # used by the formula method: Group1 -> x, Group2 -> y).
         p_val <- my.sapply(
           X = 1:nrow(x = data.use),
           FUN = function(x) {
-            return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+            vals <- data.use[x, ]
+            return(wilcox.test(x = vals[j], y = vals[-j], ...)$p.value)
           }
         )
       }
