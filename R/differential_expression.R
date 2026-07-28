@@ -72,6 +72,28 @@ FindAllMarkers <- function(
     vec2[is.na(x = vec2)] <- vec[is.na(x = vec2)]
     return(unname(obj = vec2))
   }
+  GetNormMethod <- function(object, assay) {
+    norm.command <- paste0("NormalizeData.", assay)
+    if (norm.command %in% Command(object = object)) {
+      return(Command(
+        object = object,
+        command = norm.command,
+        value = "normalization.method"
+      ))
+    }
+    transfer.command <- intersect(
+      x = c("FindIntegrationAnchors", "FindTransferAnchors"),
+      y = Command(object = object)
+    )
+    if (length(x = transfer.command)) {
+      return(Command(
+        object = object,
+        command = transfer.command[1],
+        value = "normalization.method"
+      ))
+    }
+    return(NULL)
+  }
   if ((test.use == "roc") && (return.thresh == 1e-2)) {
     return.thresh <- 0.7
   }
@@ -116,49 +138,98 @@ FindAllMarkers <- function(
     new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }
-  genes.de <- list()
-  messages <- list()
+  genes.de <- vector(mode = "list", length = length(x = idents.all))
+  messages <- vector(mode = "list", length = length(x = idents.all))
+  assay <- assay %||% DefaultAssay(object = object)
+  data.use <- NULL
+  cellnames.use <- NULL
+  cells.by.ident <- NULL
+  latent.vars.data <- NULL
+  norm.method <- NULL
+  if (is.null(x = node)) {
+    data.use <- object[[assay]]
+    cellnames.use <- colnames(x = data.use)
+    idents.use <- Idents(object = object)[cellnames.use]
+    ident.values <- as.character(x = idents.use)
+    cells.by.ident <- split(x = cellnames.use, f = idents.use)
+    latent.vars.data <- if (is.null(x = latent.vars)) {
+      NULL
+    } else {
+      FetchData(
+        object = object,
+        vars = latent.vars,
+        cells = cellnames.use
+      )
+    }
+    norm.method <- GetNormMethod(object = object, assay = assay)
+  }
   old_opt <- options(Seurat.warn.findmarkers.bpcells.colmajor = TRUE)
   on.exit(options(old_opt), add = TRUE)
   withCallingHandlers({
-    for (i in 1:length(x = idents.all)) {
+    for (i in seq_along(along.with = idents.all)) {
       if (verbose) {
         message("Calculating cluster ", idents.all[i])
       }
       genes.de[[i]] <- tryCatch(
-        expr = {
-          FindMarkers(
-            object = object,
-            assay = assay,
-            ident.1 = if (is.null(x = node)) {
-              idents.all[i]
-            } else {
-              tree
-            },
-            ident.2 = if (is.null(x = node)) {
+       expr = {
+          if (is.null(x = node)) {
+            cells.1 <- cells.by.ident[[as.character(x = idents.all[i])]]
+            cells.2 <- cellnames.use[ident.values != as.character(x = idents.all[i])]
+            latent.vars.i <- if (is.null(x = latent.vars.data)) {
               NULL
             } else {
-              idents.all[i]
-            },
-            features = features,
-            logfc.threshold = logfc.threshold,
-            test.use = test.use,
-            slot = slot,
-            min.pct = min.pct,
-            min.diff.pct = min.diff.pct,
-            verbose = verbose,
-            only.pos = only.pos,
-            max.cells.per.ident = max.cells.per.ident,
-            random.seed = random.seed,
-            latent.vars = latent.vars,
-            min.cells.feature = min.cells.feature,
-            min.cells.group = min.cells.group,
-            mean.fxn = mean.fxn,
-            fc.name = fc.name,
-            base = base,
-            densify = densify,
-            ...
-          )
+              latent.vars.data[c(cells.1, cells.2), , drop = FALSE]
+            }
+            FindMarkers(
+              object = data.use,
+              cells.1 = cells.1,
+              cells.2 = cells.2,
+              features = features,
+              logfc.threshold = logfc.threshold,
+              test.use = test.use,
+              slot = slot,
+              min.pct = min.pct,
+              min.diff.pct = min.diff.pct,
+              verbose = verbose,
+              only.pos = only.pos,
+              max.cells.per.ident = max.cells.per.ident,
+              random.seed = random.seed,
+              latent.vars = latent.vars.i,
+              min.cells.feature = min.cells.feature,
+              min.cells.group = min.cells.group,
+              mean.fxn = mean.fxn,
+              fc.name = fc.name,
+              base = base,
+              densify = densify,
+              norm.method = norm.method,
+              ...
+            )
+          } else {
+            FindMarkers(
+              object = object,
+              assay = assay,
+              ident.1 = tree,
+              ident.2 = idents.all[i],
+              features = features,
+              logfc.threshold = logfc.threshold,
+              test.use = test.use,
+              slot = slot,
+              min.pct = min.pct,
+              min.diff.pct = min.diff.pct,
+              verbose = verbose,
+              only.pos = only.pos,
+              max.cells.per.ident = max.cells.per.ident,
+              random.seed = random.seed,
+              latent.vars = latent.vars,
+              min.cells.feature = min.cells.feature,
+              min.cells.group = min.cells.group,
+              mean.fxn = mean.fxn,
+              fc.name = fc.name,
+              base = base,
+              densify = densify,
+              ...
+            )
+          }
         },
         error = function(cond) {
           return(cond$message)
@@ -177,30 +248,33 @@ FindAllMarkers <- function(
       invokeRestart("muffleWarning")
     }
   })
-  gde.all <- data.frame()
-  for (i in 1:length(x = idents.all)) {
-    if (is.null(x = unlist(x = genes.de[i]))) {
+  gde.all <- vector(mode = "list", length = length(x = idents.all))
+  for (i in seq_along(along.with = idents.all)) {
+    gde <- genes.de[[i]]
+    if (is.null(x = gde) || nrow(x = gde) == 0) {
       next
     }
-    gde <- genes.de[[i]]
-    if (nrow(x = gde) > 0) {
-      if (test.use == "roc") {
-        gde <- subset(
-          x = gde,
-          subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
-        )
-      } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
-        gde <- gde[order(gde$p_val, -abs(gde$pct.1-gde$pct.2)), ]
-        gde <- subset(x = gde, subset = p_val < return.thresh)
-      }
-      if (nrow(x = gde) > 0) {
-        gde$cluster <- idents.all[i]
-        gde$gene <- rownames(x = gde)
-      }
-      if (nrow(x = gde) > 0) {
-        gde.all <- rbind(gde.all, gde)
-      }
+    if (test.use == "roc") {
+      gde <- subset(
+        x = gde,
+        subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
+      )
+    } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
+      gde <- gde[order(gde$p_val, -abs(gde$pct.1-gde$pct.2)), , drop = FALSE]
+      gde <- subset(x = gde, subset = p_val < return.thresh)
     }
+    if (nrow(x = gde) == 0) {
+      next
+    }
+    gde$cluster <- idents.all[i]
+    gde$gene <- rownames(x = gde)
+    gde.all[[i]] <- gde
+  }
+  gde.all <- Filter(f = Negate(f = is.null), x = gde.all)
+  gde.all <- if (length(x = gde.all)) {
+    do.call(what = rbind, args = gde.all)
+  } else {
+    data.frame()
   }
   if ((only.pos) && nrow(x = gde.all) > 0) {
     return(subset(x = gde.all, subset = gde.all[, 2] > 0))
@@ -209,9 +283,13 @@ FindAllMarkers <- function(
   if (nrow(x = gde.all) == 0) {
     warning("No DE genes identified", call. = FALSE, immediate. = TRUE)
   }
-  if (length(x = messages) > 0) {
+  if (any(vapply(
+    X = messages,
+    FUN = function(x) !is.null(x),
+    FUN.VALUE = logical(length = 1L)
+  ))) {
     warning("The following tests were not performed: ", call. = FALSE, immediate. = TRUE)
-    for (i in 1:length(x = messages)) {
+    for (i in seq_along(along.with = messages)) {
       if (!is.null(x = messages[[i]])) {
         warning("When testing ", idents.all[i], " versus all:\n\t", messages[[i]], call. = FALSE, immediate. = TRUE)
       }
