@@ -333,6 +333,12 @@ FindClusters.default <- function(
       what = "FindClusters(method)"
     )
   }
+  method.present <- is_present(method)
+  method.use <- if (method.present) {
+    method
+  } else {
+    NULL
+  }
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
@@ -344,82 +350,76 @@ FindClusters.default <- function(
   }
   leiden_method <- match.arg(leiden_method)
   leiden_objective_function <- match.arg(leiden_objective_function)
-
-  if (nbrOfWorkers() > 1) {
-    clustering.results <- future_lapply(
-      X = resolution,
-      FUN = function(r) {
-        if (algorithm %in% c(1:3)) {
-          ids <- RunModularityClustering(
-            SNN = object,
-            modularity = modularity.fxn,
-            resolution = r,
-            algorithm = algorithm,
-            n.start = n.start,
-            n.iter = n.iter,
-            random.seed = random.seed,
-            print.output = verbose,
-            temp.file.location = temp.file.location,
-            edge.file.name = edge.file.name
-          )
-        } else if (algorithm == 4) {
-          ids <- RunLeiden(
-            object = object,
-            leiden_method = leiden_method,
-            leiden_objective_function = leiden_objective_function,
-            partition.type = "RBConfigurationVertexPartition",
-            initial.membership = initial.membership,
-            node.sizes = node.sizes,
-            resolution.parameter = r,
-            random.seed = random.seed,
-            n.iter = n.iter
-          )
-        } else {
-          stop("algorithm not recognised, please specify as an integer or string")
-        }
-        names(x = ids) <- colnames(x = object)
-        ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
-        results <- list(factor(x = ids))
-        names(x = results) <- paste0('res.', r)
-        return(results)
-      }
+  n.threads <- getOption("Seurat.nthreads", default = 1L)
+  leiden.graph <- if (algorithm == 4) BuildLeidenGraph(object, leiden_method) else NULL
+  if (algorithm %in% c(1:3) && length(x = resolution) > 1) {
+    ids.list <- RunModularityClusteringMulti(
+      SNN = object,
+      modularity = modularity.fxn,
+      resolution = resolution,
+      algorithm = algorithm,
+      n.start = n.start,
+      n.iter = n.iter,
+      random.seed = random.seed,
+      print.output = verbose,
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name
     )
-    clustering.results <- as.data.frame(x = clustering.results)
-  } else {
     clustering.results <- data.frame(row.names = colnames(x = object))
-    for (r in resolution) {
-      if (algorithm %in% c(1:3)) {
-        ids <- RunModularityClustering(
-          SNN = object,
-          modularity = modularity.fxn,
-          resolution = r,
-          algorithm = algorithm,
-          n.start = n.start,
-          n.iter = n.iter,
-          random.seed = random.seed,
-          print.output = verbose,
-          temp.file.location = temp.file.location,
-          edge.file.name = edge.file.name)
-      } else if (algorithm == 4) {
-        ids <- RunLeiden(
-          object = object,
-          leiden_method = leiden_method,
-          leiden_objective_function = leiden_objective_function,
-          method = method,
-          partition.type = "RBConfigurationVertexPartition",
-          initial.membership = initial.membership,
-          node.sizes = node.sizes,
-          resolution.parameter = r,
-          random.seed = random.seed,
-          n.iter = n.iter
-        )
-      } else {
-        stop("algorithm not recognised, please specify as an integer or string")
-      }
+    for (i in seq_along(along.with = resolution)) {
+      ids <- ids.list[[i]]
       names(x = ids) <- colnames(x = object)
       ids <- GroupSingletons(ids = ids, SNN = object, group.singletons = group.singletons, verbose = verbose)
-      clustering.results[, paste0("res.", r)] <- factor(x = ids)
+      clustering.results[, paste0("res.", resolution[[i]])] <- factor(x = ids)
     }
+    return(clustering.results)
+  }
+  cluster_one_resolution <- function(r) {
+    if (algorithm %in% c(1:3)) {
+      ids <- RunModularityClustering(
+        SNN = object, modularity = modularity.fxn, resolution = r,
+        algorithm = algorithm, n.start = n.start, n.iter = n.iter,
+        random.seed = random.seed, print.output = verbose,
+        temp.file.location = temp.file.location,
+        edge.file.name = edge.file.name
+      )
+    } else if (algorithm == 4 && method.present) {
+      ids <- RunLeiden(
+        object = leiden.graph,
+        leiden_method = leiden_method,
+        leiden_objective_function = leiden_objective_function,
+        method = method.use,
+        partition.type = "RBConfigurationVertexPartition",
+        initial.membership = initial.membership,
+        node.sizes = node.sizes,
+        resolution.parameter = r,
+        random.seed = random.seed,
+        n.iter = n.iter,
+        n.threads = n.threads
+      )
+    } else if (algorithm == 4) {
+      ids <- RunLeiden(
+        object = leiden.graph,
+        leiden_method = leiden_method,
+        leiden_objective_function = leiden_objective_function,
+        partition.type = "RBConfigurationVertexPartition",
+        initial.membership = initial.membership,
+        node.sizes = node.sizes,
+        resolution.parameter = r,
+        random.seed = random.seed,
+        n.iter = n.iter,
+        n.threads = n.threads
+      )
+    } else {
+      stop("algorithm not recognised, please specify as an integer or string")
+    }
+    names(x = ids) <- colnames(x = object)
+    ids <- GroupSingletons(ids = ids, SNN = object, group.singletons = group.singletons, verbose = verbose)
+    return(factor(x = ids))
+  }
+  clustering.results <- data.frame(row.names = colnames(x = object))
+  for (r in resolution) {
+    clustering.results[, paste0("res.", r)] <- cluster_one_resolution(r = r)
   }
   return(clustering.results)
 }
@@ -442,7 +442,6 @@ FindClusters.Seurat <- function(
     initial.membership = NULL,
     node.sizes = NULL,
     resolution = 0.8,
-    # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
     method = NULL,
     algorithm = 1,
     leiden_method = c("leidenbase", "igraph"),
@@ -497,8 +496,6 @@ FindClusters.Seurat <- function(
   cluster.name <- cluster.name %||% default.cluster.name
 
   names(x = clustering.results) <- cluster.name
-  # object <- AddMetaData(object = object, metadata = clustering.results)
-  # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
 
   # Sort all factor levels for clustering result columns
   for (col in names(clustering.results)) {
@@ -507,18 +504,8 @@ FindClusters.Seurat <- function(
 
     # Split factor levels by numeric vs non-numeric
     is_int <- grepl("^[0-9]+$", levels.col)
-
-    levels.sorted <- c(
-      # Sort numeric levels
-      levels.col[is_int][order(as.integer(levels.col[is_int]))],
-      # Sort remaining non-numeric levels
-      sort(levels.col[!is_int])
-    )
-    # Rebuild factor levels using sorted labels
-    clustering.results[[col]] <- factor(
-      x = as.character(clustering.results[[col]]),
-      levels = levels.sorted
-    )
+    levels.sorted <- c(levels.col[is_int][order(as.integer(levels.col[is_int]))], sort(levels.col[!is_int]))
+    clustering.results[[col]] <- factor(x = as.character(clustering.results[[col]]), levels = levels.sorted)
   }
 
   idents.use <- names(x = clustering.results)[ncol(x = clustering.results)]
@@ -527,12 +514,8 @@ FindClusters.Seurat <- function(
   levels <- levels(x = object)
   levels <- tryCatch(
     expr = as.numeric(x = levels),
-    warning = function(...) {
-      return(levels)
-    },
-    error = function(...) {
-      return(levels)
-    }
+    warning = function(...) levels,
+    error = function(...) levels
   )
   Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
   object[['seurat_clusters']] <- Idents(object = object)
@@ -1695,6 +1678,30 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
   return(n.ob)
 }
 
+#' Helper function to build a graph object for Leiden clustering
+#'
+BuildLeidenGraph <- function(object, leiden_method = c("leidenbase", "igraph")) {
+  leiden_method <- match.arg(leiden_method)
+  if (inherits(object, what = "igraph")) {
+    return(object)
+  }
+  if (inherits(object, what = "list")) {
+    return(graph_from_adj_list(object))
+  }
+  if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
+    if (inherits(object, what = "Graph")) {
+      if (leiden_method == "leidenbase") {
+        object <- as.sparse(object)
+      }
+    }
+    if (leiden_method == "leidenbase") {
+      return(graph_from_adjacency_matrix(object, weighted = TRUE))
+    }
+    return(graph_from_adjacency_matrix(object, weighted = TRUE, diag = FALSE, mode = "lower"))
+  }
+  stop("Method for Leiden not found for class", class(object), call. = FALSE)
+}
+
 #' Run Leiden clustering algorithm
 #'
 #' Returns a vector of partition indices.
@@ -1749,7 +1756,8 @@ RunLeiden <- function(
     node.sizes = NULL,
     resolution.parameter = 1,
     random.seed = 1,
-    n.iter = 10
+    n.iter = 10,
+    n.threads = NULL
 ) {
   # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
   # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
@@ -1781,56 +1789,17 @@ RunLeiden <- function(
 
   if (leiden_method == "igraph") {
     # adjust seed for igraph leiden
-    #Set seed without permanently changing seed state
+    # Set seed without permanently changing seed state
     prev_seed <- get_seed()
     on.exit(restore_seed(prev_seed), add = TRUE)
     set.seed(random.seed)
   }
-
-  # Convert `object` into an `igraph`.
-  # If `object` is already an `igraph` no conversion is necessary.
-  if (inherits(object, what = "igraph")) {
-    input <- object
-    # Otherwise, if `object` is a list, assume it is an adjacency list...
-  } else if (inherits(object, what = "list")) {
-    # And convert it to an `igraph` with the appropriate method.
-    input <- graph_from_adj_list(object)
-    # Or, if `object` is a matrix...
-  } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
-    # Make sure the matrix is sparse.
-    if (inherits(object, what = "Graph")) {
-      if (leiden_method == "leidenbase") {
-        object <- as.sparse(object)
-      }
-    }
-    # And then convert it to an graph.
-    if (leiden_method == "leidenbase") {
-      input <- graph_from_adjacency_matrix(object, weighted = TRUE)
-    }
-    if (leiden_method == "igraph") {
-      input <- graph_from_adjacency_matrix(
-        object,
-        weighted = TRUE,
-        diag = FALSE,
-        mode = "lower")
-    }
-
-    # Throw an error if `object` is of an unknown type.
-  } else {
-    stop(
-      "Method for Leiden not found for class", class(object),
-      call. = FALSE
-    )
-  }
-
-  # Run clustering with `leidenbase`.
+  input <- BuildLeidenGraph(object, leiden_method)
   if (leiden_method == "leidenbase") {
-    # Check if leidenbase is available
     if (!requireNamespace("leidenbase", quietly = TRUE)) {
-      stop("Package 'leidenbase' is required for leiden_method = 'leidenbase'. ",
-           "Please install it with: install.packages('leidenbase')")
+      stop("Package 'leidenbase' is required for leiden_method = 'leidenbase'. Please install it with: install.packages('leidenbase')")
     }
-    
+
     partition <- leidenbase::leiden_find_partition(
       input,
       partition_type = partition.type,
@@ -1896,6 +1865,7 @@ RunModularityClustering <- function(
   temp.file.location = NULL,
   edge.file.name = NULL
 ) {
+  n.threads <- getOption("Seurat.nthreads", default = 1L)
   edge_file <- edge.file.name %||% ''
   clusters <- RunModularityClusteringCpp(
     SNN,
@@ -1906,7 +1876,37 @@ RunModularityClustering <- function(
     n.iter,
     random.seed,
     print.output,
-    edge_file
+    edge_file,
+    n.threads
+  )
+  return(clusters)
+}
+
+RunModularityClusteringMulti <- function(
+  SNN = matrix(),
+  modularity = 1,
+  resolution = 0.8,
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  print.output = TRUE,
+  temp.file.location = NULL,
+  edge.file.name = NULL
+) {
+  n.threads <- getOption("Seurat.nthreads", default = 1L)
+  edge_file <- edge.file.name %||% ''
+  clusters <- RunModularityClusteringCpp_multi(
+    SNN,
+    modularity,
+    resolution,
+    algorithm,
+    n.start,
+    n.iter,
+    random.seed,
+    print.output,
+    edge_file,
+    n.threads
   )
   return(clusters)
 }
