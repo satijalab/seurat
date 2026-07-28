@@ -12,12 +12,12 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // RunModularityClusteringCpp
-IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename);
-RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP) {
+IntegerVector RunModularityClusteringCpp(SEXP SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename, int nThreads);
+RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP, SEXP nThreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type SNN(SNNSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SNN(SNNSEXP);
     Rcpp::traits::input_parameter< int >::type modularityFunction(modularityFunctionSEXP);
     Rcpp::traits::input_parameter< double >::type resolution(resolutionSEXP);
     Rcpp::traits::input_parameter< int >::type algorithm(algorithmSEXP);
@@ -26,7 +26,28 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type randomSeed(randomSeedSEXP);
     Rcpp::traits::input_parameter< bool >::type printOutput(printOutputSEXP);
     Rcpp::traits::input_parameter< std::string >::type edgefilename(edgefilenameSEXP);
-    rcpp_result_gen = Rcpp::wrap(RunModularityClusteringCpp(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename));
+    Rcpp::traits::input_parameter< int >::type nThreads(nThreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(RunModularityClusteringCpp(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename, nThreads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// RunModularityClusteringCpp_multi
+List RunModularityClusteringCpp_multi(SEXP SNN, int modularityFunction, NumericVector resolutions, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename, int nThreads);
+RcppExport SEXP _Seurat_RunModularityClusteringCpp_multi(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionsSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP, SEXP nThreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type SNN(SNNSEXP);
+    Rcpp::traits::input_parameter< int >::type modularityFunction(modularityFunctionSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type resolutions(resolutionsSEXP);
+    Rcpp::traits::input_parameter< int >::type algorithm(algorithmSEXP);
+    Rcpp::traits::input_parameter< int >::type nRandomStarts(nRandomStartsSEXP);
+    Rcpp::traits::input_parameter< int >::type nIterations(nIterationsSEXP);
+    Rcpp::traits::input_parameter< int >::type randomSeed(randomSeedSEXP);
+    Rcpp::traits::input_parameter< bool >::type printOutput(printOutputSEXP);
+    Rcpp::traits::input_parameter< std::string >::type edgefilename(edgefilenameSEXP);
+    Rcpp::traits::input_parameter< int >::type nThreads(nThreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(RunModularityClusteringCpp_multi(SNN, modularityFunction, resolutions, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename, nThreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -476,7 +497,8 @@ END_RCPP
 RcppExport SEXP isnull(SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
+    {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 10},
+    {"_Seurat_RunModularityClusteringCpp_multi", (DL_FUNC) &_Seurat_RunModularityClusteringCpp_multi, 10},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
