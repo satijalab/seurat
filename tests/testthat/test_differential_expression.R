@@ -539,6 +539,41 @@ if (is_not_cran_submission) {
     # to setting the object's `Idents` before running `FindAllMarkers`.
     expect_equal(results.gb, results)
   })
+  test_that("FindAllMarkers presto path matches per-cluster wilcox path", {
+    skip_if_not_installed("presto")
+    expect_findallmarkers_fast_equal_loop <- function(object, ...) {
+      results.fast <- suppressWarnings(suppressMessages(FindAllMarkers(
+        object = object,
+        verbose = FALSE,
+        ...
+      )))
+      results.loop <- suppressWarnings(suppressMessages(FindAllMarkers(
+        object = object,
+        verbose = FALSE,
+        max.cells.per.ident = ncol(x = object),
+        ...
+      )))
+      rownames(x = results.fast) <- NULL
+      rownames(x = results.loop) <- NULL
+      expect_equal(results.fast, results.loop)
+    }
+    expect_findallmarkers_fast_equal_loop(pbmc_small, pseudocount.use = 1)
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      fc.slot = "counts",
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      latent.vars = "groups",
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      sct.obj,
+      pseudocount.use = 1,
+      vst.flavor = "v1"
+    )
+  })
   test_that("BPCells FindAllMarkers gives same results", {
     skip_if_not_installed("BPCells")
     library(BPCells)
