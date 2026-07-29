@@ -5235,7 +5235,7 @@ ScaleData.default <- function(
   # subsetting, sparse transpose and dense intermediate copies that dominate on
   # large data. Feature selection happens inside C++ (via `features`), so we
   # operate on the full (un-subset) matrix here. `nthreads > 1` enables
-  # RcppParallel threading; the progress bar is shown only on the serial path.
+  # RcppThread threading, with thread-safe progress updates when verbose is TRUE.
   if (
     is.null(x = vars.to.regress) &&
     is.null(x = latent.data) &&

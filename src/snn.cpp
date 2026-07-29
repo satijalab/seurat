@@ -1,19 +1,20 @@
 #include <RcppEigen.h>
-#include <RcppParallel.h>
+#include <RcppThread.h>
 #include <algorithm>
 #include <limits>
 #include <numeric>
+#include <thread>
 #include <utility>
 
 using namespace Rcpp;
 
 // [[Rcpp::depends(RcppEigen)]]
-// [[Rcpp::depends(RcppParallel)]]
+// [[Rcpp::depends(RcppThread)]]
 
 typedef Eigen::Triplet<double> T;
 
-// Store the row-parallel SNN overlap state in an RcppParallel worker.
-struct SNNOverlapWorker : public RcppParallel::Worker {
+// Store the row-parallel SNN overlap state in a worker-local scratch object.
+struct SNNOverlapWorker {
   // Read-only, column-major, 0-based neighbor matrix flattened from R input.
   const std::vector<int>& nn_buf;
 
@@ -60,19 +61,7 @@ struct SNNOverlapWorker : public RcppParallel::Worker {
     triplets.reserve(static_cast<size_t>(k) * 64);
   }
 
-  // Build split workers for RcppParallel; each split owns fresh mutable buffers.
-  SNNOverlapWorker(
-    const SNNOverlapWorker& other,
-    RcppParallel::Split
-  ) : nn_buf(other.nn_buf), offsets(other.offsets), postings(other.postings), n(other.n), k(other.k), k_d(other.k_d), prune(other.prune), overlap(other.n, 0) {
-    // Reserve the same single-row touched capacity in every split worker.
-    touched.reserve(static_cast<size_t>(k) * k);
-
-    // Reserve a small local triplet buffer; it grows only in the worker that needs it.
-    triplets.reserve(static_cast<size_t>(k) * 64);
-  }
-
-  // Process a contiguous range of query rows assigned by RcppParallel.
+  // Process a contiguous range of query rows assigned by RcppThread.
   void operator()(std::size_t begin, std::size_t end) {
     // Walk each query row owned by this worker.
     for (std::size_t row = begin; row < end; ++row) {
@@ -127,12 +116,7 @@ struct SNNOverlapWorker : public RcppParallel::Worker {
 
 // Compute an SNN graph from a 1-based nearest-neighbor rank matrix.
 // [[Rcpp::export(rng = false)]]
-S4 ComputeSNN(IntegerMatrix nn_ranked, double prune, int nthreads = -1) {
-  // Reject zero because RcppParallel uses -1 for "default" and positive values for explicit limits.
-  if (nthreads == 0 || nthreads < -1) {
-    stop("nthreads must be -1 for the RcppParallel default or a positive integer");
-  }
-
+S4 ComputeSNN(IntegerMatrix nn_ranked, double prune, int nthreads) {
   // Store the number of graph nodes from the matrix row count.
   const int n = nn_ranked.nrow();
 
@@ -194,36 +178,46 @@ S4 ComputeSNN(IntegerMatrix nn_ranked, double prune, int nthreads = -1) {
     }
   }
 
-  // Construct the RcppParallel worker with shared read-only inputs and worker-local mutable state.
-  SNNOverlapWorker worker(nn_buf, offsets, postings, n, k, prune);
+  const int chunks = std::max(1, std::min(n, nthreads * 8));
+  std::vector<SNNOverlapWorker> workers;
+  workers.reserve(chunks);
+  for (int chunk = 0; chunk < chunks; ++chunk) {
+    workers.emplace_back(nn_buf, offsets, postings, n, k, prune);
+  }
 
-  // Process rows in parallel; nthreads lets callers cap this SNN computation only.
-  RcppParallel::parallelReduce(
-    static_cast<std::size_t>(0),
-    static_cast<std::size_t>(n),
-    worker,
-    64,
-    nthreads
-  );
+  RcppThread::parallelFor(0, chunks, [&](int chunk) {
+    const int begin = (n * chunk) / chunks;
+    const int end = (n * (chunk + 1)) / chunks;
+    workers[chunk](begin, end);
+  }, nthreads);
 
-  if (worker.triplets.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+  std::vector<T> triplets;
+  size_t triplet_count = 0;
+  for (int chunk = 0; chunk < chunks; ++chunk) {
+    triplet_count += workers[chunk].triplets.size();
+  }
+  if (triplet_count > static_cast<size_t>(std::numeric_limits<int>::max())) {
     stop("SNN graph has too many non-zero entries for a dgCMatrix");
+  }
+  triplets.reserve(triplet_count);
+  for (int chunk = 0; chunk < chunks; ++chunk) {
+    triplets.insert(triplets.end(), workers[chunk].triplets.begin(), workers[chunk].triplets.end());
   }
 
   std::sort(
-    worker.triplets.begin(),
-    worker.triplets.end(),
+    triplets.begin(),
+    triplets.end(),
     [](const T& lhs, const T& rhs) {
       return lhs.col() == rhs.col() ? lhs.row() < rhs.row() : lhs.col() < rhs.col();
     }
   );
 
-  const int nnz = static_cast<int>(worker.triplets.size());
+  const int nnz = static_cast<int>(triplets.size());
   IntegerVector i(nnz);
   IntegerVector p(n + 1);
   NumericVector x(nnz);
 
-  for (const T& entry : worker.triplets) {
+  for (const T& entry : triplets) {
     ++p[entry.col() + 1];
   }
   for (int col = 0; col < n; ++col) {
@@ -231,7 +225,7 @@ S4 ComputeSNN(IntegerMatrix nn_ranked, double prune, int nthreads = -1) {
   }
 
   std::vector<int> cursor(p.begin(), p.end());
-  for (const T& entry : worker.triplets) {
+  for (const T& entry : triplets) {
     const int offset = cursor[entry.col()]++;
     i[offset] = entry.row();
     x[offset] = entry.value();

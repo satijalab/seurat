@@ -1,5 +1,5 @@
 #include <RcppEigen.h>
-#include <RcppParallel.h>
+#include <RcppThread.h>
 #include <progress.hpp>
 #include <algorithm>
 #include <cmath>
@@ -9,11 +9,10 @@
 #include <Rinternals.h>
 
 using namespace Rcpp;
-using namespace RcppParallel;
 
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RcppProgress)]]
-// [[Rcpp::depends(RcppParallel)]]
+// [[Rcpp::depends(RcppThread)]]
 
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample = false, bool display_progress=true){
@@ -130,7 +129,7 @@ inline void LogNormColumn(const int col, const int *ip, const double *rx, double
 }
 
 // worker struct for parallel processing
-struct LogNormWorker : public RcppParallel::Worker {
+struct LogNormWorker {
   const int *ip;
   const double *rx;
   double *ro;
@@ -158,19 +157,15 @@ inline void LogNormSerial(const int num_cols, const int *ip, const double *rx, d
 
 inline void LogNormParallel(const int num_cols, const int *ip, const double *rx, double *ro, const int scale_factor, const int nthreads, const bool display_progress) {
   if (display_progress) {
-    Progress prog(num_cols, true);
-    LogNormWorker worker(ip, rx, ro, scale_factor);
-    // show ~100 progress increments
-    // use at least 512 columns per block to avoid too many small calls
-    const int block_size = std::max(512, num_cols / 100);
-    for (int i = 0; i < num_cols; i += block_size) {
-      const int end = std::min(i + block_size, num_cols);
-      RcppParallel::parallelFor(i, end, worker, 1, nthreads);
-      prog.increment(end - i);
-    }
+    RcppThread::ProgressBar bar(num_cols, 1);
+    RcppThread::parallelFor(0, num_cols, [&](int col) {
+      LogNormColumn(col, ip, rx, ro, scale_factor);
+      bar++;
+    }, nthreads);
   } else {
-    LogNormWorker worker(ip, rx, ro, scale_factor);
-    RcppParallel::parallelFor(0, num_cols, worker, 1, nthreads);
+    RcppThread::parallelFor(0, num_cols, [&](int col) {
+      LogNormColumn(col, ip, rx, ro, scale_factor);
+    }, nthreads);
   }
 }
 
@@ -256,10 +251,10 @@ static inline void scale_sparse_column(
   }
 }
 
-// RcppParallel worker: scales a contiguous range of columns. Only reads raw
+// RcppThread worker: scales a contiguous range of columns. Only reads raw
 // C pointers / std::vector data captured below, so it never touches the R API
 // from a worker thread.
-struct SparseScaleWorker : public RcppParallel::Worker {
+struct SparseScaleWorker {
   double* out;
   const int* i; const int* p; const double* x;
   const int* gmap;
@@ -378,15 +373,21 @@ NumericMatrix FastSparseRowScale(NumericVector x,
       progress.increment();
     }
   } else {
-    // Parallel path (RcppParallel): no progress bar, because RcppProgress cannot
-    // safely tick from worker threads. Columns are independent, so we simply
-    // split the cell range across the requested number of threads.
-    SparseScaleWorker worker(out_ptr, ip, pp, xp, gmap.data(), mu.data(),
-                             inv_sigma.data(), zero_value.data(), valid.data(),
-                             n_sel, clip, scale_max);
-    const std::size_t grain = std::max<std::size_t>(
-      1, static_cast<std::size_t>(cols) / (static_cast<std::size_t>(nthreads) * 8));
-    RcppParallel::parallelFor(0, cols, worker, grain, nthreads);
+    if (display_progress) {
+      RcppThread::ProgressBar bar(cols, 1);
+      RcppThread::parallelFor(0, cols, [&](int col) {
+        scale_sparse_column(col, out_ptr, ip, pp, xp, gmap.data(), mu.data(),
+                            inv_sigma.data(), zero_value.data(), valid.data(),
+                            n_sel, clip, scale_max);
+        bar++;
+      }, nthreads);
+    } else {
+      RcppThread::parallelFor(0, cols, [&](int col) {
+        scale_sparse_column(col, out_ptr, ip, pp, xp, gmap.data(), mu.data(),
+                            inv_sigma.data(), zero_value.data(), valid.data(),
+                            n_sel, clip, scale_max);
+      }, nthreads);
+    }
   }
   return out;
 }
@@ -414,7 +415,7 @@ static inline void scale_dense_column(
   }
 }
 
-struct DenseScaleWorker : public RcppParallel::Worker {
+struct DenseScaleWorker {
   double* out; const double* mat; const int* sel;
   const double* mu; const double* inv_sigma; const char* valid;
   const int n_sel; const int full_rows; const bool clip; const double scale_max;
@@ -514,13 +515,21 @@ NumericMatrix FastDenseRowScale(
       progress.increment();
     }
   } else {
-    // Parallel path (RcppParallel): no progress bar; split columns across threads.
-    DenseScaleWorker worker(out_ptr, mat_ptr, sel.data(), mu.data(),
-                            inv_sigma.data(), valid.data(), n_sel, full_rows,
-                            clip, scale_max);
-    const std::size_t grain = std::max<std::size_t>(
-      1, static_cast<std::size_t>(cols) / (static_cast<std::size_t>(nthreads) * 8));
-    RcppParallel::parallelFor(0, cols, worker, grain, nthreads);
+    if (display_progress) {
+      RcppThread::ProgressBar bar(cols, 1);
+      RcppThread::parallelFor(0, cols, [&](int col) {
+        scale_dense_column(col, out_ptr, mat_ptr, sel.data(), mu.data(),
+                           inv_sigma.data(), valid.data(), n_sel, full_rows,
+                           clip, scale_max);
+        bar++;
+      }, nthreads);
+    } else {
+      RcppThread::parallelFor(0, cols, [&](int col) {
+        scale_dense_column(col, out_ptr, mat_ptr, sel.data(), mu.data(),
+                           inv_sigma.data(), valid.data(), n_sel, full_rows,
+                           clip, scale_max);
+      }, nthreads);
+    }
   }
   return out;
 }
@@ -604,7 +613,7 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
 }
 
 
-struct SparseRowMeanVarWorker : public Worker {
+struct SparseRowMeanVarWorker {
   const int* p;
   const int* i;
   const double* x;
@@ -619,17 +628,16 @@ struct SparseRowMeanVarWorker : public Worker {
     const int rows
   ) : p(p), i(i), x(x), rows(rows), sum(rows, 0.0), sumsq(rows, 0.0) {}
 
-  SparseRowMeanVarWorker(const SparseRowMeanVarWorker& other, Split)
-    : p(other.p), i(other.i), x(other.x), rows(other.rows),
-      sum(rows, 0.0), sumsq(rows, 0.0) {}
-
-  void operator()(std::size_t begin, std::size_t end) {
+  void operator()(std::size_t begin, std::size_t end, RcppThread::ProgressBar* bar = NULL) {
     for (std::size_t col = begin; col < end; ++col) {
       for (int idx = p[col]; idx < p[col + 1]; ++idx) {
         const int row = i[idx];
         const double value = x[idx];
         sum[row] += value;
         sumsq[row] += value * value;
+      }
+      if (bar != NULL) {
+        (*bar)++;
       }
     }
   }
@@ -642,7 +650,7 @@ struct SparseRowMeanVarWorker : public Worker {
   }
 };
 
-struct SparseRowVarStdWorker : public Worker {
+struct SparseRowVarStdWorker {
   const int* p;
   const int* i;
   const double* x;
@@ -666,12 +674,7 @@ struct SparseRowVarStdWorker : public Worker {
   ) : p(p), i(i), x(x), mu(mu), inv_sd(inv_sd), clip_threshold(clip_threshold),
       vmax(vmax), rows(rows), sumsq(rows, 0.0), nnz(rows, 0) {}
 
-  SparseRowVarStdWorker(const SparseRowVarStdWorker& other, Split)
-    : p(other.p), i(other.i), x(other.x), mu(other.mu), inv_sd(other.inv_sd),
-      clip_threshold(other.clip_threshold), vmax(other.vmax), rows(other.rows),
-      sumsq(rows, 0.0), nnz(rows, 0) {}
-
-  void operator()(std::size_t begin, std::size_t end) {
+  void operator()(std::size_t begin, std::size_t end, RcppThread::ProgressBar* bar = NULL) {
     for (std::size_t col = begin; col < end; ++col) {
       for (int idx = p[col]; idx < p[col + 1]; ++idx) {
         const int row = i[idx];
@@ -688,6 +691,9 @@ struct SparseRowVarStdWorker : public Worker {
         sumsq[row] += value_sq;
         nnz[row] += 1;
       }
+      if (bar != NULL) {
+        (*bar)++;
+      }
     }
   }
 
@@ -698,6 +704,10 @@ struct SparseRowVarStdWorker : public Worker {
     }
   }
 };
+
+static inline int thread_chunk_count(const int nitems, const int nthreads) {
+  return std::max(1, std::min(nitems, nthreads));
+}
 
 inline void SparseRowMeanVarParallel(
   NumericVector means,
@@ -712,33 +722,44 @@ inline void SparseRowMeanVarParallel(
 ) {
   const double cols_d = static_cast<double>(cols);
   const double denom = static_cast<double>(cols - 1);
-  const int block_size = std::max(512, cols / 100);
+  const int chunks = thread_chunk_count(cols, nthreads);
+  std::vector<SparseRowMeanVarWorker> workers;
+  workers.reserve(chunks);
+  for (int chunk = 0; chunk < chunks; ++chunk) {
+    workers.emplace_back(p_ptr, i_ptr, x_ptr, rows);
+  }
 
   if (display_progress) {
-    Progress prog(cols + rows, true);
-    for (int begin = 0; begin < cols; begin += block_size) {
-      const int end = std::min(begin + block_size, cols);
-      SparseRowMeanVarWorker worker(p_ptr, i_ptr, x_ptr, rows);
-      parallelReduce(begin, end, worker, 1, nthreads);
-      for (int row = 0; row < rows; ++row) {
-        REAL(means)[row] += worker.sum[row];
-        REAL(vars)[row] += worker.sumsq[row];
-      }
-      prog.increment(end - begin);
-    }
+    RcppThread::ProgressBar bar(cols, 1);
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (cols * chunk) / chunks;
+      const int end = (cols * (chunk + 1)) / chunks;
+      workers[chunk](begin, end, &bar);
+    }, chunks);
     for (int row = 0; row < rows; ++row) {
-      prog.increment();
+      for (int chunk = 0; chunk < chunks; ++chunk) {
+        REAL(means)[row] += workers[chunk].sum[row];
+        REAL(vars)[row] += workers[chunk].sumsq[row];
+      }
       const double sum = REAL(means)[row];
       REAL(means)[row] = sum / cols_d;
       REAL(vars)[row] = (REAL(vars)[row] - (sum * sum / cols_d)) / denom;
     }
   } else {
-    SparseRowMeanVarWorker worker(p_ptr, i_ptr, x_ptr, rows);
-    parallelReduce(0, cols, worker, 1, nthreads);
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (cols * chunk) / chunks;
+      const int end = (cols * (chunk + 1)) / chunks;
+      workers[chunk](begin, end);
+    }, chunks);
     for (int row = 0; row < rows; ++row) {
-      const double sum = worker.sum[row];
+      double sum = 0.0;
+      double sumsq = 0.0;
+      for (int chunk = 0; chunk < chunks; ++chunk) {
+        sum += workers[chunk].sum[row];
+        sumsq += workers[chunk].sumsq[row];
+      }
       REAL(means)[row] = sum / cols_d;
-      REAL(vars)[row] = (worker.sumsq[row] - (sum * sum / cols_d)) / denom;
+      REAL(vars)[row] = (sumsq - (sum * sum / cols_d)) / denom;
     }
   }
 }
@@ -760,27 +781,27 @@ inline void SparseRowVarStdParallel(
   const bool display_progress
 ) {
   const double denom = static_cast<double>(cols - 1);
-  const int block_size = std::max(512, cols / 100);
+  const int chunks = thread_chunk_count(cols, nthreads);
+  std::vector<SparseRowVarStdWorker> workers;
+  workers.reserve(chunks);
+  for (int chunk = 0; chunk < chunks; ++chunk) {
+    workers.emplace_back(
+      p_ptr, i_ptr, x_ptr, mu_ptr, inv_sd_ptr, clip_threshold_ptr, vmax, rows
+    );
+  }
 
   if (display_progress) {
-    Progress prog(rows + cols + rows, true);
+    RcppThread::ProgressBar bar(cols, 1);
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (cols * chunk) / chunks;
+      const int end = (cols * (chunk + 1)) / chunks;
+      workers[chunk](begin, end, &bar);
+    }, chunks);
     for (int row = 0; row < rows; ++row) {
-      prog.increment();
-    }
-    for (int begin = 0; begin < cols; begin += block_size) {
-      const int end = std::min(begin + block_size, cols);
-      SparseRowVarStdWorker worker(
-        p_ptr, i_ptr, x_ptr, mu_ptr, inv_sd_ptr, clip_threshold_ptr, vmax, rows
-      );
-      parallelReduce(begin, end, worker, 1, nthreads);
-      for (int row = 0; row < rows; ++row) {
-        REAL(vars)[row] += worker.sumsq[row];
-        INTEGER(nnz)[row] += worker.nnz[row];
+      for (int chunk = 0; chunk < chunks; ++chunk) {
+        REAL(vars)[row] += workers[chunk].sumsq[row];
+        INTEGER(nnz)[row] += workers[chunk].nnz[row];
       }
-      prog.increment(end - begin);
-    }
-    for (int row = 0; row < rows; ++row) {
-      prog.increment();
       if (inv_sd_ptr[row] == 0.0) {
         continue;
       }
@@ -788,16 +809,23 @@ inline void SparseRowVarStdParallel(
       REAL(vars)[row] = (REAL(vars)[row] + (zero_value_sq_ptr[row] * nzero)) / denom;
     }
   } else {
-    SparseRowVarStdWorker worker(
-      p_ptr, i_ptr, x_ptr, mu_ptr, inv_sd_ptr, clip_threshold_ptr, vmax, rows
-    );
-    parallelReduce(0, cols, worker, 1, nthreads);
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (cols * chunk) / chunks;
+      const int end = (cols * (chunk + 1)) / chunks;
+      workers[chunk](begin, end);
+    }, chunks);
     for (int row = 0; row < rows; ++row) {
       if (inv_sd_ptr[row] == 0.0) {
         continue;
       }
-      const int nzero = cols - worker.nnz[row];
-      REAL(vars)[row] = (worker.sumsq[row] + (zero_value_sq_ptr[row] * nzero)) / denom;
+      double sumsq = 0.0;
+      int nnz_row = 0;
+      for (int chunk = 0; chunk < chunks; ++chunk) {
+        sumsq += workers[chunk].sumsq[row];
+        nnz_row += workers[chunk].nnz[row];
+      }
+      const int nzero = cols - nnz_row;
+      REAL(vars)[row] = (sumsq + (zero_value_sq_ptr[row] * nzero)) / denom;
     }
   }
 }

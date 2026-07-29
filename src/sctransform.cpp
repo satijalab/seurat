@@ -1,5 +1,5 @@
 #include <Rcpp.h>
-#include <RcppParallel.h>
+#include <RcppThread.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -7,7 +7,7 @@
 
 using namespace Rcpp;
 
-// [[Rcpp::depends(RcppParallel)]]
+// [[Rcpp::depends(RcppThread)]]
 
 inline double sct_model_var(double mu, double theta) {
   if (R_finite(theta)) {
@@ -48,7 +48,7 @@ inline S4 sct_corrected_matrix(
 
 // Reducer for per-gene residual mean/variance across a range of cells (columns).
 // Writes no shared output; accumulates per-row sums that are merged in join().
-struct SCTStatsReducer : public RcppParallel::Worker {
+struct SCTStatsReducer {
   const int* p;
   const int* i;
   const double* x;
@@ -85,15 +85,6 @@ struct SCTStatsReducer : public RcppParallel::Worker {
       residual_clip_min(residual_clip_min), residual_clip_max(residual_clip_max),
       residual_sum(rows, 0.0), residual_sq_sum(rows, 0.0) {}
 
-  SCTStatsReducer(const SCTStatsReducer& other, RcppParallel::Split)
-    : p(other.p), i(other.i), x(other.x), rows(other.rows),
-      log_umi_ptr(other.log_umi_ptr), theta_ptr(other.theta_ptr),
-      slope_ptr(other.slope_ptr), exp_intercept(other.exp_intercept),
-      common_slope(other.common_slope), first_slope(other.first_slope),
-      min_var(other.min_var), residual_clip_min(other.residual_clip_min),
-      residual_clip_max(other.residual_clip_max),
-      residual_sum(other.rows, 0.0), residual_sq_sum(other.rows, 0.0) {}
-
   void operator()(std::size_t begin, std::size_t end) {
     for (std::size_t col = begin; col < end; ++col) {
       int ptr = p[col];
@@ -128,6 +119,10 @@ struct SCTStatsReducer : public RcppParallel::Worker {
     }
   }
 };
+
+static inline int sct_thread_chunk_count(const int nitems, const int nthreads) {
+  return std::max(1, std::min(nitems, nthreads));
+}
 
 // [[Rcpp::export(rng = false)]]
 List SCTResidualStatsAndCorrected(
@@ -188,7 +183,24 @@ List SCTResidualStatsAndCorrected(
     min_var, residual_clip_min, residual_clip_max
   );
   if (n_threads > 1 && cols > 1) {
-    RcppParallel::parallelReduce(0, cols, reducer, 1, n_threads);
+    const int chunks = sct_thread_chunk_count(cols, n_threads);
+    std::vector<SCTStatsReducer> reducers;
+    reducers.reserve(chunks);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      reducers.emplace_back(
+        p_ptr, i_ptr, x_ptr, rows, log_umi_ptr, theta_ptr, slope_ptr,
+        exp_intercept, common_slope, first_slope,
+        min_var, residual_clip_min, residual_clip_max
+      );
+    }
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (cols * chunk) / chunks;
+      const int end = (cols * (chunk + 1)) / chunks;
+      reducers[chunk](begin, end);
+    }, chunks);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      reducer.join(reducers[chunk]);
+    }
   } else {
     reducer(0, cols);
   }
@@ -255,7 +267,7 @@ List SCTResidualStatsAndCorrected(
 
 // Reducer that fills the dense residual matrix (disjoint columns) and, as a
 // side reduction, accumulates the per-row sums used for optional centering.
-struct SCTResidualMatrixReducer : public RcppParallel::Worker {
+struct SCTResidualMatrixReducer {
   double* out_ptr;
   const int selected;
   const int* p;
@@ -301,18 +313,6 @@ struct SCTResidualMatrixReducer : public RcppParallel::Worker {
     local_touched.reserve(selected);
   }
 
-  SCTResidualMatrixReducer(const SCTResidualMatrixReducer& other, RcppParallel::Split)
-    : out_ptr(other.out_ptr), selected(other.selected), p(other.p), i(other.i),
-      x(other.x), log_umi_ptr(other.log_umi_ptr),
-      selected_exp_intercept(other.selected_exp_intercept),
-      selected_slope(other.selected_slope), selected_theta(other.selected_theta),
-      selected_min_var(other.selected_min_var), row_to_selected(other.row_to_selected),
-      common_slope(other.common_slope), first_slope(other.first_slope),
-      clip_min(other.clip_min), clip_max(other.clip_max),
-      local_y(other.selected, 0.0), row_sum(other.selected, 0.0) {
-    local_touched.reserve(other.selected);
-  }
-
   void operator()(std::size_t begin, std::size_t end) {
     for (std::size_t col = begin; col < end; ++col) {
       local_touched.clear();
@@ -355,7 +355,7 @@ struct SCTResidualMatrixReducer : public RcppParallel::Worker {
 };
 
 // Worker that subtracts each selected gene's residual mean (centering).
-struct SCTCenterWorker : public RcppParallel::Worker {
+struct SCTCenterWorker {
   double* out_ptr;
   const int selected;
   const std::vector<double>& row_sum;
@@ -438,7 +438,24 @@ NumericMatrix SCTPearsonResidualMatrix(
     row_to_selected, common_slope, first_slope, clip_min, clip_max
   );
   if (run_parallel) {
-    RcppParallel::parallelReduce(0, cols, reducer, 1, n_threads);
+    const int chunks = sct_thread_chunk_count(cols, n_threads);
+    std::vector<SCTResidualMatrixReducer> reducers;
+    reducers.reserve(chunks);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      reducers.emplace_back(
+        out_ptr, selected, p_ptr, i_ptr, x_ptr, log_umi_ptr,
+        selected_exp_intercept, selected_slope, selected_theta, selected_min_var,
+        row_to_selected, common_slope, first_slope, clip_min, clip_max
+      );
+    }
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (cols * chunk) / chunks;
+      const int end = (cols * (chunk + 1)) / chunks;
+      reducers[chunk](begin, end);
+    }, chunks);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      reducer.join(reducers[chunk]);
+    }
   } else {
     reducer(0, cols);
   }
@@ -446,7 +463,9 @@ NumericMatrix SCTPearsonResidualMatrix(
   if (do_center) {
     SCTCenterWorker center(out_ptr, selected, reducer.row_sum, 1.0 / static_cast<double>(cols));
     if (run_parallel) {
-      RcppParallel::parallelFor(0, cols, center, 1, n_threads);
+      RcppThread::parallelFor(0, cols, [&](int col) {
+        center(col, col + 1);
+      }, n_threads);
     } else {
       center(0, cols);
     }

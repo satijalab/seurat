@@ -9,7 +9,7 @@
 #include <RcppEigen.h>
 #include <Rcpp.h>
 #include <progress.hpp>
-#include <RcppParallel.h>
+#include <RcppThread.h>
 
 #include "ModularityOptimizer.h"
 
@@ -81,7 +81,7 @@ std::shared_ptr<Network> matrixToNetworkRcpp(SEXP SNN, int modularityFunction) {
   return matrixToNetwork(node1, node2, edgeweights, modularityFunction, nNodes);
 }
 
-struct ModularityRestartWorker : public RcppParallel::Worker {
+struct ModularityRestartWorker {
   std::shared_ptr<Network> network;
   double resolution;
   int algorithm;
@@ -98,7 +98,7 @@ struct ModularityRestartWorker : public RcppParallel::Worker {
       nIterations(nIterations), randomSeed(randomSeed),
       startModularity(startModularity), startClustering(startClustering) {}
 
-  void operator()(std::size_t begin, std::size_t end) {
+  void operator()(std::size_t begin, std::size_t end, RcppThread::ProgressBar* bar = NULL) {
     // Each restart owns its VOSClusteringTechnique and JavaRandom stream, and
     // writes to restart-indexed output slots. The shared Network is read-only.
     for (std::size_t s = begin; s < end; ++s) {
@@ -116,6 +116,9 @@ struct ModularityRestartWorker : public RcppParallel::Worker {
       } while ((it < nIterations) && upd);
       startModularity[s] = mod;
       startClustering[s] = vos.getClustering();
+      if (bar != NULL) {
+        (*bar)++;
+      }
     }
   }
 };
@@ -177,7 +180,16 @@ IntegerVector RunModularityClusteringCppOnNetwork(std::shared_ptr<Network> netwo
     std::vector<std::shared_ptr<Clustering>> startClustering(nRandomStarts);
     ModularityRestartWorker worker(network, resolution2, algorithm, nIterations, randomSeed,
                                        startModularity, startClustering);
-    RcppParallel::parallelFor(0, nRandomStarts, worker, 1, nWorkers);
+    if (printOutput) {
+      RcppThread::ProgressBar bar(nRandomStarts, 1);
+      RcppThread::parallelFor(0, nRandomStarts, [&](int restart) {
+        worker(restart, restart + 1, &bar);
+      }, nWorkers);
+    } else {
+      RcppThread::parallelFor(0, nRandomStarts, [&](int restart) {
+        worker(restart, restart + 1);
+      }, nWorkers);
+    }
     for (int i = 0; i < nRandomStarts; i++) {
       if (startModularity[i] > maxModularity) {
         maxModularity = startModularity[i];
@@ -207,7 +219,7 @@ IntegerVector RunModularityClusteringCppOnNetwork(std::shared_ptr<Network> netwo
   return iv;
 }
 
-// [[Rcpp::depends(RcppParallel)]]
+// [[Rcpp::depends(RcppThread)]]
 // [[Rcpp::export]]
 IntegerVector RunModularityClusteringCpp(SEXP SNN,
     int modularityFunction,
@@ -269,7 +281,7 @@ IntegerVector RunModularityClusteringCpp(SEXP SNN,
   );
 }
 
-// [[Rcpp::depends(RcppParallel)]]
+// [[Rcpp::depends(RcppThread)]]
 // [[Rcpp::export]]
 List RunModularityClusteringCpp_multi(SEXP SNN,
     int modularityFunction,

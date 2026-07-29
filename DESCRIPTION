@@ -74,7 +74,7 @@ Imports:
     Rcpp (>= 1.0.7),
     RcppAnnoy (>= 0.0.18),
     RcppHNSW,
-    RcppParallel,
+    RcppThread,
     reticulate,
     rlang,
     ROCR,
@@ -128,7 +128,7 @@ Suggests:
     SummarizedExperiment,
     testthat,
     VGAM
-LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress, RcppParallel, RSpectra
+LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress, RcppThread, RSpectra
 SystemRequirements: GNU make
 BuildManual: true
 Encoding: UTF-8

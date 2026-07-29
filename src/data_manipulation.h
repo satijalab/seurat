@@ -2,7 +2,7 @@
 #define DATA_MANIPULATION
 
 #include <RcppEigen.h>
-#include <RcppParallel.h>
+#include <RcppThread.h>
 #include <progress.hpp>
 #include <cmath>
 #include <unordered_map>

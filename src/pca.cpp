@@ -1,5 +1,5 @@
 #include <RcppEigen.h>
-#include <RcppParallel.h>
+#include <RcppThread.h>
 // CHANGE: Spectra (header-only, Eigen-native; the library RSpectra wraps) gives a
 // partial *top-k* symmetric eigensolver. The previous full SelfAdjointEigenSolver
 // computed all nfeatures eigenpairs even though only npcs are needed, an O(nfeatures^3)
@@ -13,12 +13,13 @@
 
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RSpectra)]]
-// [[Rcpp::depends(RcppParallel)]]
+// [[Rcpp::depends(RcppThread)]]
 
 using namespace Rcpp;
 
 // CHANGE: multithreading for the two dense GEMM-like stages of the Gram path
-// (Gram formation and embeddings), via RcppParallel (TBB) — the same threading
+// (Gram formation and embeddings), via RcppThread, independent of OpenMP or any
+// threaded BLAS.
 // vehicle ScaleData_fast uses, and independent of OpenMP / any threaded BLAS.
 // Both workers write DISJOINT output regions (columns of the Gram / rows of the
 // embeddings), so no reduction is needed and each output entry is a single dot
@@ -32,7 +33,7 @@ using namespace Rcpp;
 // rows of X by the block's rows and copy each column's lower part into XtX. Only
 // the lower triangle is filled, exactly as the previous rankUpdate<Lower> did, and
 // that is what Spectra::DenseSymMatProd / SelfAdjointEigenSolver read below.
-struct GramWorker : public RcppParallel::Worker {
+struct GramWorker {
   const Eigen::Map<Eigen::MatrixXd> X;  // nfeatures x ncells (lightweight view)
   Eigen::MatrixXd& XtX;                 // nfeatures x nfeatures, lower triangle
   const int nfeatures;
@@ -59,7 +60,7 @@ struct GramWorker : public RcppParallel::Worker {
 
 // Stage 3: embeddings = X' U (ncells x npcs), parallelized over cells (rows of the
 // output). Each thread computes a disjoint block of embedding rows.
-struct EmbeddingWorker : public RcppParallel::Worker {
+struct EmbeddingWorker {
   const Eigen::Map<Eigen::MatrixXd> X;  // nfeatures x ncells
   const Eigen::MatrixXd& loadings;      // nfeatures x npcs
   Eigen::MatrixXd& embeddings;          // ncells x npcs
@@ -88,7 +89,7 @@ struct EmbeddingWorker : public RcppParallel::Worker {
 // this is numerically indistinguishable from exact.
 //
 // `nthreads` (default 1) threads the two GEMM-like stages (Gram + embeddings) via
-// RcppParallel; nthreads <= 1 keeps the original serial Eigen expressions.
+// RcppThread; nthreads <= 1 keeps the original serial Eigen expressions.
 //
 // [[Rcpp::export(rng = false)]]
 List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
@@ -104,13 +105,15 @@ List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
   if (nthreads <= 1) {
     XtX.selfadjointView<Eigen::Lower>().rankUpdate(object);
   } else {
-    // Parallel Gram by output-column blocks (see GramWorker). Fine grain lets TBB
+    // Parallel Gram by output-column blocks (see GramWorker). Fine grain lets RcppThread
     // balance the unequal per-column work of a triangular fill.
     GramWorker gram_worker(object, XtX);
-    const std::size_t grain = std::max<std::size_t>(
-      1, static_cast<std::size_t>(nfeatures) /
-           (static_cast<std::size_t>(nthreads) * 8));
-    RcppParallel::parallelFor(0, nfeatures, gram_worker, grain, nthreads);
+    const int chunks = std::max(1, std::min(nfeatures, nthreads * 8));
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (nfeatures * chunk) / chunks;
+      const int end = (nfeatures * (chunk + 1)) / chunks;
+      gram_worker(begin, end);
+    }, nthreads);
   }
 
   // The loadings are the top npcs eigenvectors of XX' (descending) and d the
@@ -161,10 +164,12 @@ List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
     embeddings.noalias() = object.transpose() * loadings;
   } else {
     EmbeddingWorker emb_worker(object, loadings, embeddings);
-    const std::size_t grain = std::max<std::size_t>(
-      1, static_cast<std::size_t>(ncells) /
-           (static_cast<std::size_t>(nthreads) * 8));
-    RcppParallel::parallelFor(0, ncells, emb_worker, grain, nthreads);
+    const int chunks = std::max(1, std::min(ncells, nthreads * 8));
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (ncells * chunk) / chunks;
+      const int end = (ncells * (chunk + 1)) / chunks;
+      emb_worker(begin, end);
+    }, nthreads);
   }
   if (!weight_by_var) {
     for (int j = 0; j < npcs; ++j) {
