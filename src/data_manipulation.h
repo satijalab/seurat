@@ -35,6 +35,12 @@ Eigen::VectorXd FastRowMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
+List SparseRowMeanVarLegacy(NumericVector x,
+                            IntegerVector i,
+                            IntegerVector p,
+                            int rows,
+                            int cols,
+                            bool display_progress);
 List SparseRowMeanVar(NumericVector x,
                       IntegerVector i,
                       IntegerVector p,
@@ -42,6 +48,16 @@ List SparseRowMeanVar(NumericVector x,
                       int cols,
                       int nthreads,
                       bool display_progress);
+NumericVector SparseRowVarStdLegacyRows(NumericVector x,
+                                        IntegerVector i,
+                                        IntegerVector p,
+                                        NumericVector mu,
+                                        NumericVector sd,
+                                        double vmax,
+                                        int rows,
+                                        int cols,
+                                        IntegerVector rows_use,
+                                        bool display_progress);
 NumericVector SparseRowVarStd(NumericVector x,
                               IntegerVector i,
                               IntegerVector p,

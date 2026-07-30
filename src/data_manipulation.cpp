@@ -1012,6 +1012,114 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
   return out;
 }
 
+/* Calculate row means and variances using the legacy sparse variance arithmetic.
+   This keeps the old floating-point behavior for VST ranking while avoiding a
+   separate R rowMeans pass. */
+// [[Rcpp::export(rng = false)]]
+List SparseRowMeanVarLegacy(NumericVector x,
+                            IntegerVector i,
+                            IntegerVector p,
+                            int rows,
+                            int cols,
+                            bool display_progress){
+  NumericVector means(rows);
+  NumericVector vars(rows);
+  IntegerVector nnz(rows);
+  const double* x_ptr = REAL(x);
+  const int* i_ptr = INTEGER(i);
+  const R_xlen_t x_size = x.size();
+  const double cols_d = static_cast<double>(cols);
+  const double denom = static_cast<double>(cols - 1);
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene means and variances" << std::endl;
+  }
+  Progress prog((2 * x_size) + rows, display_progress);
+  for (R_xlen_t idx = 0; idx < x_size; ++idx) {
+    if(display_progress == true){
+      prog.increment();
+    }
+    const int row = i_ptr[idx];
+    means[row] += x_ptr[idx];
+  }
+  for (int row = 0; row < rows; ++row) {
+    means[row] /= cols_d;
+  }
+  for (R_xlen_t idx = 0; idx < x_size; ++idx) {
+    if(display_progress == true){
+      prog.increment();
+    }
+    const int row = i_ptr[idx];
+    vars[row] += pow(x_ptr[idx] - means[row], 2);
+    nnz[row] += 1;
+  }
+  for (int row = 0; row < rows; ++row) {
+    if(display_progress == true){
+      prog.increment();
+    }
+    vars[row] = (vars[row] + (cols - nnz[row]) * pow(means[row], 2)) / denom;
+  }
+  return List::create(
+    _["mean"] = means,
+    _["variance"] = vars
+  );
+}
+
+/* Recalculate standardized variances for selected rows using the legacy sparse
+   accumulation order. rows_use is zero-based. */
+// [[Rcpp::export(rng = false)]]
+NumericVector SparseRowVarStdLegacyRows(NumericVector x,
+                                        IntegerVector i,
+                                        IntegerVector p,
+                                        NumericVector mu,
+                                        NumericVector sd,
+                                        double vmax,
+                                        int rows,
+                                        int cols,
+                                        IntegerVector rows_use,
+                                        bool display_progress){
+  NumericVector vars(rows_use.size());
+  IntegerVector nnz(rows_use.size());
+  std::vector<int> row_map(rows, -1);
+  const double* x_ptr = REAL(x);
+  const int* i_ptr = INTEGER(i);
+  const R_xlen_t x_size = x.size();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating selected feature variances of standardized and clipped values" << std::endl;
+  }
+  for (R_xlen_t j=0; j<rows_use.size(); ++j){
+    const int row = rows_use[j];
+    if (row >= 0 && row < rows) {
+      row_map[row] = j;
+    }
+  }
+  Progress prog(x_size + rows_use.size(), display_progress);
+  for (R_xlen_t idx = 0; idx < x_size; ++idx) {
+    if(display_progress == true){
+      prog.increment();
+    }
+    const int row = i_ptr[idx];
+    const int j = row_map[row];
+    if (j < 0 || sd[row] == 0 || R_IsNA(sd[row])) {
+      continue;
+    }
+    vars[j] += pow(std::min(vmax, (x_ptr[idx] - mu[row]) / sd[row]), 2);
+    nnz[j] += 1;
+  }
+  for (R_xlen_t j=0; j<rows_use.size(); ++j){
+    if(display_progress == true){
+      prog.increment();
+    }
+    const int k = rows_use[j];
+    if (k < 0 || k >= rows || sd[k] == 0 || R_IsNA(sd[k])) {
+      continue;
+    }
+    vars[j] = (
+      vars[j] + (pow((0 - mu[k]) / sd[k], 2) * (cols - nnz[j]))
+    ) / (cols - 1);
+  }
+  return vars;
+}
+
 /* Calculate the variance in non-logspace (return answer in non-logspace) */
 // [[Rcpp::export(rng = false)]]
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress){

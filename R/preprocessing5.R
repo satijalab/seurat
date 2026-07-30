@@ -534,23 +534,21 @@ VST.IterableMatrix <- function(
   object,
   loess.span = 0.3,
   clip.max = "auto",
+  nselect = NULL,
   verbose = TRUE
 ) {
   if (clip.max == "auto" || is.null(x = clip.max)) {
     clip.max <- sqrt(x = ncol(x = object))
   }
   nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
-  hvf.info <- as.data.frame(
-    x = SparseRowMeanVar(
-      x = object@x,
-      i = object@i,
-      p = object@p,
-      rows = nrow(x = object),
-      cols = ncol(x = object),
-      nthreads = nthreads,
-      display_progress = verbose
-    )
-  )
+  hvf.info <- as.data.frame(x = SparseRowMeanVarLegacy(
+    x = object@x,
+    i = object@i,
+    p = object@p,
+    rows = nrow(x = object),
+    cols = ncol(x = object),
+    display_progress = verbose
+  ))
   rownames(x = hvf.info) <- rownames(x = object)
   hvf.info$variance.expected <- 0
   not.const <- hvf.info$variance > 0
@@ -572,7 +570,50 @@ VST.IterableMatrix <- function(
     nthreads = nthreads,
     display_progress = verbose
   )
+  if (!is.null(x = nselect)) {
+    nselect <- min(as.integer(x = nselect), nrow(x = hvf.info))
+    rank.candidates <- .VSTLegacyRankCandidates(
+      scores = hvf.info$variance.standardized,
+      nselect = nselect
+    )
+    if (length(x = rank.candidates) > 0) {
+      hvf.info$variance.standardized[rank.candidates] <- SparseRowVarStdLegacyRows(
+        x = object@x,
+        i = object@i,
+        p = object@p,
+        mu = hvf.info$mean,
+        sd = sqrt(x = hvf.info$variance.expected),
+        vmax = clip.max,
+        rows = nrow(x = object),
+        cols = ncol(x = object),
+        rows_use = as.integer(x = rank.candidates - 1L),
+        display_progress = FALSE
+      )
+    }
+  }
   return(hvf.info)
+}
+
+.VSTLegacyRankCandidates <- function(
+  scores,
+  nselect,
+  tolerance = 1e-10,
+  scan.extra = 500L,
+  boundary.window = 100L
+) {
+  if (nselect <= 0L || length(x = scores) == 0L) {
+    return(integer(length = 0L))
+  }
+  ord <- order(scores, decreasing = TRUE)
+  scan.end <- min(length(x = ord), nselect + scan.extra)
+  scan <- ord[seq_len(length.out = scan.end)]
+  gaps <- abs(x = diff(x = scores[scan]))
+  near <- which(x = gaps <= tolerance)
+  boundary <- seq.int(
+    from = max(1L, nselect - boundary.window),
+    to = min(length(x = ord), nselect + boundary.window)
+  )
+  unique(x = c(scan[near], scan[near + 1L], ord[boundary]))
 }
 
 #' @importFrom Matrix rowMeans
@@ -595,6 +636,7 @@ VST.dgCMatrix <- function(
     object = data,
     loess.span = span,
     clip.max = clip,
+    nselect = nselect,
     verbose = verbose
   )
   # Set variable features

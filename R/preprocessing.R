@@ -4526,6 +4526,7 @@ FindVariableFeatures.V3Matrix <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 ) {
@@ -4541,6 +4542,7 @@ FindVariableFeatures.V3Matrix <- function(
       object = object,
       loess.span = loess.span,
       clip.max = clip.max,
+      nselect = nfeatures,
       verbose = verbose
     )
     colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))

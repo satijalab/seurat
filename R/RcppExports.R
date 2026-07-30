@@ -61,6 +61,14 @@ SparseRowMeanVar <- function(x, i, p, rows, cols, nthreads, display_progress) {
     .Call('_Seurat_SparseRowMeanVar', PACKAGE = 'Seurat', x, i, p, rows, cols, nthreads, display_progress)
 }
 
+SparseRowMeanVarLegacy <- function(x, i, p, rows, cols, display_progress) {
+    .Call('_Seurat_SparseRowMeanVarLegacy', PACKAGE = 'Seurat', x, i, p, rows, cols, display_progress)
+}
+
+SparseRowVarStdLegacyRows <- function(x, i, p, mu, sd, vmax, rows, cols, rows_use, display_progress) {
+    .Call('_Seurat_SparseRowVarStdLegacyRows', PACKAGE = 'Seurat', x, i, p, mu, sd, vmax, rows, cols, rows_use, display_progress)
+}
+
 SparseRowVarStd <- function(x, i, p, mu, sd, rows, cols, vmax, nthreads, display_progress) {
     .Call('_Seurat_SparseRowVarStd', PACKAGE = 'Seurat', x, i, p, mu, sd, rows, cols, vmax, nthreads, display_progress)
 }
@@ -132,4 +140,3 @@ row_mean_dgcmatrix <- function(x, i, rows, cols) {
 row_var_dgcmatrix <- function(x, i, rows, cols) {
     .Call('_Seurat_row_var_dgcmatrix', PACKAGE = 'Seurat', x, i, rows, cols)
 }
-
