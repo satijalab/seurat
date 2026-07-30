@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>vibe-learn — seurat — 2026-07-30</title>
+  <style>
+    :root{
+      --bg:#faf9f5; --surface:#f1efe7; --surface-2:#e8e6dc;
+      --text:#141413; --muted:#706f68; --line:#d8d4c8;
+      --accent:#d97757; --accent-blue:#6a9bcc; --accent-green:#788c5d;
+      --danger:#9f3d32; --warning:#b5792a; --success:#617a4b;
+      --radius:8px; --shadow:0 1px 3px rgba(20,20,19,.1);
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 Lora,Georgia,serif;overflow-x:hidden;}
+    a{color:var(--accent-blue);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;}
+    h1,h2,h3,h4{font-family:Poppins,Arial,sans-serif;font-weight:700;line-height:1.15;margin:0 0 12px;}
+    h1{font-size:clamp(22px,3vw,36px);}
+    h2{font-size:20px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:20px;}
+    h3{font-size:15px;}
+    p{margin:0 0 10px;}
+    strong.tl-type{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+
+    /* Site header */
+    .site-header{background:var(--surface);border-bottom:1px solid var(--line);padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;}
+    .header-left .eyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.03em;}
+    .header-left .eyebrow a{color:var(--muted);}
+    .header-left .eyebrow a:hover{color:var(--text);text-decoration:none;}
+    .header-left .goal{color:var(--muted);font-size:14px;margin:4px 0 0;overflow-wrap:anywhere;word-break:break-word;}
+
+    /* Two-column layout */
+    .layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:40px;max-width:1180px;margin:0 auto;padding:32px;}
+    .layout>*{min-width:0;}
+
+    /* Sticky nav */
+    nav{position:sticky;top:24px;align-self:start;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;display:grid;gap:2px;}
+    nav a{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;color:var(--muted);transition:background .1s,color .1s;}
+    nav a:hover,nav a.active{background:var(--surface-2);color:var(--text);text-decoration:none;}
+    nav .nbadge{background:var(--surface-2);border-radius:999px;padding:1px 6px;font-size:10px;min-width:18px;text-align:center;}
+    nav a.active .nbadge{background:var(--accent);color:#fff;}
+
+    /* Sections */
+    section{margin-bottom:40px;scroll-margin-top:24px;}
+
+    /* Buttons */
+    .actions{display:flex;gap:8px;flex-wrap:wrap;}
+    button,.button{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:var(--radius);padding:8px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;text-decoration:none;cursor:pointer;box-shadow:var(--shadow);transition:background .1s,color .1s;}
+    button:hover,.button:hover{background:var(--surface-2);}
+    button.primary,.button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+    button.primary:hover,.button.primary:hover{opacity:.9;}
+
+    /* Overview / Session brief */
+    .brief-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+    .brief-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+    .brief-card h3{font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;}
+    .brief-card .bvalue{font-size:28px;font-weight:700;font-family:Poppins,Arial,sans-serif;line-height:1;margin-bottom:6px;}
+    .brief-card .bvalue.ok{color:var(--success);}
+    .brief-card .bvalue.warn{color:var(--warning);}
+    .brief-card .bvalue.danger{color:var(--danger);}
+    .brief-card .bdetail{font-size:13px;color:var(--muted);line-height:1.4;}
+    .summary-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-height:320px;overflow-y:auto;}
+
+    /* Timeline */
+    .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+    .filters button{padding:5px 11px;font-size:11px;}
+    .filters button.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+    ol.timeline{list-style:none;padding:0;margin:0;display:grid;gap:8px;}
+    ol.timeline li{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:11px 14px;display:flex;gap:12px;align-items:flex-start;}
+    ol.timeline li p{margin:4px 0 0;color:var(--muted);font-size:13px;overflow-wrap:anywhere;word-break:break-word;}
+    .dot{flex-shrink:0;width:10px;height:10px;border-radius:999px;margin-top:3px;background:var(--accent);}
+    .dot.command{background:var(--accent-blue);}
+    .dot.file{background:var(--accent-green);}
+    .tl-body{min-width:0;flex:1;}
+
+    /* File tour */
+    ul.list{list-style:none;padding:0;margin:0;display:grid;gap:6px;}
+    .file-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:9px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;max-width:100%;}
+    .fpath{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+    .pill{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;border-radius:999px;padding:2px 7px;border:1px solid;white-space:nowrap;}
+    .pill.action-created{background:#e8f0e1;color:var(--success);border-color:#c8d8b8;}
+    .pill.action-edited{background:#e8eef5;color:#4a7aa8;border-color:#c0d0e0;}
+    .pill.action-deleted{background:#fde8e4;color:var(--danger);border-color:#f0c8c0;}
+    .area{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;border-radius:4px;padding:2px 6px;border:1px solid;white-space:nowrap;}
+    .area-tests{background:#e8f0e1;color:var(--success);border-color:#c8d8b8;}
+    .area-adapter{background:#e8eef5;color:#4a7aa8;border-color:#c0d0e0;}
+    .area-script{background:#f3ede0;color:#8a6830;border-color:#ddd0b0;}
+    .area-config{background:#ece7f0;color:#6a4a88;border-color:#ccc0d8;}
+    .area-docs{background:var(--surface-2);color:var(--muted);border-color:var(--line);}
+    .area-auth{background:#fde8e4;color:var(--danger);border-color:#f0c8c0;}
+    .area-database{background:#e4f0e8;color:#4a7a3d;border-color:#b8d8c0;}
+    .area-source{background:var(--surface);color:var(--muted);border-color:var(--line);}
+
+    /* Command log */
+    .command-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:9px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;min-width:0;max-width:100%;}
+    .command-row.fail{border-color:rgba(159,61,50,.4);background:#f8ece9;}
+    .cmd-text{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+    .status{flex-shrink:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;border-radius:999px;padding:2px 7px;border:1px solid var(--line);background:var(--surface-2);}
+    .fail .status{color:var(--danger);border-color:rgba(159,61,50,.35);background:#fde8e4;}
+    .ok .status{color:var(--success);border-color:#c8d8b8;background:#e8f0e1;}
+
+    /* Code excerpts */
+    .diff-wrapper{position:relative;}
+    .diff-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
+    pre{white-space:pre;overflow-x:auto;background:#1e1c18;color:#e8e4d8;border-radius:var(--radius);padding:18px;max-height:560px;overflow-y:auto;margin:0;font-size:12px;line-height:1.55;tab-size:2;}
+    pre .dh{color:#6a6860;display:block;}
+    pre .dk{color:#6a9bcc;display:block;font-weight:600;}
+    pre .da{color:#7db368;display:block;background:rgba(90,138,74,.13);}
+    pre .dd{color:#c07070;display:block;background:rgba(192,80,80,.12);}
+    pre .dc{color:#c8c4b4;display:block;}
+
+    /* Study queue */
+    .study-list{display:grid;gap:8px;}
+    .study-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;font-size:14px;transition:background .1s;}
+    .study-item:hover{background:var(--surface-2);}
+    .study-item input[type=checkbox]{width:15px;height:15px;flex-shrink:0;margin-top:2px;accent-color:var(--accent);}
+    .study-item.priority{border-left:3px solid var(--warning);padding-left:13px;}
+    .study-item span{line-height:1.55;overflow-wrap:anywhere;}
+
+    /* Audio export */
+    .pack-preview{max-height:320px;font-size:11.5px;}
+    .export-intro{font-size:14px;color:var(--muted);margin-bottom:14px;}
+
+    /* Responsive */
+    @media(max-width:840px){
+      .site-header{padding:16px 20px;}
+      .layout{display:block;padding:20px;}
+      nav{position:static;display:flex;flex-wrap:wrap;gap:4px;margin-bottom:24px;}
+      nav a{flex:0 0 auto;}
+      .brief-grid{grid-template-columns:1fr 1fr;}
+    }
+    @media(max-width:520px){
+      .brief-grid{grid-template-columns:1fr;}
+      .command-row{display:block;}
+      .status{display:inline-block;margin-top:6px;}
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-left">
+      <div class="eyebrow"><a href="../index.html">vibe-learn</a> / seurat / 2026-07-30</div>
+      <h1>Session briefing</h1>
+      <p class="goal">delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit</p>
+    </div>
+    <div class="actions">
+      <a class="button primary" href="../exports/2026-07-30-seurat-c68cb6cc-f0f0-4347-806b-26ac966b45b2-notebooklm-pack.md" download>NotebookLM pack</a>
+      <button type="button" data-copy-pack>Copy source pack</button>
+      <button type="button" data-copy-prompt>Copy audio prompt</button>
+      <a class="button" href="../index.html">← Index</a>
+    </div>
+  </header>
+  <div class="layout">
+    <nav aria-label="Sections">
+      <a href="#overview">Session brief</a>
+      <a href="#timeline">Timeline <span class="nbadge" id="tl-count"></span></a>
+      <a href="#files">Files <span class="nbadge">0</span></a>
+      <a href="#commands">Commands <span class="nbadge">16</span></a>
+      <a href="#code">Code excerpts</a>
+      <a href="#study">Study queue</a>
+      <a href="#audio">Audio export</a>
+    </nav>
+    <main>
+
+      <section id="overview">
+        <h2>Session brief</h2>
+        <div class="brief-grid">
+          <div class="brief-card">
+            <h3>What changed</h3>
+            <div class="bvalue">0</div>
+            <div class="bdetail">0 created · 0 edited · 0 deleted</div>
+          </div>
+          <div class="brief-card">
+            <h3>Why it matters</h3>
+            <div class="bdetail" style="margin-top:4px;">These files shape the parts of the system you may need to debug, extend, or support.</div>
+          </div>
+          <div class="brief-card">
+            <h3>Inspect first</h3>
+            <div class="bdetail" style="margin-top:4px;">Adapter, script, config, auth, db, and test files — in that order.</div>
+          </div>
+          <div class="brief-card">
+            <h3>What could break</h3>
+            <div class="bvalue ok">0</div>
+            <div class="bdetail">no failures detected</div>
+          </div>
+        </div>
+        <div class="summary-panel">⏸ vibe-learn — what just happened:
+Goal: delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit
+
+  ✦ Ran: cd /home/reyes/seurat
+# 1. Delete old parallel-ci branch (planning-only, safe)
+git branch -D parallel-ci 2&gt;&amp;1
+echo &quot;--- deleted old parallel-ci ---&quot;
+# 2. Rename worktree-parallel-ci -&gt; parallel-ci loc
+  ✦ Ran: cd /home/reyes/seurat
+# Push new name with tracking, then delete old remote branch
+git push -u origin parallel-ci 2&gt;&amp;1 | tail -6
+echo &quot;--- deleting stale remote worktree-parallel-ci ---&quot;
+git push orig
+
+ /learn [question]  ·  /digest  ·  vibe-learn briefing  ·  vibe-learn audio-prep</div>
+      </section>
+
+      <section id="timeline">
+        <h2>Session Timeline</h2>
+        <div class="filters">
+          <button type="button" class="active" data-filter="all">All</button>
+          <button type="button" data-filter="file">Files</button>
+          <button type="button" data-filter="command">Commands</button>
+          <button type="button" data-filter="prompt">Prompts</button>
+        </div>
+        <ol class="timeline" data-timeline><li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>merge the branch back to main so I can open a PR</p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git status &amp;&amp; echo &quot;---BRANCHES---&quot; &amp;&amp; git branch -a &amp;&amp; echo &quot;---LOG---&quot; &amp;&amp; git log --oneline -10</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;=== worktree-parallel-ci log ===&quot; &amp;&amp; git log --oneline worktree-parallel-ci -10 &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;=== main vs worktree-parallel-ci ===&quot; &amp;&amp; git log --oneline main..worktree-parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== main vs parallel-ci ===&quot; &amp;&amp; git log --oneline main..parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;=== where is main ===&quot; &amp;&amp; git rev-parse main &amp;&amp; echo &quot;=== where is parallel-ci ===&quot; &amp;&amp; git rev-parse parallel-ci &amp;&amp; echo &quot;=== parallel-ci..main (main ahead of parallel-ci) ===&quot; &amp;&amp; git log --onel</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;=== planning commits (in main, not in worktree base) ===&quot; &amp;&amp; git log --oneline 79c466c0..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== files those commits touched ===&quot; &amp;&amp; git diff --stat 79c466c0 main &amp;&amp; echo &quot;&quot;</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git restore --staged .claude/worktrees/parallel-ci 2&gt;&amp;1; echo &quot;--- status after unstage ---&quot;; git status --short</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git checkout main 2&gt;&amp;1 &amp;&amp; echo &quot;--- on main now ---&quot; &amp;&amp; git merge --no-ff --no-commit worktree-parallel-ci 2&gt;&amp;1; echo &quot;--- exit: $? ---&quot;; git status --short</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;=== planning docs still tracked? ===&quot; &amp;&amp; git ls-files docs/superpowers/ &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== full staged diff stat vs HEAD ===&quot; &amp;&amp; git diff --cached --stat HEAD</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git commit --no-edit 2&gt;&amp;1 | tail -5; echo &quot;--- result log ---&quot;; git log --oneline -5</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;=== main vs origin/main ===&quot; &amp;&amp; git log --oneline origin/main..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== key files present on main ===&quot; &amp;&amp; git ls-files | grep -E &quot;Dockerfile|parallel_checks.yaml|parallel_smo</code></p></div></li>
+<li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>yes merge on my local main. Would the worktree-parallel-ci branch show in my repo? I want it to show as another branch</p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;=== local branches ===&quot; &amp;&amp; git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remote branches ===&quot; &amp;&amp; git branch -r</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>cd /home/reyes/seurat &amp;&amp; git worktree remove .claude/worktrees/parallel-ci --force 2&gt;&amp;1 &amp;&amp; echo &quot;--- worktree removed ---&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== branch is now free ===&quot; &amp;&amp; git b</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git push -u origin worktree-parallel-ci 2&gt;&amp;1 | tail -15</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remotes ===&quot; &amp;&amp; git branch -r</code></p></div></li>
+<li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit</p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>cd /home/reyes/seurat
+# 1. Delete old parallel-ci branch (planning-only, safe)
+git branch -D parallel-ci 2&gt;&amp;1
+echo &quot;--- deleted old parallel-ci ---&quot;
+# 2. Rename worktree-parallel-ci -&gt; parallel-ci loc</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>cd /home/reyes/seurat
+# Push new name with tracking, then delete old remote branch
+git push -u origin parallel-ci 2&gt;&amp;1 | tail -6
+echo &quot;--- deleting stale remote worktree-parallel-ci ---&quot;
+git push orig</code></p></div></li></ol>
+      </section>
+
+      <section id="files">
+        <h2>File Tour</h2>
+        <ul class="list"></ul>
+      </section>
+
+      <section id="commands">
+        <h2>Command Log</h2>
+        <ul class="list"><li class="command-row ok" data-kind="command"><code class="cmd-text">git status &amp;&amp; echo &quot;---BRANCHES---&quot; &amp;&amp; git branch -a &amp;&amp; echo &quot;---LOG---&quot; &amp;&amp; git log --oneline -10</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;=== worktree-parallel-ci log ===&quot; &amp;&amp; git log --oneline worktree-parallel-ci -10 &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;=== main vs worktree-parallel-ci ===&quot; &amp;&amp; git log --oneline main..worktree-parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== main vs parallel-ci ===&quot; &amp;&amp; git log --oneline main..parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;=== where is main ===&quot; &amp;&amp; git rev-parse main &amp;&amp; echo &quot;=== where is parallel-ci ===&quot; &amp;&amp; git rev-parse parallel-ci &amp;&amp; echo &quot;=== parallel-ci..main (main ahead of parallel-ci) ===&quot; &amp;&amp; git log --onel</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;=== planning commits (in main, not in worktree base) ===&quot; &amp;&amp; git log --oneline 79c466c0..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== files those commits touched ===&quot; &amp;&amp; git diff --stat 79c466c0 main &amp;&amp; echo &quot;&quot;</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git restore --staged .claude/worktrees/parallel-ci 2&gt;&amp;1; echo &quot;--- status after unstage ---&quot;; git status --short</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git checkout main 2&gt;&amp;1 &amp;&amp; echo &quot;--- on main now ---&quot; &amp;&amp; git merge --no-ff --no-commit worktree-parallel-ci 2&gt;&amp;1; echo &quot;--- exit: $? ---&quot;; git status --short</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;=== planning docs still tracked? ===&quot; &amp;&amp; git ls-files docs/superpowers/ &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== full staged diff stat vs HEAD ===&quot; &amp;&amp; git diff --cached --stat HEAD</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git commit --no-edit 2&gt;&amp;1 | tail -5; echo &quot;--- result log ---&quot;; git log --oneline -5</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;=== main vs origin/main ===&quot; &amp;&amp; git log --oneline origin/main..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== key files present on main ===&quot; &amp;&amp; git ls-files | grep -E &quot;Dockerfile|parallel_checks.yaml|parallel_smo</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;=== local branches ===&quot; &amp;&amp; git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remote branches ===&quot; &amp;&amp; git branch -r</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">cd /home/reyes/seurat &amp;&amp; git worktree remove .claude/worktrees/parallel-ci --force 2&gt;&amp;1 &amp;&amp; echo &quot;--- worktree removed ---&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== branch is now free ===&quot; &amp;&amp; git b</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git push -u origin worktree-parallel-ci 2&gt;&amp;1 | tail -15</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remotes ===&quot; &amp;&amp; git branch -r</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">cd /home/reyes/seurat\n# 1. Delete old parallel-ci branch (planning-only, safe)\ngit branch -D parallel-ci 2&gt;&amp;1\necho &quot;--- deleted old parallel-ci ---&quot;\n# 2. Rename worktree-parallel-ci -&gt; parallel-ci loc</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">cd /home/reyes/seurat\n# Push new name with tracking, then delete old remote branch\ngit push -u origin parallel-ci 2&gt;&amp;1 | tail -6\necho &quot;--- deleting stale remote worktree-parallel-ci ---&quot;\ngit push orig</code><span class="status">exit 0</span></li></ul>
+      </section>
+
+      <section id="code">
+        <h2>Code Excerpts</h2>
+        <div class="diff-wrapper">
+          <div class="diff-toolbar">
+            <button type="button" data-copy-diff>Copy diff</button>
+          </div>
+          <pre id="diff-pre"><span class="dc">No git diff excerpt was available when the session briefing was generated.</span></pre>
+        </div>
+      </section>
+
+      <section id="study">
+        <h2>Study Queue</h2>
+        <div class="study-list"><label class="study-item"><input type="checkbox"><span>Read through each changed file and explain its purpose in your own words.</span></label>
+<label class="study-item"><input type="checkbox"><span>No automated test run was observed — confirm the changed behavior is covered by tests.</span></label></div>
+      </section>
+
+      <section id="audio">
+        <h2>Audio Export</h2>
+        <p class="export-intro">Upload the source pack to NotebookLM to generate a maintainer-focused audio overview — no setup required.</p>
+        <div class="actions" style="margin-bottom:14px;">
+          <a class="button primary" href="../exports/2026-07-30-seurat-c68cb6cc-f0f0-4347-806b-26ac966b45b2-notebooklm-pack.md" download>Download NotebookLM pack</a>
+          <button type="button" data-copy-pack>Copy source pack</button>
+          <button type="button" data-copy-prompt>Copy audio prompt</button>
+        </div>
+        <pre class="pack-preview"># Session Briefing Source Pack
+
+Project: seurat
+Session date: 2026-07-30
+Session id: c68cb6cc-f0f0-4347-806b-26ac966b45b2
+Generated: 2026-07-30T16:43:45Z
+Goal: delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit
+
+## What changed
+
+- Files created: 0
+- Files edited: 0
+- Files deleted: 0
+- Commands run: 16
+- Failed commands: 0
+
+## Why it matters
+
+This pack is generated from the vibe-learn session log. Use it to understand
+what the agent changed, which files deserve inspection, and what you should be
+ready to debug or extend.
+
+## Timeline
+
+- Prompt: merge the branch back to main so I can open a PR
+- Command: git status &amp;&amp; echo &quot;---BRANCHES---&quot; &amp;&amp; git branch -a &amp;&amp; echo &quot;---LOG---&quot; &amp;&amp; git log --oneline -10 (exit 0)
+- Command: echo &quot;=== worktree-parallel-ci log ===&quot; &amp;&amp; git log --oneline worktree-parallel-ci -10 &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list (exit 0)
+- Command: echo &quot;=== main vs worktree-parallel-ci ===&quot; &amp;&amp; git log --oneline main..worktree-parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== main vs parallel-ci ===&quot; &amp;&amp; git log --oneline main..parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot; (exit 0)
+- Command: echo &quot;=== where is main ===&quot; &amp;&amp; git rev-parse main &amp;&amp; echo &quot;=== where is parallel-ci ===&quot; &amp;&amp; git rev-parse parallel-ci &amp;&amp; echo &quot;=== parallel-ci..main (main ahead of parallel-ci) ===&quot; &amp;&amp; git log --onel (exit 0)
+- Command: echo &quot;=== planning commits (in main, not in worktree base) ===&quot; &amp;&amp; git log --oneline 79c466c0..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== files those commits touched ===&quot; &amp;&amp; git diff --stat 79c466c0 main &amp;&amp; echo &quot;&quot; (exit 0)
+- Command: git restore --staged .claude/worktrees/parallel-ci 2&gt;&amp;1; echo &quot;--- status after unstage ---&quot;; git status --short (exit 0)
+- Command: git checkout main 2&gt;&amp;1 &amp;&amp; echo &quot;--- on main now ---&quot; &amp;&amp; git merge --no-ff --no-commit worktree-parallel-ci 2&gt;&amp;1; echo &quot;--- exit: $? ---&quot;; git status --short (exit 0)
+- Command: echo &quot;=== planning docs still tracked? ===&quot; &amp;&amp; git ls-files docs/superpowers/ &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== full staged diff stat vs HEAD ===&quot; &amp;&amp; git diff --cached --stat HEAD (exit 0)
+- Command: git commit --no-edit 2&gt;&amp;1 | tail -5; echo &quot;--- result log ---&quot;; git log --oneline -5 (exit 0)
+- Command: echo &quot;=== main vs origin/main ===&quot; &amp;&amp; git log --oneline origin/main..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== key files present on main ===&quot; &amp;&amp; git ls-files | grep -E &quot;Dockerfile|parallel_checks.yaml|parallel_smo (exit 0)
+- Prompt: yes merge on my local main. Would the worktree-parallel-ci branch show in my repo? I want it to show as another branch
+- Command: echo &quot;=== local branches ===&quot; &amp;&amp; git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remote branches ===&quot; &amp;&amp; git branch -r (exit 0)
+- Command: cd /home/reyes/seurat &amp;&amp; git worktree remove .claude/worktrees/parallel-ci --force 2&gt;&amp;1 &amp;&amp; echo &quot;--- worktree removed ---&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== branch is now free ===&quot; &amp;&amp; git b (exit 0)
+- Command: git push -u origin worktree-parallel-ci 2&gt;&amp;1 | tail -15 (exit 0)
+- Command: git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remotes ===&quot; &amp;&amp; git branch -r (exit 0)
+- Prompt: delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit
+- Command: cd /home/reyes/seurat
+# 1. Delete old parallel-ci branch (planning-only, safe)
+git branch -D parallel-ci 2&gt;&amp;1
+echo &quot;--- deleted old parallel-ci ---&quot;
+# 2. Rename worktree-parallel-ci -&gt; parallel-ci loc (exit 0)
+- Command: cd /home/reyes/seurat
+# Push new name with tracking, then delete old remote branch
+git push -u origin parallel-ci 2&gt;&amp;1 | tail -6
+echo &quot;--- deleting stale remote worktree-parallel-ci ---&quot;
+git push orig (exit 0)
+
+## Important files
+
+### Created
+
+
+### Edited
+
+
+### Deleted
+
+
+## Commands and failures
+
+- git status &amp;&amp; echo &quot;---BRANCHES---&quot; &amp;&amp; git branch -a &amp;&amp; echo &quot;---LOG---&quot; &amp;&amp; git log --oneline -10 (exit 0)
+- echo &quot;=== worktree-parallel-ci log ===&quot; &amp;&amp; git log --oneline worktree-parallel-ci -10 &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list (exit 0)
+- echo &quot;=== main vs worktree-parallel-ci ===&quot; &amp;&amp; git log --oneline main..worktree-parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== main vs parallel-ci ===&quot; &amp;&amp; git log --oneline main..parallel-ci &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot; (exit 0)
+- echo &quot;=== where is main ===&quot; &amp;&amp; git rev-parse main &amp;&amp; echo &quot;=== where is parallel-ci ===&quot; &amp;&amp; git rev-parse parallel-ci &amp;&amp; echo &quot;=== parallel-ci..main (main ahead of parallel-ci) ===&quot; &amp;&amp; git log --onel (exit 0)
+- echo &quot;=== planning commits (in main, not in worktree base) ===&quot; &amp;&amp; git log --oneline 79c466c0..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== files those commits touched ===&quot; &amp;&amp; git diff --stat 79c466c0 main &amp;&amp; echo &quot;&quot; (exit 0)
+- git restore --staged .claude/worktrees/parallel-ci 2&gt;&amp;1; echo &quot;--- status after unstage ---&quot;; git status --short (exit 0)
+- git checkout main 2&gt;&amp;1 &amp;&amp; echo &quot;--- on main now ---&quot; &amp;&amp; git merge --no-ff --no-commit worktree-parallel-ci 2&gt;&amp;1; echo &quot;--- exit: $? ---&quot;; git status --short (exit 0)
+- echo &quot;=== planning docs still tracked? ===&quot; &amp;&amp; git ls-files docs/superpowers/ &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== full staged diff stat vs HEAD ===&quot; &amp;&amp; git diff --cached --stat HEAD (exit 0)
+- git commit --no-edit 2&gt;&amp;1 | tail -5; echo &quot;--- result log ---&quot;; git log --oneline -5 (exit 0)
+- echo &quot;=== main vs origin/main ===&quot; &amp;&amp; git log --oneline origin/main..main &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== key files present on main ===&quot; &amp;&amp; git ls-files | grep -E &quot;Dockerfile|parallel_checks.yaml|parallel_smo (exit 0)
+- echo &quot;=== local branches ===&quot; &amp;&amp; git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== worktrees ===&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remote branches ===&quot; &amp;&amp; git branch -r (exit 0)
+- cd /home/reyes/seurat &amp;&amp; git worktree remove .claude/worktrees/parallel-ci --force 2&gt;&amp;1 &amp;&amp; echo &quot;--- worktree removed ---&quot; &amp;&amp; git worktree list &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== branch is now free ===&quot; &amp;&amp; git b (exit 0)
+- git push -u origin worktree-parallel-ci 2&gt;&amp;1 | tail -15 (exit 0)
+- git branch -vv &amp;&amp; echo &quot;&quot; &amp;&amp; echo &quot;=== remotes ===&quot; &amp;&amp; git branch -r (exit 0)
+- cd /home/reyes/seurat\n# 1. Delete old parallel-ci branch (planning-only, safe)\ngit branch -D parallel-ci 2&gt;&amp;1\necho &quot;--- deleted old parallel-ci ---&quot;\n# 2. Rename worktree-parallel-ci -&gt; parallel-ci loc (exit 0)
+- cd /home/reyes/seurat\n# Push new name with tracking, then delete old remote branch\ngit push -u origin parallel-ci 2&gt;&amp;1 | tail -6\necho &quot;--- deleting stale remote worktree-parallel-ci ---&quot;\ngit push orig (exit 0)
+
+## Key code excerpts
+
+```diff
+
+```
+
+## Review questions
+
+- What changed in the main execution path?
+- Which touched files would I inspect first if the app broke?
+- Were tests or build checks run after the changes?
+- Did any command fail, and what follow-up does that imply?
+
+## Suggested audio framing
+
+Create a maintainer-focused audio overview. Explain what changed, why it
+matters, what to inspect first, and what could break. Assume the listener owns
+this codebase and needs enough technical depth to support it.</pre>
+      </section>
+
+    </main>
+  </div>
+  <script>
+    const packText = "# Session Briefing Source Pack\n\nProject: seurat\nSession date: 2026-07-30\nSession id: c68cb6cc-f0f0-4347-806b-26ac966b45b2\nGenerated: 2026-07-30T16:43:45Z\nGoal: delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit\n\n## What changed\n\n- Files created: 0\n- Files edited: 0\n- Files deleted: 0\n- Commands run: 16\n- Failed commands: 0\n\n## Why it matters\n\nThis pack is generated from the vibe-learn session log. Use it to understand\nwhat the agent changed, which files deserve inspection, and what you should be\nready to debug or extend.\n\n## Timeline\n\n- Prompt: merge the branch back to main so I can open a PR\n- Command: git status && echo \"---BRANCHES---\" && git branch -a && echo \"---LOG---\" && git log --oneline -10 (exit 0)\n- Command: echo \"=== worktree-parallel-ci log ===\" && git log --oneline worktree-parallel-ci -10 && echo \"\" && echo \"=== worktrees ===\" && git worktree list (exit 0)\n- Command: echo \"=== main vs worktree-parallel-ci ===\" && git log --oneline main..worktree-parallel-ci && echo \"\" && echo \"=== main vs parallel-ci ===\" && git log --oneline main..parallel-ci && echo \"\" && echo \" (exit 0)\n- Command: echo \"=== where is main ===\" && git rev-parse main && echo \"=== where is parallel-ci ===\" && git rev-parse parallel-ci && echo \"=== parallel-ci..main (main ahead of parallel-ci) ===\" && git log --onel (exit 0)\n- Command: echo \"=== planning commits (in main, not in worktree base) ===\" && git log --oneline 79c466c0..main && echo \"\" && echo \"=== files those commits touched ===\" && git diff --stat 79c466c0 main && echo \"\" (exit 0)\n- Command: git restore --staged .claude/worktrees/parallel-ci 2>&1; echo \"--- status after unstage ---\"; git status --short (exit 0)\n- Command: git checkout main 2>&1 && echo \"--- on main now ---\" && git merge --no-ff --no-commit worktree-parallel-ci 2>&1; echo \"--- exit: $? ---\"; git status --short (exit 0)\n- Command: echo \"=== planning docs still tracked? ===\" && git ls-files docs/superpowers/ && echo \"\" && echo \"=== full staged diff stat vs HEAD ===\" && git diff --cached --stat HEAD (exit 0)\n- Command: git commit --no-edit 2>&1 | tail -5; echo \"--- result log ---\"; git log --oneline -5 (exit 0)\n- Command: echo \"=== main vs origin/main ===\" && git log --oneline origin/main..main && echo \"\" && echo \"=== key files present on main ===\" && git ls-files | grep -E \"Dockerfile|parallel_checks.yaml|parallel_smo (exit 0)\n- Prompt: yes merge on my local main. Would the worktree-parallel-ci branch show in my repo? I want it to show as another branch\n- Command: echo \"=== local branches ===\" && git branch -vv && echo \"\" && echo \"=== worktrees ===\" && git worktree list && echo \"\" && echo \"=== remote branches ===\" && git branch -r (exit 0)\n- Command: cd /home/reyes/seurat && git worktree remove .claude/worktrees/parallel-ci --force 2>&1 && echo \"--- worktree removed ---\" && git worktree list && echo \"\" && echo \"=== branch is now free ===\" && git b (exit 0)\n- Command: git push -u origin worktree-parallel-ci 2>&1 | tail -15 (exit 0)\n- Command: git branch -vv && echo \"\" && echo \"=== remotes ===\" && git branch -r (exit 0)\n- Prompt: delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit\n- Command: cd /home/reyes/seurat\n# 1. Delete old parallel-ci branch (planning-only, safe)\ngit branch -D parallel-ci 2>&1\necho \"--- deleted old parallel-ci ---\"\n# 2. Rename worktree-parallel-ci -> parallel-ci loc (exit 0)\n- Command: cd /home/reyes/seurat\n# Push new name with tracking, then delete old remote branch\ngit push -u origin parallel-ci 2>&1 | tail -6\necho \"--- deleting stale remote worktree-parallel-ci ---\"\ngit push orig (exit 0)\n\n## Important files\n\n### Created\n\n\n### Edited\n\n\n### Deleted\n\n\n## Commands and failures\n\n- git status && echo \"---BRANCHES---\" && git branch -a && echo \"---LOG---\" && git log --oneline -10 (exit 0)\n- echo \"=== worktree-parallel-ci log ===\" && git log --oneline worktree-parallel-ci -10 && echo \"\" && echo \"=== worktrees ===\" && git worktree list (exit 0)\n- echo \"=== main vs worktree-parallel-ci ===\" && git log --oneline main..worktree-parallel-ci && echo \"\" && echo \"=== main vs parallel-ci ===\" && git log --oneline main..parallel-ci && echo \"\" && echo \" (exit 0)\n- echo \"=== where is main ===\" && git rev-parse main && echo \"=== where is parallel-ci ===\" && git rev-parse parallel-ci && echo \"=== parallel-ci..main (main ahead of parallel-ci) ===\" && git log --onel (exit 0)\n- echo \"=== planning commits (in main, not in worktree base) ===\" && git log --oneline 79c466c0..main && echo \"\" && echo \"=== files those commits touched ===\" && git diff --stat 79c466c0 main && echo \"\" (exit 0)\n- git restore --staged .claude/worktrees/parallel-ci 2>&1; echo \"--- status after unstage ---\"; git status --short (exit 0)\n- git checkout main 2>&1 && echo \"--- on main now ---\" && git merge --no-ff --no-commit worktree-parallel-ci 2>&1; echo \"--- exit: $? ---\"; git status --short (exit 0)\n- echo \"=== planning docs still tracked? ===\" && git ls-files docs/superpowers/ && echo \"\" && echo \"=== full staged diff stat vs HEAD ===\" && git diff --cached --stat HEAD (exit 0)\n- git commit --no-edit 2>&1 | tail -5; echo \"--- result log ---\"; git log --oneline -5 (exit 0)\n- echo \"=== main vs origin/main ===\" && git log --oneline origin/main..main && echo \"\" && echo \"=== key files present on main ===\" && git ls-files | grep -E \"Dockerfile|parallel_checks.yaml|parallel_smo (exit 0)\n- echo \"=== local branches ===\" && git branch -vv && echo \"\" && echo \"=== worktrees ===\" && git worktree list && echo \"\" && echo \"=== remote branches ===\" && git branch -r (exit 0)\n- cd /home/reyes/seurat && git worktree remove .claude/worktrees/parallel-ci --force 2>&1 && echo \"--- worktree removed ---\" && git worktree list && echo \"\" && echo \"=== branch is now free ===\" && git b (exit 0)\n- git push -u origin worktree-parallel-ci 2>&1 | tail -15 (exit 0)\n- git branch -vv && echo \"\" && echo \"=== remotes ===\" && git branch -r (exit 0)\n- cd /home/reyes/seurat\\n# 1. Delete old parallel-ci branch (planning-only, safe)\\ngit branch -D parallel-ci 2>&1\\necho \"--- deleted old parallel-ci ---\"\\n# 2. Rename worktree-parallel-ci -> parallel-ci loc (exit 0)\n- cd /home/reyes/seurat\\n# Push new name with tracking, then delete old remote branch\\ngit push -u origin parallel-ci 2>&1 | tail -6\\necho \"--- deleting stale remote worktree-parallel-ci ---\"\\ngit push orig (exit 0)\n\n## Key code excerpts\n\n```diff\n\n```\n\n## Review questions\n\n- What changed in the main execution path?\n- Which touched files would I inspect first if the app broke?\n- Were tests or build checks run after the changes?\n- Did any command fail, and what follow-up does that imply?\n\n## Suggested audio framing\n\nCreate a maintainer-focused audio overview. Explain what changed, why it\nmatters, what to inspect first, and what could break. Assume the listener owns\nthis codebase and needs enough technical depth to support it.\n";
+    const diffText = "";
+    const audioPrompt = "Create a maintainer-focused audio overview. Explain what changed, why it matters, what to inspect first, and what could break. Assume the listener owns this codebase and needs enough technical depth to support it.";
+
+    function copyText(text, button) {
+      if (!text) return;
+      navigator.clipboard?.writeText(text).then(() => {
+        const old = button.textContent;
+        const oldBg = button.style.background;
+        button.textContent = "Copied!";
+        button.style.background = "var(--accent-green)";
+        button.style.color = "#fff";
+        button.style.borderColor = "var(--accent-green)";
+        setTimeout(() => {
+          button.textContent = old;
+          button.style.background = oldBg;
+          button.style.color = "";
+          button.style.borderColor = "";
+        }, 1400);
+      });
+    }
+
+    document.querySelectorAll("[data-copy-pack]").forEach(b => b.addEventListener("click", () => copyText(packText, b)));
+    document.querySelectorAll("[data-copy-prompt]").forEach(b => b.addEventListener("click", () => copyText(audioPrompt, b)));
+    document.querySelectorAll("[data-copy-diff]").forEach(b => b.addEventListener("click", () => copyText(diffText, b)));
+
+    const tlItems = document.querySelectorAll("[data-timeline] li");
+    const tlCount = document.getElementById("tl-count");
+    if (tlCount) tlCount.textContent = tlItems.length;
+
+    document.querySelectorAll("[data-filter]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const f = btn.dataset.filter;
+        tlItems.forEach(li => { li.hidden = f !== "all" && li.dataset.kind !== f; });
+      });
+    });
+
+    const sections = document.querySelectorAll("section[id]");
+    const navLinks = document.querySelectorAll("nav a[href^='#']");
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting)
+          navLinks.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      });
+    }, { rootMargin: "-20% 0px -65% 0px" });
+    sections.forEach(s => obs.observe(s));
+  </script>
+</body>
+</html>

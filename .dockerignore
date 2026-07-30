@@ -1,8 +1,0 @@
-.git
-.github
-docs
-*.Rproj
-.Rproj.user
-.vibe-learn
-.remember
-vignettes/*.html

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>vibe-learn — seurat</title>
+  <style>
+    :root{--bg:#faf9f5;--surface:#f1efe7;--surface-2:#e8e6dc;--text:#141413;--muted:#706f68;--line:#d8d4c8;--accent:#d97757;--accent-blue:#6a9bcc;--danger:#9f3d32;--success:#617a4b;--radius:8px;--shadow:0 1px 3px rgba(20,20,19,.1);}
+    *{box-sizing:border-box;}
+    body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--text);font:16px/1.6 Lora,Georgia,serif;}
+    a{color:var(--accent-blue);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    h1,h2,h3{font-family:Poppins,Arial,sans-serif;font-weight:700;line-height:1.15;margin:0 0 10px;}
+    p{margin:0 0 8px;}
+    .muted{color:var(--muted);}
+    .site-header{background:var(--surface);border-bottom:1px solid var(--line);padding:28px 40px;}
+    .site-header h1{font-size:36px;margin-bottom:4px;}
+    .site-header p{color:var(--muted);font-size:15px;}
+    .layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:32px;max-width:1100px;margin:0 auto;padding:36px 40px;}
+    .layout>*{min-width:0;}
+    .sidebar-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;position:sticky;top:24px;max-width:100%;}
+    .sidebar-heading{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:14px;}
+    .stat-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);}
+    .stat-row:last-child{border:none;padding-bottom:0;}
+    .stat-label{font-size:13px;color:var(--muted);}
+    .stat-value{font-size:14px;font-weight:700;font-family:Poppins,Arial,sans-serif;overflow-wrap:anywhere;word-break:break-word;text-align:right;max-width:120px;}
+    .stat-value.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;}
+    .stat-value.danger{color:var(--danger);}
+    .stat-value.ok{color:var(--success);}
+    .cards{display:grid;gap:14px;}
+    .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);min-width:0;max-width:100%;transition:border-color .15s,box-shadow .15s;}
+    .card:hover{border-color:rgba(217,119,87,.5);box-shadow:0 2px 10px rgba(217,119,87,.12);}
+    .card-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+    .tag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;border-radius:4px;padding:2px 7px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap;}
+    .tag.danger{background:#fde8e4;color:var(--danger);border-color:#f0c8c0;}
+    .card-title{font-size:15px;margin-bottom:6px;overflow-wrap:anywhere;word-break:break-word;}
+    .card-goal{font-size:13px;color:var(--muted);margin-bottom:16px;overflow-wrap:anywhere;word-break:break-word;line-height:1.5;}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .button{border:1px solid var(--line);border-radius:var(--radius);padding:8px 14px;color:var(--text);text-decoration:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--surface);box-shadow:var(--shadow);transition:background .1s;}
+    .button:hover{background:var(--surface-2);text-decoration:none;}
+    .button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+    .button.primary:hover{opacity:.9;}
+    .section-heading{font-size:18px;margin-bottom:16px;}
+    @media(max-width:760px){
+      .site-header{padding:20px 24px;}
+      .site-header h1{font-size:28px;}
+      .layout{display:block;padding:20px 24px;}
+      .sidebar-panel{position:static;margin-bottom:24px;}
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <h1>vibe-learn</h1>
+    <p>Session briefings from your agent-built sessions &mdash; seurat</p>
+  </header>
+  <div class="layout">
+    <aside>
+      <div class="sidebar-panel">
+        <div class="sidebar-heading">This project</div>
+        <div class="stat-row"><span class="stat-label">Project</span><span class="stat-value mono">seurat</span></div>
+        <div class="stat-row"><span class="stat-label">Latest</span><span class="stat-value mono">2026-07-30</span></div>
+        <div class="stat-row"><span class="stat-label">Files</span><span class="stat-value">0</span></div>
+        <div class="stat-row"><span class="stat-label">Commands</span><span class="stat-value">16</span></div>
+        <div class="stat-row"><span class="stat-label">Failures</span><span class="stat-value ok">0</span></div>
+        <div class="stat-row"><span class="stat-label">Audio pack</span><span class="stat-value ok">yes</span></div>
+      </div>
+    </aside>
+    <section>
+      <h2 class="section-heading">Recent Sessions</h2>
+      <div class="cards">
+                <article class="card" data-failures="0" data-has-pack="true">
+          <div class="card-meta">
+            <span class="tag">2026-07-30</span>
+            <span class="tag">0 files</span>
+            <span class="tag">16 commands</span>
+            
+          </div>
+          <h3 class="card-title">2026-07-30-seurat-c68cb6cc-f0f0-4347-806b-26ac966b45b2</h3>
+          <p class="card-goal">delete the other parallel-ci branch, rename the worktree to parallel-ci and return the hash of that commit</p>
+          <div class="actions">
+            <a class="button primary" href="sessions/2026-07-30-seurat-c68cb6cc-f0f0-4347-806b-26ac966b45b2.html">Open briefing</a>
+            <a class="button" href="exports/2026-07-30-seurat-c68cb6cc-f0f0-4347-806b-26ac966b45b2-notebooklm-pack.md" download>Audio pack</a>
+          </div>
+        </article>
+        <article class="card" data-failures="unknown" data-has-pack="unknown">
+          <div class="card-meta">
+            <span class="tag">previously generated</span>
+          </div>
+          <h3 class="card-title">2026-07-30-seurat-2d9c58f7-b519-4d09-bf68-db92b35588d0</h3>
+          <p class="card-goal">Previously generated session briefing.</p>
+          <div class="actions">
+            <a class="button primary" href="sessions/2026-07-30-seurat-2d9c58f7-b519-4d09-bf68-db92b35588d0.html">Open briefing</a>
+          </div>
+        </article>
+        <article class="card" data-failures="unknown" data-has-pack="unknown">
+          <div class="card-meta">
+            <span class="tag">previously generated</span>
+          </div>
+          <h3 class="card-title">2026-07-30-seurat-120843</h3>
+          <p class="card-goal">Previously generated session briefing.</p>
+          <div class="actions">
+            <a class="button primary" href="sessions/2026-07-30-seurat-120843.html">Open briefing</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

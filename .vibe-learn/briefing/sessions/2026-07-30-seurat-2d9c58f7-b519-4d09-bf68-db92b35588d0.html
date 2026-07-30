@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>vibe-learn — seurat — 2026-07-30</title>
+  <style>
+    :root{
+      --bg:#faf9f5; --surface:#f1efe7; --surface-2:#e8e6dc;
+      --text:#141413; --muted:#706f68; --line:#d8d4c8;
+      --accent:#d97757; --accent-blue:#6a9bcc; --accent-green:#788c5d;
+      --danger:#9f3d32; --warning:#b5792a; --success:#617a4b;
+      --radius:8px; --shadow:0 1px 3px rgba(20,20,19,.1);
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 Lora,Georgia,serif;overflow-x:hidden;}
+    a{color:var(--accent-blue);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;}
+    h1,h2,h3,h4{font-family:Poppins,Arial,sans-serif;font-weight:700;line-height:1.15;margin:0 0 12px;}
+    h1{font-size:clamp(22px,3vw,36px);}
+    h2{font-size:20px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:20px;}
+    h3{font-size:15px;}
+    p{margin:0 0 10px;}
+    strong.tl-type{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+
+    /* Site header */
+    .site-header{background:var(--surface);border-bottom:1px solid var(--line);padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;}
+    .header-left .eyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.03em;}
+    .header-left .eyebrow a{color:var(--muted);}
+    .header-left .eyebrow a:hover{color:var(--text);text-decoration:none;}
+    .header-left .goal{color:var(--muted);font-size:14px;margin:4px 0 0;overflow-wrap:anywhere;word-break:break-word;}
+
+    /* Two-column layout */
+    .layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:40px;max-width:1180px;margin:0 auto;padding:32px;}
+    .layout>*{min-width:0;}
+
+    /* Sticky nav */
+    nav{position:sticky;top:24px;align-self:start;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;display:grid;gap:2px;}
+    nav a{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;color:var(--muted);transition:background .1s,color .1s;}
+    nav a:hover,nav a.active{background:var(--surface-2);color:var(--text);text-decoration:none;}
+    nav .nbadge{background:var(--surface-2);border-radius:999px;padding:1px 6px;font-size:10px;min-width:18px;text-align:center;}
+    nav a.active .nbadge{background:var(--accent);color:#fff;}
+
+    /* Sections */
+    section{margin-bottom:40px;scroll-margin-top:24px;}
+
+    /* Buttons */
+    .actions{display:flex;gap:8px;flex-wrap:wrap;}
+    button,.button{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:var(--radius);padding:8px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;text-decoration:none;cursor:pointer;box-shadow:var(--shadow);transition:background .1s,color .1s;}
+    button:hover,.button:hover{background:var(--surface-2);}
+    button.primary,.button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+    button.primary:hover,.button.primary:hover{opacity:.9;}
+
+    /* Overview / Session brief */
+    .brief-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+    .brief-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+    .brief-card h3{font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;}
+    .brief-card .bvalue{font-size:28px;font-weight:700;font-family:Poppins,Arial,sans-serif;line-height:1;margin-bottom:6px;}
+    .brief-card .bvalue.ok{color:var(--success);}
+    .brief-card .bvalue.warn{color:var(--warning);}
+    .brief-card .bvalue.danger{color:var(--danger);}
+    .brief-card .bdetail{font-size:13px;color:var(--muted);line-height:1.4;}
+    .summary-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-height:320px;overflow-y:auto;}
+
+    /* Timeline */
+    .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+    .filters button{padding:5px 11px;font-size:11px;}
+    .filters button.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+    ol.timeline{list-style:none;padding:0;margin:0;display:grid;gap:8px;}
+    ol.timeline li{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:11px 14px;display:flex;gap:12px;align-items:flex-start;}
+    ol.timeline li p{margin:4px 0 0;color:var(--muted);font-size:13px;overflow-wrap:anywhere;word-break:break-word;}
+    .dot{flex-shrink:0;width:10px;height:10px;border-radius:999px;margin-top:3px;background:var(--accent);}
+    .dot.command{background:var(--accent-blue);}
+    .dot.file{background:var(--accent-green);}
+    .tl-body{min-width:0;flex:1;}
+
+    /* File tour */
+    ul.list{list-style:none;padding:0;margin:0;display:grid;gap:6px;}
+    .file-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:9px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;max-width:100%;}
+    .fpath{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+    .pill{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;border-radius:999px;padding:2px 7px;border:1px solid;white-space:nowrap;}
+    .pill.action-created{background:#e8f0e1;color:var(--success);border-color:#c8d8b8;}
+    .pill.action-edited{background:#e8eef5;color:#4a7aa8;border-color:#c0d0e0;}
+    .pill.action-deleted{background:#fde8e4;color:var(--danger);border-color:#f0c8c0;}
+    .area{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;border-radius:4px;padding:2px 6px;border:1px solid;white-space:nowrap;}
+    .area-tests{background:#e8f0e1;color:var(--success);border-color:#c8d8b8;}
+    .area-adapter{background:#e8eef5;color:#4a7aa8;border-color:#c0d0e0;}
+    .area-script{background:#f3ede0;color:#8a6830;border-color:#ddd0b0;}
+    .area-config{background:#ece7f0;color:#6a4a88;border-color:#ccc0d8;}
+    .area-docs{background:var(--surface-2);color:var(--muted);border-color:var(--line);}
+    .area-auth{background:#fde8e4;color:var(--danger);border-color:#f0c8c0;}
+    .area-database{background:#e4f0e8;color:#4a7a3d;border-color:#b8d8c0;}
+    .area-source{background:var(--surface);color:var(--muted);border-color:var(--line);}
+
+    /* Command log */
+    .command-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:9px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;min-width:0;max-width:100%;}
+    .command-row.fail{border-color:rgba(159,61,50,.4);background:#f8ece9;}
+    .cmd-text{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+    .status{flex-shrink:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;border-radius:999px;padding:2px 7px;border:1px solid var(--line);background:var(--surface-2);}
+    .fail .status{color:var(--danger);border-color:rgba(159,61,50,.35);background:#fde8e4;}
+    .ok .status{color:var(--success);border-color:#c8d8b8;background:#e8f0e1;}
+
+    /* Code excerpts */
+    .diff-wrapper{position:relative;}
+    .diff-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
+    pre{white-space:pre;overflow-x:auto;background:#1e1c18;color:#e8e4d8;border-radius:var(--radius);padding:18px;max-height:560px;overflow-y:auto;margin:0;font-size:12px;line-height:1.55;tab-size:2;}
+    pre .dh{color:#6a6860;display:block;}
+    pre .dk{color:#6a9bcc;display:block;font-weight:600;}
+    pre .da{color:#7db368;display:block;background:rgba(90,138,74,.13);}
+    pre .dd{color:#c07070;display:block;background:rgba(192,80,80,.12);}
+    pre .dc{color:#c8c4b4;display:block;}
+
+    /* Study queue */
+    .study-list{display:grid;gap:8px;}
+    .study-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;font-size:14px;transition:background .1s;}
+    .study-item:hover{background:var(--surface-2);}
+    .study-item input[type=checkbox]{width:15px;height:15px;flex-shrink:0;margin-top:2px;accent-color:var(--accent);}
+    .study-item.priority{border-left:3px solid var(--warning);padding-left:13px;}
+    .study-item span{line-height:1.55;overflow-wrap:anywhere;}
+
+    /* Audio export */
+    .pack-preview{max-height:320px;font-size:11.5px;}
+    .export-intro{font-size:14px;color:var(--muted);margin-bottom:14px;}
+
+    /* Responsive */
+    @media(max-width:840px){
+      .site-header{padding:16px 20px;}
+      .layout{display:block;padding:20px;}
+      nav{position:static;display:flex;flex-wrap:wrap;gap:4px;margin-bottom:24px;}
+      nav a{flex:0 0 auto;}
+      .brief-grid{grid-template-columns:1fr 1fr;}
+    }
+    @media(max-width:520px){
+      .brief-grid{grid-template-columns:1fr;}
+      .command-row{display:block;}
+      .status{display:inline-block;margin-top:6px;}
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-left">
+      <div class="eyebrow"><a href="../index.html">vibe-learn</a> / seurat / 2026-07-30</div>
+      <h1>Session briefing</h1>
+      <p class="goal">1, yes proceed with your plan</p>
+    </div>
+    <div class="actions">
+      <a class="button primary" href="../exports/2026-07-30-seurat-2d9c58f7-b519-4d09-bf68-db92b35588d0-notebooklm-pack.md" download>NotebookLM pack</a>
+      <button type="button" data-copy-pack>Copy source pack</button>
+      <button type="button" data-copy-prompt>Copy audio prompt</button>
+      <a class="button" href="../index.html">← Index</a>
+    </div>
+  </header>
+  <div class="layout">
+    <nav aria-label="Sections">
+      <a href="#overview">Session brief</a>
+      <a href="#timeline">Timeline <span class="nbadge" id="tl-count"></span></a>
+      <a href="#files">Files <span class="nbadge">4</span></a>
+      <a href="#commands">Commands <span class="nbadge">14</span></a>
+      <a href="#code">Code excerpts</a>
+      <a href="#study">Study queue</a>
+      <a href="#audio">Audio export</a>
+    </nav>
+    <main>
+
+      <section id="overview">
+        <h2>Session brief</h2>
+        <div class="brief-grid">
+          <div class="brief-card">
+            <h3>What changed</h3>
+            <div class="bvalue">4</div>
+            <div class="bdetail">2 created · 2 edited · 0 deleted</div>
+          </div>
+          <div class="brief-card">
+            <h3>Why it matters</h3>
+            <div class="bdetail" style="margin-top:4px;">These files shape the parts of the system you may need to debug, extend, or support.</div>
+          </div>
+          <div class="brief-card">
+            <h3>Inspect first</h3>
+            <div class="bdetail" style="margin-top:4px;">Adapter, script, config, auth, db, and test files — in that order.</div>
+          </div>
+          <div class="brief-card">
+            <h3>What could break</h3>
+            <div class="bvalue ok">0</div>
+            <div class="bdetail">no failures detected</div>
+          </div>
+        </div>
+        <div class="summary-panel">⏸ vibe-learn — what just happened:
+Goal: 1, yes proceed with your plan
+
+  ✦ Ran: cd /home/reyes/seurat
+BASE=/home/reyes/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development
+echo &quot;=== sdd-workspace ===&quot;; &quot;$BASE/scripts/sdd-workspace&quot; do
+  ✦ Ran: Rscript -e &apos;cat(&quot;Seurat:&quot;, as.character(requireNamespace(&quot;Seurat&quot;, quietly=TRUE)), &quot; future:&quot;, as.character(requireNamespace(&quot;future&quot;, quietly=TRUE)), &quot; R.utils:&quot;, as.character(requireNamespace(&quot;R.uti
+  ✦ Ran: cd /home/reyes/seurat
+GIT_DIR=$(cd &quot;$(git rev-parse --git-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)
+GIT_COMMON=$(cd &quot;$(git rev-parse --git-common-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)
+echo &quot;GIT_DIR=$GIT_DIR&quot;; echo &quot;GIT_COM
+
+ /learn [question]  ·  /digest  ·  vibe-learn briefing  ·  vibe-learn audio-prep</div>
+      </section>
+
+      <section id="timeline">
+        <h2>Session Timeline</h2>
+        <div class="filters">
+          <button type="button" class="active" data-filter="all">All</button>
+          <button type="button" data-filter="file">Files</button>
+          <button type="button" data-filter="command">Commands</button>
+          <button type="button" data-filter="prompt">Prompts</button>
+        </div>
+        <ol class="timeline" data-timeline><li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>I am having trouble automating a seurat-based differential gene expression and amplicon analysis pipeline for multiple OS architectures, especially Windows (via WSL). The main issue is parallelization works on Linux but crashes on Windows and some Unix-based environments (for example, a pipeline run in Colab). After investigation, I realized that Seurat&apos;s parallelization (via the `future` package) has only been tested on Linux and has its parallel functions hanging on non-multicore strategies. T</p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;===VIGNETTE (current on disk)===&quot; &amp;&amp; cat vignettes/future_vignette.Rmd; echo; echo &quot;===GIT: is vignette modified vs HEAD?===&quot;; git diff --stat HEAD -- vignettes/future_vignette.Rmd; echo &quot;(empty</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;===existing workflows===&quot; &amp;&amp; ls -la .github/workflows/ 2&gt;&amp;1; echo &quot;===inst/ tree (top)===&quot;; ls inst/ 2&gt;&amp;1; echo &quot;===future usage in R/===&quot;; grep -rl &quot;future&quot; R/ | head -20; echo &quot;===plan( usages</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;===clustering.R 975-1010===&quot;; sed -n &apos;975,1010p&apos; R/clustering.R; echo &quot;===grep multicore/multisession/multiprocess across R/===&quot;; grep -rn &quot;multicore\|multisession\|multiprocess\|nbrOfWorkers\|f</code></p></div></li>
+<li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>yes, detail the harness</p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;===ScaleData signature===&quot;; grep -n &quot;ScaleData\b&quot; R/preprocessing.R R/preprocessing5.R | grep -i &quot;function\|&lt;- function\|setMethod\|ScaleData.default&quot; | head; echo &quot;===FindIntegrationAnchors sig</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;===ScaleData.Seurat args===&quot;; sed -n &apos;5520,5560p&apos; R/preprocessing.R; echo &quot;===FindIntegrationAnchors args (132-175)===&quot;; sed -n &apos;132,175p&apos; R/integration.R</code></p></div></li>
+<li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>excellent</p></div></li>
+<li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>let&apos;s make both blocking</p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>mkdir -p docs/superpowers/specs &amp;&amp; echo &quot;R.utils dep check:&quot; &amp;&amp; grep -n &quot;R.utils\|future.apply\|future\b&quot; DESCRIPTION | head; echo &quot;---future version dep---&quot;; grep -n &quot;future&quot; DESCRIPTION</code></p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">created</strong><p><code>/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code></p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">edited</strong><p><code>/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git check-ignore -v docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md; echo &quot;---&quot;; grep -rn &quot;docs&quot; .gitignore .Rbuildignore 2&gt;/dev/null</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: cross-platform parallelization CI for Seurat
+
+Add spec for non-Linux CI coverage (</code></p></div></li>
+<li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>yes, on number 3 fold it in as well</p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">edited</strong><p><code>/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code></p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">edited</strong><p><code>/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code></p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">edited</strong><p><code>/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code></p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">edited</strong><p><code>/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: fold seurat5_future_vignette.Rmd into scope
+
+Both future vignettes carry the defun</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>echo &quot;===merge_checks.yaml (style reference)===&quot;; cat .github/workflows/merge_checks.yaml; echo &quot;===LayerData/GetAssayData exist?===&quot;; grep -rn &quot;LayerData\|GetAssayData&quot; NAMESPACE | head -5</code></p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">created</strong><p><code>/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md</code></p></div></li>
+<li data-kind="file"><span class="dot file"></span><div class="tl-body"><strong class="tl-type">edited</strong><p><code>/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>git add -f docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md &amp;&amp; git commit -q -m &quot;Plan: cross-platform parallelization CI implementation
+
+5 tasks: smoke harness, Dockerfile, block</code></p></div></li>
+<li data-kind="prompt"><span class="dot prompt"></span><div class="tl-body"><strong class="tl-type">Prompt</strong><p>1, yes proceed with your plan</p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>cd /home/reyes/seurat
+BASE=/home/reyes/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development
+echo &quot;=== sdd-workspace ===&quot;; &quot;$BASE/scripts/sdd-workspace&quot; do</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>Rscript -e &apos;cat(&quot;Seurat:&quot;, as.character(requireNamespace(&quot;Seurat&quot;, quietly=TRUE)), &quot; future:&quot;, as.character(requireNamespace(&quot;future&quot;, quietly=TRUE)), &quot; R.utils:&quot;, as.character(requireNamespace(&quot;R.uti</code></p></div></li>
+<li data-kind="command"><span class="dot command"></span><div class="tl-body"><strong class="tl-type">Command</strong><p><code>cd /home/reyes/seurat
+GIT_DIR=$(cd &quot;$(git rev-parse --git-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)
+GIT_COMMON=$(cd &quot;$(git rev-parse --git-common-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)
+echo &quot;GIT_DIR=$GIT_DIR&quot;; echo &quot;GIT_COM</code></p></div></li></ol>
+      </section>
+
+      <section id="files">
+        <h2>File Tour</h2>
+        <ul class="list"><li class="file-row" data-area="docs"><span class="pill action-created">created</span><code class="fpath">/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md</code><span class="area area-docs">docs</span></li>
+<li class="file-row" data-area="tests"><span class="pill action-created">created</span><code class="fpath">/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code><span class="area area-tests">tests</span></li>
+<li class="file-row" data-area="docs"><span class="pill action-edited">edited</span><code class="fpath">/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md</code><span class="area area-docs">docs</span></li>
+<li class="file-row" data-area="tests"><span class="pill action-edited">edited</span><code class="fpath">/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md</code><span class="area area-tests">tests</span></li></ul>
+      </section>
+
+      <section id="commands">
+        <h2>Command Log</h2>
+        <ul class="list"><li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;===VIGNETTE (current on disk)===&quot; &amp;&amp; cat vignettes/future_vignette.Rmd; echo; echo &quot;===GIT: is vignette modified vs HEAD?===&quot;; git diff --stat HEAD -- vignettes/future_vignette.Rmd; echo &quot;(empty</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;===existing workflows===&quot; &amp;&amp; ls -la .github/workflows/ 2&gt;&amp;1; echo &quot;===inst/ tree (top)===&quot;; ls inst/ 2&gt;&amp;1; echo &quot;===future usage in R/===&quot;; grep -rl &quot;future&quot; R/ | head -20; echo &quot;===plan( usages</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;===clustering.R 975-1010===&quot;; sed -n &apos;975,1010p&apos; R/clustering.R; echo &quot;===grep multicore/multisession/multiprocess across R/===&quot;; grep -rn &quot;multicore\\|multisession\\|multiprocess\\|nbrOfWorkers\\|f</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;===ScaleData signature===&quot;; grep -n &quot;ScaleData\\b&quot; R/preprocessing.R R/preprocessing5.R | grep -i &quot;function\\|&lt;- function\\|setMethod\\|ScaleData.default&quot; | head; echo &quot;===FindIntegrationAnchors sig</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;===ScaleData.Seurat args===&quot;; sed -n &apos;5520,5560p&apos; R/preprocessing.R; echo &quot;===FindIntegrationAnchors args (132-175)===&quot;; sed -n &apos;132,175p&apos; R/integration.R</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">mkdir -p docs/superpowers/specs &amp;&amp; echo &quot;R.utils dep check:&quot; &amp;&amp; grep -n &quot;R.utils\\|future.apply\\|future\\b&quot; DESCRIPTION | head; echo &quot;---future version dep---&quot;; grep -n &quot;future&quot; DESCRIPTION</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git check-ignore -v docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md; echo &quot;---&quot;; grep -rn &quot;docs&quot; .gitignore .Rbuildignore 2&gt;/dev/null</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: cross-platform parallelization CI for Seurat\n\nAdd spec for non-Linux CI coverage (</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: fold seurat5_future_vignette.Rmd into scope\n\nBoth future vignettes carry the defun</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">echo &quot;===merge_checks.yaml (style reference)===&quot;; cat .github/workflows/merge_checks.yaml; echo &quot;===LayerData/GetAssayData exist?===&quot;; grep -rn &quot;LayerData\\|GetAssayData&quot; NAMESPACE | head -5</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">git add -f docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md &amp;&amp; git commit -q -m &quot;Plan: cross-platform parallelization CI implementation\n\n5 tasks: smoke harness, Dockerfile, block</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">cd /home/reyes/seurat\nBASE=/home/reyes/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development\necho &quot;=== sdd-workspace ===&quot;; &quot;$BASE/scripts/sdd-workspace&quot; do</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">Rscript -e &apos;cat(&quot;Seurat:&quot;, as.character(requireNamespace(&quot;Seurat&quot;, quietly=TRUE)), &quot; future:&quot;, as.character(requireNamespace(&quot;future&quot;, quietly=TRUE)), &quot; R.utils:&quot;, as.character(requireNamespace(&quot;R.uti</code><span class="status">exit 0</span></li>
+<li class="command-row ok" data-kind="command"><code class="cmd-text">cd /home/reyes/seurat\nGIT_DIR=$(cd &quot;$(git rev-parse --git-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)\nGIT_COMMON=$(cd &quot;$(git rev-parse --git-common-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)\necho &quot;GIT_DIR=$GIT_DIR&quot;; echo &quot;GIT_COM</code><span class="status">exit 0</span></li></ul>
+      </section>
+
+      <section id="code">
+        <h2>Code Excerpts</h2>
+        <div class="diff-wrapper">
+          <div class="diff-toolbar">
+            <button type="button" data-copy-diff>Copy diff</button>
+          </div>
+          <pre id="diff-pre"><span class="dc">No git diff excerpt was available when the session briefing was generated.</span></pre>
+        </div>
+      </section>
+
+      <section id="study">
+        <h2>Study Queue</h2>
+        <div class="study-list"><label class="study-item"><input type="checkbox"><span>Read through each changed file and explain its purpose in your own words.</span></label>
+<label class="study-item"><input type="checkbox"><span>Database or schema files changed — confirm the data model is correct and migrations apply cleanly.</span></label>
+<label class="study-item"><input type="checkbox"><span>No automated test run was observed — confirm the changed behavior is covered by tests.</span></label></div>
+      </section>
+
+      <section id="audio">
+        <h2>Audio Export</h2>
+        <p class="export-intro">Upload the source pack to NotebookLM to generate a maintainer-focused audio overview — no setup required.</p>
+        <div class="actions" style="margin-bottom:14px;">
+          <a class="button primary" href="../exports/2026-07-30-seurat-2d9c58f7-b519-4d09-bf68-db92b35588d0-notebooklm-pack.md" download>Download NotebookLM pack</a>
+          <button type="button" data-copy-pack>Copy source pack</button>
+          <button type="button" data-copy-prompt>Copy audio prompt</button>
+        </div>
+        <pre class="pack-preview"># Session Briefing Source Pack
+
+Project: seurat
+Session date: 2026-07-30
+Session id: 2d9c58f7-b519-4d09-bf68-db92b35588d0
+Generated: 2026-07-30T16:07:43Z
+Goal: 1, yes proceed with your plan
+
+## What changed
+
+- Files created: 2
+- Files edited: 2
+- Files deleted: 0
+- Commands run: 14
+- Failed commands: 0
+
+## Why it matters
+
+This pack is generated from the vibe-learn session log. Use it to understand
+what the agent changed, which files deserve inspection, and what you should be
+ready to debug or extend.
+
+## Timeline
+
+- Prompt: I am having trouble automating a seurat-based differential gene expression and amplicon analysis pipeline for multiple OS architectures, especially Windows (via WSL). The main issue is parallelization works on Linux but crashes on Windows and some Unix-based environments (for example, a pipeline run in Colab). After investigation, I realized that Seurat&apos;s parallelization (via the `future` package) has only been tested on Linux and has its parallel functions hanging on non-multicore strategies. T
+- Command: echo &quot;===VIGNETTE (current on disk)===&quot; &amp;&amp; cat vignettes/future_vignette.Rmd; echo; echo &quot;===GIT: is vignette modified vs HEAD?===&quot;; git diff --stat HEAD -- vignettes/future_vignette.Rmd; echo &quot;(empty (exit 0)
+- Command: echo &quot;===existing workflows===&quot; &amp;&amp; ls -la .github/workflows/ 2&gt;&amp;1; echo &quot;===inst/ tree (top)===&quot;; ls inst/ 2&gt;&amp;1; echo &quot;===future usage in R/===&quot;; grep -rl &quot;future&quot; R/ | head -20; echo &quot;===plan( usages (exit 0)
+- Command: echo &quot;===clustering.R 975-1010===&quot;; sed -n &apos;975,1010p&apos; R/clustering.R; echo &quot;===grep multicore/multisession/multiprocess across R/===&quot;; grep -rn &quot;multicore\|multisession\|multiprocess\|nbrOfWorkers\|f (exit 0)
+- Prompt: yes, detail the harness
+- Command: echo &quot;===ScaleData signature===&quot;; grep -n &quot;ScaleData\b&quot; R/preprocessing.R R/preprocessing5.R | grep -i &quot;function\|&lt;- function\|setMethod\|ScaleData.default&quot; | head; echo &quot;===FindIntegrationAnchors sig (exit 0)
+- Command: echo &quot;===ScaleData.Seurat args===&quot;; sed -n &apos;5520,5560p&apos; R/preprocessing.R; echo &quot;===FindIntegrationAnchors args (132-175)===&quot;; sed -n &apos;132,175p&apos; R/integration.R (exit 0)
+- Prompt: excellent
+- Prompt: let&apos;s make both blocking
+- Command: mkdir -p docs/superpowers/specs &amp;&amp; echo &quot;R.utils dep check:&quot; &amp;&amp; grep -n &quot;R.utils\|future.apply\|future\b&quot; DESCRIPTION | head; echo &quot;---future version dep---&quot;; grep -n &quot;future&quot; DESCRIPTION (exit 0)
+- File created: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+- Command: git check-ignore -v docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md; echo &quot;---&quot;; grep -rn &quot;docs&quot; .gitignore .Rbuildignore 2&gt;/dev/null (exit 0)
+- Command: git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: cross-platform parallelization CI for Seurat
+
+Add spec for non-Linux CI coverage ( (exit 0)
+- Prompt: yes, on number 3 fold it in as well
+- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+- Command: git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: fold seurat5_future_vignette.Rmd into scope
+
+Both future vignettes carry the defun (exit 0)
+- Command: echo &quot;===merge_checks.yaml (style reference)===&quot;; cat .github/workflows/merge_checks.yaml; echo &quot;===LayerData/GetAssayData exist?===&quot;; grep -rn &quot;LayerData\|GetAssayData&quot; NAMESPACE | head -5 (exit 0)
+- File created: /home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md
+- File edited: /home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md
+- Command: git add -f docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md &amp;&amp; git commit -q -m &quot;Plan: cross-platform parallelization CI implementation
+
+5 tasks: smoke harness, Dockerfile, block (exit 0)
+- Prompt: 1, yes proceed with your plan
+- Command: cd /home/reyes/seurat
+BASE=/home/reyes/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development
+echo &quot;=== sdd-workspace ===&quot;; &quot;$BASE/scripts/sdd-workspace&quot; do (exit 0)
+- Command: Rscript -e &apos;cat(&quot;Seurat:&quot;, as.character(requireNamespace(&quot;Seurat&quot;, quietly=TRUE)), &quot; future:&quot;, as.character(requireNamespace(&quot;future&quot;, quietly=TRUE)), &quot; R.utils:&quot;, as.character(requireNamespace(&quot;R.uti (exit 0)
+- Command: cd /home/reyes/seurat
+GIT_DIR=$(cd &quot;$(git rev-parse --git-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)
+GIT_COMMON=$(cd &quot;$(git rev-parse --git-common-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)
+echo &quot;GIT_DIR=$GIT_DIR&quot;; echo &quot;GIT_COM (exit 0)
+
+## Important files
+
+### Created
+/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md
+/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+
+### Edited
+/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md
+/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md
+
+### Deleted
+
+
+## Commands and failures
+
+- echo &quot;===VIGNETTE (current on disk)===&quot; &amp;&amp; cat vignettes/future_vignette.Rmd; echo; echo &quot;===GIT: is vignette modified vs HEAD?===&quot;; git diff --stat HEAD -- vignettes/future_vignette.Rmd; echo &quot;(empty (exit 0)
+- echo &quot;===existing workflows===&quot; &amp;&amp; ls -la .github/workflows/ 2&gt;&amp;1; echo &quot;===inst/ tree (top)===&quot;; ls inst/ 2&gt;&amp;1; echo &quot;===future usage in R/===&quot;; grep -rl &quot;future&quot; R/ | head -20; echo &quot;===plan( usages (exit 0)
+- echo &quot;===clustering.R 975-1010===&quot;; sed -n &apos;975,1010p&apos; R/clustering.R; echo &quot;===grep multicore/multisession/multiprocess across R/===&quot;; grep -rn &quot;multicore\\|multisession\\|multiprocess\\|nbrOfWorkers\\|f (exit 0)
+- echo &quot;===ScaleData signature===&quot;; grep -n &quot;ScaleData\\b&quot; R/preprocessing.R R/preprocessing5.R | grep -i &quot;function\\|&lt;- function\\|setMethod\\|ScaleData.default&quot; | head; echo &quot;===FindIntegrationAnchors sig (exit 0)
+- echo &quot;===ScaleData.Seurat args===&quot;; sed -n &apos;5520,5560p&apos; R/preprocessing.R; echo &quot;===FindIntegrationAnchors args (132-175)===&quot;; sed -n &apos;132,175p&apos; R/integration.R (exit 0)
+- mkdir -p docs/superpowers/specs &amp;&amp; echo &quot;R.utils dep check:&quot; &amp;&amp; grep -n &quot;R.utils\\|future.apply\\|future\\b&quot; DESCRIPTION | head; echo &quot;---future version dep---&quot;; grep -n &quot;future&quot; DESCRIPTION (exit 0)
+- git check-ignore -v docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md; echo &quot;---&quot;; grep -rn &quot;docs&quot; .gitignore .Rbuildignore 2&gt;/dev/null (exit 0)
+- git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: cross-platform parallelization CI for Seurat\n\nAdd spec for non-Linux CI coverage ( (exit 0)
+- git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md &amp;&amp; git commit -q -m &quot;Design: fold seurat5_future_vignette.Rmd into scope\n\nBoth future vignettes carry the defun (exit 0)
+- echo &quot;===merge_checks.yaml (style reference)===&quot;; cat .github/workflows/merge_checks.yaml; echo &quot;===LayerData/GetAssayData exist?===&quot;; grep -rn &quot;LayerData\\|GetAssayData&quot; NAMESPACE | head -5 (exit 0)
+- git add -f docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md &amp;&amp; git commit -q -m &quot;Plan: cross-platform parallelization CI implementation\n\n5 tasks: smoke harness, Dockerfile, block (exit 0)
+- cd /home/reyes/seurat\nBASE=/home/reyes/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development\necho &quot;=== sdd-workspace ===&quot;; &quot;$BASE/scripts/sdd-workspace&quot; do (exit 0)
+- Rscript -e &apos;cat(&quot;Seurat:&quot;, as.character(requireNamespace(&quot;Seurat&quot;, quietly=TRUE)), &quot; future:&quot;, as.character(requireNamespace(&quot;future&quot;, quietly=TRUE)), &quot; R.utils:&quot;, as.character(requireNamespace(&quot;R.uti (exit 0)
+- cd /home/reyes/seurat\nGIT_DIR=$(cd &quot;$(git rev-parse --git-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)\nGIT_COMMON=$(cd &quot;$(git rev-parse --git-common-dir)&quot; 2&gt;/dev/null &amp;&amp; pwd -P)\necho &quot;GIT_DIR=$GIT_DIR&quot;; echo &quot;GIT_COM (exit 0)
+
+## Key code excerpts
+
+```diff
+
+```
+
+## Review questions
+
+- What changed in the main execution path?
+- Which touched files would I inspect first if the app broke?
+- Were tests or build checks run after the changes?
+- Did any command fail, and what follow-up does that imply?
+
+## Suggested audio framing
+
+Create a maintainer-focused audio overview. Explain what changed, why it
+matters, what to inspect first, and what could break. Assume the listener owns
+this codebase and needs enough technical depth to support it.</pre>
+      </section>
+
+    </main>
+  </div>
+  <script>
+    const packText = "# Session Briefing Source Pack\n\nProject: seurat\nSession date: 2026-07-30\nSession id: 2d9c58f7-b519-4d09-bf68-db92b35588d0\nGenerated: 2026-07-30T16:07:43Z\nGoal: 1, yes proceed with your plan\n\n## What changed\n\n- Files created: 2\n- Files edited: 2\n- Files deleted: 0\n- Commands run: 14\n- Failed commands: 0\n\n## Why it matters\n\nThis pack is generated from the vibe-learn session log. Use it to understand\nwhat the agent changed, which files deserve inspection, and what you should be\nready to debug or extend.\n\n## Timeline\n\n- Prompt: I am having trouble automating a seurat-based differential gene expression and amplicon analysis pipeline for multiple OS architectures, especially Windows (via WSL). The main issue is parallelization works on Linux but crashes on Windows and some Unix-based environments (for example, a pipeline run in Colab). After investigation, I realized that Seurat's parallelization (via the `future` package) has only been tested on Linux and has its parallel functions hanging on non-multicore strategies. T\n- Command: echo \"===VIGNETTE (current on disk)===\" && cat vignettes/future_vignette.Rmd; echo; echo \"===GIT: is vignette modified vs HEAD?===\"; git diff --stat HEAD -- vignettes/future_vignette.Rmd; echo \"(empty (exit 0)\n- Command: echo \"===existing workflows===\" && ls -la .github/workflows/ 2>&1; echo \"===inst/ tree (top)===\"; ls inst/ 2>&1; echo \"===future usage in R/===\"; grep -rl \"future\" R/ | head -20; echo \"===plan( usages (exit 0)\n- Command: echo \"===clustering.R 975-1010===\"; sed -n '975,1010p' R/clustering.R; echo \"===grep multicore/multisession/multiprocess across R/===\"; grep -rn \"multicore\\|multisession\\|multiprocess\\|nbrOfWorkers\\|f (exit 0)\n- Prompt: yes, detail the harness\n- Command: echo \"===ScaleData signature===\"; grep -n \"ScaleData\\b\" R/preprocessing.R R/preprocessing5.R | grep -i \"function\\|<- function\\|setMethod\\|ScaleData.default\" | head; echo \"===FindIntegrationAnchors sig (exit 0)\n- Command: echo \"===ScaleData.Seurat args===\"; sed -n '5520,5560p' R/preprocessing.R; echo \"===FindIntegrationAnchors args (132-175)===\"; sed -n '132,175p' R/integration.R (exit 0)\n- Prompt: excellent\n- Prompt: let's make both blocking\n- Command: mkdir -p docs/superpowers/specs && echo \"R.utils dep check:\" && grep -n \"R.utils\\|future.apply\\|future\\b\" DESCRIPTION | head; echo \"---future version dep---\"; grep -n \"future\" DESCRIPTION (exit 0)\n- File created: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n- Command: git check-ignore -v docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md; echo \"---\"; grep -rn \"docs\" .gitignore .Rbuildignore 2>/dev/null (exit 0)\n- Command: git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md && git commit -q -m \"Design: cross-platform parallelization CI for Seurat\n\nAdd spec for non-Linux CI coverage ( (exit 0)\n- Prompt: yes, on number 3 fold it in as well\n- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n- File edited: /home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n- Command: git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md && git commit -q -m \"Design: fold seurat5_future_vignette.Rmd into scope\n\nBoth future vignettes carry the defun (exit 0)\n- Command: echo \"===merge_checks.yaml (style reference)===\"; cat .github/workflows/merge_checks.yaml; echo \"===LayerData/GetAssayData exist?===\"; grep -rn \"LayerData\\|GetAssayData\" NAMESPACE | head -5 (exit 0)\n- File created: /home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md\n- File edited: /home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md\n- Command: git add -f docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md && git commit -q -m \"Plan: cross-platform parallelization CI implementation\n\n5 tasks: smoke harness, Dockerfile, block (exit 0)\n- Prompt: 1, yes proceed with your plan\n- Command: cd /home/reyes/seurat\nBASE=/home/reyes/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development\necho \"=== sdd-workspace ===\"; \"$BASE/scripts/sdd-workspace\" do (exit 0)\n- Command: Rscript -e 'cat(\"Seurat:\", as.character(requireNamespace(\"Seurat\", quietly=TRUE)), \" future:\", as.character(requireNamespace(\"future\", quietly=TRUE)), \" R.utils:\", as.character(requireNamespace(\"R.uti (exit 0)\n- Command: cd /home/reyes/seurat\nGIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\necho \"GIT_DIR=$GIT_DIR\"; echo \"GIT_COM (exit 0)\n\n## Important files\n\n### Created\n/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md\n/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n\n### Edited\n/home/reyes/seurat/docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md\n/home/reyes/seurat/docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md\n\n### Deleted\n\n\n## Commands and failures\n\n- echo \"===VIGNETTE (current on disk)===\" && cat vignettes/future_vignette.Rmd; echo; echo \"===GIT: is vignette modified vs HEAD?===\"; git diff --stat HEAD -- vignettes/future_vignette.Rmd; echo \"(empty (exit 0)\n- echo \"===existing workflows===\" && ls -la .github/workflows/ 2>&1; echo \"===inst/ tree (top)===\"; ls inst/ 2>&1; echo \"===future usage in R/===\"; grep -rl \"future\" R/ | head -20; echo \"===plan( usages (exit 0)\n- echo \"===clustering.R 975-1010===\"; sed -n '975,1010p' R/clustering.R; echo \"===grep multicore/multisession/multiprocess across R/===\"; grep -rn \"multicore\\\\|multisession\\\\|multiprocess\\\\|nbrOfWorkers\\\\|f (exit 0)\n- echo \"===ScaleData signature===\"; grep -n \"ScaleData\\\\b\" R/preprocessing.R R/preprocessing5.R | grep -i \"function\\\\|<- function\\\\|setMethod\\\\|ScaleData.default\" | head; echo \"===FindIntegrationAnchors sig (exit 0)\n- echo \"===ScaleData.Seurat args===\"; sed -n '5520,5560p' R/preprocessing.R; echo \"===FindIntegrationAnchors args (132-175)===\"; sed -n '132,175p' R/integration.R (exit 0)\n- mkdir -p docs/superpowers/specs && echo \"R.utils dep check:\" && grep -n \"R.utils\\\\|future.apply\\\\|future\\\\b\" DESCRIPTION | head; echo \"---future version dep---\"; grep -n \"future\" DESCRIPTION (exit 0)\n- git check-ignore -v docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md; echo \"---\"; grep -rn \"docs\" .gitignore .Rbuildignore 2>/dev/null (exit 0)\n- git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md && git commit -q -m \"Design: cross-platform parallelization CI for Seurat\\n\\nAdd spec for non-Linux CI coverage ( (exit 0)\n- git add -f docs/superpowers/specs/2026-07-30-cross-platform-parallelization-ci-design.md && git commit -q -m \"Design: fold seurat5_future_vignette.Rmd into scope\\n\\nBoth future vignettes carry the defun (exit 0)\n- echo \"===merge_checks.yaml (style reference)===\"; cat .github/workflows/merge_checks.yaml; echo \"===LayerData/GetAssayData exist?===\"; grep -rn \"LayerData\\\\|GetAssayData\" NAMESPACE | head -5 (exit 0)\n- git add -f docs/superpowers/plans/2026-07-30-cross-platform-parallelization-ci.md && git commit -q -m \"Plan: cross-platform parallelization CI implementation\\n\\n5 tasks: smoke harness, Dockerfile, block (exit 0)\n- cd /home/reyes/seurat\\nBASE=/home/reyes/.claude/plugins/cache/claude-plugins-official/superpowers/6.2.0/skills/subagent-driven-development\\necho \"=== sdd-workspace ===\"; \"$BASE/scripts/sdd-workspace\" do (exit 0)\n- Rscript -e 'cat(\"Seurat:\", as.character(requireNamespace(\"Seurat\", quietly=TRUE)), \" future:\", as.character(requireNamespace(\"future\", quietly=TRUE)), \" R.utils:\", as.character(requireNamespace(\"R.uti (exit 0)\n- cd /home/reyes/seurat\\nGIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\\necho \"GIT_DIR=$GIT_DIR\"; echo \"GIT_COM (exit 0)\n\n## Key code excerpts\n\n```diff\n\n```\n\n## Review questions\n\n- What changed in the main execution path?\n- Which touched files would I inspect first if the app broke?\n- Were tests or build checks run after the changes?\n- Did any command fail, and what follow-up does that imply?\n\n## Suggested audio framing\n\nCreate a maintainer-focused audio overview. Explain what changed, why it\nmatters, what to inspect first, and what could break. Assume the listener owns\nthis codebase and needs enough technical depth to support it.\n";
+    const diffText = "";
+    const audioPrompt = "Create a maintainer-focused audio overview. Explain what changed, why it matters, what to inspect first, and what could break. Assume the listener owns this codebase and needs enough technical depth to support it.";
+
+    function copyText(text, button) {
+      if (!text) return;
+      navigator.clipboard?.writeText(text).then(() => {
+        const old = button.textContent;
+        const oldBg = button.style.background;
+        button.textContent = "Copied!";
+        button.style.background = "var(--accent-green)";
+        button.style.color = "#fff";
+        button.style.borderColor = "var(--accent-green)";
+        setTimeout(() => {
+          button.textContent = old;
+          button.style.background = oldBg;
+          button.style.color = "";
+          button.style.borderColor = "";
+        }, 1400);
+      });
+    }
+
+    document.querySelectorAll("[data-copy-pack]").forEach(b => b.addEventListener("click", () => copyText(packText, b)));
+    document.querySelectorAll("[data-copy-prompt]").forEach(b => b.addEventListener("click", () => copyText(audioPrompt, b)));
+    document.querySelectorAll("[data-copy-diff]").forEach(b => b.addEventListener("click", () => copyText(diffText, b)));
+
+    const tlItems = document.querySelectorAll("[data-timeline] li");
+    const tlCount = document.getElementById("tl-count");
+    if (tlCount) tlCount.textContent = tlItems.length;
+
+    document.querySelectorAll("[data-filter]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const f = btn.dataset.filter;
+        tlItems.forEach(li => { li.hidden = f !== "all" && li.dataset.kind !== f; });
+      });
+    });
+
+    const sections = document.querySelectorAll("section[id]");
+    const navLinks = document.querySelectorAll("nav a[href^='#']");
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting)
+          navLinks.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      });
+    }, { rootMargin: "-20% 0px -65% 0px" });
+    sections.forEach(s => obs.observe(s));
+  </script>
+</body>
+</html>
