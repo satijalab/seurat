@@ -37,6 +37,7 @@ jobs:
           extra-packages: |
             any::future
             any::R.utils
+            local::.
           needs: check
 
       - name: Smoke test under multisession
