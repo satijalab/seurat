@@ -50,7 +50,7 @@ plan()
 
 | Strategy | Platforms | Mechanism | Notes |
 |----------|-----------|-----------|-------|
-| `multicore` | Unix, macOS, and Linux **containers** only — **not** Windows, and not inside RStudio | Forks the current process; workers share memory, so nothing is serialized | Fast; the recommended path where available |
+| `multicore` | Linux/macOS (Unix-alikes) — **not** Windows, and not supported inside RStudio | Forks the current process; workers share memory, so nothing is serialized | Fast; the recommended path where available |
 | `multisession` | All platforms, including Windows | Launches background R sessions; globals are serialized to workers over sockets | Portable but much slower; large objects can exceed `future.globals.maxSize`, and complex objects may hang or fail to serialize |
 
 > **Note:** the `"multiprocess"` strategy was deprecated and removed from `future` (>= 1.20.0). It no longer exists — use `multicore` or `multisession` explicitly.
