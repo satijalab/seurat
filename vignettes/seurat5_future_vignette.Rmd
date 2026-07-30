@@ -33,16 +33,29 @@ In Seurat, we have chosen to use the `future` framework for parallelization. In 
 
 # How to use parallelization in Seurat 
 
-To access the parallel version of functions in Seurat, you need to load the `future` package and set the `plan`. The `plan` will specify how the function is executed. The default behavior is to evaluate in a non-parallelized fashion (sequentially). To achieve parallel (asynchronous) behavior, we typically recommend the "multiprocess" strategy. By default, this uses all available cores but you can set the `workers` parameter to limit the number of concurrently active futures. 
+To access the parallel version of functions in Seurat, you need to load the `future` package and set the `plan`. The `plan` will specify how the function is executed. The default behavior is to evaluate in a non-parallelized fashion (sequentially). To achieve parallel (asynchronous) behavior, we typically recommend the "multisession" strategy. By default, this uses all available cores but you can set the `workers` parameter to limit the number of concurrently active futures. 
 
 ```{r future.setup}
 library(future)
 # check the current active plan
 plan()
 # change the current plan to access parallelization
-plan("multiprocess", workers = 4)
+plan("multisession", workers = 4)
 plan()
 ```
+
+# Choosing a plan
+
+`future` offers two asynchronous strategies relevant to Seurat. Pick based on your platform:
+
+| Strategy | Platforms | Mechanism | Notes |
+|----------|-----------|-----------|-------|
+| `multicore` | Unix, macOS, and Linux **containers** only — **not** Windows, and not inside RStudio | Forks the current process; workers share memory, so nothing is serialized | Fast; the recommended path where available |
+| `multisession` | All platforms, including Windows | Launches background R sessions; globals are serialized to workers over sockets | Portable but much slower; large objects can exceed `future.globals.maxSize`, and complex objects may hang or fail to serialize |
+
+> **Note:** the `"multiprocess"` strategy was deprecated and removed from `future` (>= 1.20.0). It no longer exists — use `multicore` or `multisession` explicitly.
+
+> **Windows users (including WSL):** `multicore` cannot fork on Windows. You can either accept `multisession`'s limitations, or run Seurat inside the Linux container provided by the repository's [`Dockerfile`](../Dockerfile), where `plan("multicore")` works. The `docker-multicore` CI job smoke-tests exactly this path.
 
 # 'Futurized' functions in Seurat
 
@@ -64,7 +77,7 @@ pbmc <- UpdateSeuratObject(pbmc)
 pbmc[["RNA"]] <- as(pbmc[["RNA"]], Class = "Assay5")
 
 # Enable parallelization
-plan('multiprocess', workers = 4)
+plan('multisession', workers = 4)
 markers <- FindMarkers(pbmc, ident.1 = "NK", verbose = FALSE)
 ```
 
@@ -88,16 +101,16 @@ markers <- FindMarkers(pbmc, ident.1 = "NK", verbose = FALSE)
 end <- Sys.time()
 timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "FindMarkers", time = as.numeric(end - start, units = "secs"), strategy = "sequential"))
 
-plan("multiprocess", workers = 4)
+plan("multisession", workers = 4)
 start <- Sys.time()
 pbmc <- ScaleData(pbmc, vars.to.regress = "percent.mt", verbose = FALSE)
 end <- Sys.time()
-timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "ScaleData", time = as.numeric(end - start, units = "secs"), strategy = "multiprocess"))
+timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "ScaleData", time = as.numeric(end - start, units = "secs"), strategy = "multisession"))
 
 start <- Sys.time()
 markers <- FindMarkers(pbmc, ident.1 = "NK", verbose = FALSE)
 end <- Sys.time()
-timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "FindMarkers", time = as.numeric(end - start, units = "secs"), strategy = "multiprocess"))
+timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "FindMarkers", time = as.numeric(end - start, units = "secs"), strategy = "multisession"))
 ```
 
 </details>
