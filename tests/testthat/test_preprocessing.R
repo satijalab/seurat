@@ -345,6 +345,16 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(hvf_info[VariableFeatures(object = object), grep("variance.standardized$", colnames(hvf_info))])))
 })
 
+test_that("Variable feature ordering (default) is stable across thread counts", {
+  old.threads <- getOption("Seurat.nthreads")
+  on.exit(options(Seurat.nthreads = old.threads), add = TRUE)
+  options(Seurat.nthreads = 1L)
+  object.single.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+  options(Seurat.nthreads = 2L)
+  object.multi.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
+})
+
 #object <- FindVariableFeatures(object, assay = "RNAbp")
 #this breaks currently
 
