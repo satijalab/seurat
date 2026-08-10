@@ -1076,22 +1076,57 @@ NumericVector SparseRowVarStdLegacyRows(NumericVector x,
                                         int rows,
                                         int cols,
                                         IntegerVector rows_use,
+                                        int nthreads,
                                         bool display_progress){
   NumericVector vars(rows_use.size());
   IntegerVector nnz(rows_use.size());
   std::vector<int> row_map(rows, -1);
   const double* x_ptr = REAL(x);
   const int* i_ptr = INTEGER(i);
+  const double* mu_ptr = REAL(mu);
+  const double* sd_ptr = REAL(sd);
+  double* vars_ptr = REAL(vars);
   const R_xlen_t x_size = x.size();
+  const R_xlen_t nrows_use = rows_use.size();
   if(display_progress == true){
     Rcpp::Rcerr << "Calculating selected feature variances of standardized and clipped values" << std::endl;
   }
-  for (R_xlen_t j=0; j<rows_use.size(); ++j){
+  for (R_xlen_t j=0; j<nrows_use; ++j){
     const int row = rows_use[j];
     if (row >= 0 && row < rows) {
       row_map[row] = j;
     }
   }
+
+  if (nthreads > 1 && !display_progress && nrows_use > 1) {
+    std::vector<std::vector<R_xlen_t> > row_positions(nrows_use);
+    for (R_xlen_t idx = 0; idx < x_size; ++idx) {
+      const int row = i_ptr[idx];
+      const int j = row_map[row];
+      if (j < 0 || sd_ptr[row] == 0 || R_IsNA(sd_ptr[row])) {
+        continue;
+      }
+      row_positions[j].push_back(idx);
+    }
+
+    RcppThread::parallelFor(0, static_cast<std::size_t>(nrows_use), [&](std::size_t j) {
+      const int row = rows_use[j];
+      if (row < 0 || row >= rows || sd_ptr[row] == 0 || R_IsNA(sd_ptr[row])) {
+        return;
+      }
+      double sumsq = 0.0;
+      for (R_xlen_t pos_idx = 0; pos_idx < static_cast<R_xlen_t>(row_positions[j].size()); ++pos_idx) {
+        const R_xlen_t idx = row_positions[j][pos_idx];
+        sumsq += pow(std::min(vmax, (x_ptr[idx] - mu_ptr[row]) / sd_ptr[row]), 2);
+      }
+      const int nnz_row = static_cast<int>(row_positions[j].size());
+      vars_ptr[j] = (
+        sumsq + (pow((0 - mu_ptr[row]) / sd_ptr[row], 2) * (cols - nnz_row))
+      ) / (cols - 1);
+    }, nthreads);
+    return vars;
+  }
+
   Progress prog(x_size + rows_use.size(), display_progress);
   for (R_xlen_t idx = 0; idx < x_size; ++idx) {
     if(display_progress == true){
@@ -1105,7 +1140,7 @@ NumericVector SparseRowVarStdLegacyRows(NumericVector x,
     vars[j] += pow(std::min(vmax, (x_ptr[idx] - mu[row]) / sd[row]), 2);
     nnz[j] += 1;
   }
-  for (R_xlen_t j=0; j<rows_use.size(); ++j){
+  for (R_xlen_t j=0; j<nrows_use; ++j){
     if(display_progress == true){
       prog.increment();
     }

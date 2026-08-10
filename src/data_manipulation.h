@@ -57,6 +57,7 @@ NumericVector SparseRowVarStdLegacyRows(NumericVector x,
                                         int rows,
                                         int cols,
                                         IntegerVector rows_use,
+                                        int nthreads,
                                         bool display_progress);
 NumericVector SparseRowVarStd(NumericVector x,
                               IntegerVector i,

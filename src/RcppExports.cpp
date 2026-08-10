@@ -232,42 +232,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// SparseRowMeanVarLegacy
-List SparseRowMeanVarLegacy(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, bool display_progress);
-RcppExport SEXP _Seurat_SparseRowMeanVarLegacy(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP display_progressSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
-    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
-    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(SparseRowMeanVarLegacy(x, i, p, rows, cols, display_progress));
-    return rcpp_result_gen;
-END_RCPP
-}
-// SparseRowVarStdLegacyRows
-NumericVector SparseRowVarStdLegacyRows(NumericVector x, IntegerVector i, IntegerVector p, NumericVector mu, NumericVector sd, double vmax, int rows, int cols, IntegerVector rows_use, bool display_progress);
-RcppExport SEXP _Seurat_SparseRowVarStdLegacyRows(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP rows_useSEXP, SEXP display_progressSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type sd(sdSEXP);
-    Rcpp::traits::input_parameter< double >::type vmax(vmaxSEXP);
-    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
-    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type rows_use(rows_useSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(SparseRowVarStdLegacyRows(x, i, p, mu, sd, vmax, rows, cols, rows_use, display_progress));
-    return rcpp_result_gen;
-END_RCPP
-}
 // SparseRowVarStd
 NumericVector SparseRowVarStd(NumericVector x, IntegerVector i, IntegerVector p, NumericVector mu, NumericVector sd, int rows, int cols, double vmax, int nthreads, bool display_progress);
 RcppExport SEXP _Seurat_SparseRowVarStd(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP vmaxSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
@@ -305,6 +269,41 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type x(xSEXP);
     rcpp_result_gen = Rcpp::wrap(RowVar(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SparseRowMeanVarLegacy
+List SparseRowMeanVarLegacy(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowMeanVarLegacy(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowMeanVarLegacy(x, i, p, rows, cols, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SparseRowVarStdLegacyRows
+NumericVector SparseRowVarStdLegacyRows(NumericVector x, IntegerVector i, IntegerVector p, NumericVector mu, NumericVector sd, double vmax, int rows, int cols, IntegerVector rows_use, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowVarStdLegacyRows(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP rows_useSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type sd(sdSEXP);
+    Rcpp::traits::input_parameter< double >::type vmax(vmaxSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type rows_use(rows_useSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowVarStdLegacyRows(x, i, p, mu, sd, vmax, rows, cols, rows_use, nthreads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -549,11 +548,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
     {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 2},
     {"_Seurat_SparseRowMeanVar", (DL_FUNC) &_Seurat_SparseRowMeanVar, 7},
-    {"_Seurat_SparseRowMeanVarLegacy", (DL_FUNC) &_Seurat_SparseRowMeanVarLegacy, 6},
-    {"_Seurat_SparseRowVarStdLegacyRows", (DL_FUNC) &_Seurat_SparseRowVarStdLegacyRows, 10},
     {"_Seurat_SparseRowVarStd", (DL_FUNC) &_Seurat_SparseRowVarStd, 10},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
+    {"_Seurat_SparseRowMeanVarLegacy", (DL_FUNC) &_Seurat_SparseRowMeanVarLegacy, 6},
+    {"_Seurat_SparseRowVarStdLegacyRows", (DL_FUNC) &_Seurat_SparseRowVarStdLegacyRows, 11},
     {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
     {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
     {"_Seurat_GraphToNeighborHelper", (DL_FUNC) &_Seurat_GraphToNeighborHelper, 1},
