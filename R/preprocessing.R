@@ -5099,6 +5099,9 @@ NormalizeData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
+  if (!(assay %in% Assays(object = object))) {
+    stop("Assay ", assay, " not found in object")
+  }
   slot(object, "assays")[[assay]] <- NormalizeData(
     object = slot(object, "assays")[[assay]],
     normalization.method = normalization.method,
