@@ -74,7 +74,6 @@ Imports:
     Rcpp (>= 1.0.7),
     RcppAnnoy (>= 0.0.18),
     RcppHNSW,
-    RcppThread,
     reticulate,
     rlang,
     ROCR,

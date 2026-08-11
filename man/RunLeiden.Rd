@@ -16,8 +16,7 @@ RunLeiden(
   node.sizes = NULL,
   resolution.parameter = 1,
   random.seed = 1,
-  n.iter = 10,
-  n.threads = NULL
+  n.iter = 10
 )
 }
 \arguments{
