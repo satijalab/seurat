@@ -350,7 +350,6 @@ FindClusters.default <- function(
   }
   leiden_method <- match.arg(leiden_method)
   leiden_objective_function <- match.arg(leiden_objective_function)
-  n.threads <- getOption("Seurat.nthreads", default = 1L)
   leiden.graph <- if (algorithm == 4) BuildLeidenGraph(object, leiden_method) else NULL
   if (algorithm %in% c(1:3) && length(x = resolution) > 1) {
     ids.list <- RunModularityClusteringMulti(
@@ -394,8 +393,7 @@ FindClusters.default <- function(
         node.sizes = node.sizes,
         resolution.parameter = r,
         random.seed = random.seed,
-        n.iter = n.iter,
-        n.threads = n.threads
+        n.iter = n.iter
       )
     } else if (algorithm == 4) {
       ids <- RunLeiden(
@@ -407,8 +405,7 @@ FindClusters.default <- function(
         node.sizes = node.sizes,
         resolution.parameter = r,
         random.seed = random.seed,
-        n.iter = n.iter,
-        n.threads = n.threads
+        n.iter = n.iter
       )
     } else {
       stop("algorithm not recognised, please specify as an integer or string")
@@ -1680,6 +1677,8 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 
 #' Helper function to build a graph object for Leiden clustering
 #'
+#' @noRd
+#'
 BuildLeidenGraph <- function(object, leiden_method = c("leidenbase", "igraph")) {
   leiden_method <- match.arg(leiden_method)
   if (inherits(object, what = "igraph")) {
@@ -1756,8 +1755,7 @@ RunLeiden <- function(
     node.sizes = NULL,
     resolution.parameter = 1,
     random.seed = 1,
-    n.iter = 10,
-    n.threads = NULL
+    n.iter = 10
 ) {
   # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
   # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
