@@ -1231,6 +1231,8 @@ SCTransform.StdAssay <- function(
   names(x = input_list) <- layer_names
 
   # Apply SCTransform to each set of counts in `input_list`.
+  # defer.residual.matrix is TRUE for all layers if vars.to.regress is NULL, so that
+  # the final residual matrix is computed exactly once after merging layers.
   output_list <- lapply(
     names(x = input_list),
     function(layer_name) {
