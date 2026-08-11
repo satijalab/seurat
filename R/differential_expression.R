@@ -1325,6 +1325,43 @@ FindMarkers.Assay <- function(
 #'
 FindMarkers.StdAssay <- FindMarkers.Assay
 
+#' @noRd
+#'
+ValidateSCTFindMarkers <- function(object, recorrect_umi = TRUE) {
+  if (!recorrect_umi || length(x = levels(x = object)) <= 1) {
+    return(invisible(x = NULL))
+  }
+  cell_attributes <- SCTResults(object = object, slot = "cell.attributes")
+  observed_median_umis <- lapply(
+    X = cell_attributes,
+    FUN = function(x) median(x[, "umi"])
+  )
+  model.list <- slot(object = object, "SCTModel.list")
+  median_umi.status <- lapply(
+    X = model.list,
+    FUN = function(x) {
+      return(tryCatch(
+        expr = slot(object = x, name = 'median_umi'),
+        error = function(...) {
+          return(NULL)
+        }
+      ))
+    }
+  )
+  if (any(is.null(unlist(median_umi.status)))) {
+    stop(
+      "SCT assay does not contain median UMI information.",
+      "Run `PrepSCTFindMarkers()` before running `FindMarkers()` or invoke `FindMarkers(recorrect_umi=FALSE)`."
+    )
+  }
+  model_median_umis <- SCTResults(object = object, slot = "median_umi")
+  min_median_umi <- min(unlist(x = observed_median_umis))
+  if (any(unlist(model_median_umis) != min_median_umi)) {
+    stop("Object contains multiple models with unequal library sizes. Run `PrepSCTFindMarkers()` before running `FindMarkers()`.")
+  }
+  return(invisible(x = NULL))
+}
+
 #' @param recorrect_umi Recalculate corrected UMI counts using minimum of the 
 #' median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
@@ -1360,28 +1397,7 @@ FindMarkers.SCTAssay <- function(
       slot <- "counts"
     }
   }
-  if (recorrect_umi && length(x = levels(x = object)) > 1) {
-    cell_attributes <- SCTResults(object = object, slot = "cell.attributes")
-    observed_median_umis <- lapply(
-      X = cell_attributes,
-      FUN = function(x) median(x[, "umi"])
-    )
-    model.list <- slot(object = object, "SCTModel.list")
-    median_umi.status <- lapply(X = model.list,
-                                FUN = function(x) { return(tryCatch(
-                                  expr = slot(object = x, name = 'median_umi'),
-                                  error = function(...) {return(NULL)})
-                                )})
-    if (any(is.null(unlist(median_umi.status)))){
-      stop("SCT assay does not contain median UMI information.",
-           "Run `PrepSCTFindMarkers()` before running `FindMarkers()` or invoke `FindMarkers(recorrect_umi=FALSE)`.")
-    }
-    model_median_umis <- SCTResults(object = object, slot = "median_umi")
-    min_median_umi <- min(unlist(x = observed_median_umis))
-    if (any(unlist(model_median_umis) != min_median_umi)){
-      stop("Object contains multiple models with unequal library sizes. Run `PrepSCTFindMarkers()` before running `FindMarkers()`.")
-    }
-  }
+  ValidateSCTFindMarkers(object = object, recorrect_umi = recorrect_umi)
 
   data.use <-  GetAssayData(object = object, layer = data.slot)
   # Default assumes the input is log1p(corrected counts)
