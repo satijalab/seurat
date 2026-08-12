@@ -607,33 +607,62 @@ FoldChangeFindAllMarkers <- function(
   } else {
     data[features.fc, , drop = FALSE]
   }
+  data.mean <- switch(
+    EXPR = fc.slot,
+    "scale.data" = data.fc,
+    "data" = if (is.null(x = norm.method) || norm.method == "LogNormalize") {
+      expm1(x = data.fc)
+    } else {
+      data.fc
+    },
+    data.fc
+  )
+  group.sum <- as.matrix(x = data.mean %*% group.mat)
+  total.sum <- Matrix::rowSums(x = data.mean)
+  if (fc.slot == "scale.data") {
+    mean.1 <- t(x = t(x = group.sum) / group.n)
+    mean.2 <- t(x = t(x = total.sum - group.sum) / rest.n)
+  } else {
+    mean.1 <- log(x = t(x = t(x = group.sum + pseudocount.use) / group.n), base = base)
+    mean.2 <- log(x = t(x = t(x = total.sum - group.sum + pseudocount.use) / rest.n), base = base)
+  }
+  fc <- mean.1 - mean.2
   for (i in seq_along(along.with = idents.all)) {
     features.use <- features.by.pct[[i]]
     fc.use <- numeric(length = 0L)
     if (length(x = features.use)) {
-      cells.1 <- cellnames.use[groups == as.character(x = idents.all[i])]
-      cells.2 <- cellnames.use[groups != as.character(x = idents.all[i])]
-      mat.1 <- data.fc[features.use, cells.1, drop = FALSE]
-      mat.2 <- data.fc[features.use, cells.2, drop = FALSE]
-      fc.use <- if (fc.slot == "scale.data") {
-        Matrix::rowMeans(x = mat.1) - Matrix::rowMeans(x = mat.2)
-      } else if (fc.slot == "data" && (is.null(x = norm.method) || norm.method == "LogNormalize")) {
-        log(
-          x = (Matrix::rowSums(x = expm1(x = mat.1)) + pseudocount.use) / NCOL(mat.1),
-          base = base
-        ) -
-          log(
-            x = (Matrix::rowSums(x = expm1(x = mat.2)) + pseudocount.use) / NCOL(mat.2),
-            base = base
-          )
-      } else {
-        log(
-          x = (Matrix::rowSums(x = mat.1) + pseudocount.use) / NCOL(mat.1),
-          base = base
-        ) -
-          log(x = (Matrix::rowSums(x = mat.2) + pseudocount.use) / NCOL(mat.2), base = base)
-      }
+      fc.use <- fc[features.use, i]
       names(x = fc.use) <- features.use
+      if (slot != "scale.data") {
+        legacy.candidates <- FindAllMarkersLegacyFCCandidates(
+          fc = fc.use,
+          logfc.threshold = logfc.threshold,
+          only.pos = only.pos
+        )
+        if (length(x = legacy.candidates)) {
+          cells.1 <- cellnames.use[groups == as.character(x = idents.all[i])]
+          cells.2 <- cellnames.use[groups != as.character(x = idents.all[i])]
+          mat.1 <- data.fc[legacy.candidates, cells.1, drop = FALSE]
+          mat.2 <- data.fc[legacy.candidates, cells.2, drop = FALSE]
+          fc.legacy <- if (fc.slot == "data" && (is.null(x = norm.method) || norm.method == "LogNormalize")) {
+            log(
+              x = (Matrix::rowSums(x = expm1(x = mat.1)) + pseudocount.use) / NCOL(mat.1),
+              base = base
+            ) -
+              log(
+                x = (Matrix::rowSums(x = expm1(x = mat.2)) + pseudocount.use) / NCOL(mat.2),
+                base = base
+              )
+          } else {
+            log(
+              x = (Matrix::rowSums(x = mat.1) + pseudocount.use) / NCOL(mat.1),
+              base = base
+            ) -
+              log(x = (Matrix::rowSums(x = mat.2) + pseudocount.use) / NCOL(mat.2), base = base)
+          }
+          fc.use[legacy.candidates] <- fc.legacy
+        }
+      }
     }
     if (length(x = features.use) && slot != "scale.data") {
       total.diff <- fc.use
@@ -654,6 +683,23 @@ FoldChangeFindAllMarkers <- function(
   }
   attr(x = fc.by.ident, which = "features.filtered") <- TRUE
   return(fc.by.ident)
+}
+
+FindAllMarkersLegacyFCCandidates <- function(
+  fc,
+  logfc.threshold,
+  only.pos,
+  tolerance = 1e-10
+) {
+  if (!length(x = fc)) {
+    return(character(length = 0L))
+  }
+  fc.compare <- if (only.pos) {
+    fc
+  } else {
+    abs(x = fc)
+  }
+  names(x = which(x = abs(x = fc.compare - logfc.threshold) <= tolerance))
 }
 
 #' FindAllMarkers Wilcoxon w/ presto
