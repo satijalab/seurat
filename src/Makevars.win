@@ -1,2 +1,8 @@
 CXX_STD = CXX17
+PKG_CXXFLAGS = -DRCPP_EIGEN -DEIGEN_PERMANENTLY_DISABLE_STUPID_WARNINGS
 PKG_LIBS += $(BLAS_LIBS) $(FLIBS)
+
+# See Makevars: explicit OBJECTS so the vendored BPCells subdirectory compiles.
+OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp)) \
+          $(patsubst %.c,%.o,$(wildcard *.c)) \
+          $(patsubst %.cpp,%.o,$(wildcard bpcells/matrixIterators/*.cpp))

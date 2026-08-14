@@ -1231,6 +1231,7 @@ FindModalityWeights  <- function(
   reduction.list,
   dims.list,
   k.nn = 20,
+  fix.wnn.weights = NULL,
   snn.far.nn = TRUE,
   s.nn = k.nn,
   prune.SNN = 0,
@@ -1247,11 +1248,28 @@ FindModalityWeights  <- function(
     yes = pblapply,
     no = lapply
   )
+  # When fix.wnn.weights is supplied, WNN weights are preset (per modality) and
+  # the within/cross-modality distance and kernel computation is skipped.
+  use_fixed_weights <- !is.null(x = fix.wnn.weights)
+  if (use_fixed_weights) {
+    if (length(x = fix.wnn.weights) != length(x = reduction.list)) {
+      stop("Please make sure the fix.wnn.weights is correctly specified! It should have the same length as your reduction.list.")
+    }
+    if (smooth) {
+      warning("'smooth = TRUE' is not applicable when wnn.weights are pre-set. Ignoring...")
+      smooth <- FALSE
+    }
+  }
   cross.contant.list <- cross.contant.list %||%
     as.list(x = rep(x = 1e-4, times = length(x = reduction.list)))
   reduction.set <- unlist(x = reduction.list)
-  names(x = reduction.list) <- names(x = dims.list) <-
-    names(x = cross.contant.list) <- reduction.set
+  if (use_fixed_weights) {
+    names(x = fix.wnn.weights) <- names(x = reduction.list) <- names(x = dims.list) <-
+      names(x = cross.contant.list) <- reduction.set
+  } else {
+    names(x = reduction.list) <- names(x = dims.list) <-
+      names(x = cross.contant.list) <- reduction.set
+  }
   embeddings.list <- lapply(
     X = reduction.list,
     FUN = function(r) Embeddings(object = object, reduction = r)[, dims.list[[r]]]
@@ -1313,6 +1331,13 @@ FindModalityWeights  <- function(
     )
   }
   nearest_dist <- lapply(X = reduction.list, FUN = function(r) Distances(object = nn.list[[r]])[, 2])
+  # In fixed-weights mode these intermediates are unused (weights are preset), so
+  # the within/cross-modality distance computation below is skipped.
+  within_impute_dist <- NULL
+  cross_impute_dist <- NULL
+  within_impute_kernel <- NULL
+  cross_impute_kernel <- NULL
+  if (!use_fixed_weights) {  # body kept at original indent to minimize the diff
   within_impute <- list()
   cross_impute <- list()
   # Calculating within and cross modality distance
@@ -1371,6 +1396,7 @@ FindModalityWeights  <- function(
       return(r_dist)
     }
   )
+  }  # end if (!use_fixed_weights)
   # calculate kernel width
   if (snn.far.nn) {
     if (verbose) {
@@ -1420,6 +1446,27 @@ FindModalityWeights  <- function(
       }
     )
   }
+  params <- list(
+    "reduction.list" = reduction.list,
+    "dims.list" = dims.list,
+    "l2.norm" = l2.norm,
+    "k.nn" = k.nn,
+    "sigma.idx" = sigma.idx,
+    "snn.far.nn" = snn.far.nn ,
+    "sigma.list" = modality_sd.list,
+    "nearest.dist" = nearest_dist
+  )
+  if (use_fixed_weights) {
+    # Fixed-weights mode: assign the preset per-modality weight to every cell.
+    modality_score <- lapply(
+      X = reduction.list,
+      FUN = function(idx) {
+        rep(x = fix.wnn.weights[[idx]], times = nrow(x = embeddings.list.norm[[ reduction.list[[idx]] ]]))
+      }
+    )
+    names(x = modality_score) <- names(x = reduction.list)
+    modality.weight <- modality_score
+  } else {
   # Calculating within and cross modality kernel, and modality weights
   within_impute_kernel <- lapply(
     X = reduction.list,
@@ -1432,16 +1479,6 @@ FindModalityWeights  <- function(
     FUN = function(r) {
       exp(-1 * (cross_impute_dist[[r]] / modality_sd.list[[r]]) )
     }
-  )
-  params <- list(
-    "reduction.list" = reduction.list,
-    "dims.list" = dims.list,
-    "l2.norm" = l2.norm,
-    "k.nn" = k.nn,
-    "sigma.idx" = sigma.idx,
-    "snn.far.nn" = snn.far.nn ,
-    "sigma.list" = modality_sd.list,
-    "nearest.dist" = nearest_dist
   )
   modality_score <-  lapply(
     X = reduction.list,
@@ -1476,6 +1513,7 @@ FindModalityWeights  <- function(
       rowSums(x = exp(x = score_m))/all_modality_score
     }
   )
+  }  # end else (calculated-weights mode)
   score.mat <- list(
     within_impute_dist = within_impute_dist,
     cross_impute_dist = cross_impute_dist,

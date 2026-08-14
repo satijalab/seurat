@@ -41,6 +41,7 @@ Depends:
 Imports:
     cluster,
     cowplot,
+    dplyr,
     fastDummies,
     future,
     future.apply,
@@ -64,6 +65,8 @@ Imports:
     parallelly,
     patchwork,
     pbapply,
+    plotly (>= 4.9.0),
+    pls,
     png,
     progressr,
     RANN,
@@ -90,7 +93,7 @@ Suggests:
     BPCells,
     data.table,
     DelayedArray,
-    DESeq2,
+    destiny,
     enrichR,
     fitdistrplus,
     GenomicRanges,
@@ -99,6 +102,7 @@ Suggests:
     harmony,
     hdf5r,
     IRanges,
+    knn.covertree,
     leidenbase,
     limma,
     lmtest,
@@ -119,11 +123,10 @@ Suggests:
     sf (>= 1.0.0),
     shiny,
     SingleCellExperiment,
-    sp,
-    spatstat.explore,
-    spatstat.geom,
+    spls,
     SummarizedExperiment,
     testthat,
+    tidyr,
     VGAM
 LinkingTo: Rcpp (>= 0.11.0), RcppAnnoy (>= 0.0.18), RcppEigen, RcppProgress, RcppThread, RSpectra
 SystemRequirements: GNU make
@@ -149,6 +152,16 @@ Collate:
     'preprocessing.R'
     'preprocessing5.R'
     'roxygen.R'
+    'scslide_batch_correction.R'
+    'scslide_clustering.R'
+    'scslide_differential_expression.R'
+    'scslide_dimensional_reduction.R'
+    'scslide_normalization.R'
+    'scslide_pls.R'
+    'scslide_predict_pls.R'
+    'scslide_sample_level_object.R'
+    'scslide_sketching.R'
+    'scslide_visualization.R'
     'sketching.R'
     'tree.R'
     'utilities.R'
