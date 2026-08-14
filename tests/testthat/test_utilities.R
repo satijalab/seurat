@@ -442,3 +442,21 @@ test_that("AddModuleScore works in the multi-layer case", {
     all(object1$CD_Features1 == object2$CD_Features1)
   )
 })
+
+test_that("PercentageFeatureSet works with v5 layers", {
+  counts <- LayerData(object, assay = "RNA", layer = "counts")
+  counts <- rbind(counts, rep(5, ncol(counts)))
+
+  # Test with pattern matching on counts layer
+  result <- PercentageFeatureSet(object = object, pattern = "^HLA-", assay = "RNA")
+  
+  # Should return a numeric vector with one value per cell
+  expect_is(result, "numeric")
+  expect_equal(length(result), ncol(object))
+  
+  # Test with explicit features parameter
+  result_features <- PercentageFeatureSet(object = object, features = "HLA-DRB1", assay = "RNA")
+  
+  expect_is(result_features, "numeric")
+  expect_equal(length(result_features), ncol(object))
+})
