@@ -3185,12 +3185,20 @@ BuildNicheAssay <- function(
   return(object)
 }
 
-#' Set n threads for Seurat
 #' Set the number of threads to use for parallel processing in Seurat
 #'
 #' @param threads Number of threads (>= 1) to use for processing
+#' @concept utilities
 #' @export
 setThreads <- function(threads) {
   stopifnot("Number of threads must be a positive integer" = (is.numeric(threads) && threads >= 1))
   options(Seurat.nthreads = threads)
+}
+
+#' Get the number of threads being used for parallel processing in Seurat
+#'
+#' @concept utilities
+#' @export
+getThreads <- function() {
+  return(getOption("Seurat.nthreads"))
 }
