@@ -554,18 +554,31 @@ FoldChangeFindAllMarkers <- function(
   group.n <- as.numeric(x = Matrix::colSums(x = group.mat))
   rest.n <- length(x = cellnames.use) - group.n
   data <- data[features, cellnames.use, drop = FALSE]
+  feature.names <- rownames(x = data)
+  sparse.stats <- FindAllMarkersSparseStats(
+    data = data,
+    groups = groups,
+    n.groups = length(x = idents.all),
+    fc.slot = fc.slot,
+    norm.method = norm.method
+  )
+  if (!is.null(x = sparse.stats)) {
+    dimnames(x = sparse.stats$detected) <- list(feature.names, as.character(x = idents.all))
+    dimnames(x = sparse.stats$group_sum) <- list(feature.names, as.character(x = idents.all))
+    names(x = sparse.stats$total_detected) <- feature.names
+    names(x = sparse.stats$total_sum) <- feature.names
+  }
   # Detection percentages use the same >0 threshold and 3-digit rounding as
   # FoldChange.default, but derive pct.2 from total-minus-group counts
-  detected.1 <- as.matrix(x = (data > 0) %*% group.mat)
-  detected.total <- Matrix::rowSums(x = data > 0)
-  pct.1 <- round(
-    x = t(x = t(x = detected.1) / group.n),
-    digits = 3
-  )
-  pct.2 <- round(
-    x = t(x = t(x = detected.total - detected.1) / rest.n),
-    digits = 3
-  )
+  if (is.null(x = sparse.stats)) {
+    detected.1 <- as.matrix(x = (data > 0) %*% group.mat)
+    detected.total <- Matrix::rowSums(x = data > 0)
+  } else {
+    detected.1 <- sparse.stats$detected
+    detected.total <- sparse.stats$total_detected
+  }
+  pct.1 <- round(x = FindAllMarkersDivideColumns(x = detected.1, denominator = group.n), digits = 3)
+  pct.2 <- round(x = FindAllMarkersDivideColumns(x = detected.total - detected.1, denominator = rest.n), digits = 3)
   base.text <- ifelse(test = base == exp(1), yes = "", no = base)
   fc.name <- fc.name %||% ifelse(
     test = fc.slot == "scale.data",
@@ -576,13 +589,10 @@ FoldChangeFindAllMarkers <- function(
   names(x = features.by.pct) <- as.character(x = idents.all)
   for (i in seq_along(along.with = idents.all)) {
     alpha.min <- pmax(pct.1[, i], pct.2[, i])
-    names(x = alpha.min) <- rownames(x = data)
-    features.use <- names(x = which(x = alpha.min >= min.pct))
+    features.use <- feature.names[which(x = alpha.min >= min.pct)]
     if (length(x = features.use)) {
       alpha.diff <- alpha.min - pmin(pct.1[, i], pct.2[, i])
-      features.use <- names(
-        x = which(x = alpha.min >= min.pct & alpha.diff >= min.diff.pct)
-      )
+      features.use <- feature.names[which(x = alpha.min >= min.pct & alpha.diff >= min.diff.pct)]
     }
     features.by.pct[[i]] <- features.use
   }
@@ -607,24 +617,38 @@ FoldChangeFindAllMarkers <- function(
   } else {
     data[features.fc, , drop = FALSE]
   }
-  data.mean <- switch(
-    EXPR = fc.slot,
-    "scale.data" = data.fc,
-    "data" = if (is.null(x = norm.method) || norm.method == "LogNormalize") {
-      expm1(x = data.fc)
-    } else {
+  if (is.null(x = sparse.stats)) {
+    data.mean <- switch(
+      EXPR = fc.slot,
+      "scale.data" = data.fc,
+      "data" = if (is.null(x = norm.method) || norm.method == "LogNormalize") {
+        expm1(x = data.fc)
+      } else {
+        data.fc
+      },
       data.fc
-    },
-    data.fc
-  )
-  group.sum <- as.matrix(x = data.mean %*% group.mat)
-  total.sum <- Matrix::rowSums(x = data.mean)
-  if (fc.slot == "scale.data") {
-    mean.1 <- t(x = t(x = group.sum) / group.n)
-    mean.2 <- t(x = t(x = total.sum - group.sum) / rest.n)
+    )
+    group.sum <- as.matrix(x = data.mean %*% group.mat)
+    total.sum <- Matrix::rowSums(x = data.mean)
   } else {
-    mean.1 <- log(x = t(x = t(x = group.sum + pseudocount.use) / group.n), base = base)
-    mean.2 <- log(x = t(x = t(x = total.sum - group.sum + pseudocount.use) / rest.n), base = base)
+    group.sum <- sparse.stats$group_sum[features.fc, , drop = FALSE]
+    total.sum <- sparse.stats$total_sum[features.fc]
+  }
+  if (fc.slot == "scale.data") {
+    mean.1 <- FindAllMarkersDivideColumns(x = group.sum, denominator = group.n)
+    mean.2 <- FindAllMarkersDivideColumns(x = total.sum - group.sum, denominator = rest.n)
+  } else {
+    mean.1 <- log(
+      x = FindAllMarkersDivideColumns(x = group.sum + pseudocount.use, denominator = group.n),
+      base = base
+    )
+    mean.2 <- log(
+      x = FindAllMarkersDivideColumns(
+        x = total.sum - group.sum + pseudocount.use,
+        denominator = rest.n
+      ),
+      base = base
+    )
   }
   fc <- mean.1 - mean.2
   for (i in seq_along(along.with = idents.all)) {
@@ -633,36 +657,6 @@ FoldChangeFindAllMarkers <- function(
     if (length(x = features.use)) {
       fc.use <- fc[features.use, i]
       names(x = fc.use) <- features.use
-      if (slot != "scale.data") {
-        legacy.candidates <- FindAllMarkersLegacyFCCandidates(
-          fc = fc.use,
-          logfc.threshold = logfc.threshold,
-          only.pos = only.pos
-        )
-        if (length(x = legacy.candidates)) {
-          cells.1 <- cellnames.use[groups == as.character(x = idents.all[i])]
-          cells.2 <- cellnames.use[groups != as.character(x = idents.all[i])]
-          mat.1 <- data.fc[legacy.candidates, cells.1, drop = FALSE]
-          mat.2 <- data.fc[legacy.candidates, cells.2, drop = FALSE]
-          fc.legacy <- if (fc.slot == "data" && (is.null(x = norm.method) || norm.method == "LogNormalize")) {
-            log(
-              x = (Matrix::rowSums(x = expm1(x = mat.1)) + pseudocount.use) / NCOL(mat.1),
-              base = base
-            ) -
-              log(
-                x = (Matrix::rowSums(x = expm1(x = mat.2)) + pseudocount.use) / NCOL(mat.2),
-                base = base
-              )
-          } else {
-            log(
-              x = (Matrix::rowSums(x = mat.1) + pseudocount.use) / NCOL(mat.1),
-              base = base
-            ) -
-              log(x = (Matrix::rowSums(x = mat.2) + pseudocount.use) / NCOL(mat.2), base = base)
-          }
-          fc.use[legacy.candidates] <- fc.legacy
-        }
-      }
     }
     if (length(x = features.use) && slot != "scale.data") {
       total.diff <- fc.use
@@ -685,21 +679,34 @@ FoldChangeFindAllMarkers <- function(
   return(fc.by.ident)
 }
 
-FindAllMarkersLegacyFCCandidates <- function(
-  fc,
-  logfc.threshold,
-  only.pos,
-  tolerance = 1e-10
+FindAllMarkersDivideColumns <- function(x, denominator) {
+  for (i in seq_along(along.with = denominator)) {
+    x[, i] <- x[, i] / denominator[i]
+  }
+  return(x)
+}
+
+FindAllMarkersSparseStats <- function(
+  data,
+  groups,
+  n.groups,
+  fc.slot,
+  norm.method
 ) {
-  if (!length(x = fc)) {
-    return(character(length = 0L))
+  if (!inherits(x = data, what = "dgCMatrix") || !fc.slot %in% c("counts", "data")) {
+    return(NULL)
   }
-  fc.compare <- if (only.pos) {
-    fc
-  } else {
-    abs(x = fc)
-  }
-  names(x = which(x = abs(x = fc.compare - logfc.threshold) <= tolerance))
+  FindAllMarkersSparseFoldChangeStats(
+    x = data@x,
+    i = data@i,
+    p = data@p,
+    rows = nrow(x = data),
+    cols = ncol(x = data),
+    groups = as.integer(x = groups),
+    n_groups = n.groups,
+    log_normalize = fc.slot == "data" && (is.null(x = norm.method) || norm.method == "LogNormalize"),
+    nthreads = getOption(x = "Seurat.nthreads", default = 1L)
+  )
 }
 
 #' FindAllMarkers Wilcoxon w/ presto
@@ -819,23 +826,16 @@ FindAllMarkersWilcoxPrestoDE <- function(
   if (densify) {
     data.test <- as.matrix(x = data.test)
   }
-  groups <- idents.use[cellnames.use]
+  groups <- factor(
+    x = as.character(x = idents.use[cellnames.use]),
+    levels = as.character(x = idents.all)
+  )
   presto.results <- presto::wilcoxauc(X = data.test, y = groups)
-  pvals.by.ident <- split(
-    x = presto.results$pval,
-    f = presto.results$group
-  )
-  features.by.pval <- split(
-    x = as.character(x = presto.results$feature),
-    f = presto.results$group
-  )
-  pvals.by.ident <- Map(
-    f = function(pvals, features) {
-      names(x = pvals) <- features
-      return(pvals)
-    },
-    pvals = pvals.by.ident,
-    features = features.by.pval
+  pval.mat <- matrix(
+    data = presto.results$pval,
+    nrow = length(x = features.test),
+    ncol = length(x = idents.all),
+    dimnames = list(features.test, as.character(x = idents.all))
   )
   genes.de <- vector(mode = "list", length = length(idents.all))
   for (i in seq_along(along.with = idents.all)) {
@@ -845,9 +845,8 @@ FindAllMarkersWilcoxPrestoDE <- function(
       genes.de[[i]] <- fc.results
       next
     }
-    pvals <- pvals.by.ident[[ident]]
     de.results <- data.frame(
-      p_val = pvals[rownames(x = fc.results)],
+      p_val = pval.mat[rownames(x = fc.results), ident],
       row.names = rownames(x = fc.results)
     )
     de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
