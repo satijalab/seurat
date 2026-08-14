@@ -577,9 +577,6 @@ VST.IterableMatrix <- function(
       nselect = nselect
     )
     if (length(x = rank.candidates) > 0) {
-      if (isTRUE(x = verbose)) {
-        message("Refining variable feature ranks using legacy ordering")
-      }
       hvf.info$variance.standardized[rank.candidates] <- SparseRowVarStdLegacyRows(
         x = object@x,
         i = object@i,
