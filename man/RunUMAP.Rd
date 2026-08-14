@@ -30,6 +30,7 @@ RunUMAP(object, ...)
   negative.sample.rate = 5,
   a = NULL,
   b = NULL,
+  fast = FALSE,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
   uwot.init = "spectral",
@@ -97,6 +98,7 @@ RunUMAP(object, ...)
   negative.sample.rate = 5L,
   a = NULL,
   b = NULL,
+  fast = FALSE,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
   uwot.init = "spectral",
@@ -185,6 +187,11 @@ right adjoint functor.}
 \item{b}{More specific parameters controlling the embedding. If NULL, these values are set
 automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 right adjoint functor.}
+
+\item{fast}{Use faster \code{\link[uwot]{umap}} optimization settings. For
+\code{umap.method = "uwot"} or \code{"uwot2"}, this enables fast stochastic
+gradient descent, batched coordinate updates, and deterministic random number
+generation. Default is \code{FALSE}.}
 
 \item{uwot.sgd}{Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details}
 

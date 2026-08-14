@@ -2,8 +2,7 @@
 % Please edit documentation in R/utilities.R
 \name{setThreads}
 \alias{setThreads}
-\title{Set n threads for Seurat
-Set the number of threads to use for parallel processing in Seurat}
+\title{Set the number of threads to use for parallel processing in Seurat}
 \usage{
 setThreads(threads)
 }
@@ -11,6 +10,6 @@ setThreads(threads)
 \item{threads}{Number of threads (>= 1) to use for processing}
 }
 \description{
-Set n threads for Seurat
 Set the number of threads to use for parallel processing in Seurat
 }
+\concept{utilities}
