@@ -25,6 +25,10 @@ LogNorm <- function(x, p, scale_factor, nthreads, display_progress) {
     .Call('_Seurat_LogNorm', PACKAGE = 'Seurat', x, p, scale_factor, nthreads, display_progress)
 }
 
+FindAllMarkersSparseFoldChangeStats <- function(x, i, p, rows, cols, groups, n_groups, log_normalize, nthreads = 1L) {
+    .Call('_Seurat_FindAllMarkersSparseFoldChangeStats', PACKAGE = 'Seurat', x, i, p, rows, cols, groups, n_groups, log_normalize, nthreads)
+}
+
 Standardize <- function(mat, display_progress = TRUE) {
     .Call('_Seurat_Standardize', PACKAGE = 'Seurat', mat, display_progress)
 }

@@ -108,6 +108,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// FindAllMarkersSparseFoldChangeStats
+List FindAllMarkersSparseFoldChangeStats(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, IntegerVector groups, int n_groups, bool log_normalize, int nthreads);
+RcppExport SEXP _Seurat_FindAllMarkersSparseFoldChangeStats(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP groupsSEXP, SEXP n_groupsSEXP, SEXP log_normalizeSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_groups(n_groupsSEXP);
+    Rcpp::traits::input_parameter< bool >::type log_normalize(log_normalizeSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(FindAllMarkersSparseFoldChangeStats(x, i, p, rows, cols, groups, n_groups, log_normalize, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // Standardize
 NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
 RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
@@ -539,6 +557,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
     {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 5},
+    {"_Seurat_FindAllMarkersSparseFoldChangeStats", (DL_FUNC) &_Seurat_FindAllMarkersSparseFoldChangeStats, 9},
     {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
     {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 11},
     {"_Seurat_FastDenseRowScale", (DL_FUNC) &_Seurat_FastDenseRowScale, 7},
