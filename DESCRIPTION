@@ -157,7 +157,6 @@ Collate:
     'scslide_differential_expression.R'
     'scslide_dimensional_reduction.R'
     'scslide_normalization.R'
-    'scslide_pls.R'
     'scslide_predict_pls.R'
     'scslide_sample_level_object.R'
     'scslide_sketching.R'
