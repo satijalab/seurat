@@ -408,10 +408,11 @@ FindAllMarkersWilcoxPresto <- function(
     return(NULL)
   }
   ident.sizes <- vapply(X = cells.by.ident, FUN = length, FUN.VALUE = integer(length = 1L))
-  data.is.iterable <- tryCatch(
-    expr = inherits(x = LayerData(object = object, layer = slot), what = "IterableMatrix"),
-    error = function(...) TRUE
+  layer.data <- tryCatch(
+    expr = LayerData(object = object, layer = slot),
+    error = function(...) NULL
   )
+  data.is.iterable <- is.null(x = layer.data) || inherits(x = layer.data, what = "IterableMatrix")
   # presto::wilcoxauc computes all one-vs-rest Wilcoxon tests in one pass.
   # Keep BPCells and sampled comparisons on the old path because they have
   # backend-specific behavior or per-cluster sampling that is not equivalent.
@@ -451,6 +452,7 @@ FindAllMarkersWilcoxPresto <- function(
       fc.name = fc.name,
       base = base,
       norm.method = norm.method,
+      layer.data = layer.data,
       ...
     ),
     error = function(...) NULL
@@ -543,17 +545,16 @@ FoldChangeFindAllMarkers <- function(
     x = as.character(x = idents.use[cellnames.use]),
     levels = as.character(x = idents.all)
   )
-  # Cell x group membership matrix, multiplying feature x cell data by this
-  # matrix gives feature x group sums/counts for all identities at once
-  group.mat <- Matrix::sparseMatrix(
-    i = seq_along(along.with = groups),
-    j = as.integer(x = groups),
-    x = 1,
-    dims = c(length(x = groups), length(x = idents.all))
-  )
-  group.n <- as.numeric(x = Matrix::colSums(x = group.mat))
+  group.n <- tabulate(bin = as.integer(x = groups), nbins = length(x = idents.all))
   rest.n <- length(x = cellnames.use) - group.n
-  data <- data[features, cellnames.use, drop = FALSE]
+  data <- if (
+    identical(x = features, y = rownames(x = data)) &&
+    identical(x = cellnames.use, y = colnames(x = data))
+  ) {
+    data
+  } else {
+    data[features, cellnames.use, drop = FALSE]
+  }
   feature.names <- rownames(x = data)
   sparse.stats <- FindAllMarkersSparseStats(
     data = data,
@@ -565,12 +566,20 @@ FoldChangeFindAllMarkers <- function(
   if (!is.null(x = sparse.stats)) {
     dimnames(x = sparse.stats$detected) <- list(feature.names, as.character(x = idents.all))
     dimnames(x = sparse.stats$group_sum) <- list(feature.names, as.character(x = idents.all))
+    dimnames(x = sparse.stats$rest_sum) <- list(feature.names, as.character(x = idents.all))
     names(x = sparse.stats$total_detected) <- feature.names
-    names(x = sparse.stats$total_sum) <- feature.names
   }
   # Detection percentages use the same >0 threshold and 3-digit rounding as
   # FoldChange.default, but derive pct.2 from total-minus-group counts
   if (is.null(x = sparse.stats)) {
+    # Cell x group membership matrix, multiplying feature x cell data by this
+    # matrix gives feature x group sums/counts for all identities at once
+    group.mat <- Matrix::sparseMatrix(
+      i = seq_along(along.with = groups),
+      j = as.integer(x = groups),
+      x = 1,
+      dims = c(length(x = groups), length(x = idents.all))
+    )
     detected.1 <- as.matrix(x = (data > 0) %*% group.mat)
     detected.total <- Matrix::rowSums(x = data > 0)
   } else {
@@ -629,14 +638,26 @@ FoldChangeFindAllMarkers <- function(
       data.fc
     )
     group.sum <- as.matrix(x = data.mean %*% group.mat)
-    total.sum <- Matrix::rowSums(x = data.mean)
+    rest.sum <- matrix(
+      data = 0,
+      nrow = nrow(x = group.sum),
+      ncol = ncol(x = group.sum),
+      dimnames = dimnames(x = group.sum)
+    )
+    for (i in seq_len(length.out = ncol(x = group.sum))) {
+      rest.sum[, i] <- if (ncol(x = group.sum) == 2L) {
+        group.sum[, 3L - i]
+      } else {
+        Matrix::rowSums(x = group.sum[, -i, drop = FALSE])
+      }
+    }
   } else {
     group.sum <- sparse.stats$group_sum[features.fc, , drop = FALSE]
-    total.sum <- sparse.stats$total_sum[features.fc]
+    rest.sum <- sparse.stats$rest_sum[features.fc, , drop = FALSE]
   }
   if (fc.slot == "scale.data") {
     mean.1 <- FindAllMarkersDivideColumns(x = group.sum, denominator = group.n)
-    mean.2 <- FindAllMarkersDivideColumns(x = total.sum - group.sum, denominator = rest.n)
+    mean.2 <- FindAllMarkersDivideColumns(x = rest.sum, denominator = rest.n)
   } else {
     mean.1 <- log(
       x = FindAllMarkersDivideColumns(x = group.sum + pseudocount.use, denominator = group.n),
@@ -644,7 +665,7 @@ FoldChangeFindAllMarkers <- function(
     )
     mean.2 <- log(
       x = FindAllMarkersDivideColumns(
-        x = total.sum - group.sum + pseudocount.use,
+        x = rest.sum + pseudocount.use,
         denominator = rest.n
       ),
       base = base
@@ -733,6 +754,7 @@ FindAllMarkersWilcoxPrestoDE <- function(
   fc.name,
   base,
   norm.method,
+  layer.data = NULL,
   ...
 ) {
   dots <- list(...)
@@ -743,9 +765,10 @@ FindAllMarkersWilcoxPrestoDE <- function(
       object = object,
       recorrect_umi = dots$recorrect_umi %||% TRUE
     )
+    layer.data <- NULL
   }
   dots$recorrect_umi <- NULL
-  data.use <- LayerData(object = object, layer = slot)
+  data.use <- layer.data %||% LayerData(object = object, layer = slot)
   features <- features %||% rownames(x = data.use)
   features <- intersect(x = features, y = rownames(x = data.use))
   if (!length(x = features)) {
@@ -822,7 +845,13 @@ FindAllMarkersWilcoxPrestoDE <- function(
   if (!length(x = features.test)) {
     return(fc.by.ident)
   }
-  data.test <- data.use[features.test, cellnames.use, drop = FALSE]
+  use.full.test <- identical(x = cellnames.use, y = colnames(x = data.use))
+  if (use.full.test) {
+    data.test <- data.use
+    features.test <- rownames(x = data.use)
+  } else {
+    data.test <- data.use[features.test, cellnames.use, drop = FALSE]
+  }
   if (densify) {
     data.test <- as.matrix(x = data.test)
   }
@@ -850,15 +879,7 @@ FindAllMarkersWilcoxPrestoDE <- function(
       row.names = rownames(x = fc.results)
     )
     de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
-    if (only.pos) {
-      de.results <- de.results[de.results[, 2] > 0, , drop = FALSE]
-    }
-    de.results <- de.results[order(de.results$p_val, -abs(de.results$pct.1 - de.results$pct.2)), , drop = FALSE]
-    de.results$p_val_adj <- p.adjust(
-      p = de.results$p_val,
-      method = "bonferroni",
-      n = nrow(x = data.use)
-    )
+    de.results$p_val_adj <- pmin(1, de.results$p_val * nrow(x = data.use))
     genes.de[[i]] <- de.results
   }
   return(genes.de)

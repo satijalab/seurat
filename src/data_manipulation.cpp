@@ -206,9 +206,6 @@ List FindAllMarkersSparseFoldChangeStats(
   if (groups.size() != cols) {
     Rcpp::stop("Length of groups must match the number of matrix columns.");
   }
-  if (nthreads < 1) {
-    nthreads = 1;
-  }
   const int chunks = std::max(1, std::min(cols, nthreads * 4));
   const int *row_ptr = INTEGER_RO(i);
   const int *col_ptr = INTEGER_RO(p);
@@ -216,30 +213,14 @@ List FindAllMarkersSparseFoldChangeStats(
   const double *value_ptr = REAL_RO(x);
   const R_xlen_t matrix_size = static_cast<R_xlen_t>(rows) * n_groups;
 
-  std::vector< std::vector<double> > group_sums_by_chunk(
-    chunks,
-    std::vector<double>(matrix_size, 0.0)
-  );
-  std::vector< std::vector<int> > detected_by_chunk(
-    chunks,
-    std::vector<int>(matrix_size, 0)
-  );
-  std::vector< std::vector<double> > total_sums_by_chunk(
-    chunks,
-    std::vector<double>(rows, 0.0)
-  );
-  std::vector< std::vector<int> > total_detected_by_chunk(
-    chunks,
-    std::vector<int>(rows, 0)
-  );
+  std::vector< std::vector<double> > group_sums_by_chunk(chunks, std::vector<double>(matrix_size, 0.0));
+  std::vector< std::vector<int> > detected_by_chunk(chunks, std::vector<int>(matrix_size, 0));
 
   RcppThread::parallelFor(0, chunks, [&](int chunk) {
     const int begin = (static_cast<long long>(chunk) * cols) / chunks;
     const int end = (static_cast<long long>(chunk + 1) * cols) / chunks;
     std::vector<double>& group_sums = group_sums_by_chunk[chunk];
     std::vector<int>& detected = detected_by_chunk[chunk];
-    std::vector<double>& total_sums = total_sums_by_chunk[chunk];
-    std::vector<int>& total_detected = total_detected_by_chunk[chunk];
     for (int col = begin; col < end; ++col) {
       const int group = group_ptr[col] - 1;
       if (group < 0 || group >= n_groups) {
@@ -250,10 +231,8 @@ List FindAllMarkersSparseFoldChangeStats(
         const int row = row_ptr[ptr];
         const double value = value_ptr[ptr];
         const double sum_value = log_normalize ? std::expm1(value) : value;
-        total_sums[row] += sum_value;
         group_sums[group_offset + row] += sum_value;
         if (value > 0.0) {
-          total_detected[row] += 1;
           detected[group_offset + row] += 1;
         }
       }
@@ -262,26 +241,42 @@ List FindAllMarkersSparseFoldChangeStats(
 
   NumericMatrix group_sums(rows, n_groups);
   IntegerMatrix detected(rows, n_groups);
-  NumericVector total_sums(rows);
-  IntegerVector total_detected(rows);
   for (int chunk = 0; chunk < chunks; ++chunk) {
     const std::vector<double>& group_sums_chunk = group_sums_by_chunk[chunk];
     const std::vector<int>& detected_chunk = detected_by_chunk[chunk];
-    const std::vector<double>& total_sums_chunk = total_sums_by_chunk[chunk];
-    const std::vector<int>& total_detected_chunk = total_detected_by_chunk[chunk];
     for (R_xlen_t idx = 0; idx < matrix_size; ++idx) {
       group_sums[idx] += group_sums_chunk[idx];
       detected[idx] += detected_chunk[idx];
     }
-    for (int row = 0; row < rows; ++row) {
-      total_sums[row] += total_sums_chunk[row];
-      total_detected[row] += total_detected_chunk[row];
+  }
+
+  NumericMatrix rest_sums(rows, n_groups);
+  IntegerVector total_detected(rows);
+  for (int row = 0; row < rows; ++row) {
+    int detected_sum = 0;
+    for (int group = 0; group < n_groups; ++group) {
+      detected_sum += detected(row, group);
+    }
+    total_detected[row] = detected_sum;
+    for (int group = 0; group < n_groups; ++group) {
+      double rest = 0.0;
+      double correction = 0.0;
+      for (int other_group = 0; other_group < n_groups; ++other_group) {
+        if (other_group == group) {
+          continue;
+        }
+        const double y = group_sums(row, other_group) - correction;
+        const double t = rest + y;
+        correction = (t - rest) - y;
+        rest = t;
+      }
+      rest_sums(row, group) = rest;
     }
   }
 
   return List::create(
     Named("group_sum") = group_sums,
-    Named("total_sum") = total_sums,
+    Named("rest_sum") = rest_sums,
     Named("detected") = detected,
     Named("total_detected") = total_detected
   );
