@@ -1,11 +1,8 @@
 #include <RcppEigen.h>
 #include <RcppThread.h>
-// CHANGE: Spectra (header-only, Eigen-native; the library RSpectra wraps) gives a
-// partial *top-k* symmetric eigensolver. The previous full SelfAdjointEigenSolver
-// computed all nfeatures eigenpairs even though only npcs are needed, an O(nfeatures^3)
-// cost that is fixed regardless of cell count and dominated the Gram path for small
-// datasets. The top-k Lanczos solver below is machine-precision identical for the
-// leading components but avoids computing the discarded eigenvectors.
+// Spectra (header-only, Eigen-native; the library RSpectra wraps) gives a
+// partial *top-k* symmetric eigensolver. The top-k Lanczos solver below is machine-precision 
+// identical for the leading components but avoids computing the discarded eigenvectors.
 #include <Spectra/SymEigsSolver.h>
 #include <Spectra/MatOp/DenseSymMatProd.h>
 #include <algorithm>
@@ -16,16 +13,6 @@
 // [[Rcpp::depends(RcppThread)]]
 
 using namespace Rcpp;
-
-// CHANGE: multithreading for the two dense GEMM-like stages of the Gram path
-// (Gram formation and embeddings), via RcppThread, independent of OpenMP or any
-// threaded BLAS.
-// vehicle ScaleData_fast uses, and independent of OpenMP / any threaded BLAS.
-// Both workers write DISJOINT output regions (columns of the Gram / rows of the
-// embeddings), so no reduction is needed and each output entry is a single dot
-// product computed in fixed cell order: results are deterministic regardless of
-// thread count. The eigendecomposition (on the small nfeatures x nfeatures Gram)
-// is left serial.
 
 // Stage 1: form the lower triangle of the Gram matrix X X' by output-column
 // blocks. For a contiguous column range [begin, end) the only rows needed (lower
@@ -88,9 +75,6 @@ struct EmbeddingWorker {
 // tighter (tol 1e-10); for the well-separated leading components of scaled data
 // this is numerically indistinguishable from exact.
 //
-// `nthreads` (default 1) threads the two GEMM-like stages (Gram + embeddings) via
-// RcppThread; nthreads <= 1 keeps the original serial Eigen expressions.
-//
 // [[Rcpp::export(rng = false)]]
 List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
                   int npcs,
@@ -121,7 +105,7 @@ List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
   Eigen::MatrixXd loadings;
   Eigen::VectorXd d(npcs);
 
-  // CHANGE: compute only the top npcs eigenpairs with a Lanczos solver when it is
+  // Compute only the top npcs eigenpairs with a Lanczos solver when it is
   // applicable and beneficial (npcs well below nfeatures, so a partial basis is a
   // real saving). DenseSymMatProd reads the lower triangle filled above. Spectra
   // requires 1 <= nev < ncv <= n; ncv ~ 2*nev controls convergence. On any failure

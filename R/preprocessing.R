@@ -4016,10 +4016,7 @@ SCTransform.default <- function(
   # get residuals
   vst.out <- switch(
     EXPR = sct.method,
-     # Default SCTransform behavior - compute Pearson residuals for all genes
-    # now performed using optimized C++ workflow
     'default' = {
-      # setup everything for the optimized C++ workflow
       model.pars <- vst.out$model_pars_fit
       genes <- rownames(x = model.pars)
       if (!identical(x = genes, y = rownames(x = umi))) {
@@ -4144,8 +4141,7 @@ SCTransform.default <- function(
       )
       sub <- umi[residual.features, , drop = FALSE]
       min.variance <- vst.out$arguments$min_variance
-      # Fast path: reproduce sctransform::get_residuals() with the optimized
-      # kernel. get_residuals() is called here with its defaults, so match them:
+      # Reproduce sctransform::get_residuals() -
       # res_clip_range = +/- sqrt(ncol(sub)), the scalar variance floor from the
       # model, and do_center = FALSE (reference centering by the reference
       # residual_mean is applied by the sweep below, not by the kernel).
@@ -5224,10 +5220,7 @@ ScaleData.default <- function(
   CheckDots(...)
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
-  # CHANGE: Defer the row-subset of `object` (previously performed here) so the
-  # fast path below can pass the full matrix plus feature indices into C++ and
-  # select the requested rows there, avoiding an extra sparse-matrix copy. The
-  # general path performs the subset further down, exactly as before.
+  # pass the full matrix plus feature indices into C++ and select the requested rows there
   object.names <- list(features, colnames(x = object))
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   suppressWarnings(expr = Parenting(
@@ -5237,15 +5230,10 @@ ScaleData.default <- function(
   ))
   split.by <- split.by %||% TRUE
   split.cells <- split(x = colnames(x = object), f = split.by)
-  nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
+  nthreads <- getThreads()
   CheckGC()
-  # CHANGE: Fast path. When no regression is requested, the data are not split,
-  # and only one worker is available, compute the row statistics and materialise
-  # the final dense matrix in a single C++ call. This avoids the per-block
-  # subsetting, sparse transpose and dense intermediate copies that dominate on
-  # large data. Feature selection happens inside C++ (via `features`), so we
-  # operate on the full (un-subset) matrix here. `nthreads > 1` enables
-  # RcppThread threading, with thread-safe progress updates when verbose is TRUE.
+  # When no regression is requested, the data are not split, and only one worker is available, 
+  # compute the row statistics and materialise the final dense matrix in a single C++ call.
   if (
     is.null(x = vars.to.regress) &&
     is.null(x = latent.data) &&
@@ -5300,8 +5288,6 @@ ScaleData.default <- function(
     dimnames(x = scaled.data) <- object.names
     return(scaled.data)
   }
-  # General path: perform the row-subset the remaining (regression / split /
-  # multi-worker) code paths expect.
   object <- object[features, , drop = FALSE]
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
@@ -5412,9 +5398,6 @@ ScaleData.default <- function(
     )
     message(msg)
   }
-  # NOTE: The single-call fast path is handled earlier (before the row-subset),
-  # so the remaining code only runs for the regression / split / multi-worker
-  # cases that still require R-level feature blocking.
   if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
     scale.function <- FastSparseRowScale
   } else {
