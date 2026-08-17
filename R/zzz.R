@@ -60,7 +60,7 @@ NULL
 
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
-  Seurat.nthreads = 1,
+  Seurat.nthreads = max(1L, parallel::detectCores() - 1L),
   Seurat.checkdots = "warn",
   Seurat.presto.wilcox.msg = TRUE, #CHANGE
   Seurat.Rfast2.msg = TRUE,
