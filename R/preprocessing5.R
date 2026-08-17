@@ -540,7 +540,7 @@ VST.IterableMatrix <- function(
   if (clip.max == "auto" || is.null(x = clip.max)) {
     clip.max <- sqrt(x = ncol(x = object))
   }
-  nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
+  nthreads <- getThreads()
   hvf.info <- as.data.frame(x = SparseRowMeanVarLegacy(
     x = object@x,
     i = object@i,
@@ -1783,7 +1783,7 @@ FetchResidualSCTModel <- function(
       clip_min = clip.min,
       clip_max = clip.max,
       do_center = TRUE,
-      n_threads = getOption(x = "Seurat.nthreads", default = 1L)
+      n_threads = getThreads()
     )
     dimnames(x = new.residuals) <- list(compute.features, colnames(x = counts))
     if (

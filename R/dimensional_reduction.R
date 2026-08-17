@@ -1435,7 +1435,7 @@ RunUMAP.default <- function(
     }
     umap.method <- "uwot-predict"
   }
-  nthreads <- getOption(x = "Seurat.nthreads", default = 1)
+  nthreads <- getThreads()
   if (fast) {
     uwot.sgd <- TRUE
   }

@@ -4058,7 +4058,7 @@ SCTransform.default <- function(
         min_var = min.var,
         residual_clip_min = min(res.clip.range),
         residual_clip_max = max(res.clip.range),
-        n_threads = getOption(x = "Seurat.nthreads", default = 1L),
+        n_threads = getThreads(),
         compute_corrected = do.correct.umi
       )
       vst.out$gene_attr[genes, "residual_mean"] <- stats$residual_mean
@@ -4112,7 +4112,7 @@ SCTransform.default <- function(
           clip_min = min(clip.range),
           clip_max = max(clip.range),
           do_center = do.center,
-          n_threads = getOption(x = "Seurat.nthreads", default = 1L)
+          n_threads = getThreads()
         )
         dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
       }
@@ -4176,7 +4176,7 @@ SCTransform.default <- function(
           clip_min = min(res.clip.range),
           clip_max = max(res.clip.range),
           do_center = FALSE,
-          n_threads = getOption(x = "Seurat.nthreads", default = 1L)
+          n_threads = getThreads()
         )
         dimnames(x = residual.feature.mat) <- dimnames(x = sub)
       }
@@ -4979,7 +4979,7 @@ LogNormalize.V3Matrix <- function(
   if (verbose) {
     cat("Performing log-normalization\n", file = stderr())
   }
-  nthreads <- getOption(x = "Seurat.nthreads", default = 1L)
+  nthreads <- getThreads()
   # LogNorm takes only x and p slots of the dgCMatrix
   # then replaces the x slot with normalized values - all other slots can be reused
   data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, display_progress = verbose)

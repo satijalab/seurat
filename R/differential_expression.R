@@ -726,7 +726,7 @@ FindAllMarkersSparseStats <- function(
     groups = as.integer(x = groups),
     n_groups = n.groups,
     log_normalize = fc.slot == "data" && (is.null(x = norm.method) || norm.method == "LogNormalize"),
-    nthreads = getOption(x = "Seurat.nthreads", default = 1L)
+    nthreads = getThreads()
   )
 }
 
