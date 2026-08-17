@@ -116,5 +116,12 @@ optimizer code in Rcpp!
 \details{
 To run Leiden algorithm, you must first install the leidenalg python
 package (e.g. via pip install leidenalg), see Traag et al (2018).
+
+When running Louvain clustering with multiple threads and multiple random
+starts, results may differ from single-threaded runs because each random
+start uses an independent random number stream based on \code{random.seed}
+plus the restart index. Single-threaded runs use one random number stream
+across all starts. For a fixed \code{random.seed}, multi-threaded Louvain
+results are expected to be reproducible across thread counts.
 }
 \concept{clustering}

@@ -4,10 +4,12 @@
 \alias{setThreads}
 \title{Set the number of threads to use for parallel processing in Seurat}
 \usage{
-setThreads(threads)
+setThreads(n = NULL, auto = TRUE)
 }
 \arguments{
-\item{threads}{Number of threads (>= 1) to use for processing}
+\item{n}{Number of threads (>= 1) to use for processing}
+
+\item{auto}{Automatically detect the number of threads to use (number of available cores) (default: TRUE)}
 }
 \description{
 Set the number of threads to use for parallel processing in Seurat
