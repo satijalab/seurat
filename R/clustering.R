@@ -120,7 +120,7 @@ FindMultiModalNeighbors  <- function(
   if (verbose) {
     message("Constructing multimodal SNN graph")
   }
-  nthreads <- getOption("Seurat.nthreads", 1)
+  nthreads <- getThreads()
   snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN, nthreads = nthreads)
   rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(x = object)
   snn.matrix <- as.Graph(x = snn.matrix )
@@ -654,7 +654,7 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing SNN")
     }
-    nthreads <- getOption("Seurat.nthreads", 1)
+    nthreads <- getThreads()
     snn.matrix <- ComputeSNN(
       nn_ranked = nn.ranked,
       prune = prune.SNN,
@@ -1223,7 +1223,7 @@ FindModalityWeights  <- function(
     snn.graph.list <- lapply(
       X = sigma.nn.list,
       FUN = function(nn) {
-        nthreads <- getOption("Seurat.nthreads", 1)
+        nthreads <- getThreads()
         snn.matrix <- ComputeSNN(
           nn_ranked = Indices(object = nn)[, 1:s.nn],
           prune = prune.SNN,
@@ -1863,7 +1863,7 @@ RunModularityClustering <- function(
   temp.file.location = NULL,
   edge.file.name = NULL
 ) {
-  n.threads <- getOption("Seurat.nthreads", default = 1L)
+  n.threads <- getThreads()
   edge_file <- edge.file.name %||% ''
   clusters <- RunModularityClusteringCpp(
     SNN,
@@ -1892,7 +1892,7 @@ RunModularityClusteringMulti <- function(
   temp.file.location = NULL,
   edge.file.name = NULL
 ) {
-  n.threads <- getOption("Seurat.nthreads", default = 1L)
+  n.threads <- getThreads()
   edge_file <- edge.file.name %||% ''
   clusters <- RunModularityClusteringCpp_multi(
     SNN,

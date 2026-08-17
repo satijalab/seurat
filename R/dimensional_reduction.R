@@ -910,7 +910,7 @@ RunPCA.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  nthreads <- getOption(x = "Seurat.nthreads", default = 1)
+  nthreads <- getThreads()
   # CHANGE: per-feature variances precomputed during data prep (PrepDR/PrepDR5),
   # carried on the matrix so the non-reversed total.variance can reuse them
   # rather than running a second full-matrix RowVar pass. NULL when called

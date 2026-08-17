@@ -2637,7 +2637,7 @@ MappingScore.default <- function(
   if (verbose) {
     message("    Computing query SNN")
   }
-  nthreads <- getOption("Seurat.nthreads", 1)
+  nthreads <- getThreads()
   snn <- ComputeSNN(
     nn_ranked = Indices(query.neighbors)[, 1:ksnn],
     prune = snn.prune,

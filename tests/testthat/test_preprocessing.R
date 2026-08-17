@@ -346,11 +346,11 @@ test_that("vst selection option returns expected values", {
 })
 
 test_that("Variable feature ordering (default) is stable across thread counts", {
-  old.threads <- getOption("Seurat.nthreads")
-  on.exit(options(Seurat.nthreads = old.threads), add = TRUE)
-  options(Seurat.nthreads = 1L)
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+  setThreads(1)
   object.single.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
-  options(Seurat.nthreads = 2L)
+  setThreads(2)
   object.multi.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
   expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
 })
