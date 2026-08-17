@@ -3187,14 +3187,13 @@ BuildNicheAssay <- function(
 
 #' Set the number of threads to use for parallel processing in Seurat
 #'
-#' @param n Number of threads (>= 1) to use for processing
-#' @param auto Automatically detect the number of threads to use (number of available cores) (default: TRUE)
+#' @param n Number of threads (>= 1) to use for processing. If NULL, will be set to the maximum number of available cores minus 1.
 #' @concept utilities
 #' @export
-setThreads <- function(n = NULL, auto = TRUE) {
-  if (isTRUE(auto)) {
+setThreads <- function(n = NULL) {
+  if (is.null(n)) {
     n <- max(1L, parallel::detectCores() - 1)
-  } else if (!is.null(n)) {
+  } else {
     stopifnot("Number of threads must be a positive integer" = (is.numeric(n) && n >= 1))
   }
   options(Seurat.nthreads = n)
