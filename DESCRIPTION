@@ -91,6 +91,8 @@ Suggests:
     Biobase,
     blosc,
     BPCells,
+    circlize,
+    ComplexHeatmap,
     data.table,
     DelayedArray,
     destiny,

@@ -337,3 +337,162 @@ RunAndProjectUMAP <- function(
 
   return(object)
 }
+
+
+# Build a ComplexHeatmap column annotation from a data frame of metadata values.
+# Each column becomes one annotation bar; numeric columns get a continuous color
+# ramp (min/median/max), categorical columns get one color per level. 'anno.colors'
+# is a list keyed by variable name; a NULL entry falls back to a sensible default.
+# Assumes ComplexHeatmap and circlize are available (callers guard for this).
+.scslide_build_heatmap_annotation <- function(anno.df, anno.colors) {
+  col.list <- list()
+  for (v in colnames(x = anno.df)) {
+    values <- anno.df[[v]]
+    cols <- anno.colors[[v]]
+    if (is.numeric(x = values)) {
+      cols <- cols %||% c("#4575b4", "white", "#d73027")
+      if (length(x = cols) != 3) {
+        stop("anno.colors for the numeric variable '", v, "' must be three colors ",
+             "(for the min, median, and max values).")
+      }
+      col.list[[v]] <- circlize::colorRamp2(
+        breaks = c(min(values, na.rm = TRUE),
+                   stats::median(x = values, na.rm = TRUE),
+                   max(values, na.rm = TRUE)),
+        colors = cols
+      )
+    } else {
+      levs <- levels(x = factor(x = values))
+      cols <- cols %||% scales::hue_pal()(length(x = levs))
+      if (length(x = cols) < length(x = levs)) {
+        stop("anno.colors for the categorical variable '", v, "' must supply at least ",
+             length(x = levs), " colors (one per level).")
+      }
+      cols <- cols[seq_along(along.with = levs)]
+      names(x = cols) <- levs
+      col.list[[v]] <- cols
+    }
+  }
+  ComplexHeatmap::HeatmapAnnotation(df = anno.df, col = col.list, border = TRUE)
+}
+
+#' Plot an annotated expression heatmap of features across cells
+#'
+#' Draws a features-by-cells expression heatmap with one or more metadata
+#' annotation bars on top, built on \code{\link[ComplexHeatmap]{Heatmap}}. Columns
+#' are ordered by a chosen metadata variable (e.g. a trajectory value) independently
+#' of the annotation bars, which makes it suited to trajectory / differential-expression
+#' heatmaps where cells are ordered along a continuous axis while still displaying a
+#' categorical annotation (something the grouped \code{\link{DoHeatmap}} cannot do).
+#'
+#' This is an independent implementation whose interface is inspired by
+#' \code{Scillus::plot_heatmap}; it does not reuse that package's code.
+#'
+#' @param object A Seurat object.
+#' @param features Character vector of features (rows of the heatmap). Features
+#'   absent from the requested layer are dropped with a warning.
+#' @param sort.by One or more metadata column names used to order the cells
+#'   (columns of the heatmap). Multiple names are applied in order as tie-breakers.
+#' @param anno.var Optional character vector of metadata column names, each drawn
+#'   as a top annotation bar. \code{NULL} (default) draws no annotation.
+#' @param anno.colors Optional list of colors for \code{anno.var}, one element per
+#'   variable (named by variable, or positionally matched to \code{anno.var}). For a
+#'   categorical variable supply at least one color per level; for a numeric variable
+#'   supply exactly three colors (min, median, max). \code{NULL} entries use defaults.
+#' @param assay Assay to pull expression from. Defaults to the object's default assay.
+#' @param layer Layer to pull expression from. Default is \code{"scale.data"}.
+#' @param hm.limit Numeric vector of three breakpoints for the heatmap color
+#'   gradient (low, mid, high). Default is \code{c(-2, 0, 2)}.
+#' @param hm.colors Three colors mapped to \code{hm.limit}. Values beyond the range
+#'   saturate to the endpoint colors. Default is a blue-white-red gradient.
+#' @param cluster.rows Whether to cluster rows (features). Default is \code{FALSE}.
+#' @param cluster.columns Whether to cluster columns (cells). Default is \code{FALSE};
+#'   clustering overrides the \code{sort.by} ordering.
+#' @param show.column.names Whether to show cell names. Default is \code{FALSE}.
+#' @param row.font.size Font size for row (feature) names. Default is 12.
+#' @param ... Additional arguments passed to \code{\link[ComplexHeatmap]{Heatmap}}.
+#'
+#' @return A \code{\link[ComplexHeatmap]{Heatmap-class}} object, which draws when
+#'   printed. For the horizontal, bottom-placed legend layout use
+#'   \code{ComplexHeatmap::draw(ht, heatmap_legend_side = "bottom")}.
+#' @export
+#' @concept visualization
+#'
+#' @importFrom SeuratObject LayerData FetchData DefaultAssay
+#' @importFrom stats median
+#'
+PlotAnnotatedHeatmap <- function(
+    object,
+    features,
+    sort.by,
+    anno.var = NULL,
+    anno.colors = NULL,
+    assay = NULL,
+    layer = "scale.data",
+    hm.limit = c(-2, 0, 2),
+    hm.colors = c("#4575b4", "white", "#d73027"),
+    cluster.rows = FALSE,
+    cluster.columns = FALSE,
+    show.column.names = FALSE,
+    row.font.size = 12,
+    ...) {
+
+  if (!requireNamespace("ComplexHeatmap", quietly = TRUE)) {
+    stop("The 'ComplexHeatmap' package is required for PlotAnnotatedHeatmap() but is not ",
+         "installed. Please install it from Bioconductor with ",
+         "BiocManager::install('ComplexHeatmap').")
+  }
+  if (!requireNamespace("circlize", quietly = TRUE)) {
+    stop("The 'circlize' package is required for PlotAnnotatedHeatmap() but is not ",
+         "installed. Please install it with install.packages('circlize').")
+  }
+
+  assay <- assay %||% DefaultAssay(object = object)
+
+  # expression matrix (features x cells); LayerData avoids the GetAssayData slot= deprecation
+  mat <- LayerData(object = object, assay = assay, layer = layer)
+  features <- unique(x = features)
+  missing.features <- setdiff(x = features, y = rownames(x = mat))
+  if (length(x = missing.features) > 0) {
+    warning("The following features are absent from the '", layer, "' layer of the '",
+            assay, "' assay and were dropped: ", paste(missing.features, collapse = ", "))
+  }
+  features <- features[features %in% rownames(x = mat)]
+  if (length(x = features) == 0) {
+    stop("None of the requested features are present in the '", layer, "' layer of the '",
+         assay, "' assay.")
+  }
+  mat <- as.matrix(x = mat[features, , drop = FALSE])
+  cells <- colnames(x = mat)
+
+  # order the columns by the requested metadata variable(s)
+  sort.df <- FetchData(object = object, vars = sort.by)[cells, , drop = FALSE]
+  ord <- do.call(what = order, args = unname(obj = as.list(x = sort.df)))
+  cells <- cells[ord]
+  mat <- mat[, cells, drop = FALSE]
+
+  # build the top annotation bars, if requested
+  top.anno <- NULL
+  if (!is.null(x = anno.var)) {
+    if (!is.null(x = anno.colors) && is.null(x = names(x = anno.colors))) {
+      names(x = anno.colors) <- anno.var
+    }
+    anno.df <- FetchData(object = object, vars = anno.var)[cells, , drop = FALSE]
+    top.anno <- .scslide_build_heatmap_annotation(anno.df = anno.df, anno.colors = anno.colors)
+  }
+
+  col.fun <- circlize::colorRamp2(breaks = hm.limit, colors = hm.colors)
+
+  ComplexHeatmap::Heatmap(
+    matrix = mat,
+    col = col.fun,
+    cluster_rows = cluster.rows,
+    cluster_columns = cluster.columns,
+    show_column_names = show.column.names,
+    row_names_side = "left",
+    row_names_gp = grid::gpar(fontsize = row.font.size),
+    top_annotation = top.anno,
+    heatmap_legend_param = list(title = "Expression"),
+    ...
+  )
+}
