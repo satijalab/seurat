@@ -1563,7 +1563,6 @@ RunUMAP.default <- function(
           b = b,
           init = uwot.init,
           fast_sgd = uwot.sgd,
-          approx_pow = uwot.approx_pow,
           verbose = verbose,
           ret_model = return.model
         )
@@ -1586,7 +1585,6 @@ RunUMAP.default <- function(
           b = b,
           init = uwot.init,
           fast_sgd = uwot.sgd,
-          approx_pow = uwot.approx_pow,
           verbose = verbose,
           ret_model = return.model
         )
