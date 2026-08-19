@@ -2318,6 +2318,20 @@ CreateDummyAssay <- function(assay) {
   ))
 }
 
+#' Divide matrix columns by a list of denominators
+#'
+#' @param x Matrix-like object with one column per identity.
+#' @param denominator Numeric vector of divisors, one per column of \code{x}.
+#'
+#' @return \code{x} with each column divided by its matching denominator.
+#' @noRd
+DivideColumnsByDenomList <- function(x, denominator) {
+  for (i in seq_along(along.with = denominator)) {
+    x[, i] <- x[, i] / denominator[i]
+  }
+  return(x)
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter

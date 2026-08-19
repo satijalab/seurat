@@ -586,8 +586,8 @@ FoldChangeFindAllMarkers <- function(
     detected.1 <- sparse.stats$detected
     detected.total <- sparse.stats$total_detected
   }
-  pct.1 <- round(x = FindAllMarkersDivideColumns(x = detected.1, denominator = group.n), digits = 3)
-  pct.2 <- round(x = FindAllMarkersDivideColumns(x = detected.total - detected.1, denominator = rest.n), digits = 3)
+  pct.1 <- round(x = DivideColumnsByDenomList(x = detected.1, denominator = group.n), digits = 3)
+  pct.2 <- round(x = DivideColumnsByDenomList(x = detected.total - detected.1, denominator = rest.n), digits = 3)
   base.text <- ifelse(test = base == exp(1), yes = "", no = base)
   fc.name <- fc.name %||% ifelse(
     test = fc.slot == "scale.data",
@@ -656,15 +656,15 @@ FoldChangeFindAllMarkers <- function(
     rest.sum <- sparse.stats$rest_sum[features.fc, , drop = FALSE]
   }
   if (fc.slot == "scale.data") {
-    mean.1 <- FindAllMarkersDivideColumns(x = group.sum, denominator = group.n)
-    mean.2 <- FindAllMarkersDivideColumns(x = rest.sum, denominator = rest.n)
+    mean.1 <- DivideColumnsByDenomList(x = group.sum, denominator = group.n)
+    mean.2 <- DivideColumnsByDenomList(x = rest.sum, denominator = rest.n)
   } else {
     mean.1 <- log(
-      x = FindAllMarkersDivideColumns(x = group.sum + pseudocount.use, denominator = group.n),
+      x = DivideColumnsByDenomList(x = group.sum + pseudocount.use, denominator = group.n),
       base = base
     )
     mean.2 <- log(
-      x = FindAllMarkersDivideColumns(
+      x = DivideColumnsByDenomList(
         x = rest.sum + pseudocount.use,
         denominator = rest.n
       ),
