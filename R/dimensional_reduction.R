@@ -1392,7 +1392,6 @@ RunUMAP.default <- function(
   negative.sample.rate = 5,
   a = NULL,
   b = NULL,
-  fast = FALSE,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
   uwot.init = "spectral",
@@ -1409,6 +1408,16 @@ RunUMAP.default <- function(
   CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
+  }
+  if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
+    warning(
+      "The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric",
+      "\nTo use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'",
+      "\nThis message will be shown once per session",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    options(Seurat.warn.umap.uwot = FALSE)
   }
   if (umap.method == 'uwot-learn') {
     warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
@@ -1436,16 +1445,6 @@ RunUMAP.default <- function(
     umap.method <- "uwot-predict"
   }
   nthreads <- getThreads()
-  if (fast) {
-    uwot.sgd <- TRUE
-  }
-  rng_type <- if (isTRUE(x = fast)) {
-    "deterministic"
-  } else {
-    NULL
-  }
-  uwot.batch <- isTRUE(x = fast)
-  uwot2.batch <- TRUE
   umap.output <- switch(
     EXPR = umap.method,
     'umap-learn' = {
@@ -1527,9 +1526,7 @@ RunUMAP.default <- function(
           fast_sgd = uwot.sgd,
           approx_pow = uwot.approx_pow,
           verbose = verbose,
-          ret_model = return.model,
-          batch = uwot.batch,
-          rng_type = rng_type
+          ret_model = return.model
         )
       } else {
         umap(
@@ -1552,9 +1549,7 @@ RunUMAP.default <- function(
           fast_sgd = uwot.sgd,
           approx_pow = uwot.approx_pow,
           verbose = verbose,
-          ret_model = return.model,
-          batch = uwot.batch,
-          rng_type = rng_type
+          ret_model = return.model
         )
       }
     },
@@ -1578,11 +1573,8 @@ RunUMAP.default <- function(
           b = b,
           init = uwot.init,
           fast_sgd = uwot.sgd,
-          approx_pow = uwot.approx_pow,
           verbose = verbose,
-          ret_model = return.model,
-          batch = uwot2.batch,
-          rng_type = rng_type
+          ret_model = return.model
         )
       } else {
         umap2(
@@ -1603,11 +1595,8 @@ RunUMAP.default <- function(
           b = b,
           init = uwot.init,
           fast_sgd = uwot.sgd,
-          approx_pow = uwot.approx_pow,
           verbose = verbose,
-          ret_model = return.model,
-          batch = uwot2.batch,
-          rng_type = rng_type
+          ret_model = return.model
         )
       }
     },
@@ -1869,10 +1858,6 @@ RunUMAP.Neighbor <- function(
 #' @param b More specific parameters controlling the embedding. If NULL, these values are set
 #' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 #' right adjoint functor.
-#' @param fast Use faster \code{\link[uwot]{umap}} optimization settings. For
-#' \code{umap.method = "uwot"} or \code{"uwot2"}, this enables fast stochastic
-#' gradient descent, batched coordinate updates, and deterministic random number
-#' generation. Default is \code{FALSE}.
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
 #' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
 #' \code{\link[uwot]{umap}} for more details.
@@ -1943,7 +1928,6 @@ RunUMAP.Seurat <- function(
   negative.sample.rate = 5L,
   a = NULL,
   b = NULL,
-  fast = FALSE,
   uwot.sgd = FALSE,
   uwot.approx_pow = FALSE,
   uwot.init = "spectral",
@@ -2038,7 +2022,6 @@ RunUMAP.Seurat <- function(
     negative.sample.rate = negative.sample.rate,
     a = a,
     b = b,
-    fast = fast,
     uwot.sgd = uwot.sgd,
     uwot.approx_pow = uwot.approx_pow,
     uwot.init = uwot.init,
