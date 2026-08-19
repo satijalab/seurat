@@ -77,6 +77,26 @@ test_that("Fast implementation of row scaling returns expected values", {
   expect_true(max(mat.clipped, na.rm = T) >= 0.2)
 })
 
+test_that("Fast dense row scaling is stable across thread counts", {
+  dense.mat <- mat
+  dense.mat[1, ] <- 1
+  features <- c(0L, 2L, 5L, 9L)
+
+  scaled.1 <- FastDenseRowScale(dense.mat, features = features, nthreads = 1L, display_progress = FALSE)
+  scaled.2 <- FastDenseRowScale(dense.mat, features = features, nthreads = 2L, display_progress = FALSE)
+  scaled.4 <- FastDenseRowScale(dense.mat, features = features, nthreads = 4L, display_progress = FALSE)
+  centered.1 <- FastDenseRowScale(dense.mat, features = features, scale = FALSE, nthreads = 1L, display_progress = FALSE)
+  centered.4 <- FastDenseRowScale(dense.mat, features = features, scale = FALSE, nthreads = 4L, display_progress = FALSE)
+  scaled.only.1 <- FastDenseRowScale(dense.mat, features = features, center = FALSE, nthreads = 1L, display_progress = FALSE)
+  scaled.only.4 <- FastDenseRowScale(dense.mat, features = features, center = FALSE, nthreads = 4L, display_progress = FALSE)
+
+  expect_equal(scaled.1, scaled.2)
+  expect_equal(scaled.1, scaled.4)
+  expect_equal(centered.1, centered.4)
+  expect_equal(scaled.only.1, scaled.only.4)
+  expect_true(all(scaled.1[1, ] == 0))
+})
+
 # should be the equivalent of scale(mat, TRUE, apply(mat, 2, sd))
 test_that("Standardize returns expected values", {
   expect_equal(Standardize(mat, display_progress = FALSE), scale(mat, TRUE, apply(mat, 2, sd)),
@@ -99,6 +119,26 @@ test_that("Fast implementation of row scaling returns expected values", {
                check.attributes = FALSE)
   mat.clipped <- FastSparseRowScale(mat, scale_max = 0.2, display_progress = F)
   expect_true(max(mat.clipped, na.rm = T) >= 0.2)
+})
+
+test_that("Fast sparse row scaling is stable across thread counts", {
+  sparse.mat <- mat
+  sparse.mat[1, ] <- 0
+  features <- c(0L, 2L, 5L, 9L)
+
+  scaled.1 <- FastSparseRowScale(sparse.mat, features = features, nthreads = 1L, display_progress = FALSE)
+  scaled.2 <- FastSparseRowScale(sparse.mat, features = features, nthreads = 2L, display_progress = FALSE)
+  scaled.4 <- FastSparseRowScale(sparse.mat, features = features, nthreads = 4L, display_progress = FALSE)
+  centered.1 <- FastSparseRowScale(sparse.mat, features = features, scale = FALSE, nthreads = 1L, display_progress = FALSE)
+  centered.4 <- FastSparseRowScale(sparse.mat, features = features, scale = FALSE, nthreads = 4L, display_progress = FALSE)
+  scaled.only.1 <- FastSparseRowScale(sparse.mat, features = features, center = FALSE, nthreads = 1L, display_progress = FALSE)
+  scaled.only.4 <- FastSparseRowScale(sparse.mat, features = features, center = FALSE, nthreads = 4L, display_progress = FALSE)
+
+  expect_equal(scaled.1, scaled.2)
+  expect_equal(scaled.1, scaled.4)
+  expect_equal(centered.1, centered.4)
+  expect_equal(scaled.only.1, scaled.only.4)
+  expect_true(all(is.na(scaled.1[1, ])))
 })
 
 mat <- as.sparse(x = matrix(rnorm(100), nrow = 10, ncol = 10))
@@ -216,4 +256,108 @@ test_that("Replacing columns works", {
 test_that("Cpp implementation of row variance is correct", {
   expect_equal(apply(X = mat, MARGIN = 1, FUN = var), RowVar(as.matrix(mat)))
   expect_equal(apply(X = merged.mat, MARGIN = 1, FUN = var), RowVar(as.matrix(merged.mat)))
+})
+
+# Tests for stat calculations (used in FindAllMarkers)
+# --------------------------------------------------------------------------------
+test_that("Sparse fold-change stats are stable across thread counts", {
+  stats.mat <- as.sparse(matrix(
+    data = c(
+      0, 1, 0, 4, 2, 0,
+      3, 0, 1, 0, 0, 5,
+      1, 1, 1, 0, 2, 2,
+      0, 0, 4, 4, 0, 0
+    ),
+    nrow = 4,
+    ncol = 6
+  ))
+  groups <- c(1L, 1L, 2L, 2L, 2L, 3L)
+
+  raw.1 <- FindAllMarkersSparseFoldChangeStats(
+    x = stats.mat@x,
+    i = stats.mat@i,
+    p = stats.mat@p,
+    rows = nrow(x = stats.mat),
+    cols = ncol(x = stats.mat),
+    groups = groups,
+    n_groups = 3L,
+    log_normalize = FALSE,
+    nthreads = 1L
+  )
+  raw.2 <- FindAllMarkersSparseFoldChangeStats(
+    x = stats.mat@x,
+    i = stats.mat@i,
+    p = stats.mat@p,
+    rows = nrow(x = stats.mat),
+    cols = ncol(x = stats.mat),
+    groups = groups,
+    n_groups = 3L,
+    log_normalize = FALSE,
+    nthreads = 2L
+  )
+  raw.4 <- FindAllMarkersSparseFoldChangeStats(
+    x = stats.mat@x,
+    i = stats.mat@i,
+    p = stats.mat@p,
+    rows = nrow(x = stats.mat),
+    cols = ncol(x = stats.mat),
+    groups = groups,
+    n_groups = 3L,
+    log_normalize = FALSE,
+    nthreads = 4L
+  )
+
+  log.mat <- stats.mat
+  log.mat@x <- log1p(log.mat@x)
+  log.1 <- FindAllMarkersSparseFoldChangeStats(
+    x = log.mat@x,
+    i = log.mat@i,
+    p = log.mat@p,
+    rows = nrow(x = log.mat),
+    cols = ncol(x = log.mat),
+    groups = groups,
+    n_groups = 3L,
+    log_normalize = TRUE,
+    nthreads = 1L
+  )
+  log.2 <- FindAllMarkersSparseFoldChangeStats(
+    x = log.mat@x,
+    i = log.mat@i,
+    p = log.mat@p,
+    rows = nrow(x = log.mat),
+    cols = ncol(x = log.mat),
+    groups = groups,
+    n_groups = 3L,
+    log_normalize = TRUE,
+    nthreads = 2L
+  )
+  log.4 <- FindAllMarkersSparseFoldChangeStats(
+    x = log.mat@x,
+    i = log.mat@i,
+    p = log.mat@p,
+    rows = nrow(x = log.mat),
+    cols = ncol(x = log.mat),
+    groups = groups,
+    n_groups = 3L,
+    log_normalize = TRUE,
+    nthreads = 4L
+  )
+
+  expect_equal(raw.1, raw.2)
+  expect_equal(raw.1, raw.4)
+  expect_equal(log.1, log.2, tolerance = 1e-8)
+  expect_equal(log.1, log.4, tolerance = 1e-8)
+  expect_equal(raw.1$group_sum, log.1$group_sum, tolerance = 1e-8)
+  expect_equal(raw.1$detected, log.1$detected)
+  expect_error(FindAllMarkersSparseFoldChangeStats(
+    x = stats.mat@x,
+    i = stats.mat@i,
+    p = stats.mat@p,
+    rows = nrow(x = stats.mat),
+    cols = ncol(x = stats.mat),
+    groups = groups[-1],
+    n_groups = 3L,
+    log_normalize = FALSE,
+    nthreads = 2L
+  ))
 })
