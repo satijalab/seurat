@@ -3207,9 +3207,13 @@ BuildNicheAssay <- function(
 setThreads <- function(n = NULL) {
   ncores <- parallel::detectCores()
   if (is.null(n)) {
+    if (is.na(x = ncores)) {
+      warning("Could not detect number of cores, defaulting to 1 thread")
+      ncores <- 1L
+    }
     n <- max(1L, ncores - 1)
   } else {
-    stopifnot("Number of threads must be a positive integer and less than or equal to the number of available cores" = (is.numeric(n) && n >= 1 && n <= ncores))
+    stopifnot("Number of threads must be a positive integer" = (length(n) == 1 && is.numeric(n) && n >= 1))
   }
   options(Seurat.nthreads = n)
 }
