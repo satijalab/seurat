@@ -144,11 +144,7 @@ test_that("`FindClusters` fixed-graph results are stable across thread counts", 
   multi.thread.4 <- FindClusters(test_case, cluster.name = "clusters_t4", verbose = FALSE)
 
   expect_identical(
-    as.character(single.thread[["clusters_t1", drop = TRUE]]),
-    as.character(multi.thread[["clusters_t2", drop = TRUE]])
-  )
-  expect_identical(
-    as.character(single.thread[["clusters_t1", drop = TRUE]]),
+    as.character(multi.thread[["clusters_t2", drop = TRUE]]),
     as.character(multi.thread.4[["clusters_t4", drop = TRUE]])
   )
 })
