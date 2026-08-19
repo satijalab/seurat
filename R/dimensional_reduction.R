@@ -1409,16 +1409,6 @@ RunUMAP.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
-    warning(
-      "The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric",
-      "\nTo use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'",
-      "\nThis message will be shown once per session",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-    options(Seurat.warn.umap.uwot = FALSE)
-  }
   if (umap.method == 'uwot-learn') {
     warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
     umap.method <- "uwot"
