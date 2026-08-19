@@ -302,6 +302,17 @@ FindAllMarkers <- function(
 #' this so row ordering, \code{return.thresh}, cluster/gene columns, and
 #' warnings stay aligned.
 #'
+#' @param genes.de List of per-ident differential expression result data.frames.
+#' @param idents.all Identity classes tested by \code{FindAllMarkers}.
+#' @param test.use Differential expression test used to generate \code{genes.de}.
+#' @param return.thresh Threshold for retaining markers in the final table.
+#' @param only.pos Only retain markers with positive fold-change values.
+#' @param messages Optional list of per-ident messages for tests that were not
+#' run.
+#' @param node Optional tree node tested by \code{FindAllMarkers}.
+#' @param new.nodes,orig.nodes Optional node label mappings used when
+#' \code{node} is set.
+#'
 #' @return A data.frame in \code{FindAllMarkers} output format.
 #' @noRd
 FindAllMarkersFinalize <- function(
@@ -378,6 +389,14 @@ FindAllMarkersFinalize <- function(
 }
 
 #' Get a full per-ident DE list for the fast Presto Wilcoxon path
+#'
+#' @inheritParams FindAllMarkers
+#' @param cells.by.ident Named list of cell names split by identity.
+#' @param cellnames.use Cells included in the one-vs-rest tests.
+#' @param idents.use Identity vector named by cell.
+#' @param idents.all Identity classes to test.
+#' @param norm.method Normalization method recorded for the assay, when
+#' available.
 #'
 #' @return A list of per-ident DE data.frames (\code{NULL} when fallback is required)
 #' @noRd
@@ -464,6 +483,14 @@ FindAllMarkersWilcoxPresto <- function(
 #' Apply the same pct and fold-change feature filters used by
 #' \code{FindMarkers.default} to one per-ident fold-change table
 #'
+#' @param fc.results Fold-change result data.frame for one identity.
+#' @param slot Assay data slot used for differential expression testing.
+#' @param min.pct Minimum fraction of cells expressing a feature in either
+#' group.
+#' @param min.diff.pct Minimum difference in detection fraction between groups.
+#' @param logfc.threshold Minimum fold-change threshold.
+#' @param only.pos Only retain features with positive fold-change values.
+#'
 #' @return A character vector of features that pass filters
 #' @noRd
 FindAllMarkersFilterFeatures <- function(
@@ -503,6 +530,16 @@ FindAllMarkersFilterFeatures <- function(
 #'
 #' Compute fold-change and detection percentages for all identities in one pass when 
 #' the requested mean function is available as a default
+#'
+#' @inheritParams FindAllMarkers
+#' @param cellnames.use Cells included in the one-vs-rest tests.
+#' @param idents.use Identity vector named by cell.
+#' @param idents.all Identity classes to test.
+#' @param fc.slot Assay data slot used for fold-change calculations.
+#' @param pseudocount.use Pseudocount added to average expression values.
+#' @param norm.method Normalization method recorded for the assay, when
+#' available.
+#' @param data Optional matrix to reuse for fold-change calculations.
 #'
 #' @return A named list of fold-change data.frames (\code{NULL} when fallback is required)
 #' @noRd
@@ -700,13 +737,20 @@ FoldChangeFindAllMarkers <- function(
   return(fc.by.ident)
 }
 
-FindAllMarkersDivideColumns <- function(x, denominator) {
-  for (i in seq_along(along.with = denominator)) {
-    x[, i] <- x[, i] / denominator[i]
-  }
-  return(x)
-}
-
+#' Sparse FoldChange Summary Statistics
+#'
+#' Compute detection counts and group/rest sums for supported sparse matrices
+#' using the C++ FindAllMarkers fold-change helper.
+#'
+#' @param data Expression matrix.
+#' @param groups Factor of identity assignments for the columns of \code{data}.
+#' @param n.groups Number of identity groups.
+#' @param fc.slot Assay data slot used for fold-change calculations.
+#' @param norm.method Normalization method recorded for the assay, when
+#' available.
+#'
+#' @return A list of sparse summary matrices, or \code{NULL} when unsupported.
+#' @noRd
 FindAllMarkersSparseStats <- function(
   data,
   groups,
@@ -734,6 +778,15 @@ FindAllMarkersSparseStats <- function(
 #'
 #' Compute all one-vs-rest Wilcoxon p-values with one \code{presto::wilcoxauc} call,
 #' and attach \code{Seurat::FoldChange} results for each identity.
+#'
+#' @inheritParams FindAllMarkers
+#' @param cells.by.ident Named list of cell names split by identity.
+#' @param cellnames.use Cells included in the one-vs-rest tests.
+#' @param idents.use Identity vector named by cell.
+#' @param idents.all Identity classes to test.
+#' @param norm.method Normalization method recorded for the assay, when
+#' available.
+#' @param layer.data Optional preloaded assay data for \code{slot}.
 #'
 #' @return A list of per-ident DE data.frames
 #' @noRd
@@ -2692,23 +2745,9 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
 
 # Run a per-feature DE test on a sparse matrix by densifying in row-blocks.
 #
-# The fallback test loops (DiffExpTest, DiffTTest, MarkerTest) extract one gene
-# row per iteration. On a column-major (CSC / dgCMatrix) matrix each such row
-# extraction is O(nnz), so the loop is O(nnz * ngenes). Densifying the working
-# subset makes per-gene row access O(ncol), which is dramatically faster.
-#
-# To keep peak memory bounded, the subset is densified at most `block.elems`
+# To keep peak memory bounded, the subset of `data.use` is densified at most `block.elems`
 # elements at a time (a block of ceiling(block.elems / ncol) features). Normal-
-# sized comparisons fit in a single block, in which case this is a plain
-# `as.matrix()` and the wrapped test function runs exactly as it would on a
-# dense input (identical output, single progress bar). Only very wide/large
-# feature sets are split, which bounds the extra dense allocation.
-#
-# The wrapped test functions return a feature-rownamed data.frame and treat each
-# gene independently, so row-binding the per-block results preserves feature
-# rownames and values. (MarkerTest additionally sorts its rows by AUC; that
-# intermediate order is re-established downstream in FindMarkers_optimize by the
-# nocorrect-test ordering, so blocking does not change the final result.)
+# sized comparisons fit in a single block, so are run without splitting.
 RunDEBlocked <- function(data.use, testfun, ..., block.elems = 2e7) {
   # Non-sparse input (e.g. densify = TRUE) already has fast row access.
   if (!inherits(x = data.use, what = "sparseMatrix")) {
