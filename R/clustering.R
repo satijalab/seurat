@@ -1738,44 +1738,28 @@ MultiModalNN <- function(
   if (length(x = sigma.list[[1]]) == 1) {
     sigma.list <- lapply(X = sigma.list, FUN = function(x) rep(x = x, ncol(x = object)))
   }
-  nn_weighted_dist <- lapply(
-    X = 1:reduction.num,
-    FUN = function(r) {
-      lapply(
-        X = 1:query.cell.num,
-        FUN = function(x) {
-          exp(-1*(nn_dist[[r]][[x]] / sigma.list[[r]][x] ) ** kernel.power) * modality.weight.value[[r]][x]
+  # Compute the modality-weighted joint distance and select the k nearest joint
+  # neighbors in a single per-cell pass, writing straight into preallocated
+  # output matrices. This avoids materializing the (reduction.num x query.cell.num)
+  # list-of-lists of weighted distances, the separate cross-modality sum, and the
+  # two t(sapply(...)) transposes that the split version incurred.
+  select_nn <- matrix(data = 0L, nrow = query.cell.num, ncol = k.nn)
+  select_dist <- matrix(data = 0, nrow = query.cell.num, ncol = k.nn)
+  for (x in 1:query.cell.num) {
+    weighted.dist <- Reduce(
+      f = `+`,
+      x = lapply(
+        X = 1:reduction.num,
+        FUN = function(r) {
+          exp(-1 * (nn_dist[[r]][[x]] / sigma.list[[r]][x]) ** kernel.power) *
+            modality.weight.value[[r]][x]
         }
       )
-    }
-  )
-  nn_weighted_dist <- sapply(
-    X = 1:query.cell.num,
-    FUN =  function(x) {
-      Reduce(
-        f = "+",
-        x = lapply(
-          X = 1:reduction.num,
-          FUN = function(r) nn_weighted_dist[[r]][[x]]
-        )
-      )
-    }
-  )
-  # select k nearest joint neighbors
-  select_order <- lapply(
-    X = nn_weighted_dist,
-    FUN = function(dist) {
-      order(dist, decreasing = TRUE)
-    })
-  select_nn <- t(x = sapply(
-    X = 1:query.cell.num,
-    FUN = function(x) nn_idx[[x]][select_order[[x]]][1:k.nn]
-  )
-  )
-  select_dist <- t(x = sapply(
-    X = 1:query.cell.num,
-    FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][1:k.nn])
-  )
+    )
+    select.order <- order(weighted.dist, decreasing = TRUE)[1:k.nn]
+    select_nn[x, ] <- nn_idx[[x]][select.order]
+    select_dist[x, ] <- weighted.dist[select.order]
+  }
   select_dist <- sqrt(x = MinMax(data = (1 - select_dist) / 2, min = 0, max = 1))
   weighted.nn <- new(
     Class = 'Neighbor',
