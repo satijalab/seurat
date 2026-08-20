@@ -58,13 +58,6 @@
 #' @param dims.reduction.1 The dimensions for reduction.1 to use during the WNN process. Ignored when \code{modality = "single"}.
 #' @param rm.training.assay Whether to remove the training assay after running PrepareSampleObject(). This is used to reduce the
 #'   memory usage when the seurat object is large (e.g., a large on-disk object). Default is FALSE.
-#' @param max_core The number of cores to use for parallelization when running the WNN process (but not other processes). 
-#'   Note that if the user has already set the "future::plan()" before running the function, 
-#'   it will ignore this parameter and respect user's future plan (and the plan()
-#'   will be applied to other functions being called, including ScaleData()). 
-#'   Default is 1 for sequential processing.
-#' @param future.memory.per.core The memory allocation per core for options(future.globals.maxSize = ...), and the calculation 
-#'   is future.globals.maxSize = max_core * future.memory.per.core * 1024 * 1024 bytes. Default is 2000 (unit in MB).
 #' @param verbose Print progress and diagnostic messages
 #' @export
 #' @concept scSLIDE
@@ -72,7 +65,6 @@
 #'   the Seurat object will also contain a landmark assay (and a training assay if sketch.training == TRUE).
 #'
 #' @importFrom SeuratObject DefaultAssay DefaultAssay<- Assays VariableFeatures VariableFeatures<- CreateDimReducObject
-#' @importFrom future plan
 #'
 PrepareSampleObject <- function(
     object = NULL,
@@ -101,8 +93,6 @@ PrepareSampleObject <- function(
     weighted.nn.name = NULL,
     fix.wnn.weights = c(0.5, 0.5),
     rm.training.assay = FALSE,
-    max_core = 1,
-    future.memory.per.core = 2000,
     verbose = TRUE
 ){
   # house-keeping checks
@@ -234,53 +224,6 @@ PrepareSampleObject <- function(
   } else {
     message("Constructing single-modality NN graph ('", pls.reduction.use,
             "') between the landmark cells and all other cells.")
-  }
-  
-  # ============================================================================
-  # Handle future parallelization settings
-  # ============================================================================
-  # Check if user has already set a future plan (not sequential)
-  original_plan <- future::plan()
-  user_has_custom_plan <- !inherits(original_plan, "sequential")
-  
-  # Flag to track if we modified future settings
-  future_modified <- FALSE
-  
-  if (!user_has_custom_plan) {
-      # User has not set custom future plan
-      if (max_core > 1) {
-          # Set up multicore processing
-          if (verbose) {
-              message("Setting up future multicore with ", max_core, " workers")
-              message("Setting future.globals.maxSize to ", 
-                      max_core * future.memory.per.core, " MB")
-          }
-          
-          future::plan(future::multicore, workers = max_core)
-          options(future.globals.maxSize = max_core * future.memory.per.core * 1024^2)
-          future_modified <- TRUE
-          
-      } else {
-          # max_core = 1 or not specified, use sequential
-          if (verbose) {
-              message("Using sequential future plan (no parallelization)")
-          }
-          future::plan("sequential")
-          future_modified <- TRUE
-      }
-  } else {
-      # User has custom plan, respect it
-      if (verbose) {
-          message("Using user-specified future plan")
-      }
-  }
-  
-  # Ensure future settings are restored on function exit (if we modified them)
-  if (future_modified) {
-      on.exit({
-          future::plan(original_plan)
-          if (verbose) message("Restored original future plan")
-      }, add = TRUE)
   }
   
   # build the NN object between landmarks and all other cells

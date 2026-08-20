@@ -31,8 +31,6 @@ PrepareSampleObject(
   weighted.nn.name = NULL,
   fix.wnn.weights = c(0.5, 0.5),
   rm.training.assay = FALSE,
-  max_core = 1,
-  future.memory.per.core = 2000,
   verbose = TRUE
 )
 }
@@ -109,15 +107,6 @@ Should be a list with the same length as reduction.list. Ignored when \code{moda
 
 \item{rm.training.assay}{Whether to remove the training assay after running PrepareSampleObject(). This is used to reduce the
 memory usage when the seurat object is large (e.g., a large on-disk object). Default is FALSE.}
-
-\item{max_core}{The number of cores to use for parallelization when running the WNN process (but not other processes). 
-Note that if the user has already set the "future::plan()" before running the function, 
-it will ignore this parameter and respect user's future plan (and the plan()
-will be applied to other functions being called, including ScaleData()). 
-Default is 1 for sequential processing.}
-
-\item{future.memory.per.core}{The memory allocation per core for options(future.globals.maxSize = ...), and the calculation 
-is future.globals.maxSize = max_core * future.memory.per.core * 1024 * 1024 bytes. Default is 2000 (unit in MB).}
 
 \item{verbose}{Print progress and diagnostic messages}
 }
