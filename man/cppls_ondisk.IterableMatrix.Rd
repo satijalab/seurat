@@ -13,7 +13,7 @@
   stripped = FALSE,
   w.tol = 0,
   X.tol = 1e-12,
-  threads = 1L,
+  threads = NULL,
   ...
 )
 }
@@ -39,9 +39,10 @@ Ymeans for speed (default \code{FALSE}).}
 \item{X.tol}{Numeric; threshold for small-norm variable detection (default 1e-12).}
 
 \item{threads}{Integer; number of threads for BPCells parallel computation.
-\code{1} (default) = single-threaded;
+\code{NULL} (default) uses the package-wide thread count set by
+\code{\link{setThreads}} (\code{1} unless changed);
 \code{0} = auto-detect via \code{parallel::detectCores(logical = FALSE)};
-values \eqn{\ge 2} use that many threads.}
+values \eqn{\ge 1} use that many threads.}
 
 \item{...}{Additional arguments (currently unused).}
 }

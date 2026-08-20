@@ -367,9 +367,10 @@ RunDiffusionMap.Seurat <- function(
 #' @param features Features to compute PLS on
 #' @param save.model Logical; if TRUE, save model components (coefficients, Xmeans, Ymeans, feature.mean, feature.sd) into the misc slot for later prediction. The per-gene \code{feature.mean} and \code{feature.sd} are computed from the training \code{data} layer so that \code{PredictPLS} can scale new data into the same coordinate system. Default FALSE.
 #' @param threads Integer; number of threads for BPCells parallel computation
-#'   (IterableMatrix path only). \code{1} (default) = single-threaded;
+#'   (IterableMatrix path only). \code{NULL} (default) uses the package-wide
+#'   thread count set by \code{\link{setThreads}} (\code{1} unless changed);
 #'   \code{0} = auto-detect via \code{parallel::detectCores(logical = FALSE)};
-#'   values \eqn{\ge 2} use that many threads. Ignored for in-memory data.
+#'   values \eqn{\ge 1} use that many threads. Ignored for in-memory data.
 #' @param layer The layer in \code{assay} to use when running PLS analysis.
 #' @param materialize Logical; for on-disk (BPCells) assays only. If \code{TRUE},
 #'   the feature-subsetted matrix is written once to a single contiguous BPCells
@@ -527,7 +528,7 @@ RunPLS.IterableMatrix <- function(
     seed.use = 42,
     eta = 0.5,
     save.model = FALSE,
-    threads = 1L,
+    threads = NULL,
     ...
 ) {
   pls.function <- match.arg(arg = pls.function)
@@ -622,7 +623,7 @@ RunPLS.Assay <- function(
     seed.use = 42,
     eta = 0.5,
     save.model = FALSE,
-    threads = 1L,
+    threads = NULL,
     ...
 ) {
   # Get internal function from Seurat
@@ -673,7 +674,7 @@ RunPLS.StdAssay <- function(
     seed.use = 42,
     eta = 0.5,
     save.model = FALSE,
-    threads = 1L,
+    threads = NULL,
     materialize = FALSE,
     materialize.dir = NULL,
     overwrite = FALSE,
@@ -749,7 +750,7 @@ RunPLS.Seurat <- function(
     seed.use = 42,
     eta = 0.5,
     save.model = FALSE,
-    threads = 1L,
+    threads = NULL,
     materialize = FALSE,
     materialize.dir = NULL,
     overwrite = FALSE,
@@ -874,9 +875,10 @@ kernelpls <- function(X, ...) UseMethod("kernelpls")
 #' @param stripped Logical; if \code{TRUE} return only coefficients, Xmeans, and
 #'   Ymeans for speed (default \code{FALSE}).
 #' @param threads Integer; number of threads for BPCells parallel computation.
-#'   \code{1} (default) = single-threaded;
+#'   \code{NULL} (default) uses the package-wide thread count set by
+#'   \code{\link{setThreads}} (\code{1} unless changed);
 #'   \code{0} = auto-detect via \code{parallel::detectCores(logical = FALSE)};
-#'   values \eqn{\ge 2} use that many threads.
+#'   values \eqn{\ge 1} use that many threads.
 #' @param ... Additional arguments (currently unused).
 #'
 #' @return A list with components:
@@ -910,7 +912,7 @@ kernelpls <- function(X, ...) UseMethod("kernelpls")
 #' @export
 #' @method kernelpls IterableMatrix
 kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
-                                      stripped = FALSE, threads = 1L, ...) {
+                                      stripped = FALSE, threads = NULL, ...) {
   if (!requireNamespace("BPCells", quietly = TRUE)) {
     rlang::abort("Package 'BPCells' is required for kernelpls.IterableMatrix but is not installed.")
   }
@@ -923,7 +925,7 @@ kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
     rlang::abort("ncomp must be a positive integer")
   }
 
-  threads <- as.integer(threads)
+  threads <- as.integer(threads %||% getThreads())
   if (threads < 0L) rlang::abort("threads must be a non-negative integer")
 
   # Convert factor/character Y to a dummy indicator matrix
@@ -1023,9 +1025,10 @@ cppls_ondisk <- function(X, ...) UseMethod("cppls_ondisk")
 #' @param w.tol Numeric; threshold for zeroing small loading weights (default 0).
 #' @param X.tol Numeric; threshold for small-norm variable detection (default 1e-12).
 #' @param threads Integer; number of threads for BPCells parallel computation.
-#'   \code{1} (default) = single-threaded;
+#'   \code{NULL} (default) uses the package-wide thread count set by
+#'   \code{\link{setThreads}} (\code{1} unless changed);
 #'   \code{0} = auto-detect via \code{parallel::detectCores(logical = FALSE)};
-#'   values \eqn{\ge 2} use that many threads.
+#'   values \eqn{\ge 1} use that many threads.
 #' @param ... Additional arguments (currently unused).
 #'
 #' @return A list with components:
@@ -1057,7 +1060,7 @@ cppls_ondisk <- function(X, ...) UseMethod("cppls_ondisk")
 cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
                                          center = TRUE, stripped = FALSE,
                                          w.tol = 0, X.tol = 1e-12,
-                                         threads = 1L, ...) {
+                                         threads = NULL, ...) {
   if (!requireNamespace("BPCells", quietly = TRUE)) {
     rlang::abort("Package 'BPCells' is required for cppls_ondisk.IterableMatrix but is not installed.")
   }
@@ -1070,7 +1073,7 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
     rlang::abort("ncomp must be a positive integer")
   }
 
-  threads <- as.integer(threads)
+  threads <- as.integer(threads %||% getThreads())
   if (threads < 0L) rlang::abort("threads must be a non-negative integer")
 
   # Convert factor/character Y to a dummy indicator matrix

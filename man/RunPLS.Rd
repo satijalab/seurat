@@ -44,7 +44,7 @@ RunPLS(object, ...)
   seed.use = 42,
   eta = 0.5,
   save.model = FALSE,
-  threads = 1L,
+  threads = NULL,
   ...
 )
 
@@ -64,7 +64,7 @@ RunPLS(object, ...)
   seed.use = 42,
   eta = 0.5,
   save.model = FALSE,
-  threads = 1L,
+  threads = NULL,
   ...
 )
 
@@ -85,7 +85,7 @@ RunPLS(object, ...)
   seed.use = 42,
   eta = 0.5,
   save.model = FALSE,
-  threads = 1L,
+  threads = NULL,
   materialize = FALSE,
   materialize.dir = NULL,
   overwrite = FALSE,
@@ -108,7 +108,7 @@ RunPLS(object, ...)
   seed.use = 42,
   eta = 0.5,
   save.model = FALSE,
-  threads = 1L,
+  threads = NULL,
   materialize = FALSE,
   materialize.dir = NULL,
   overwrite = FALSE,
@@ -161,9 +161,10 @@ the number for the dimension names.}
 \item{save.model}{Logical; if TRUE, save model components (coefficients, Xmeans, Ymeans, feature.mean, feature.sd) into the misc slot for later prediction. The per-gene \code{feature.mean} and \code{feature.sd} are computed from the training \code{data} layer so that \code{PredictPLS} can scale new data into the same coordinate system. Default FALSE.}
 
 \item{threads}{Integer; number of threads for BPCells parallel computation
-(IterableMatrix path only). \code{1} (default) = single-threaded;
+(IterableMatrix path only). \code{NULL} (default) uses the package-wide
+thread count set by \code{\link{setThreads}} (\code{1} unless changed);
 \code{0} = auto-detect via \code{parallel::detectCores(logical = FALSE)};
-values \eqn{\ge 2} use that many threads. Ignored for in-memory data.}
+values \eqn{\ge 1} use that many threads. Ignored for in-memory data.}
 
 \item{features}{Features to compute PLS on}
 
