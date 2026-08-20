@@ -31,6 +31,37 @@ get_test_data <- function() {
 context("FindClusters")
 
 
+test_that("`ComputeSNN` handles direct edge cases", {
+  nn.ranked <- matrix(
+    data = c(
+      1L, 1L, 3L, 3L,
+      2L, 2L, 4L, 4L
+    ),
+    nrow = 4,
+    ncol = 2
+  )
+
+  snn <- ComputeSNN(nn_ranked = nn.ranked, prune = 0, nthreads = 1L)
+  expected <- Matrix::bdiag(
+    matrix(1, nrow = 2, ncol = 2),
+    matrix(1, nrow = 2, ncol = 2)
+  )
+  expect_equal(as.matrix(snn), as.matrix(expected))
+
+  snn.threaded <- ComputeSNN(nn_ranked = nn.ranked, prune = 0, nthreads = 4L)
+  expect_equal(snn, snn.threaded)
+
+  pruned <- ComputeSNN(nn_ranked = nn.ranked, prune = 1.1, nthreads = 2L)
+  expect_equal(length(pruned@x), 0)
+
+  invalid <- nn.ranked
+  invalid[1, 1] <- 5L
+  expect_error(
+    ComputeSNN(nn_ranked = invalid, prune = 0, nthreads = 2L),
+    regexp = "outside the valid cell range"
+  )
+})
+
 test_that("Smoke test for `FindClusters`", {
   test_case <- get_test_data()
 
@@ -60,6 +91,62 @@ test_that("Smoke test for `FindClusters`", {
   skip_if_not_installed("leidenbase")
   expect_warning(FindClusters(test_case, algorithm = 4, leiden_method = "leidenbase"))
   expect_no_warning(FindClusters(test_case, algorithm = 4, leiden_method = "leidenbase", random.seed = 1))
+})
+
+test_that("`FindNeighbors` SNN construction is stable across thread counts", {
+  test_case <- get_test_data()
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+
+  setThreads(1)
+  single.thread <- FindNeighbors(
+    test_case,
+    graph.name = c("RNA_nn_t1", "RNA_snn_t1"),
+    k.param = 10,
+    dims = 1:10,
+    verbose = FALSE
+  )
+
+  setThreads(2)
+  multi.thread <- FindNeighbors(
+    test_case,
+    graph.name = c("RNA_nn_t2", "RNA_snn_t2"),
+    k.param = 10,
+    dims = 1:10,
+    verbose = FALSE
+  )
+
+  setThreads(4)
+  multi.thread.4 <- FindNeighbors(
+    test_case,
+    graph.name = c("RNA_nn_t4", "RNA_snn_t4"),
+    k.param = 10,
+    dims = 1:10,
+    verbose = FALSE
+  )
+
+  expect_equal(single.thread[["RNA_snn_t1"]], multi.thread[["RNA_snn_t2"]])
+  expect_equal(single.thread[["RNA_snn_t1"]], multi.thread.4[["RNA_snn_t4"]])
+})
+
+test_that("`FindClusters` fixed-graph results are stable across thread counts", {
+  test_case <- get_test_data()
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+
+  # The modularity optimizer parallelizes random starts
+  # The serial path uses a different RNG stream than the parallel path, so only the parallel path is stable across thread counts
+
+  setThreads(2)
+  multi.thread <- FindClusters(test_case, cluster.name = "clusters_t2", verbose = FALSE)
+  
+  setThreads(4)
+  multi.thread.4 <- FindClusters(test_case, cluster.name = "clusters_t4", verbose = FALSE)
+
+  expect_identical(
+    as.character(multi.thread[["clusters_t2", drop = TRUE]]),
+    as.character(multi.thread.4[["clusters_t4", drop = TRUE]])
+  )
 })
 
 test_that("`FindClusters` works if passed a vector of resolutions", {

@@ -1,1 +1,2 @@
 CXX_STD = CXX17
+PKG_LIBS += $(shell "$(R_HOME)/bin/Rscript" -e "RcppThread::LdFlags()")

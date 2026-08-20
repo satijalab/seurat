@@ -2,6 +2,7 @@
 #define DATA_MANIPULATION
 
 #include <RcppEigen.h>
+#include <RcppThread.h>
 #include <progress.hpp>
 #include <cmath>
 #include <unordered_map>
@@ -34,13 +35,39 @@ Eigen::VectorXd FastRowMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
-                            NumericVector mu,
+List SparseRowMeanVarLegacy(NumericVector x,
+                            IntegerVector i,
+                            IntegerVector p,
+                            int rows,
+                            int cols,
                             bool display_progress);
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
+List SparseRowMeanVar(NumericVector x,
+                      IntegerVector i,
+                      IntegerVector p,
+                      int rows,
+                      int cols,
+                      int nthreads,
+                      bool display_progress);
+NumericVector SparseRowVarStdLegacyRows(NumericVector x,
+                                        IntegerVector i,
+                                        IntegerVector p,
+                                        NumericVector mu,
+                                        NumericVector sd,
+                                        double vmax,
+                                        int rows,
+                                        int cols,
+                                        IntegerVector rows_use,
+                                        int nthreads,
+                                        bool display_progress);
+NumericVector SparseRowVarStd(NumericVector x,
+                              IntegerVector i,
+                              IntegerVector p,
                               NumericVector mu,
                               NumericVector sd,
+                              int rows,
+                              int cols,
                               double vmax,
+                              int nthreads,
                               bool display_progress);
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 template <typename S>

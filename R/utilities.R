@@ -2318,6 +2318,20 @@ CreateDummyAssay <- function(assay) {
   ))
 }
 
+#' Divide matrix columns by a list of denominators
+#'
+#' @param x Matrix-like object with one column per identity.
+#' @param denominator Numeric vector of divisors, one per column of \code{x}.
+#'
+#' @return \code{x} with each column divided by its matching denominator.
+#' @noRd
+DivideColumnsByDenomList <- function(x, denominator) {
+  for (i in seq_along(along.with = denominator)) {
+    x[, i] <- x[, i] / denominator[i]
+  }
+  return(x)
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
@@ -3183,4 +3197,31 @@ BuildNicheAssay <- function(
   object[[cluster.name]] <- results[["cluster"]]
 
   return(object)
+}
+
+#' Set the number of threads to use for parallel processing in Seurat
+#'
+#' @param n Number of threads (>= 1) to use for processing. If NULL, will be set to (number of cores - 1).
+#' @concept utilities
+#' @export
+setThreads <- function(n = NULL) {
+  ncores <- parallel::detectCores()
+  if (is.null(n)) {
+    if (is.na(x = ncores)) {
+      warning("Could not detect number of cores, defaulting to 1 thread")
+      ncores <- 1L
+    }
+    n <- max(1L, ncores - 1)
+  } else {
+    stopifnot("Number of threads must be a positive integer" = (length(n) == 1 && is.numeric(n) && n >= 1))
+  }
+  options(Seurat.nthreads = n)
+}
+
+#' Get the number of threads being used for parallel processing in Seurat
+#'
+#' @concept utilities
+#' @export
+getThreads <- function() {
+  return(getOption("Seurat.nthreads"))
 }
