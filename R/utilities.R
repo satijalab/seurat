@@ -1286,13 +1286,13 @@ PercentageFeatureSet <- function(
   layers <- Layers(object = object, assay = assay, search = "counts")
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
-    features.layer <- features %||% grep(
-      pattern = pattern,
-      x = rownames(x = object[[assay]][layer]),
-      value = TRUE)
     layer.data <- LayerData(object = object,
                             assay = assay,
                             layer = layer)
+    features.layer <- features %||% grep(
+      pattern = pattern,
+      x = rownames(x = layer.data),
+      value = TRUE)
     features.layer <- intersect(features.layer, rownames(layer.data))
     layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
     layer.perc <- layer.sums / object[[]][colnames(layer.data), paste0("nCount_", assay)] * 100
