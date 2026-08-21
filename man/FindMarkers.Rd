@@ -253,9 +253,6 @@ statistics as columns (p-values, ROC score, etc., depending on the test used (\c
 }
 \description{
 Finds markers (differentially expressed genes) for each of the identity classes in a dataset. Note that differential expression between groups (e.g. treatment conditions) should account for biological variation across samples, e.g. by using pseudobulk expression profiles.
-See the
-\code{\link[=vignette("de_vignette")]{Differential expression vignette}}
-for more examples.
 }
 \details{
 p-value adjustment is performed using bonferroni correction based on
@@ -265,6 +262,9 @@ the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values
 should be interpreted cautiously, as the genes used for clustering are the
 same genes tested for differential expression.
 }
+\note{
+See the DE vignette for more details and examples
+}
 \examples{
 \dontrun{
 data("pbmc_small")
@@ -272,8 +272,8 @@ data("pbmc_small")
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 head(x = markers)
 
-# Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata
-# variable 'group')
+# Within cluster 2, find markers for cells in the 'g1' group compared with
+# other cells, using the 'groups' metadata variable.
 markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
 head(x = markers)
 
@@ -303,10 +303,5 @@ https://github.com/RGLab/MAST/
 Love MI, Huber W and Anders S (2014). "Moderated estimation of
 fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 https://bioconductor.org/packages/release/bioc/html/DESeq2.html
-}
-\seealso{
-\link[=vignette("de_vignette")]{Differential expression vignette}
-
-\code{FoldChange}
 }
 \concept{differential_expression}
