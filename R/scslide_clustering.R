@@ -57,30 +57,38 @@ FindmmNN <- function(
   if(k.nn <= 2) {
     stop("k.nn must be a integer larger than 1.")
   }
-  # FindModalityWeights() and MultiModalNN() take no dots of their own, so
-  # handing them this function's dots wholesale made any extra argument an
-  # error, including arguments each one does accept. Give each only the
-  # arguments it declares, minus the ones already set below, and report the rest.
-  CheckDots(..., fxns = c('FindModalityWeights', 'MultiModalNN'))
-  dots <- list(...)
-  CallWith <- function(fxn, args) {
-    extra <- dots[setdiff(
-      x = intersect(x = names(x = dots), y = names(x = formals(fun = fxn))),
-      y = names(x = args)
-    )]
-    return(do.call(what = fxn, args = c(args, extra)))
+  # FindModalityWeights() and MultiModalNN() each ignore the dots meant for the
+  # other, so both can be handed the dots directly. CheckDots reports an
+  # argument belonging to neither, which would otherwise be absorbed silently.
+  #
+  # Do not route these through do.call(). LogSeuratCommand() deparses the
+  # calling frame, and under do.call() that frame carries the function body and
+  # every argument by value, so deparsing walks the whole Seurat object --
+  # 6-7x slower here at 30k cells and worse as the object grows. See
+  # satijalab/seurat#10153 for the same failure in SCTransform.
+  # CheckDots() is not usable here: it only reports unused arguments when none
+  # of the functions named accepts dots, and both of these now do.
+  unused <- setdiff(
+    x = names(x = list(...)),
+    y = c(names(x = formals(fun = FindModalityWeights)),
+          names(x = formals(fun = MultiModalNN)))
+  )
+  if (length(x = unused) > 0) {
+    warning(
+      "The following arguments are not used: ", paste(unused, collapse = ', '),
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
   # calculate WNN weights
-  wnn.weight <- CallWith(
-    fxn = FindModalityWeights,
-    args = list(object = object,
-                reduction.list = reduction.list,
-                dims.list = dims.list,
-                fix.wnn.weights = fix.wnn.weights,
-                snn.far.nn = FALSE,
-                l2.norm = l2.norm,
-                k.nn = ifelse(20 >= k.nn, 20, k.nn))
-  )
+  wnn.weight <- FindModalityWeights(object = object,
+                                    reduction.list = reduction.list,
+                                    dims.list = dims.list,
+                                    fix.wnn.weights = fix.wnn.weights,
+                                    snn.far.nn = FALSE,
+                                    l2.norm = l2.norm,
+                                    k.nn = ifelse(20 >= k.nn, 20, k.nn),
+                                    ...)
 
   # prepare for the objects used to search for WNN
   if (is.null(sketch.assay) | !sketch.assay %in% names(object@assays)){
@@ -98,16 +106,14 @@ FindmmNN <- function(
   sketch_obj <- subset(object, cells = sketch_cells)
   # query_obj <- subset(object, cells = sketch_cells, invert = T)
   # run WNN
-  weighted.nn <- CallWith(
-    fxn = MultiModalNN,
-    args = list(object = sketch_obj,
-                query = object,
-                k.nn = ifelse(20 >= k.nn, 20, k.nn),
-                modality.weight = wnn.weight,
-                knn.range = knn.range,
-                verbose = T,
-                l2.norm = l2.norm)
-  )
+  weighted.nn <- MultiModalNN(object = sketch_obj,
+                              query = object,
+                              k.nn = ifelse(20 >= k.nn, 20, k.nn),
+                              modality.weight = wnn.weight,
+                              knn.range = knn.range,
+                              verbose = T,
+                              l2.norm = l2.norm,
+                              ...)
   #
   object[[nn.name]] <- weighted.nn
   return (object)

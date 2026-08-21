@@ -80,3 +80,14 @@ test_that("FindmmNN reports arguments that belong to neither internal", {
     "not used"
   )
 })
+
+test_that("FindmmNN does not reach its internals through do.call", {
+  # LogSeuratCommand() deparses the calling frame. Under do.call() that frame
+  # holds the function body and every argument by value, so deparsing walks the
+  # entire Seurat object: 6-7x slower at 30k cells and effectively a hang on a
+  # real dataset, stalling right after "Calculating sigma by Nth neighbor".
+  # See satijalab/seurat#10153 for the same failure in SCTransform. A small
+  # fixture cannot catch this by timing, so assert the call shape instead.
+  body.text <- paste(deparse(body(FindmmNN)), collapse = " ")
+  expect_false(grepl(pattern = "do.call", x = body.text, fixed = TRUE))
+})

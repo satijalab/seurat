@@ -1241,7 +1241,8 @@ FindModalityWeights  <- function(
   cross.contant.list = NULL,
   sigma.idx = k.nn,
   smooth = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   my.lapply <- ifelse(
     test = verbose,
@@ -1630,7 +1631,8 @@ MultiModalNN <- function(
   nearest.dist = NULL,
   sigma.list = NULL,
   l2.norm =  NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ){
   my.lapply <- ifelse(
     test = verbose,
