@@ -102,9 +102,6 @@ FindClusters <- function(object, ...) {
 #' Gene expression markers of identity classes
 #'
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset. Note that differential expression between groups (e.g. treatment conditions) should account for biological variation across samples, e.g. by using pseudobulk expression profiles.
-#' See the
-#' \code{\link[=vignette("de_vignette")]{Differential expression vignette}}
-#' for more examples.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods and to specific DE methods
@@ -138,6 +135,8 @@ FindClusters <- function(object, ...) {
 #' fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 #' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 #'
+#' @note See the DE vignette for more details and examples
+#'
 #' @export
 #'
 #' @examples
@@ -165,10 +164,6 @@ FindClusters <- function(object, ...) {
 #' @export FindMarkers
 #'
 #' @aliases FindMarkersNode
-#' @seealso 
-#' \link[=vignette("de_vignette")]{Differential expression vignette}
-#' 
-#' \code{FoldChange} 
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
