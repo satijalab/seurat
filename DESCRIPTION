@@ -89,7 +89,7 @@ Imports:
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.10)
+    uwot (>= 0.2.1)
 Suggests:
     ape,
     arrow,
