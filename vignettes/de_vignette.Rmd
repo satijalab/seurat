@@ -12,6 +12,10 @@ date: 'Compiled: `r Sys.Date()`'
 
 This vignette highlights some example workflows for performing differential expression in Seurat. For demonstration purposes, we will be using the interferon-beta stimulated human PBMCs dataset ([ifnb](https://www.nature.com/articles/nbt.4042)) that is available via the [SeuratData](https://github.com/satijalab/seurat-data) package.
 
+A key consideration for differential expression testing with single cell data is the unit of analysis. 
+Analyses which treat individual cells as independent replicates do not account for biological variability, e.g. between different cells from different individuals or lines. 
+Such pseudoreplicate-based analyses and have been shown to find a large number of false positive associations [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2), [Zimmerman et al., 2021](https://www.nature.com/articles/s41467-021-21038-1), [Junttila et al., 2022](https://academic.oup.com/bib/article/23/5/bbac286/6649780). Below, we show how pseudobulking can be used to account for such within-sample correlation. 
+
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(Seurat)
 library(SeuratData)
@@ -27,7 +31,8 @@ The bulk of Seurat’s differential expression features can be accessed through 
 # Normalize the data
 ifnb <- NormalizeData(ifnb)
 
-# Find DE features between CD16 Mono and CD1 Mono
+# Find DE features between CD16 Mono and CD14 Mono
+# Note that this test treats individual cells as the unit of analysis, which may be justified for comparing cell types within an individual. A significant p-value for a gene supports the conclusion that the gene has a different mean expression level in CD16 Mono vs. CD1 Mono cells from *this donor*. However, the findings should be interpreted cautiously since they do not necessarily support generalization of such differential expression to cells from *other donors*. See the section on pseudobulk analysis below.
 Idents(ifnb) <- "seurat_annotations"
 monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = "CD14 Mono")
 # view results
@@ -45,28 +50,16 @@ The results data frame has the following columns :
 If the `ident.2` parameter is omitted or set to `NULL`, `FindMarkers()` will test for differentially expressed features between the group specified by `ident.1` and all other cells. Additionally, the parameter `only.pos` can be set to `TRUE` to only search for positive markers, i.e. features that are more highly expressed in the `ident.1` group. 
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
-# Find differentially expressed features between CD14+ Monocytes and all other cells, only
+# Find differentially expressed features between CD16 Monocytes and all other cells, only
 # search for positive markers
 monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = NULL, only.pos = TRUE)
 # view results
 head(monocyte.de.markers)
 ```
 
-### Perform DE analysis within the same cell type across conditions
+### Perform DE analysis within the same cell type across conditions using pseudobulk expression
 
-Since this dataset contains treatment information (control versus stimulated with interferon-beta), we can also ask what genes change in different conditions for cells of the same type. First, we create a column in the `meta.data` slot to hold both the cell type and treatment information and switch the current `Idents` to that column. Then we use `FindMarkers()` to find the genes that are different between control and stimulated CD14 monocytes.
-
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
-ifnb$celltype.stim <- paste(ifnb$seurat_annotations, ifnb$stim, sep = "_")
-Idents(ifnb) <- "celltype.stim"
-mono.de <- FindMarkers(ifnb, ident.1 = "CD14 Mono_STIM", ident.2 = "CD14 Mono_CTRL", verbose = FALSE)
-head(mono.de, n = 10)
-```
-
-However, the p-values obtained from this analysis should be interpreted with caution, because these tests treat each cell as an independent replicate and ignore inherent correlations between cells originating from the same sample. Such analyses have been shown to find a large number of false positive associations, as has been demonstrated by [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2), [Zimmerman et al., 2021](https://www.nature.com/articles/s41467-021-21038-1), [Junttila et al., 2022](https://academic.oup.com/bib/article/23/5/bbac286/6649780), and others. Below, we show how pseudobulking can be used to account for such within-sample correlation. 
-
-#### Perform DE analysis after pseudobulking
-
+Since this dataset contains treatment information (control versus stimulated with interferon-beta), we can also ask what genes change in different conditions for cells of the same type. Pseudobulk gene expression profiles sum the counts from all cells from each biological sample (e.g. individual donor, cell line, or animal), which is the appropriate unit of analysis for statistical testing of differential expression between conditions. 
 To pseudobulk, we will use [AggregateExpression()](https://satijalab.org/seurat/reference/aggregateexpression) to sum together gene counts of all the cells from the same sample for each cell type. This results in one gene expression profile per sample and cell type. We can then perform DE analysis using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) on the sample level. This treats the samples, rather than the individual cells, as independent observations.
 
 First, we need to retrieve the sample information for each cell. This is not loaded in the metadata, so we will load it from the [Github repo](https://github.com/yelabucsf/demuxlet_paper_code/tree/master/) of the source data for the original paper.
@@ -122,7 +115,20 @@ bulk.mono.de <- FindMarkers(object = pseudo_ifnb,
                          ident.2 = "CD14 Mono_CTRL",
                          test.use = "DESeq2")
 head(bulk.mono.de, n = 15)
+```
 
+### Comparison with pseudoreplicate (single cell) DE analysis
+
+Treating individual cells as the unit of analysis (i.e. pseudoreplication) can lead to low p-values due to the large number of cells in single cell studies, but does not account for variability between samples. Here we will explore the difference between pseudobulk and single-cell based DE analysis. First, we create a column in the `meta.data` slot to hold both the cell type and treatment information and switch the current `Idents` to that column. Then we use `FindMarkers()` to find the genes that are different between control and stimulated CD14 monocytes.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+ifnb$celltype.stim <- paste(ifnb$seurat_annotations, ifnb$stim, sep = "_")
+Idents(ifnb) <- "celltype.stim"
+mono.de <- FindMarkers(ifnb, ident.1 = "CD14 Mono_STIM", ident.2 = "CD14 Mono_CTRL", verbose = FALSE)
+head(mono.de, n = 10)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # compare the DE P-values between the single-cell level and the pseudobulk level results
 names(bulk.mono.de) <- paste0(names(bulk.mono.de), ".bulk")
 bulk.mono.de$gene <- rownames(bulk.mono.de)
@@ -132,7 +138,9 @@ mono.de$gene <- rownames(mono.de)
 
 merge_dat <- merge(mono.de, bulk.mono.de, by = "gene")
 merge_dat <- merge_dat[order(merge_dat$p_val.bulk), ]
+```
 
+```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # Number of genes that are marginally significant in both; marginally significant only in bulk; and marginally significant only in single-cell
 common <- merge_dat$gene[which(merge_dat$p_val.bulk < 0.05 & 
                                 merge_dat$p_val.sc < 0.05)]
@@ -160,17 +168,17 @@ VlnPlot(ifnb, features = common[1:2], idents = c("CD14 Mono_CTRL", "CD14 Mono_ST
 VlnPlot(ifnb, features = common[1:2], idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"), group.by = "donor_id.stim", ncol = 1) 
 ```
 
-In both the pseudobulk and single-cell analyses, the p-values for these two genes are astronomically small. For both of these genes, when just comparing all stimulated CD4 monocytes to all control CD4 monocytes across samples, we see much higher expression in the stimulated cells. When breaking down these cells by sample, we continue to see consistently higher expression levels in the stimulated samples compared to the control samples; in other words, this finding is not driven by just one or two samples. Because of this consistency, we find this signal in both analyses. 
+In both the pseudobulk and single-cell analyses, the p-values for these two genes are astronomically small. For both of these genes, when just comparing all stimulated CD14 monocytes to all control CD14 monocytes across samples, we see much higher expression in the stimulated cells. When breaking down these cells by sample, we continue to see consistently higher expression levels in the stimulated samples compared to the control samples; in other words, this finding is not driven by just one or two samples. Because of this consistency, we find this signal in both analyses.
 
 By contrast, we can examine examples of genes that are only DE under the single-cell analysis.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 print(merge_dat[merge_dat$gene%in%c('SRGN','HLA-DRA'),c('gene','p_val.sc','p_val.bulk')])
-VlnPlot(ifnb, features <- c('SRGN','HLA-DRA'), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"), group.by = "stim") 
-VlnPlot(ifnb, features <- c('SRGN','HLA-DRA'), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"), group.by = "donor_id.stim", ncol = 1) 
+VlnPlot(ifnb, features = c('SRGN','HLA-DRA'), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"), group.by = "stim") 
+VlnPlot(ifnb, features = c('SRGN','HLA-DRA'), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"), group.by = "donor_id.stim", ncol = 1) 
 ```
 
-Here, SRGN and HLA-DRA both have very small p-values in the single-cell analysis (on the orders of $10^{-21}$ and $10^{-9}$), but much larger p-values around 0.18 in the pseudobulk analysis. While there appears to be a difference between control and simulated cells when ignoring sample information, the signal is much weaker on the sample level, and we can see notable variability from sample to sample. 
+Here, SRGN and HLA-DRA both have very small p-values in the single-cell analysis (on the orders of $10^{-21}$ and $10^{-9}$), but much larger p-values around 0.18 in the pseudobulk analysis. While there appears to be a difference between control and stimulated cells when ignoring sample information, the signal is much weaker on the sample level, and we can see notable variability from sample to sample. 
 
 ### Perform DE analysis using alternative tests
 
@@ -180,13 +188,13 @@ Finally, we also support many other DE tests using other methods. For completene
 * "wilcox_limma" : Wilcoxon rank sum test (using '[limma](https://bioconductor.org/packages/release/bioc/html/limma.html)' package)
 * "bimod" : Likelihood-ratio test for single cell feature expression, (McDavid et al., Bioinformatics, 2013)
 * "roc" : Standard AUC classifier
-* "t" : Student’s t-test
+* "t" : Student's t-test
 * "poisson" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
 * "negbinom" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
 * "LR" : Uses a logistic regression framework to determine differentially expressed genes. Constructs a logistic regression model predicting group membership based on each feature individually and compares this to a null model with a likelihood ratio test.
-* "MAST" : GLM-framework that treates cellular detection rate as a covariate (Finak et al, Genome Biology, 2015) (Installation instructions)
-* "DESeq2" : DE based on a model using the negative binomial distribution (Love et al, Genome Biology, 2014) (Installation instructions)
-For MAST and DESeq2, please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, use the test.use parameter can be used to specify which DE test to use.
+* "MAST" : GLM-framework that treats cellular detection rate as a covariate (Finak et al, Genome Biology, 2015) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/MAST.html))
+* "DESeq2" : DE based on a model using the negative binomial distribution (Love et al, Genome Biology, 2014) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/DESeq2.html))
+For MAST and DESeq2, please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, the `test.use` parameter can be used to specify which DE test to use.
 
 ```{r echo=TRUE, message=FALSE,warning=FALSE,results=TRUE,eval=FALSE}
 # Test for DE features using the MAST package
@@ -194,3 +202,10 @@ Idents(ifnb) <- "seurat_annotations"
 head(FindMarkers(ifnb, ident.1 = "CD14 Mono", ident.2 = "CD16 Mono", test.use = "MAST"))
 ```
 
+<details><summary>**Session Info**</summary>
+
+```{r session_info}
+sessionInfo()
+```
+
+</details>
