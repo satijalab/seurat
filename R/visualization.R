@@ -9157,7 +9157,9 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0))
       )
       jitter <- geom_jitter(width = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
-      log.scale <- scale_x_log10(expand = c(0, 0))
+      log.scale <- function(x.min, x.max) {
+        scale_x_log10(expand = c(0, 0), limits = c(x.min, x.max))
+      }
       axis.scale <- function(x.min, x.max) {
         scale_x_continuous(expand = c(0, 0), limits = c(x.min, x.max))
       }
@@ -9175,7 +9177,7 @@ SingleExIPlot <- function(
     plot <- plot + layer
   }
   plot <- plot + if (log) {
-    log.scale
+    log.scale(min(data[, feature]), y.max)
   } else {
     axis.scale(min(data[, feature]), y.max)
   }
