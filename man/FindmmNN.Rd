@@ -45,7 +45,11 @@ and uses these weights directly. Should be a list with the same length as reduct
 
 \item{verbose}{Print progress bars and output}
 
-\item{...}{Arguments passed to other methods}
+\item{...}{Additional arguments for \code{Seurat:::FindModalityWeights} (for
+example \code{sigma.idx}, \code{sd.scale} or \code{prune.SNN}) or
+\code{Seurat:::MultiModalNN} (for example \code{kernel.power}). Each is
+routed to whichever of the two declares it; arguments matching neither are
+reported.}
 }
 \value{
 return a Seurat object that contains a weighted.nn Neighbor object between the landmark cells and all the other cells.
