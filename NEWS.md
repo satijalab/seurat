@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern
+
 # Seurat 5.5.1
 
 ### Additions
