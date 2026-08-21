@@ -25,7 +25,7 @@ ColorDimSplit(
 \item{other.color}{Color for all other cells}
 
 \item{...}{
-  Arguments passed on to \code{\link[=DimPlot]{DimPlot}}
+  Arguments passed on to \code{\link{DimPlot}}
   \describe{
     \item{\code{dims}}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
     \item{\code{cells}}{Vector of cells to plot (default is all cells)}

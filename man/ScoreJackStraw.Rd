@@ -49,8 +49,6 @@ proportion of features expected under a uniform distribution of p-values.
 }
 \seealso{
 \code{\link{JackStrawPlot}}
-
-\code{\link{JackStrawPlot}}
 }
 \author{
 Omri Wurtzel

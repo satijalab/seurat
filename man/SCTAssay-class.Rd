@@ -94,7 +94,5 @@ levels(pbmc_small[['SCT']])
 }
 \seealso{
 \code{\link[SeuratObject]{Assay}}
-
-\code{\link[SeuratObject]{Assay}}
 }
 \concept{objects}
