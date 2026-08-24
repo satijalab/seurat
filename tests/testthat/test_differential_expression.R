@@ -554,11 +554,14 @@ if (is_not_cran_submission) {
         max.cells.per.ident = ncol(x = object),
         ...
       )))
-      rownames(x = results.fast) <- NULL
-      rownames(x = results.loop) <- NULL
       expect_equal(results.fast, results.loop)
     }
     expect_findallmarkers_fast_equal_loop(pbmc_small, pseudocount.use = 1)
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      only.pos = TRUE,
+      pseudocount.use = 1
+    )
     expect_findallmarkers_fast_equal_loop(
       pbmc_small,
       fc.slot = "counts",
