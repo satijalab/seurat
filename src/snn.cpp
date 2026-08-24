@@ -13,39 +13,37 @@ using namespace Rcpp;
 
 typedef Eigen::Triplet<double> T;
 
-// Store the row-parallel SNN overlap state in a worker-local scratch object.
 struct SNNOverlapWorker {
-  // Read-only, column-major, 0-based neighbor matrix flattened from R input.
+  // Read-only, column-major, 0-based neighbor matrix (flattened)
   const std::vector<int>& nn_buf;
 
-  // Read-only inverted-index offsets; entries for cell c live in postings[offsets[c], offsets[c + 1]).
+  // Read-only inverted-index offsets; entries for cell c live in postings[offsets[c], offsets[c + 1])
   const std::vector<int>& offsets;
 
-  // Read-only inverted-index row postings for every neighbor id.
+  // Read-only inverted-index row postings for every neighbor id
   const std::vector<int>& postings;
 
-  // Number of cells, which is both the row count and column count of the output graph.
+  // Number of cells; output graph is n x n
   const int n;
 
-  // Number of neighbors per cell.
+  // Number of neighbors per cell
   const int k;
 
-  // Numeric k cached as a double so the Jaccard denominator avoids repeated casts.
+  // Numeric k cached as a double to avoid repeated casts
   const double k_d;
 
-  // Minimum SNN edge weight to keep in the output graph.
+  // Minimum SNN edge weight to keep in the output graph
   const double prune;
 
-  // Worker-local overlap counts indexed by candidate cell.
+  // Worker-local overlap counts indexed by candidate cell
   std::vector<int> overlap;
 
-  // Worker-local list of candidates whose overlap count is nonzero for the current row.
+  // Worker-local list of candidates whose overlap count is nonzero for the current row
   std::vector<int> touched;
 
-  // Worker-local sparse entries produced for all rows handled by this worker.
+  // Worker-local sparse entries produced for all rows handled by this worker
   std::vector<T> triplets;
 
-  // Build the first worker with references to the shared read-only inputs.
   SNNOverlapWorker(
     const std::vector<int>& nn_buf,
     const std::vector<int>& offsets,
@@ -178,32 +176,45 @@ S4 ComputeSNN(IntegerMatrix nn_ranked, double prune, int nthreads) {
     }
   }
 
-  const int chunks = std::max(1, std::min(n, nthreads * 8));
-  std::vector<SNNOverlapWorker> workers;
-  workers.reserve(chunks);
-  for (int chunk = 0; chunk < chunks; ++chunk) {
-    workers.emplace_back(nn_buf, offsets, postings, n, k, prune);
-  }
-
-  RcppThread::parallelFor(0, chunks, [&](int chunk) {
-    const int begin = (n * chunk) / chunks;
-    const int end = (n * (chunk + 1)) / chunks;
-    workers[chunk](begin, end);
-  }, nthreads);
-
   std::vector<T> triplets;
-  size_t triplet_count = 0;
-  for (int chunk = 0; chunk < chunks; ++chunk) {
-    triplet_count += workers[chunk].triplets.size();
-  }
-  if (triplet_count > static_cast<size_t>(std::numeric_limits<int>::max())) {
-    stop("SNN graph has too many non-zero entries for a dgCMatrix");
-  }
-  triplets.reserve(triplet_count);
-  for (int chunk = 0; chunk < chunks; ++chunk) {
-    triplets.insert(triplets.end(), workers[chunk].triplets.begin(), workers[chunk].triplets.end());
+
+  // Generate overlap triplets - the single-thread path avoids the chunked
+  // worker/merge scaffolding used only for load balancing across threads
+  if (nthreads == 1) {
+    SNNOverlapWorker worker(nn_buf, offsets, postings, n, k, prune);
+    worker(0, n);
+    if (worker.triplets.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+      stop("SNN graph has too many non-zero entries for a dgCMatrix");
+    }
+    triplets = std::move(worker.triplets);
+  } else {
+    const int chunks = std::max(1, std::min(n, nthreads * 8));
+    std::vector<SNNOverlapWorker> workers;
+    workers.reserve(chunks);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      workers.emplace_back(nn_buf, offsets, postings, n, k, prune);
+    }
+
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (n * chunk) / chunks;
+      const int end = (n * (chunk + 1)) / chunks;
+      workers[chunk](begin, end);
+    }, nthreads);
+
+    size_t triplet_count = 0;
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      triplet_count += workers[chunk].triplets.size();
+    }
+    if (triplet_count > static_cast<size_t>(std::numeric_limits<int>::max())) {
+      stop("SNN graph has too many non-zero entries for a dgCMatrix");
+    }
+    triplets.reserve(triplet_count);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      triplets.insert(triplets.end(), workers[chunk].triplets.begin(), workers[chunk].triplets.end());
+    }
   }
 
+  // Sort triplets before building the sparse matrix slots
   std::sort(
     triplets.begin(),
     triplets.end(),
