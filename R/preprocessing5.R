@@ -541,6 +541,11 @@ VST.IterableMatrix <- function(
     clip.max <- sqrt(x = ncol(x = object))
   }
   nthreads <- getThreads()
+  # Feature selection is sensitive to small floating-point differences in
+  # sparse row statistics. Recompute these standardized variances near
+  # the ranking cutoff with legacy (<= v5.5.1) mean/variance arithmetic,
+  # to preserve historical variable-feature rankings without giving up
+  # the faster sparse implementation for all rows
   hvf.info <- as.data.frame(x = SparseRowMeanVarLegacy(
     x = object@x,
     i = object@i,
@@ -1342,9 +1347,9 @@ SCTransform.StdAssay <- function(
   assay_out <- as(object = assay_out, Class = "SCTAssay")
   slot(object = assay_out, name = "SCTModel.list") <- model.list
 
-  # pre-fill scale.data if pearson residuals are already computed for all layers.
-  # In the rewrite2 branch, residual matrices are deferred per layer so the final
-  # multi-layer residual matrix is computed exactly once below.
+  # prefill scale.data if pearson residuals are already computed for all layers;
+  # residual matrices are deferred per layer so the final multi-layer
+  # residual matrix is computed exactly once
   prefill.matrices <- lapply(output_list, function(vst.out) {
     vst.out$y
   })
@@ -1363,13 +1368,14 @@ SCTransform.StdAssay <- function(
     LayerData(assay_out, layer = "scale.data") <- scale.data.prefill
   }
 
-  # In reference mode the final FetchResiduals_rewrite() below is intentionally
-  # called WITHOUT reference.SCT.model and instead reuses the per-layer reference
-  # residuals prefilled above. This is correct only while every scale.data feature
-  # is covered by the prefill: any feature not prefilled would be recomputed
-  # without reference centering (query-centered) and be silently wrong. That
-  # invariant provably holds today (scale_data_features is a subset of the shared
-  # reference model's features present in all layers), so guard it here to fail
+  # In reference mode the final call to FetchResiduals is called
+  # WITHOUT reference.SCT.model, instead reusing the per-layer
+  # reference residuals prefilled above. This is correct only while
+  # every scale.data feature is covered by the prefill: any feature
+  # not prefilled would be recomputed without reference centering
+  # (query-centered) and be silently wrong. That invariant provably
+  # holds today (scale_data_features is a subset of the shared reference
+  # model's features present in all layers), so guard it here to fail
   # loudly if a future change ever breaks it.
   if (!is.null(x = reference.SCT.model)) {
     missing.prefill <- setdiff(x = scale_data_features, y = prefill.features)

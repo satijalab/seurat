@@ -4029,10 +4029,9 @@ SCTransform.default <- function(
         min.variance
       }
       # Persist the resolved numeric min_var in the model. Downstream residual
-      # recomputation (FetchResiduals / GetResidual, old or _rewrite worker) reads
-      # arguments$min_variance and only recomputes (median(nonzeros)/5)^2 when it is
-      # the string "umi_median". That recompute is order/subset dependent (e.g. the
-      # old worker uses only the first chunk_size cells), so it can diverge from the
+      # recomputation (FetchResiduals / GetResidual) reads arguments$min_variance
+      # and only recomputes (median(nonzeros)/5)^2 when it is the string "umi_median".
+      # That recompute is order/subset dependent, so it can diverge from the
       # value used here for scale.data. Storing the resolved value makes later
       # residuals deterministic and consistent with scale.data.
       vst.out$arguments$min_variance <- min.var
@@ -4043,7 +4042,6 @@ SCTransform.default <- function(
       # Compute residual statistics and corrected UMI counts
       # Note: does not compute residual matrix yet (saves a lot of memory)
       # Just computes the residual variance for each gene and (if asked for) corrected UMI counts
-      # One of key optims was to compute corrected counts if needed at this stage, not later
       stats <- SCTResidualStatsAndCorrected(
         x = umi@x,
         i = umi@i,
