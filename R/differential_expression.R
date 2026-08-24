@@ -326,7 +326,7 @@ FindAllMarkersFinalize <- function(
   new.nodes = NULL,
   orig.nodes = NULL
 ) {
-  gde.all <- vector(mode = "list", length = length(x = idents.all))
+  gde.all <- data.frame()
   for (i in seq_along(along.with = idents.all)) {
     gde <- genes.de[[i]]
     if (is.null(x = gde) || nrow(x = gde) == 0) {
@@ -346,13 +346,7 @@ FindAllMarkersFinalize <- function(
     }
     gde$cluster <- idents.all[i]
     gde$gene <- rownames(x = gde)
-    gde.all[[i]] <- gde
-  }
-  gde.all <- Filter(f = Negate(f = is.null), x = gde.all)
-  gde.all <- if (length(x = gde.all)) {
-    do.call(what = rbind, args = gde.all)
-  } else {
-    data.frame()
+    gde.all <- rbind(gde.all, gde)
   }
   if ((only.pos) && nrow(x = gde.all) > 0) {
     return(subset(x = gde.all, subset = gde.all[, 2] > 0))
