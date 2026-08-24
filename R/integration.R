@@ -2637,9 +2637,11 @@ MappingScore.default <- function(
   if (verbose) {
     message("    Computing query SNN")
   }
+  nthreads <- getThreads()
   snn <- ComputeSNN(
     nn_ranked = Indices(query.neighbors)[, 1:ksnn],
-    prune = snn.prune
+    prune = snn.prune,
+    nthreads = nthreads
   )
   query.cells.pca <- t(x = query.cells.pca)
   if (verbose) {

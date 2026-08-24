@@ -61,7 +61,7 @@ NormalizeData(object, ...)
 
 \item{block.size}{How many cells should be run in each chunk, will try to split evenly across threads}
 
-\item{verbose}{display progress bar for normalization procedure}
+\item{verbose}{Whether to display a progress bar, if running in a single thread}
 
 \item{assay}{Name of assay to use}
 }

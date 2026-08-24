@@ -11,3 +11,4 @@ docs/
 Rplots.pdf
 revdep/
 Seurat.Rcheck/
+inst/benchmarks

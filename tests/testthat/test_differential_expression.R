@@ -539,6 +539,45 @@ if (is_not_cran_submission) {
     # to setting the object's `Idents` before running `FindAllMarkers`.
     expect_equal(results.gb, results)
   })
+
+  test_that("FindAllMarkers presto path matches per-cluster wilcox path", {
+    skip_if_not_installed("presto")
+    expect_findallmarkers_fast_equal_loop <- function(object, ...) {
+      results.fast <- suppressWarnings(suppressMessages(FindAllMarkers(
+        object = object,
+        verbose = FALSE,
+        ...
+      )))
+      results.loop <- suppressWarnings(suppressMessages(FindAllMarkers(
+        object = object,
+        verbose = FALSE,
+        max.cells.per.ident = ncol(x = object),
+        ...
+      )))
+      expect_equal(results.fast, results.loop)
+    }
+    expect_findallmarkers_fast_equal_loop(pbmc_small, pseudocount.use = 1)
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      only.pos = TRUE,
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      fc.slot = "counts",
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      latent.vars = "groups",
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      sct.obj,
+      pseudocount.use = 1,
+      vst.flavor = "v1"
+    )
+  })
   test_that("BPCells FindAllMarkers gives same results", {
     skip_if_not_installed("BPCells")
     library(BPCells)
@@ -591,6 +630,82 @@ if (is_not_cran_submission) {
     expect_equal(fam.results.col$cluster, fam.results.row$cluster)
   })
 }
+
+test_that("FindAllMarkers is stable across thread counts", {
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+
+  setThreads(1)
+  results.single.thread <- suppressMessages(suppressWarnings(FindAllMarkers(
+    object = pbmc_small,
+    logfc.threshold = 0,
+    min.pct = 0,
+    only.pos = FALSE,
+    return.thresh = Inf,
+    pseudocount.use = 1,
+    verbose = FALSE
+  )))
+  setThreads(2)
+  results.multi.thread <- suppressMessages(suppressWarnings(FindAllMarkers(
+    object = pbmc_small,
+    logfc.threshold = 0,
+    min.pct = 0,
+    only.pos = FALSE,
+    return.thresh = Inf,
+    pseudocount.use = 1,
+    verbose = FALSE
+  )))
+  setThreads(4)
+  results.multi.thread.4 <- suppressMessages(suppressWarnings(FindAllMarkers(
+    object = pbmc_small,
+    logfc.threshold = 0,
+    min.pct = 0,
+    only.pos = FALSE,
+    return.thresh = Inf,
+    pseudocount.use = 1,
+    verbose = FALSE
+  )))
+
+  rownames(x = results.single.thread) <- NULL
+  rownames(x = results.multi.thread) <- NULL
+  rownames(x = results.multi.thread.4) <- NULL
+
+  expect_equal(results.single.thread, results.multi.thread)
+  expect_equal(results.single.thread, results.multi.thread.4)
+})
+
+test_that("FindAllMarkers applies threshold edge cases consistently", {
+  markers <- suppressMessages(suppressWarnings(FindAllMarkers(
+    object = pbmc_small,
+    logfc.threshold = 0,
+    min.pct = 0,
+    min.diff.pct = 0,
+    only.pos = FALSE,
+    return.thresh = Inf,
+    pseudocount.use = 1,
+    verbose = FALSE
+  )))
+  filtered <- suppressMessages(suppressWarnings(FindAllMarkers(
+    object = pbmc_small,
+    logfc.threshold = 0.25,
+    min.pct = 0.5,
+    min.diff.pct = 0.25,
+    only.pos = TRUE,
+    return.thresh = Inf,
+    pseudocount.use = 1,
+    verbose = FALSE
+  )))
+  fc.column <- grep(pattern = "^avg_", x = colnames(x = filtered), value = TRUE)[1]
+
+  expect_de_table(markers, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_de_table(filtered, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_lte(nrow(x = filtered), nrow(x = markers))
+  expect_true(all(filtered[[fc.column]] >= 0.25))
+  expect_true(all(apply(filtered[, c("pct.1", "pct.2"), drop = FALSE], 1, max) >= 0.5))
+  expect_true(all(abs(filtered$pct.1 - filtered$pct.2) >= 0.25))
+  expect_false(anyNA(filtered$cluster))
+  expect_false(anyNA(filtered$gene))
+})
 
 # Tests for running FindMarkers post integration/transfer
 ref <- pbmc_small

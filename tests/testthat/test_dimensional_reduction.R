@@ -163,6 +163,46 @@ test_that("`RunPCA` drops zero-variance features only within the supplied featur
   expect_false(any(rownames(mat)[51:60] %in% loadings_features))
 })
 
+test_that("`RunPCA` is stable across thread counts", {
+  set.seed(123)
+  test_case <- get_test_data(assay_version = "v5")
+  features <- rownames(test_case)
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+
+  setThreads(1)
+  pca.single.thread <- suppressWarnings(RunPCA(test_case, features = features, npcs = 10, verbose = FALSE))
+  
+  setThreads(2)
+  pca.multi.thread <- suppressWarnings(RunPCA(test_case, features = features, npcs = 10, verbose = FALSE))
+
+  setThreads(4)
+  pca.multi.thread.4 <- suppressWarnings(RunPCA(test_case, features = features, npcs = 10, verbose = FALSE))
+
+  expect_equal(Stdev(pca.single.thread[["pca"]]), Stdev(pca.multi.thread[["pca"]]), tolerance = 1e-8)
+  expect_equal(Stdev(pca.single.thread[["pca"]]), Stdev(pca.multi.thread.4[["pca"]]), tolerance = 1e-8)
+  expect_equal(
+    abs(Embeddings(pca.single.thread[["pca"]])),
+    abs(Embeddings(pca.multi.thread[["pca"]])),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    abs(Embeddings(pca.single.thread[["pca"]])),
+    abs(Embeddings(pca.multi.thread.4[["pca"]])),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    abs(Loadings(pca.single.thread[["pca"]])),
+    abs(Loadings(pca.multi.thread[["pca"]])),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    abs(Loadings(pca.single.thread[["pca"]])),
+    abs(Loadings(pca.multi.thread.4[["pca"]])),
+    tolerance = 1e-8
+  )
+})
+
 context("RunICA")
 
 test_that("`RunPCA` works as expected", {

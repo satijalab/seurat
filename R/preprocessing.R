@@ -3837,6 +3837,11 @@ SampleUMI <- function(
 #'   default: FALSE).
 #' @param return.only.var.genes Logical; if TRUE (default), \code{scale.data}
 #'   is subset to variable features only.
+#' @param defer.residual.matrix Logical; if TRUE, skip materializing the
+#'   Pearson residual matrix in this call. (For internal use by the
+#'   v5 multi-layer \code{SCTransform} workflow, which computes the final
+#'   merged \code{scale.data} matrix after processing all layers. Not used for
+#'   the standard v3/single-matrix workflow.)
 #' @param seed.use Integer; random seed for reproducibility (default: 1448145).
 #'   Set to NULL to skip setting a seed.
 #' @param verbose Logical; whether to print progress messages (default: TRUE).
@@ -3877,6 +3882,7 @@ SCTransform.default <- function(
   vst.flavor = 'v2',
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
+  defer.residual.matrix = FALSE,
   seed.use = 1448145,
   verbose = TRUE,
   ...
@@ -3968,6 +3974,12 @@ SCTransform.default <- function(
   # set vst model
   vst.out <- switch(
     EXPR = sct.method,
+    'default' = {
+      vst.args[['return_corrected_umi']] <- FALSE
+      vst.args[['residual_type']] <- 'none'
+      vst.out <- do.call(what = 'vst', args = vst.args)
+      vst.out
+    },
     'reference.model' = {
       if (verbose) {
         message("Using reference SCTModel to calculate pearson residuals")
@@ -3999,54 +4011,173 @@ SCTransform.default <- function(
       vst.out <- do.call(what = 'vst', args = vst.args)
       vst.out$gene_attr$residual_variance <- NA_real_
       vst.out
-    },
-    'conserve.memory' = {
-      return.only.var.genes <- TRUE
-      vst.args[['residual_type']] <- 'none'
-      vst.out <- do.call(what = 'vst', args = vst.args)
-      feature.variance <- get_residual_var(
-        vst_out = vst.out,
-        umi = umi,
-        residual_type = residual.type,
-        res_clip_range = res.clip.range
-      )
-      vst.out$gene_attr$residual_variance <- NA_real_
-      vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
-      vst.out
-    },
-    'default' = {
-      vst.out <- do.call(what = 'vst', args = vst.args)
-      vst.out
     })
-
-  feature.variance <- vst.out$gene_attr[,"residual_variance"]
-  names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
-  if (verbose) {
-    message('Determine variable features')
-  }
-  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(x = variable.features.n)) {
-    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(x = feature.variance))]
-  } else {
-    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
-  }
 
   # get residuals
   vst.out <- switch(
     EXPR = sct.method,
+    'default' = {
+      model.pars <- vst.out$model_pars_fit
+      genes <- rownames(x = model.pars)
+      if (!identical(x = genes, y = rownames(x = umi))) {
+        umi <- umi[genes, , drop = FALSE]
+      }
+      min.variance <- vst.out$arguments$min_variance
+      min.var <- if (identical(x = min.variance, y = "umi_median")) {
+        (median(umi@x) / 5) ^ 2
+      } else {
+        min.variance
+      }
+      # Persist the resolved numeric min_var in the model. Downstream residual
+      # recomputation (FetchResiduals / GetResidual) reads arguments$min_variance
+      # and only recomputes (median(nonzeros)/5)^2 when it is the string "umi_median".
+      # That recompute is order/subset dependent, so it can diverge from the
+      # value used here for scale.data. Storing the resolved value makes later
+      # residuals deterministic and consistent with scale.data.
+      vst.out$arguments$min_variance <- min.var
+      # should be set already by the vst call but just fixing in case its null
+      res.clip.range <- vst.out$arguments$res_clip_range %||%
+        c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+
+      # Compute residual statistics and corrected UMI counts
+      # Note: does not compute residual matrix yet (saves a lot of memory)
+      # Just computes the residual variance for each gene and (if asked for) corrected UMI counts
+      stats <- SCTResidualStatsAndCorrected(
+        x = umi@x,
+        i = umi@i,
+        p = umi@p,
+        rows = nrow(x = umi),
+        cols = ncol(x = umi),
+        theta = model.pars[, "theta"],
+        intercept = model.pars[, "(Intercept)"],
+        slope = model.pars[, "log_umi"],
+        log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
+        target_log_umi = median(vst.out$cell_attr[, "log_umi"]),
+        min_var = min.var,
+        residual_clip_min = min(res.clip.range),
+        residual_clip_max = max(res.clip.range),
+        n_threads = getThreads(),
+        compute_corrected = do.correct.umi
+      )
+      vst.out$gene_attr[genes, "residual_mean"] <- stats$residual_mean
+      vst.out$gene_attr[genes, "residual_variance"] <- stats$residual_variance
+    
+      # Determine variable features
+      feature.variance <- vst.out$gene_attr[, "residual_variance"]
+      names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+      feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+      feature.idx <- if (is.null(x = variable.features.n)) {
+        feature.variance >= variable.features.rv.th
+      } else {
+        seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+      }
+      top.features <- names(x = feature.variance)[feature.idx]
+
+      # Store corrected UMI counts if requested, if not just restore original counts matrix
+      if (do.correct.umi) {
+        vst.out$umi_corrected <- stats$corrected
+        dimnames(x = vst.out$umi_corrected) <- dimnames(x = umi)
+      } else {
+        vst.out$umi_corrected <- umi
+      }
+
+      # Compute matrix of Pearson residuals for features to be included in scale.data
+      scale.data.features <- if (return.only.var.genes) {
+        top.features
+      } else {
+        genes
+      }
+      if (isTRUE(x = defer.residual.matrix)) {
+        vst.out$y <- matrix(
+          data = numeric(length = 0L),
+          nrow = 0L,
+          ncol = ncol(x = umi),
+          dimnames = list(character(length = 0L), colnames(x = umi))
+        )
+      } else {
+        vst.out$y <- SCTPearsonResidualMatrix(
+          x = umi@x,
+          i = umi@i,
+          p = umi@p,
+          rows = nrow(x = umi),
+          cols = ncol(x = umi),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
+          feature_index = as.integer(x = match(x = scale.data.features, table = genes) - 1L),
+          min_var = min.var,
+          clip_min = min(clip.range),
+          clip_max = max(clip.range),
+          do_center = do.center,
+          n_threads = getThreads()
+        )
+        dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
+      }
+      
+      vst.out
+    },
     'reference.model' = {
+      feature.variance <- vst.out$gene_attr[, "residual_variance"]
+      names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+
+      feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+
+      feature.idx <- if (is.null(x = variable.features.n)) {
+        feature.variance >= variable.features.rv.th
+      } else {
+        seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+      }
+      top.features <- names(x = feature.variance)[feature.idx]
       if (is.null(x = residual.features)) {
         residual.features <- top.features
       }
+
       residual.features <- Reduce(
         f = intersect,
         x = list(residual.features, rownames(x = umi), rownames(x = vst.out$model_pars_fit))
       )
-      residual.feature.mat <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE],
-        verbosity = as.numeric(x = verbose)*2
-      )
+      sub <- umi[residual.features, , drop = FALSE]
+      min.variance <- vst.out$arguments$min_variance
+      # Reproduce sctransform::get_residuals() -
+      # res_clip_range = +/- sqrt(ncol(sub)), the scalar variance floor from the
+      # model, and do_center = FALSE (reference centering by the reference
+      # residual_mean is applied by the sweep below, not by the kernel).
+      # "model_mean"/"model_median" use a per-gene variance floor -> fall back to
+      # get_residuals() for exact behavior.
+      if (min.variance %in% c("model_mean", "model_median")) {
+        residual.feature.mat <- get_residuals(
+          vst_out = vst.out,
+          umi = sub,
+          verbosity = as.numeric(x = verbose) * 2
+        )
+      } else {
+        model.pars <- vst.out$model_pars_fit[residual.features, , drop = FALSE]
+        min.var <- if (identical(x = min.variance, y = "umi_median")) {
+          (median(x = sub@x) / 5) ^ 2
+        } else {
+          min.variance
+        }
+        res.clip.range <- c(-sqrt(x = ncol(x = sub)), sqrt(x = ncol(x = sub)))
+        residual.feature.mat <- SCTPearsonResidualMatrix(
+          x = sub@x,
+          i = sub@i,
+          p = sub@p,
+          rows = nrow(x = sub),
+          cols = ncol(x = sub),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = sub), "log_umi"],
+          feature_index = as.integer(x = seq_len(length.out = nrow(x = sub)) - 1L),
+          min_var = min.var,
+          clip_min = min(res.clip.range),
+          clip_max = max(res.clip.range),
+          do_center = FALSE,
+          n_threads = getThreads()
+        )
+        dimnames(x = residual.feature.mat) <- dimnames(x = sub)
+      }
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
       vst.out$y <- sweep(
@@ -4073,53 +4204,41 @@ SCTransform.default <- function(
       vst.out$gene_attr[residual.features, "residual_mean"] <- rowMeans2(x = vst.out$y)
       vst.out$gene_attr[residual.features, "residual_variance"] <- RowVar(x = vst.out$y)
       vst.out
-    },
-    'conserve.memory' = {
-      vst.out$y <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[top.features, ],
-        residual_type = residual.type,
-        res_clip_range = res.clip.range,
-        verbosity = as.numeric(x = verbose)*2
-      )
-      vst.out$gene_attr$residual_mean <- NA_real_
-      vst.out$gene_attr[top.features, "residual_mean"] = rowMeans2(x =  vst.out$y)
-      if (do.correct.umi & residual.type == 'pearson') {
-        vst.out$umi_corrected <- correct_counts(
-          x = vst.out,
-          umi = umi,
-          verbosity = as.numeric(x = verbose) * 1
-        )
-      }
-      vst.out
-    },
-    'default' = {
-      if (return.only.var.genes) {
-        vst.out$y <- vst.out$y[top.features, ]
-      }
-      vst.out
-    })
+    }
+   )
+  # default method already clips residuals
+  if (!identical(x = sct.method, y = "default")) {
+    scale.data <- vst.out$y
+    scale.data[scale.data < clip.range[1]] <- clip.range[1]
+    scale.data[scale.data > clip.range[2]] <- clip.range[2]
+    vst.out$y <- scale.data
+  }
+  
+  # User may (not common) want to regress out additional variables after SCTransform
+  # Note that centering is already handled by the optimized residual matrix C++
+  if (!is.null(x = vars.to.regress) || isTRUE(x = do.scale)) {
+    if (is.null(x = rownames(x = vst.out$y)) && nrow(x = vst.out$y) == nrow(x = vst.out$gene_attr)) {
+      rownames(x = vst.out$y) <- rownames(x = vst.out$gene_attr)
+    }
+    if (is.null(x = colnames(x = vst.out$y)) && ncol(x = vst.out$y) == nrow(x = vst.out$cell_attr)) {
+      colnames(x = vst.out$y) <- rownames(x = vst.out$cell_attr)
+    }
+    vst.out$y <- ScaleData(
+      vst.out$y,
+      features = NULL,
+      vars.to.regress = vars.to.regress,
+      latent.data = latent.data,
+      model.use = 'linear',
+      use.umi = FALSE,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = Inf,
+      block.size = 750,
+      min.cells.to.block = 3000,
+      verbose = verbose
+    )
+  }
 
-  scale.data <- vst.out$y
-  # clip the residuals
-  scale.data[scale.data < clip.range[1]] <- clip.range[1]
-  scale.data[scale.data > clip.range[2]] <- clip.range[2]
-  # 2nd regression
-  scale.data <- ScaleData(
-    scale.data,
-    features = NULL,
-    vars.to.regress = vars.to.regress,
-    latent.data = latent.data,
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = do.scale,
-    do.center = do.center,
-    scale.max = Inf,
-    block.size = 750,
-    min.cells.to.block = 3000,
-    verbose = verbose
-  )
-  vst.out$y <- scale.data
   vst.out$variable_features <- residual.features %||% top.features
   if (!do.correct.umi) {
     vst.out$umi_corrected <- umi
@@ -4406,6 +4525,7 @@ FindVariableFeatures.V3Matrix <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 ) {
@@ -4417,31 +4537,12 @@ FindVariableFeatures.V3Matrix <- function(
     object <- as.sparse(x = object)
   }
   if (selection.method == "vst") {
-    if (clip.max == 'auto') {
-      clip.max <- sqrt(x = ncol(x = object))
-    }
-    hvf.info <- data.frame(mean = rowMeans(x = object))
-    hvf.info$variance <- SparseRowVar2(
-      mat = object,
-      mu = hvf.info$mean,
-      display_progress = verbose
-    )
-    hvf.info$variance.expected <- 0
-    hvf.info$variance.standardized <- 0
-    not.const <- hvf.info$variance > 0
-    fit <- loess(
-      formula = log10(x = variance) ~ log10(x = mean),
-      data = hvf.info[not.const, ],
-      span = loess.span
-    )
-    hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-    # use c function to get variance after feature standardization
-    hvf.info$variance.standardized <- SparseRowVarStd(
-      mat = object,
-      mu = hvf.info$mean,
-      sd = sqrt(hvf.info$variance.expected),
-      vmax = clip.max,
-      display_progress = verbose
+    hvf.info <- .FindVariableFeaturesVSTInfo(
+      object = object,
+      loess.span = loess.span,
+      clip.max = clip.max,
+      nselect = nfeatures,
+      verbose = verbose
     )
     colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   } else {
@@ -4869,9 +4970,6 @@ LogNormalize.V3Matrix <- function(
   verbose = TRUE,
   ...
 ) {
-  # if (is.data.frame(x = data)) {
-  #   data <- as.matrix(x = data)
-  # }
   if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
@@ -4879,15 +4977,13 @@ LogNormalize.V3Matrix <- function(
   if (verbose) {
     cat("Performing log-normalization\n", file = stderr())
   }
-  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
-  colnames(x = norm.data) <- colnames(x = data)
-  rownames(x = norm.data) <- rownames(x = data)
-  return(norm.data)
+  nthreads <- getThreads()
+  # LogNorm takes only x and p slots of the dgCMatrix
+  # then replaces the x slot with normalized values - all other slots can be reused
+  data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, display_progress = verbose)
+  return(data)
 }
 
-#' @importFrom future.apply future_lapply
-#' @importFrom future nbrOfWorkers
-#'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
 #'   \item \dQuote{\code{LogNormalize}}: Feature counts for each cell are
@@ -4903,7 +4999,7 @@ LogNormalize.V3Matrix <- function(
 #' @param margin If performing CLR normalization, normalize across features (1) or cells (2)
 # @param across If performing CLR normalization, normalize across either "features" or "cells".
 #' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
-#' @param verbose display progress bar for normalization procedure
+#' @param verbose Whether to display a progress bar, if running in a single thread
 #'
 #' @rdname NormalizeData
 #' @concept preprocessing
@@ -4922,92 +5018,31 @@ NormalizeData.V3Matrix <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  normalized.data <- if (nbrOfWorkers() > 1) {
-    norm.function <- switch(
-      EXPR = normalization.method,
-      'LogNormalize' = LogNormalize,
-      'CLR' = CustomNormalize,
-      'RC' = RelativeCounts,
-      stop("Unknown normalization method: ", normalization.method)
-    )
-    if (normalization.method != 'CLR') {
-      margin <- 2
-    }
-    tryCatch(
-      expr = Parenting(parent.find = 'Seurat', margin = margin),
-      error = function(e) {
-        invisible(x = NULL)
-      }
-    )
-    dsize <- switch(
-      EXPR = margin,
-      '1' = nrow(x = object),
-      '2' = ncol(x = object),
-      stop("'margin' must be 1 or 2")
-    )
-    chunk.points <- ChunkPoints(
-      dsize = dsize,
-      csize = block.size %||% ceiling(x = dsize / nbrOfWorkers())
-    )
-    normalized.data <- future_lapply(
-      X = 1:ncol(x = chunk.points),
-      FUN = function(i) {
-        block <- chunk.points[, i]
-        data <- if (margin == 1) {
-          object[block[1]:block[2], , drop = FALSE]
-        } else {
-          object[, block[1]:block[2], drop = FALSE]
-        }
-        clr_function <- function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        }
-        args <- list(
-          data = data,
-          scale.factor = scale.factor,
-          verbose = FALSE,
-          custom_function = clr_function, margin = margin
-        )
-        args <- args[names(x = formals(fun = norm.function))]
-        return(do.call(
-          what = norm.function,
-          args = args
-        ))
-      }
-    )
-    do.call(
-      what = switch(
-        EXPR = margin,
-        '1' = 'rbind',
-        '2' = 'cbind',
-        stop("'margin' must be 1 or 2")
-      ),
-      args = normalized.data
-    )
-  } else {
-    switch(
-      EXPR = normalization.method,
-      'LogNormalize' = LogNormalize(
-        data = object,
-        scale.factor = scale.factor,
-        verbose = verbose
-      ),
-      'CLR' = CustomNormalize(
-        data = object,
-        custom_function = function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        },
-        margin = margin,
-        verbose = verbose
-        # across = across
-      ),
-      'RC' = RelativeCounts(
-        data = object,
-        scale.factor = scale.factor,
-        verbose = verbose
-      ),
-      stop("Unkown normalization method: ", normalization.method)
-    )
+  if (!is.null(block.size)) {
+    req_nthreads <- ceiling(length(Cells(object = object)) / block.size)
+    old_options <- options(Seurat.nthreads = req_nthreads)
+    on.exit(expr = options(old_options), add = TRUE)
   }
+  normalized.data <- switch(EXPR = normalization.method,
+                            'LogNormalize' = LogNormalize(
+                              data = object,
+                              scale.factor = scale.factor,
+                              verbose = verbose
+                            ),
+                            'CLR' = CustomNormalize(
+                              data = object,
+                              custom_function = function(x) {
+                                return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
+                              },
+                              margin = margin,
+                              verbose = verbose
+                            ),
+                            'RC' = RelativeCounts(
+                              data = object,
+                              scale.factor = scale.factor,
+                              verbose = verbose
+                            ),
+                            stop("Unknown normalization method: ", normalization.method))
   return(normalized.data)
 }
 
@@ -5063,17 +5098,73 @@ NormalizeData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- NormalizeData(
-    object = object[[assay]],
+  if (!(assay %in% Assays(object = object))) {
+    stop("Assay ", assay, " not found in object")
+  }
+  slot(object, "assays")[[assay]] <- NormalizeData(
+    object = slot(object, "assays")[[assay]],
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose,
     margin = margin,
     ...
   )
-  object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
   return(object)
+}
+
+FastSparseRowScaleInternal <- FastSparseRowScale
+
+FastSparseRowScale <- function(
+  mat,
+  features = as.integer(x = c()),
+  scale = TRUE,
+  center = TRUE,
+  scale_max = 10,
+  nthreads = 1L,
+  display_progress = FALSE
+) {
+  if (inherits(x = mat, what = "dgTMatrix")) {
+    mat <- as(object = mat, Class = "dgCMatrix")
+  }
+  if (!inherits(x = mat, what = "dgCMatrix")) {
+    stop("FastSparseRowScale requires a dgCMatrix or dgTMatrix", call. = FALSE)
+  }
+  rows <- nrow(x = mat)
+  cols <- ncol(x = mat)
+  result <- FastSparseRowScaleInternal(
+    x = mat@x,
+    i = mat@i,
+    p = mat@p,
+    rows = rows,
+    cols = cols,
+    features,
+    scale,
+    center,
+    scale_max,
+    nthreads,
+    display_progress
+  )
+  if (isTRUE(x = scale)) {
+    selected <- if (length(x = features)) {
+      features + 1L
+    } else {
+      seq_len(length.out = rows)
+    }
+    row.sum <- Matrix::rowSums(x = mat[selected, , drop = FALSE])
+    row.sq.sum <- Matrix::rowSums(x = mat[selected, , drop = FALSE] ^ 2)
+    variance.numerator <- if (isTRUE(x = center)) {
+      row.sq.sum - (row.sum * row.sum / cols)
+    } else {
+      row.sq.sum
+    }
+    sigma <- sqrt(x = variance.numerator / (cols - 1))
+    invalid <- which(x = !(sigma > 0) | is.na(x = sigma))
+    if (length(x = invalid)) {
+      result[invalid, ] <- NaN
+    }
+  }
+  return(result)
 }
 
 #' @importFrom future nbrOfWorkers
@@ -5127,8 +5218,8 @@ ScaleData.default <- function(
   CheckDots(...)
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
-  object <- object[features, , drop = FALSE]
-  object.names <- dimnames(x = object)
+  # pass the full matrix plus feature indices into C++ and select the requested rows there
+  object.names <- list(features, colnames(x = object))
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Assay",
@@ -5137,7 +5228,65 @@ ScaleData.default <- function(
   ))
   split.by <- split.by %||% TRUE
   split.cells <- split(x = colnames(x = object), f = split.by)
+  nthreads <- getThreads()
   CheckGC()
+  # When no regression is requested, the data are not split, and only one worker is available, 
+  # compute the row statistics and materialise the final dense matrix in a single C++ call.
+  if (
+    is.null(x = vars.to.regress) &&
+    is.null(x = latent.data) &&
+    length(x = split.cells) == 1 &&
+    nbrOfWorkers() == 1
+  ) {
+    if (verbose && (do.scale || do.center)) {
+      msg <- paste(
+        na.omit(object = c(
+          ifelse(test = do.center, yes = 'centering', no = NA_character_),
+          ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+        )),
+        collapse = ' and '
+      )
+      msg <- paste0(
+        toupper(x = substr(x = msg, start = 1, stop = 1)),
+        substr(x = msg, start = 2, stop = nchar(x = msg)),
+        ' data matrix'
+      )
+      message(msg)
+    }
+    # 0-based row indices of the requested features within the full matrix.
+    feature.idx <- match(x = features, table = rownames(x = object)) - 1L
+    if (inherits(x = object, what = 'dgTMatrix')) {
+      object <- as(object = object, Class = 'dgCMatrix')
+    }
+    if (is(object = object, class2 = 'dgCMatrix')) {
+      scaled.data <- FastSparseRowScaleInternal(
+        x = object@x,
+        i = object@i,
+        p = object@p,
+        rows = nrow(x = object),
+        cols = ncol(x = object),
+        features = feature.idx,
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        nthreads = nthreads,
+        display_progress = verbose
+      )
+    } else {
+      scaled.data <- FastDenseRowScale(
+        mat = as.matrix(x = object),
+        features = feature.idx,
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        nthreads = nthreads,
+        display_progress = verbose
+      )
+    }
+    dimnames(x = scaled.data) <- object.names
+    return(scaled.data)
+  }
+  object <- object[features, , drop = FALSE]
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
       latent.data <- data.frame(row.names = colnames(x = object))
@@ -5186,7 +5335,7 @@ ScaleData.default <- function(
           return(RegressOutMatrix(
             data.expr = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
             latent.data = latent.data[split.cells[[group]], , drop = FALSE],
-            features.regress = features,
+            features.regress = NULL,
             model.use = model.use,
             use.umi = use.umi,
             verbose = FALSE
@@ -5220,7 +5369,7 @@ ScaleData.default <- function(
           return(RegressOutMatrix(
             data.expr = object[, split.cells[[x]], drop = FALSE],
             latent.data = latent.data[split.cells[[x]], , drop = FALSE],
-            features.regress = features,
+            features.regress = NULL,
             model.use = model.use,
             use.umi = use.umi,
             verbose = verbose
@@ -5544,7 +5693,6 @@ ScaleData.Seurat <- function(
     split.by <- object[[split.by]]
   }
   assay.data <- ScaleData(
-    # object = assay.data,
     object = object[[assay]],
     features = features,
     vars.to.regress = vars.to.regress,
@@ -6119,6 +6267,9 @@ RegressOutMatrix <- function(
   if (any(bypass)) {
     return(data.expr)
   }
+  if (nrow(x = data.expr) == 0) {
+    return(data.expr)
+  }
   # Check model.use
   possible.models <- c("linear", "poisson", "negbinom")
   if (!model.use %in% possible.models) {
@@ -6130,7 +6281,7 @@ RegressOutMatrix <- function(
   }
   # Check features.regress
   if (is.null(x = features.regress)) {
-    features.regress <- 1:nrow(x = data.expr)
+    features.regress <- seq_len(length.out = nrow(x = data.expr))
   }
   if (is.character(x = features.regress)) {
     features.regress <- intersect(x = features.regress, y = rownames(x = data.expr))

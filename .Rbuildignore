@@ -11,6 +11,7 @@ CODE_OF_CONDUCT.md
 ^pkgdown$
 ^index\.md$
 ^vignettes$
+^benchmarks$
 ^LICENSE\.md$
 Rplots.pdf
 revdep/

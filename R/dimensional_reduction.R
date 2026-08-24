@@ -910,21 +910,29 @@ RunPCA.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
- if (inherits(x = object, what = 'matrix')) {
-   RowVar.function <- RowVar
-   svd.function <- irlba
- } else if (inherits(x = object, what = 'dgCMatrix')) {
-   RowVar.function <- RowVarSparse
-   svd.function <- irlba
- } else if (inherits(x = object, what = 'IterableMatrix')) {
-   RowVar.function <- function(x) {
-     return(BPCells::matrix_stats(
-       matrix = x,
-       row_stats = 'variance'
-     )$row_stats['variance',])
-    }
-    svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
- }
+  nthreads <- getThreads()
+  # per-feature variances precomputed during data prep (PrepDR/PrepDR5)
+  feature.var <- attr(x = object, which = 'feature.var')
+  if (inherits(x = object, what = 'matrix')) {
+    RowVar.function <- RowVar
+    svd.function <- irlba
+  } else if (inherits(x = object, what = 'dgCMatrix')) {
+    RowVar.function <- RowVarSparse
+    svd.function <- irlba
+  } else if (inherits(x = object, what = 'IterableMatrix')) {
+    RowVar.function <- function(x) {
+      return(BPCells::matrix_stats(
+        matrix = x,
+        row_stats = 'variance'
+      )$row_stats['variance',])
+      }
+      svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
+  }
+  # sparse (dgCMatrix) and on-disk (IterableMatrix) inputs cannot use the
+  # dense Gram path nor an exact prcomp; force approx = TRUE
+  if (!inherits(x = object, what = 'matrix')) {
+    approx <- TRUE
+  }
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
     pca.results <- svd.function(A = object, nv = npcs, ...)
@@ -938,8 +946,40 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    total.variance <- sum(RowVar.function(x = object))
-    if (approx) {
+    # reuse the precomputed per-feature variances for total.variance
+    total.variance <- if (is.null(x = feature.var)) {
+      sum(RowVar.function(x = object))
+    } else {
+      sum(feature.var)
+    }
+    if (approx && inherits(x = object, what = 'matrix')) {
+      # dense approximate PCA goes through the Gram matrix + Lanczos top-k eigendecomposition (EigenGramPCA)
+      npcs <- min(npcs, nrow(x = object))
+      gram.results <- tryCatch(
+        expr = EigenGramPCA(
+          object = object,
+          npcs = npcs,
+          weight_by_var = weight.by.var,
+          nthreads = nthreads
+        ),
+        error = function(e) NULL
+      )
+      if (!is.null(x = gram.results)) {
+        feature.loadings <- gram.results$loadings
+        cell.embeddings <- gram.results$embeddings
+        sdev <- as.numeric(x = gram.results$sdev)
+      } else {
+        pca.results <- prcomp(x = t(object), rank. = npcs, ...)
+        feature.loadings <- pca.results$rotation
+        sdev <- pca.results$sdev
+        if (weight.by.var) {
+          cell.embeddings <- pca.results$x
+        } else {
+          cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
+        }
+      }
+    } else if (approx) {
+      # Sparse (dgCMatrix) / on-disk (IterableMatrix) approximate PCA goes through truncated SVD (irlba)
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
       feature.loadings <- pca.results$v
@@ -1369,16 +1409,6 @@ RunUMAP.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
-    warning(
-      "The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric",
-      "\nTo use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'",
-      "\nThis message will be shown once per session",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-    options(Seurat.warn.umap.uwot = FALSE)
-  }
   if (umap.method == 'uwot-learn') {
     warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
     umap.method <- "uwot"
@@ -1404,6 +1434,7 @@ RunUMAP.default <- function(
     }
     umap.method <- "uwot-predict"
   }
+  nthreads <- getThreads()
   umap.output <- switch(
     EXPR = umap.method,
     'umap-learn' = {
@@ -1468,7 +1499,7 @@ RunUMAP.default <- function(
         umap(
           X = NULL,
           nn_method = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_components = as.integer(x = n.components),
           metric = metric,
           n_epochs = n.epochs,
@@ -1490,7 +1521,7 @@ RunUMAP.default <- function(
       } else {
         umap(
           X = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_neighbors = as.integer(x = n.neighbors),
           n_components = as.integer(x = n.components),
           metric = metric,
@@ -1517,7 +1548,7 @@ RunUMAP.default <- function(
         umap2(
           X = NULL,
           nn_method = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_components = as.integer(x = n.components),
           metric = metric,
           n_epochs = n.epochs,
@@ -1538,7 +1569,7 @@ RunUMAP.default <- function(
       } else {
         umap2(
           X = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_neighbors = as.integer(x = n.neighbors),
           n_components = as.integer(x = n.components),
           metric = metric,
@@ -1593,7 +1624,7 @@ RunUMAP.default <- function(
           X = NULL,
           nn_method = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_epochs = n.epochs,
           verbose = verbose
         )
@@ -1601,7 +1632,7 @@ RunUMAP.default <- function(
         umap_transform(
           X = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_epochs = n.epochs,
           verbose = verbose
         )
@@ -2518,6 +2549,7 @@ PrepDR <- function(
   else {
     features.var <- RowVar(x = data.use[features, ])
   }
+  names(x = features.var) <- features
   features.keep <- features[features.var > 0]
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
@@ -2528,6 +2560,8 @@ PrepDR <- function(
   features <- features.keep
   features <- features[!is.na(x = features)]
   data.use <- data.use[features, ]
+  # carry the kept-feature variances for reuse
+  attr(x = data.use, which = 'feature.var') <- features.var[features]
   return(data.use)
 }
 
@@ -2538,21 +2572,33 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   if (is.null(layer)) {
     abort(paste0("No layer matching pattern '", olayer, "' not found. Please run ScaleData and retry"))
   }
-  data.use <- LayerData(object = object, layer = layer)
   features <- features %||% VariableFeatures(object = object)
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
-  if (is(data.use, "IterableMatrix")) {
-    features.var <- BPCells::matrix_stats(matrix=data.use[features,], row_stats="variance")$row_stats["variance",]
-  } else {
-    features.var <- apply(X = data.use[features,], MARGIN = 1L, FUN = var)
+  features.use <- features[features %in% Features(x = object, layer = layer)]
+  if (!isTRUE(x = all.equal(features, features.use))) {
+    missing_features <- setdiff(x = features, y = features.use)
+    if (length(x = missing_features) > 0) {
+      warning(paste("The following features were not available: ",
+                    paste(missing_features, collapse = ", "), ".", sep = ""),
+              immediate. = TRUE)
+    }
   }
-  features.keep <- features[features.var > 0]
+  data.use <- LayerData(object = object, layer = layer, features = features.use)
+  if (is(data.use, "IterableMatrix")) {
+    features.var <- BPCells::matrix_stats(matrix=data.use, row_stats="variance")$row_stats["variance",]
+  } else if (inherits(x = data.use, what = 'dgCMatrix')) {
+    features.var <- RowVarSparse(mat = data.use)
+  } else {
+    features.var <- RowVar(x = data.use)
+  }
+  names(x = features.var) <- features.use
+  features.keep <- features.use[features.var > 0]
   if (!length(x = features.keep)) {
     stop("None of the requested features have any variance", call. = FALSE)
-  } else if (length(x = features.keep) < length(x = features)) {
-    exclude <- setdiff(x = features, y = features.keep)
+  } else if (length(x = features.keep) < length(x = features.use)) {
+    exclude <- setdiff(x = features.use, y = features.keep)
     if (isTRUE(x = verbose)) {
       warning(
         "The following ",
@@ -2563,20 +2609,9 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
         immediate. = TRUE
       )
     }
+    data.use <- data.use[features.keep, , drop = FALSE]
   }
-  features <- features.keep
-  features <- features[!is.na(x = features)]
-  features.use <- features[features %in% rownames(data.use)]
-  if(!isTRUE(all.equal(features, features.use))) {
-    missing_features <- setdiff(features, features.use)
-    if(length(missing_features) > 0) {
-    warning_message <- paste("The following features were not available: ",
-                             paste(missing_features, collapse = ", "),
-                             ".", sep = "")
-    warning(warning_message, immediate. = TRUE)
-    }
-  }
-  data.use <- data.use[features.use, ]
+  attr(x = data.use, which = 'feature.var') <- features.var[features.keep]
   return(data.use)
 }
 

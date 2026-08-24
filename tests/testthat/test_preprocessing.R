@@ -345,6 +345,155 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(hvf_info[VariableFeatures(object = object), grep("variance.standardized$", colnames(hvf_info))])))
 })
 
+test_that("Variable feature ordering (default) is stable across thread counts", {
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+  setThreads(1)
+  object.single.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+  setThreads(2)
+  object.multi.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
+})
+
+test_that("VST feature statistics are stable across thread counts", {
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+
+  setThreads(1)
+  object.single.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+  setThreads(2)
+  object.multi.thread <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+  setThreads(4)
+  object.multi.thread.4 <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+
+  hvf.single <- HVFInfo(object = object.single.thread[["RNA"]], method = "vst", status = TRUE)
+  hvf.multi <- HVFInfo(object = object.multi.thread[["RNA"]], method = "vst", status = TRUE)
+  hvf.multi.4 <- HVFInfo(object = object.multi.thread.4[["RNA"]], method = "vst", status = TRUE)
+
+  expect_equal(hvf.single, hvf.multi, tolerance = 1e-8)
+  expect_equal(hvf.single, hvf.multi.4, tolerance = 1e-8)
+})
+
+test_that("VST variable feature ordering is stable with multiple layers", {
+  skip_if_not(class(object[['RNA']]) == "Assay5")
+
+  object.multilayer <- CreateSeuratObject(split(object[["RNA"]], f = rep(c("1", "4"), each = ncol(object) / 2)))
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+
+  setThreads(1)
+  object.single.thread <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
+  setThreads(2)
+  object.multi.thread <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
+  setThreads(4)
+  object.multi.thread.4 <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
+  setThreads(old.threads)
+
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread.4))
+  expect_identical(
+    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
+    VariableFeatures(object = object.multi.thread[["RNA"]], method = "vst", simplify = FALSE)
+  )
+
+  expect_identical(
+    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
+    VariableFeatures(object = object.multi.thread.4[["RNA"]], method = "vst", simplify = FALSE)
+  )
+
+  for (layer in Layers(object = object.single.thread[["RNA"]], search = "counts")) {
+    hvf.info <- HVFInfo(object = object.single.thread[["RNA"]], method = "vst", layer = layer, status = TRUE)
+    ranked.features <- rownames(x = hvf.info)[order(hvf.info$rank, na.last = NA)]
+    score.features <- head(
+      x = rownames(x = hvf.info)[order(hvf.info$variance.standardized, decreasing = TRUE)],
+      n = length(x = ranked.features)
+    )
+    expect_identical(ranked.features, score.features)
+  }
+})
+
+test_that("preprocessing results are stable across thread counts", {
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+  thread.object <- CreateSeuratObject(counts = pbmc.test)
+
+  setThreads(1)
+  object.single.thread <- NormalizeData(object = thread.object, verbose = FALSE)
+  object.single.thread <- FindVariableFeatures(object.single.thread, selection.method = "vst", verbose = FALSE)
+  object.single.thread <- ScaleData(
+    object = object.single.thread,
+    features = VariableFeatures(object = object.single.thread),
+    verbose = FALSE
+  )
+
+  setThreads(2)
+  object.multi.thread <- NormalizeData(object = thread.object, verbose = FALSE)
+  object.multi.thread <- FindVariableFeatures(object.multi.thread, selection.method = "vst", verbose = FALSE)
+  object.multi.thread <- ScaleData(
+    object = object.multi.thread,
+    features = VariableFeatures(object = object.multi.thread),
+    verbose = FALSE
+  )
+
+  setThreads(4)
+  object.multi.thread.4 <- NormalizeData(object = thread.object, verbose = FALSE)
+  object.multi.thread.4 <- FindVariableFeatures(object.multi.thread.4, selection.method = "vst", verbose = FALSE)
+  object.multi.thread.4 <- ScaleData(
+    object = object.multi.thread.4,
+    features = VariableFeatures(object = object.multi.thread.4),
+    verbose = FALSE
+  )
+
+  expect_equal(
+    LayerData(object = object.single.thread, layer = "data"),
+    LayerData(object = object.multi.thread, layer = "data")
+  )
+  expect_equal(
+    LayerData(object = object.single.thread, layer = "data"),
+    LayerData(object = object.multi.thread.4, layer = "data")
+  )
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread.4))
+  expect_equal(
+    LayerData(object = object.single.thread, layer = "scale.data"),
+    LayerData(object = object.multi.thread, layer = "scale.data"),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    LayerData(object = object.single.thread, layer = "scale.data"),
+    LayerData(object = object.multi.thread.4, layer = "scale.data"),
+    tolerance = 1e-8
+  )
+})
+
+test_that("VST handles tied and constant features at the selection boundary", {
+  tied.counts <- as.matrix(pbmc.test)
+  tied.counts <- rbind(
+    "zero-a" = 0,
+    "zero-b" = 0,
+    "tie-a" = tied.counts[1, ],
+    "tie-b" = tied.counts[1, ],
+    tied.counts
+  )
+
+  tied.object <- CreateSeuratObject(counts = as.sparse(tied.counts))
+  tied.object <- NormalizeData(object = tied.object, verbose = FALSE)
+  tied.object <- FindVariableFeatures(
+    object = tied.object,
+    selection.method = "vst",
+    nfeatures = 6,
+    verbose = FALSE
+  )
+  hvf.info <- HVFInfo(object = tied.object[["RNA"]], method = "vst", status = TRUE)
+
+  expect_equal(length(x = VariableFeatures(object = tied.object)), 6)
+  expect_false(any(VariableFeatures(object = tied.object) %in% c("zero-a", "zero-b")))
+  expect_false(anyNA(VariableFeatures(object = tied.object)))
+  expect_equal(hvf.info["tie-a", "variance.standardized"], hvf.info["tie-b", "variance.standardized"])
+  expect_true(all(is.finite(hvf.info[VariableFeatures(object = tied.object), "variance.standardized"])))
+  expect_true(all(is.na(hvf.info$rank) | hvf.info$rank >= 1))
+})
+
 #object <- FindVariableFeatures(object, assay = "RNAbp")
 #this breaks currently
 
@@ -410,6 +559,66 @@ test_that("SCTransform ncells param works", {
   expect_equal(fa["MS4A1", "variance"], 1.025158, tolerance = 1e-6)
   expect_equal(fa["MS4A1", "residual_mean"], 0.2362887, tolerance = 1e-3)
   expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-3)
+})
+
+test_that("SCTransform is stable across thread counts", {
+  old.threads <- getThreads()
+  on.exit(setThreads(old.threads), add = TRUE)
+  sct.object <- CreateSeuratObject(counts = pbmc.test)
+
+  setThreads(1)
+  sct.single.thread <- suppressWarnings(SCTransform(
+    object = sct.object,
+    vst.flavor = "v1",
+    ncells = ncol(x = sct.object),
+    verbose = FALSE,
+    seed.use = 42
+  ))
+  setThreads(2)
+  sct.multi.thread <- suppressWarnings(SCTransform(
+    object = sct.object,
+    vst.flavor = "v1",
+    ncells = ncol(x = sct.object),
+    verbose = FALSE,
+    seed.use = 42
+  ))
+  setThreads(4)
+  sct.multi.thread.4 <- suppressWarnings(SCTransform(
+    object = sct.object,
+    vst.flavor = "v1",
+    ncells = ncol(x = sct.object),
+    verbose = FALSE,
+    seed.use = 42
+  ))
+
+  expect_equal(
+    GetAssayData(object = sct.single.thread[["SCT"]], layer = "counts"),
+    GetAssayData(object = sct.multi.thread[["SCT"]], layer = "counts")
+  )
+  expect_equal(
+    GetAssayData(object = sct.single.thread[["SCT"]], layer = "counts"),
+    GetAssayData(object = sct.multi.thread.4[["SCT"]], layer = "counts")
+  )
+  expect_equal(
+    GetAssayData(object = sct.single.thread[["SCT"]], layer = "data"),
+    GetAssayData(object = sct.multi.thread[["SCT"]], layer = "data"),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    GetAssayData(object = sct.single.thread[["SCT"]], layer = "data"),
+    GetAssayData(object = sct.multi.thread.4[["SCT"]], layer = "data"),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    GetAssayData(object = sct.single.thread[["SCT"]], layer = "scale.data"),
+    GetAssayData(object = sct.multi.thread[["SCT"]], layer = "scale.data"),
+    tolerance = 1e-8
+  )
+  expect_equal(
+    GetAssayData(object = sct.single.thread[["SCT"]], layer = "scale.data"),
+    GetAssayData(object = sct.multi.thread.4[["SCT"]], layer = "scale.data"),
+    tolerance = 1e-8
+  )
 })
 
 

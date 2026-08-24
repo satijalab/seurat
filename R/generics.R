@@ -77,11 +77,18 @@ as.SingleCellExperiment <- function(x, ...) {
 #' and construct the SNN graph. Then optimize the modularity function to
 #' determine clusters. For a full description of the algorithms, see Waltman and
 #' van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
-#' Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
-#' optimizer code in Rcpp!
+#' Delaney (evolvedmicrobe@github) for the initial rewrite (v2.3.4) of the 
+#' Java modularity optimizer code in Rcpp!
 #'
 #' To run Leiden algorithm, you must first install the leidenalg python
 #' package (e.g. via pip install leidenalg), see Traag et al (2018).
+#'
+#' When running Louvain clustering with multiple threads and multiple random
+#' starts, results may differ from single-threaded runs because each random
+#' start uses an independent random number stream based on \code{random.seed}
+#' plus the restart index. Single-threaded runs use one random number stream
+#' across all starts. For a fixed \code{random.seed}, multi-threaded Louvain
+#' results are expected to be reproducible across thread counts.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
