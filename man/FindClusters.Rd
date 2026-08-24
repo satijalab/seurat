@@ -110,8 +110,8 @@ optimization based clustering algorithm. First calculate k-nearest neighbors
 and construct the SNN graph. Then optimize the modularity function to
 determine clusters. For a full description of the algorithms, see Waltman and
 van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
-Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
-optimizer code in Rcpp!
+Delaney (evolvedmicrobe@github) for the initial rewrite (v2.3.4) of the 
+Java modularity optimizer code in Rcpp!
 }
 \details{
 To run Leiden algorithm, you must first install the leidenalg python
