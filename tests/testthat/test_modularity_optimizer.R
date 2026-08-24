@@ -160,6 +160,35 @@ test_that("Modularity optimizer results are stable across thread counts", {
   expect_equal(two.thread, four.thread)
 })
 
+test_that("Modularity optimizer uses serial result for a single random start", {
+  one.thread <- Seurat:::RunModularityClusteringCpp(
+    SNN = connections,
+    modularityFunction = 1,
+    resolution = 1.0,
+    algorithm = 1,
+    nRandomStarts = 1,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 1L
+  )
+  four.thread <- Seurat:::RunModularityClusteringCpp(
+    SNN = connections,
+    modularityFunction = 1,
+    resolution = 1.0,
+    algorithm = 1,
+    nRandomStarts = 1,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 4L
+  )
+
+  expect_equal(one.thread, four.thread)
+})
+
 test_that("Multi-resolution modularity optimizer results are stable across thread counts", {
   resolutions <- c(0.4, 0.8, 1.2)
   two.thread <- Seurat:::RunModularityClusteringCpp_multi(
