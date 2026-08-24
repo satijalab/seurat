@@ -142,9 +142,8 @@ IntegerVector RunModularityClusteringCppOnNetwork(std::shared_ptr<Network> netwo
   }
 
   double resolution2 = ((modularityFunction == 1) ? (resolution / (2 * network->getTotalEdgeWeight() + network->getTotalEdgeWeightSelfLinks())) : resolution);
-  int nWorkers = nThreads < 1 ? 1 : nThreads;
-  if (nWorkers > nRandomStarts) nWorkers = nRandomStarts;
-  bool serialRestarts = nWorkers <= 1;
+  // Avoid paying extra overhead if running single-threaded or with a single random start
+  const bool serialRestarts = nThreads <= 1 || nRandomStarts <= 1;
 
   auto beginTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
   std::shared_ptr<Clustering> clustering;
@@ -176,6 +175,7 @@ IntegerVector RunModularityClusteringCppOnNetwork(std::shared_ptr<Network> netwo
       p.increment();
     }
   } else {
+    int nWorkers = std::min(nThreads, nRandomStarts);
     std::vector<double> startModularity(nRandomStarts, -std::numeric_limits<double>::infinity());
     std::vector<std::shared_ptr<Clustering>> startClustering(nRandomStarts);
     ModularityRestartWorker worker(network, resolution2, algorithm, nIterations, randomSeed,
