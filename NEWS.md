@@ -5,6 +5,7 @@
 ### Fixes
 
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern
+- Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells)
 
 # Seurat 5.5.1
 
