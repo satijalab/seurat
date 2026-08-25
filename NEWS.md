@@ -12,6 +12,8 @@
 ### Fixes
 
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
+- Sped up `LeverageScore`/`SketchData` on `IterableMatrix` (BPCells) data by computing the random projection in blocks of cells against a dense operand, replacing `transpose_storage_order()` with a grouped sum over cells when the sketching matrix comes from `CountSketch`, and vectorizing `CountSketch`. Leverage scores for a given sketching matrix are unchanged, but `CountSketch` now consumes its random draws differently, so results for a given `seed` will differ from previous versions
+- Fixed `LeverageScore` deleting unrelated files from the session temporary directory, and leaking a full on-disk copy of the input matrix, when run on `IterableMatrix` (BPCells) data
 - Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
 - Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
 - Fixed `ImageDimPlot` and `ImageFeaturePlot` with FOV and boundary names containing underscores

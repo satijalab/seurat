@@ -452,16 +452,14 @@ LeverageScore.default <- function(
     message("sampling ", nsketch, " cells for random sketching")
   }
   S <- method(nsketch = nsketch, ncells = ncells, seed = seed, ...)
+  on.disk <- inherits(x = object, what = 'IterableMatrix')
+  object.features <- object
   object <- t(x = object)
   if (isTRUE(x = verbose)) {
     message("Performing QR decomposition")
   }
-  if (inherits(x = object, what = 'IterableMatrix')) {
-    temp <- tempdir()
-    object.gene_index <- BPCells::transpose_storage_order(matrix = object, tmpdir = temp)
-    sa <- as(object = S %*% object.gene_index, Class = 'dgCMatrix')
-    rm(object.gene_index)
-    unlink(list.files(path = temp, full.names = TRUE))
+  if (isTRUE(x = on.disk)) {
+    sa <- SketchProduct(object = object.features, S = S)
   } else {
     sa <- S %*% object
   }
@@ -493,11 +491,15 @@ LeverageScore.default <- function(
     eps = eps,
     seed = seed
   ))
-  Z <- object %*% (R.inv %*% JL)
-  if (inherits(x = Z, what = 'IterableMatrix')) {
-    Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
-                            )$row_stats['mean',]*ncol(x = Z)
-    } else {
+  if (isTRUE(x = on.disk)) {
+    # 'R.inv' is a dense triangular inverse, so its product with 'JL' is dense in
+    # practice; keeping it sparse forces a much slower sparse-sparse product
+    Z.score <- ProjectedRowSums(
+      object = object.features,
+      rhs = as.matrix(x = R.inv %*% JL)
+    )
+  } else {
+    Z <- object %*% (R.inv %*% JL)
     Z.score <- rowSums(x = Z ^ 2)
   }
   return(Z.score)
@@ -726,16 +728,10 @@ CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
   if (!is.na(x = seed)) {
     set.seed(seed = seed)
   }
-  iv <- xv <- vector(mode = "numeric", length = ncells)
-  jv <- seq_len(length.out = ncells)
-  for (i in jv) {
-    iv[i] <- sample(x = seq_len(length.out = nsketch), size = 1L)
-    xv[i] <- sample(x = c(-1L, 1L), size = 1L)
-  }
   return(sparseMatrix(
-    i = iv,
-    j = jv,
-    x = xv,
+    i = sample.int(n = nsketch, size = ncells, replace = TRUE),
+    j = seq_len(length.out = ncells),
+    x = sample(x = c(-1L, 1L), size = ncells, replace = TRUE),
     dims = c(nsketch, ncells)
   ))
 }
@@ -805,6 +801,78 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA_integer_, method = "li") {
     }
   )
   return(m)
+}
+
+#' Multiply an on-disk matrix by a sketching matrix
+#'
+#' Computes \code{S \%*\% t(object)} for an on-disk matrix. A \code{\link{CountSketch}}
+#' matrix has exactly one non-zero per column, so the product is a signed grouped
+#' sum over cells and can be taken in the matrix's native storage order. The
+#' general fallback instead has to rewrite the entire matrix on disk with
+#' \code{transpose_storage_order()}.
+#'
+#' @param object A features x cells IterableMatrix
+#' @param S A sketching matrix, nsketch x cells
+#'
+#' @return An nsketch x features dgCMatrix
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+SketchProduct <- function(object, S) {
+  # A single non-zero per column makes S a signed cell-to-sketch assignment
+  if (inherits(x = S, what = 'dgCMatrix') && all(diff(x = S@p) == 1L)) {
+    sums <- BPCells::pseudobulk_matrix(
+      mat = BPCells::multiply_cols(mat = object, vec = S@x),
+      cell_groups = factor(
+        x = S@i + 1L,
+        levels = seq_len(length.out = nrow(x = S))
+      ),
+      method = 'sum'
+    )
+    return(as(object = t(x = sums), Class = 'dgCMatrix'))
+  }
+  outdir <- tempfile(pattern = 'transpose')
+  on.exit(expr = unlink(x = outdir, recursive = TRUE))
+  object.gene_index <- BPCells::transpose_storage_order(
+    matrix = t(x = object),
+    outdir = outdir
+  )
+  return(as(object = S %*% object.gene_index, Class = 'dgCMatrix'))
+}
+
+#' Row sums of squares of an on-disk random projection
+#'
+#' Accumulates \code{rowSums((t(object) \%*\% rhs) ^ 2)} over blocks of cells so the
+#' full cells x ndims projection is never held in memory. Multiplying in the
+#' matrix's native orientation also avoids the transposed copy that
+#' \code{IterableMatrix \%*\% matrix} makes when its input is transposed.
+#'
+#' @param object A features x cells IterableMatrix
+#' @param rhs A dense features x ndims matrix
+#' @param block.bytes Approximate memory budget for a single block
+#'
+#' @return A numeric vector of leverage scores, one per cell
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+ProjectedRowSums <- function(object, rhs, block.bytes = 64 * 1024 ^ 2) {
+  ncells <- ncol(x = object)
+  rhs <- t(x = rhs)
+  # Each block holds the projection and its square, at 8 bytes per entry
+  block <- floor(x = block.bytes / (nrow(x = rhs) * 16))
+  block <- max(1L, min(ncells, block))
+  scores <- numeric(length = ncells)
+  for (start in seq(from = 1L, to = ncells, by = block)) {
+    end <- min(start + block - 1L, ncells)
+    projected <- rhs %*% object[, start:end]
+    scores[start:end] <- colSums(x = projected ^ 2)
+  }
+  names(x = scores) <- colnames(x = object)
+  return(scores)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
