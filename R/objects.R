@@ -1339,16 +1339,16 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   cell_nums <- sapply(X = assay, FUN = function(y) {
     length(x = Cells(x = x, assay = y))
   })
-  if (!all(cell_nums == cell_nums[1])) {
-    stop("One or more of assays do not have them same number of cells. Ensure all assays have same number of cells before converting.")
+  if (length(unique(cell_nums)) > 1) {
+    stop("Cannot convert assays with differing numbers of cells.\nEnsure all assays contain the same number of cells before converting.")
   }
 
   # Equal Number of Cells check reductions
   dim_cell_nums <- sapply(X = good_reducs, function(z) {
     length(x = Cells(x = x[[z]]))
   })
-  if (!all(dim_cell_nums == dim_cell_nums[1])) {
-    stop("One or more of reductions do not have them same number of cells. Ensure all reductions have same number of cells before converting.")
+  if (length(unique(dim_cell_nums)) > 1) {
+    stop("Cannot convert reductions with differing numbers of cells.\nEnsure all reductions contain the same number of cells before converting.")
   }
 
   # convert assay data
