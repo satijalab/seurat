@@ -823,15 +823,23 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA_integer_, method = "li") {
 SketchProduct <- function(object, S) {
   # A single non-zero per column makes S a signed cell-to-sketch assignment
   if (inherits(x = S, what = 'dgCMatrix') && all(diff(x = S@p) == 1L)) {
+    groups <- S@i + 1L
     sums <- BPCells::pseudobulk_matrix(
       mat = BPCells::multiply_cols(mat = object, vec = S@x),
-      cell_groups = factor(
-        x = S@i + 1L,
-        levels = seq_len(length.out = nrow(x = S))
-      ),
+      cell_groups = factor(x = groups),
       method = 'sum'
     )
-    return(as(object = t(x = sums), Class = 'dgCMatrix'))
+    # 'pseudobulk_matrix()' sizes its result by the largest group index present,
+    # so sketch rows that drew no cells are missing; scatter the sums back into a
+    # full nsketch x features matrix to keep those rows as explicit zeros
+    sa <- matrix(
+      data = 0,
+      nrow = nrow(x = S),
+      ncol = nrow(x = object),
+      dimnames = list(NULL, rownames(x = object))
+    )
+    sa[sort(x = unique(x = groups)), ] <- t(x = sums)
+    return(as(object = sa, Class = 'dgCMatrix'))
   }
   outdir <- tempfile(pattern = 'transpose')
   on.exit(expr = unlink(x = outdir, recursive = TRUE))

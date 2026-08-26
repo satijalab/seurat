@@ -272,6 +272,42 @@ test_that("SketchData when setting your own variable features and specifying fea
   )
 })
 
+context("SketchProduct")
+
+test_that("SketchProduct keeps sketch rows that draw no cells", {
+  skip_if_not_installed("BPCells")
+  library(BPCells)
+
+  set.seed(42)
+  counts <- as.sparse(matrix(rpois(20 * 200, lambda = 2), nrow = 20))
+  rownames(counts) <- paste0("feature", seq_len(20))
+  colnames(counts) <- paste0("cell", seq_len(200))
+  on.disk <- suppressWarnings(
+    write_matrix_dir(
+      mat = convert_matrix_type(as(counts, "IterableMatrix"), "double"),
+      dir = tempfile()
+    )
+  )
+
+  # a CountSketch-shaped matrix whose last row is assigned no cells
+  nsketch <- 10L
+  S <- sparseMatrix(
+    i = rep(seq_len(nsketch - 1L), length.out = ncol(counts)),
+    j = seq_len(ncol(counts)),
+    x = rep(c(-1, 1), length.out = ncol(counts)),
+    dims = c(nsketch, ncol(counts))
+  )
+  expect_false(nsketch %in% (S@i + 1L))
+
+  result <- SketchProduct(object = on.disk, S = S)
+  expect_equal(dim(result), c(nsketch, nrow(counts)))
+  expect_equal(
+    unname(as.matrix(result)),
+    unname(as.matrix(S %*% t(counts)))
+  )
+  expect_true(all(result[nsketch, ] == 0))
+})
+
 test_that("SketchData when setting your own variable features and not specifying features errors out", {
   test_case <- build_test_data()
   top_features <- VariableFeatures(test_case)[1:100]
