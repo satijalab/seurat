@@ -280,19 +280,17 @@ AddModuleScore.Assay <- function(
     ...
 ) {
   assay.data <- GetAssayData(object = object, layer = slot)
-  .AddModuleScore(
-    data = assay.data,
-    features = features,
-    kmeans.obj = kmeans.obj,
-    pool = pool,
-    nbin = nbin,
-    ctrl = ctrl,
-    k = k,
-    name = name,
-    seed = seed,
-    search = search,
-    ...
-  )
+  return(.AddModuleScore(data = assay.data,
+                        features = features,
+                        kmeans.obj = kmeans.obj,
+                        pool = pool,
+                        nbin = nbin,
+                        ctrl = ctrl,
+                        k = k,
+                        name = name,
+                        seed = seed,
+                        search = search,
+                        ...))
 }
 
 # Core AddModuleScore computation, operating directly on an expression matrix.
