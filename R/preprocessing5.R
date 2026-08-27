@@ -1597,7 +1597,7 @@ FetchResidualSCTModel <- function(
       features_to_compute_model <- intersect_features
     }
   }
-  if (!exists(x = "new_residual")) {
+  if (!exists(x = "new_residual", inherits = FALSE)) {
     counts <- LayerData(
       umi.object,
       layer = layer,

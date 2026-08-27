@@ -5994,7 +5994,7 @@ GetResidualSCTModel <- function(
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
-  if (exists(x = "umi") && nrow(x = umi) > 0) {
+  if (exists(x = "umi", inherits = FALSE) && nrow(x = umi) > 0) {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
     if (verbose) {
       message("sct.model: ", SCTModel)
@@ -6024,7 +6024,7 @@ GetResidualSCTModel <- function(
       STATS = rowMeans(x = new_residual),
       FUN = "-"
     )
-  } else if (!exists(x = "new_residual")) {
+  } else if (!exists(x = "new_residual", inherits = FALSE)) {
     new_residual <- matrix(data = NA, nrow = 0, ncol = length(x = model.cells), dimnames = list(c(), model.cells))
   }
   if (length(x = diff_features) > 0) {
