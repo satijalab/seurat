@@ -4,6 +4,7 @@
 
 ### Fixes
 
+- Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
 - Fixed bugs in behavior of `RidgePlot` parameters `fill.by`, `y.max`, and `same.y.lims` ([#10424](https://github.com/satijalab/seurat/pull/10424))
