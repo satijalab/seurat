@@ -1590,8 +1590,8 @@ FetchResidualSCTModel <- function(
       new_residual <- matrix(
         data = NA,
         nrow = length(x = features_to_compute),
-        ncol = length(x = model.cells),
-        dimnames = list(features_to_compute, model.cells)
+        ncol = length(x = layer.cells),
+        dimnames = list(features_to_compute, layer.cells)
       )
     } else {
       features_to_compute_model <- intersect_features
@@ -1727,12 +1727,12 @@ FetchResidualSCTModel <- function(
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
-    old_residuals <- GetAssayData(object, layer = "scale.data")[old.features, model.cells, drop = FALSE]
+    old_residuals <- GetAssayData(object, layer = "scale.data")[old.features, layer.cells, drop = FALSE]
     combined_residual <- matrix(
       data = NA,
       nrow = length(x = new_features),
-      ncol = length(x = model.cells),
-      dimnames = list(new_features, model.cells)
+      ncol = length(x = layer.cells),
+      dimnames = list(new_features, layer.cells)
     )
     combined_residual[rownames(x = new_residual), colnames(x = new_residual)] <- new_residual
     combined_residual[rownames(x = old_residuals), colnames(x = old_residuals)] <- old_residuals
