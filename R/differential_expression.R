@@ -420,9 +420,24 @@ FindConservedMarkers <- function(
         return(meta.method(clean_x)$p)
       }
     ))
-    meta.method.name <- as.character(x = formals()$meta.method)
-    if (length(x = meta.method.name) == 3) {
-      meta.method.name <- meta.method.name[3]
+    meta.method.name <- getNamespaceExports(ns = "metap")
+    meta.method.name <- meta.method.name[vapply(
+      X = meta.method.name,
+      FUN = function(method) {
+        identical(
+          x = meta.method,
+          y = getExportedValue(ns = "metap", name = method)
+        )
+      },
+      FUN.VALUE = logical(1)
+    )]
+    if (length(x = meta.method.name) != 1) {
+      meta.method.expression <- substitute(expr = meta.method)
+      meta.method.name <- if (is.symbol(x = meta.method.expression)) {
+        as.character(x = meta.method.expression)
+      } else {
+        "custom"
+      }
     }
     colnames(x = combined.pval) <- paste0(meta.method.name, "_p_val")
     markers.combined <- cbind(markers.combined, combined.pval)
