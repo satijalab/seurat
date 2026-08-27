@@ -1557,6 +1557,7 @@ FetchResidualSCTModel <- function(
   # these features do not have feature attriutes
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
+  features_to_compute_model <- features_to_compute
   if (sct.method == "reference") {
     vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
 
@@ -1578,7 +1579,25 @@ FetchResidualSCTModel <- function(
   clip.min <- min(clip.range)
 
   layer.cells <- layer.cells %||% Cells(umi.object, layer = layer)
-  if (length(x = diff_features) == 0) {
+  if (length(x = diff_features) > 0) {
+    #  Some features do not exist
+    warning(
+      "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
+      " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
+    )
+    if (length(x = intersect_features) == 0) {
+      # No features exist
+      new_residual <- matrix(
+        data = NA,
+        nrow = length(x = features_to_compute),
+        ncol = length(x = model.cells),
+        dimnames = list(features_to_compute, model.cells)
+      )
+    } else {
+      features_to_compute_model <- intersect_features
+    }
+  }
+  if (!exists(x = "new_residual")) {
     counts <- LayerData(
       umi.object,
       layer = layer,
@@ -1600,7 +1619,7 @@ FetchResidualSCTModel <- function(
         nz_median <- median(umi.all@x)
         min_var_custom <- (nz_median / 5)^2
       }
-      umi <- umi.all[features_to_compute, , drop = FALSE]
+      umi <- umi.all[features_to_compute_model, , drop = FALSE]
 
       ## Add cell_attr for missing cells
       cell_attr <- data.frame(
@@ -1680,21 +1699,15 @@ FetchResidualSCTModel <- function(
         FUN = "-"
       )
     }
-    # return (new_residuals)
-  } else {
-    #  Some features do not exist
-    warning(
-      "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
-      " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
-    )
-    if (length(x = intersect_features) == 0) {
-      # No features exist
-      return(matrix(
+    if (length(x = diff_features) > 0) {
+      padded_residual <- matrix(
         data = NA,
         nrow = length(x = features_to_compute),
-        ncol = length(x = model.cells),
-        dimnames = list(features_to_compute, model.cells)
-      ))
+        ncol = length(x = layer.cells),
+        dimnames = list(features_to_compute, layer.cells)
+      )
+      padded_residual[features_to_compute_model, colnames(x = new_residual)] <- new_residual
+      new_residual <- padded_residual
     }
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)

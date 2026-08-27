@@ -5972,26 +5972,29 @@ GetResidualSCTModel <- function(
   }
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
+  features_to_compute_model <- features_to_compute
   if (length(x = diff_features) == 0) {
-    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts" )[features_to_compute, model.cells, drop = FALSE]
+    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts" )[features_to_compute_model, model.cells, drop = FALSE]
   } else {
     warning(
       "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
       " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
     )
     if (length(x = intersect_features) == 0) {
-      return(matrix(
+      new_residual <- matrix(
         data = NA,
         nrow = length(x = features_to_compute),
         ncol = length(x = model.cells),
         dimnames = list(features_to_compute, model.cells)
-      ))
+      )
+    } else {
+      features_to_compute_model <- intersect_features
+      umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[features_to_compute_model, model.cells, drop = FALSE]
     }
-    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[intersect_features, model.cells, drop = FALSE]
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
-  if (nrow(x = umi) > 0) {
+  if (exists(x = "umi") && nrow(x = umi) > 0) {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
     if (verbose) {
       message("sct.model: ", SCTModel)
@@ -6006,8 +6009,18 @@ GetResidualSCTModel <- function(
     new_residual <- as.matrix(x = new_residual)
     # centered data
     new_residual <- new_residual - rowMeans(x = new_residual)
-  } else {
+  } else if (!exists(x = "new_residual")) {
     new_residual <- matrix(data = NA, nrow = 0, ncol = length(x = model.cells), dimnames = list(c(), model.cells))
+  }
+  if (length(x = diff_features) > 0) {
+    padded_residual <- matrix(
+      data = NA,
+      nrow = length(x = features_to_compute),
+      ncol = length(x = model.cells),
+      dimnames = list(features_to_compute, model.cells)
+    )
+    padded_residual[features_to_compute_model, colnames(x = new_residual)] <- new_residual
+    new_residual <- padded_residual
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
