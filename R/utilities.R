@@ -232,29 +232,25 @@ AddModuleScore.StdAssay <- function(
     ...
 ) {
   layer_names <- Layers(object, search = slot)
-  input_list <- lapply(
+  output_list <- lapply(
     layer_names,
     function(layer_name) {
+      # Operate on the layer's matrix directly. For on-disk (e.g. BPCells)
+      # matrices this keeps the data lazy: the scoring only needs row/column
+      # reductions, so wrapping in CreateAssayObject() (which densifies the
+      # whole matrix to a dgCMatrix) is unnecessary.
       layer_data <- LayerData(object, layer = layer_name)
-      layer_object <- CreateAssayObject(layer_data)
-      return (layer_object)
-    }
-  )
-  output_list <- lapply(
-    input_list,
-    function(input) {
-      AddModuleScore(object = input,
-                     features = features,
-                     kmeans.obj = kmeans.obj,
-                     pool = pool,
-                     nbin = nbin,
-                     ctrl = ctrl,
-                     k = k,
-                     name = name,
-                     seed = seed,
-                     search = search,
-                     slot = slot,
-                     ...)
+      .AddModuleScore(data = layer_data,
+                      features = features,
+                      kmeans.obj = kmeans.obj,
+                      pool = pool,
+                      nbin = nbin,
+                      ctrl = ctrl,
+                      k = k,
+                      name = name,
+                      seed = seed,
+                      search = search,
+                      ...)
     }
   )
   features.scores.use <- do.call(rbind,output_list)
@@ -268,8 +264,6 @@ AddModuleScore.StdAssay <- function(
 #' @concept utilities
 #' @rdname AddModuleScore
 #' @method AddModuleScore Assay
-#'
-#' @importFrom ggplot2 cut_number
 #'
 AddModuleScore.Assay <- function(
     object,
@@ -286,6 +280,46 @@ AddModuleScore.Assay <- function(
     ...
 ) {
   assay.data <- GetAssayData(object = object, layer = slot)
+  return(.AddModuleScore(data = assay.data,
+                        features = features,
+                        kmeans.obj = kmeans.obj,
+                        pool = pool,
+                        nbin = nbin,
+                        ctrl = ctrl,
+                        k = k,
+                        name = name,
+                        seed = seed,
+                        search = search,
+                        ...))
+}
+
+# Core AddModuleScore computation, operating directly on an expression matrix.
+#
+# Accepts any matrix supporting row/column reductions and row subsetting
+# (dgCMatrix, matrix, or an on-disk BPCells IterableMatrix), so callers can
+# avoid densifying on-disk data. Returns a data.frame of module scores (cells
+# as rows).
+#
+#' @importFrom ggplot2 cut_number
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+.AddModuleScore <- function(
+    data,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    ...
+) {
+  assay.data <- data
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
@@ -301,7 +335,7 @@ AddModuleScore.Assay <- function(
     features <- lapply(
       X = features,
       FUN = function(x) {
-        missing.features <- setdiff(x = x, y = rownames(x = object))
+        missing.features <- setdiff(x = x, y = rownames(x = data))
         if (length(x = missing.features) > 0) {
           warning(
             "The following features are not present in the object: ",
@@ -332,7 +366,7 @@ AddModuleScore.Assay <- function(
                 )
               }
             )
-            missing.features <- setdiff(x = x, y = rownames(x = object))
+            missing.features <- setdiff(x = x, y = rownames(x = data))
             if (length(x = missing.features) > 0) {
               warning(
                 "The following features are still not present in the object: ",
@@ -343,7 +377,7 @@ AddModuleScore.Assay <- function(
             }
           }
         }
-        return(intersect(x = x, y = rownames(x = object)))
+        return(intersect(x = x, y = rownames(x = data)))
       }
     )
     cluster.length <- length(x = features)
@@ -357,7 +391,7 @@ AddModuleScore.Assay <- function(
     features <- lapply(
       X = features.old,
       FUN = CaseMatch,
-      match = rownames(x = object)
+      match = rownames(x = data)
     )
   }
   if (!all(LengthCheck(values = features))) {
@@ -367,7 +401,7 @@ AddModuleScore.Assay <- function(
       'exiting...'
     ))
   }
-  pool <- pool %||% rownames(x = object)
+  pool <- pool %||% rownames(x = data)
   data.avg <- Matrix::rowMeans(x = assay.data[pool, ])
   data.avg <- data.avg[order(data.avg)]
   data.cut <- cut_number(x = data.avg + rnorm(n = length(data.avg))/1e30, n = nbin, labels = FALSE, right = FALSE)
@@ -391,7 +425,7 @@ AddModuleScore.Assay <- function(
   ctrl.scores <- matrix(
     data = numeric(length = 1L),
     nrow = length(x = ctrl.use),
-    ncol = ncol(x = object)
+    ncol = ncol(x = data)
   )
   for (i in 1:length(ctrl.use)) {
     features.use <- ctrl.use[[i]]
@@ -400,7 +434,7 @@ AddModuleScore.Assay <- function(
   features.scores <- matrix(
     data = numeric(length = 1L),
     nrow = cluster.length,
-    ncol = ncol(x = object)
+    ncol = ncol(x = data)
   )
   for (i in 1:cluster.length) {
     features.use <- features[[i]]
@@ -410,7 +444,7 @@ AddModuleScore.Assay <- function(
   features.scores.use <- features.scores - ctrl.scores
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
-  rownames(x = features.scores.use) <- colnames(x = object)
+  rownames(x = features.scores.use) <- colnames(x = data)
   return(features.scores.use)
 }
 

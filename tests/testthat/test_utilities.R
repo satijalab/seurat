@@ -443,6 +443,20 @@ test_that("AddModuleScore works in the multi-layer case", {
   )
 })
 
+test_that("AddModuleScore preserves IterableMatrix layers", {
+  skip_if_not_installed("BPCells")
+  library(BPCells)
+  library(Matrix)
+  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+  object[["RNA"]]$counts <- mat_bpcells
+  object <- NormalizeData(object)
+  mod_features <- list(c('CD79B','CD79A','CD3D','CD2','CD3E','CD7',
+                        'CD14','CD68','CD247'))
+  object2 <- AddModuleScore(object = object, features = mod_features, ctrl = 5)
+  expect_s4_class(object2[['RNA']]$counts, "IterableMatrix")
+  expect_s4_class(object2[['RNA']]$data, "IterableMatrix")
+})
+
 test_that("PercentageFeatureSet works with v5 layers", {
   counts <- LayerData(object, assay = "RNA", layer = "counts")
   counts <- rbind(counts, rep(5, ncol(counts)))
