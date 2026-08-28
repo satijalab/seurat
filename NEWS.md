@@ -5,9 +5,8 @@
 - Added `ReadAtera` and `LoadAtera` to read 10x Genomics Atera spatial data, including expression and control counts, Azimuth cell type annotations, cell centroids, cell/nucleus segmentations, transcript coordinates, and morphology images
   - Added support for gene selection when reading molecules, feature-type selection when reading counts, BPCells-backed counts caching, and parallel Atera reads using the active `future::plan()`
 - Added `LoadAteraMolecules`, `LoadAteraSegmentations`, and `LoadAteraCodewords` to load additional transcript coordinates, segmentation polygons, and per-codeword coordinates into existing Atera objects
-  - `LoadAteraMolecules` requires the object to have been loaded with `molecule.coordinates = TRUE`
-- Added gene and region selection to `ReadXenium` and `LoadXenium` for molecule coordinates
-- Default `LoadXenium` and `LoadAtera` calls create FOVs that display x horizontally and y increasing downward
+- `RunPLS` on BPCells on-disk data now picks up the thread count set by `setThreads` instead of always running single-threaded; the `threads` argument of `RunPLS`, `kernelpls` and `cppls_ondisk` now defaults to `NULL` (meaning "use `getThreads()`") and still accepts an explicit override
+- `FindVariableFeatures(selection.method = "vst")` on BPCells on-disk data now picks up the thread count set by `setThreads` for the two passes it makes over the matrix, which were always single-threaded; the in-memory sparse path already did this
 
 ### Fixes
 

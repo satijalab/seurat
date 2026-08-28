@@ -493,10 +493,19 @@ VST.IterableMatrix <- function(
     ...
 ) {
   nfeatures <- nrow(x = data)
+  nthreads <- getThreads()
+  if (isTRUE(x = verbose) && nthreads > 1L) {
+    message(
+      "Computing feature variances with ", nthreads, " threads; results are ",
+      "reproducible across runs, but near-tied features may be ranked ",
+      "differently than with a single thread"
+    )
+  }
   hvf.info <- EmptyDF(n = nfeatures)
   hvf.stats <- BPCells::matrix_stats(
     matrix = data,
-    row_stats = 'variance')$row_stats
+    row_stats = 'variance',
+    threads = nthreads)$row_stats
   # Calculate feature means
   hvf.info$mean <- hvf.stats['mean', ]
   # Calculate feature variance
@@ -517,7 +526,8 @@ VST.IterableMatrix <- function(
   data.standard <- (data - feature.mean) / feature.sd
   hvf.info$variance.standardized <- BPCells::matrix_stats(
     matrix = data.standard,
-    row_stats = 'variance'
+    row_stats = 'variance',
+    threads = nthreads
     )$row_stats['variance', ]
   # Set variable features
   hvf.info$variable <- FALSE
