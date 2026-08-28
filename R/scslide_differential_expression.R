@@ -340,7 +340,7 @@ QuickCorTest <- function(
       if(verbose) message(paste0("Skipping ", CELLTYPE, " since the number of cells is less than ", min.cells))
       return(NULL)  # Return NULL for skipped cell types
     } else {
-      if(verbose) message(paste0("Processing ", CELLTYPE, "..."))
+      if(verbose) message(paste0("Including ", CELLTYPE, " (", length(idx), " cells)"))
     }
     # get Y
     Y2 <- Y[idx, , drop = F]
@@ -372,9 +372,13 @@ QuickCorTest <- function(
       groups[is.na(groups)] <- ".unused"
     }
     # Detection rate, mean and SD of every gene in every group, in a single pass
+    if(verbose) message(paste0("Pass 1/2: gene statistics for ", length(tested), " groups over ",
+                               ncol(x = df_data), " cells..."))
     group.stats <- GroupStats(x = df_data, groups = groups)
     # Cross-products of every gene against every group's responses, in a second pass
+    if(verbose) message("Pass 2/2: gene-response cross-products...")
     xy <- GroupCrossprod(x = df_data, responses = responses, index = index)
+    if(verbose) message("Selecting the top-correlated genes...")
 
     ####  loop through the cell types to get the top DEGs (separately for each column in Y)
     slct_genes_list[tested] <- lapply(tested, function(CELLTYPE) {
