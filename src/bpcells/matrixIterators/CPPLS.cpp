@@ -17,7 +17,7 @@
 namespace BPCells {
 
 // Canonical correlation analysis (translated from pls internal cancorr()).
-// Z: [n × dz], Yprim: [n × dy]  (NOT centered, same as R)
+// Z: [n × dz], Yprim: [n × dy]  (centered when the caller centers, same as R)
 // Returns CCA weight matrix A [dz × dxy] and first canonical correlation r.
 // When opt=false (our case), returns A matrix; when opt=true returns only r.
 CCAResult cancorr(Eigen::MatrixXd Z, const Eigen::MatrixXd &Yprim) {
@@ -187,8 +187,10 @@ CPPLSResult cppls(
         }
     };
 
-    // 1. Center X (but NOT Y — matching the R cppls.fit which only centers X)
-    // Y-centering effectively happens through X'Y since X is centered.
+    // 1. Center X and the responses. pls >= 2.9-0 centers the responses as well
+    // as X; the cross-products below are invariant to it because X is centered,
+    // but the canonical correlation step is not, so this changes the weights
+    // whenever more than one response column reaches cancorr().
     // Ymeans is stored for fitted value adjustment at the end.
     if (center) {
         StatsResult X_stats = transpose
@@ -205,11 +207,22 @@ CPPLSResult cppls(
         result.Ymeans = Eigen::VectorXd::Zero(nresp);
     }
 
-    // 2. Concatenate Y_full = [Yprim | Y.add] (uncentered, matching R)
+    // 'Y' stays uncentered for the residuals below, which is Y.orig in R
+    Eigen::MatrixXd Yprim = Y;
+    if (center) {
+        Yprim.rowwise() -= result.Ymeans.transpose();
+    }
+
+    // 2. Concatenate Y_full = [Yprim | Y.add]. R centers this by its own column
+    // means, and the means of its first block are Ymeans, so centering each
+    // block separately gives the same matrix
     Eigen::MatrixXd Y_full(nobj, q_full);
-    Y_full.leftCols(nresp) = Y;
+    Y_full.leftCols(nresp) = Yprim;
     if (q_add > 0) {
         Y_full.rightCols(q_add) = Y_add;
+        if (center) {
+            Y_full.rightCols(q_add).rowwise() -= Y_add.colwise().mean();
+        }
     }
 
     // 3. Compute initial (X-centered)^T * Y_full (p x q_full)
@@ -299,9 +312,9 @@ CPPLSResult cppls(
             Z -= TT.leftCols(a) * (P.leftCols(a).transpose() * W0);
         }
 
-        // CCA(Z, Yprim) — note: R passes Yprim uncentered to cancorr.
+        // CCA(Z, Yprim).
         // Move Z into cancorr to avoid copying the n × q_full matrix.
-        CCAResult cca = cancorr(std::move(Z), Y);
+        CCAResult cca = cancorr(std::move(Z), Yprim);
         result.canonical_correlations(a) = cca.r * cca.r;
 
         // Store CCA weights
@@ -353,8 +366,8 @@ CPPLSResult cppls(
             p_a -= P.leftCols(a) * (TT.leftCols(a).transpose() * t_a) / tsq;
         }
 
-        // q_a = Yprim' * t_a / tsq  (Yprim is uncentered, matching R)
-        Eigen::VectorXd q_a = Y.transpose() * t_a / tsq;
+        // q_a = Yprim' * t_a / tsq
+        Eigen::VectorXd q_a = Yprim.transpose() * t_a / tsq;
 
         // Kernel deflation of XtY_full:
         // X_deflated(a+1) = X_deflated(a) - t_a * p_a'
@@ -380,7 +393,7 @@ CPPLSResult cppls(
         tsqs(a) = tsq;
 
         if (!stripped) {
-            Eigen::VectorXd u_a = Y * q_a / q_a.squaredNorm();
+            Eigen::VectorXd u_a = Yprim * q_a / q_a.squaredNorm();
             if (a > 0) {
                 Eigen::VectorXd proj = TT.leftCols(a).transpose() * u_a;
                 for (int j = 0; j < a; j++) {
@@ -469,13 +482,13 @@ CPPLSResult cppls(
             Eigen::MatrixXd inv_PtW_Qt = PtW_a.partialPivLu().solve(Q_a.transpose());
             Eigen::MatrixXd fitted_a = TIpL * inv_PtW_Qt;
 
-            // R code: fitted = fitted + Ymeans, residuals = -fitted + Yprim
+            // R code: fitted = fitted + Ymeans, residuals = -fitted + Y.orig
             // So: fitted_final = X_centered*B + Ymeans
-            //     residuals = Yprim - fitted_final = Yprim - X_centered*B - Ymeans
+            //     residuals = Y.orig - fitted_final = Y.orig - X_centered*B - Ymeans
             fitted_a.rowwise() += result.Ymeans.transpose();
             result.fitted_values.block(0, a * nresp, nobj, nresp) = fitted_a;
             result.residuals.block(0, a * nresp, nobj, nresp) =
-                -fitted_a + Y;  // = Yprim - (X_centered*B + Ymeans)
+                -fitted_a + Y;  // = Y.orig - (X_centered*B + Ymeans)
         }
 
         // Xvar = colSums(P * P) * tsqs

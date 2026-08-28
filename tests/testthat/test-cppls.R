@@ -8,6 +8,17 @@ to_bp <- function(X_np) {
   as(as(t(X_np), "dgCMatrix"), "IterableMatrix")
 }
 
+# Helper: pls 2.9-0 started centering the responses before the canonical
+# correlation step, which we follow. Only cancorr() is sensitive to it, and only
+# when more than one response column reaches it, so the multi-response
+# comparisons disagree with pls < 2.9-0 and are skipped there.
+skip_if_pls_uncentered <- function() {
+  skip_if(
+    packageVersion("pls") < "2.9-0",
+    "pls < 2.9-0 does not center the responses before cancorr()"
+  )
+}
+
 # Helper: compare BPCells cppls_ondisk result to pls::cppls.fit reference,
 # tolerating sign flips in per-component vectors.
 compare_cppls_results <- function(bp, ref, ncomp, tol = 1e-6) {
@@ -72,6 +83,7 @@ test_that("CPLS matches pls package: single response, no Y.add", {
 test_that("CPLS matches pls package: multiple responses, no Y.add", {
   skip_if_not_installed("BPCells")
   skip_if_not_installed("pls")
+  skip_if_pls_uncentered()
 
   set.seed(123)
   n <- 100
@@ -120,6 +132,7 @@ test_that("CPLS matches pls package: single response + Y.add", {
 test_that("CPLS matches pls package: multi-response + Y.add", {
   skip_if_not_installed("BPCells")
   skip_if_not_installed("pls")
+  skip_if_pls_uncentered()
 
   set.seed(271)
   n <- 100
@@ -256,6 +269,7 @@ test_that("CPLS input validation works", {
 test_that("CPLS works on sparse BPCells matrix", {
   skip_if_not_installed("BPCells")
   skip_if_not_installed("pls")
+  skip_if_pls_uncentered()
 
   set.seed(456)
   n <- 200

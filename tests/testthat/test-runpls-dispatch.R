@@ -24,10 +24,16 @@ test_that("RunPLS.default resolves the pls.function default to plsr", {
   skip_if_not_installed("pls")
 
   fx <- pls_fixture()
+  # cppls reduces to plsr for a single response, so the guard below needs
+  # several responses to tell the two of them apart
+  set.seed(7)
+  Y <- matrix(
+    rnorm(n = 3 * length(x = fx$Y)), nrow = length(x = fx$Y), ncol = 3
+  )
   # an unresolved c('plsr', 'spls', 'cppls') default must not reach the body
-  default <- run_pls(fx$X, Y = fx$Y, ncomp = 2, verbose = FALSE)
-  plsr_    <- run_pls(fx$X, Y = fx$Y, ncomp = 2, pls.function = "plsr", verbose = FALSE)
-  cppls_   <- run_pls(fx$X, Y = fx$Y, ncomp = 2, pls.function = "cppls", verbose = FALSE)
+  default <- run_pls(fx$X, Y = Y, ncomp = 2, verbose = FALSE)
+  plsr_    <- run_pls(fx$X, Y = Y, ncomp = 2, pls.function = "plsr", verbose = FALSE)
+  cppls_   <- run_pls(fx$X, Y = Y, ncomp = 2, pls.function = "cppls", verbose = FALSE)
 
   expect_s4_class(default, "DimReduc")
   expect_equal(Embeddings(default), Embeddings(plsr_))
