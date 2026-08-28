@@ -286,7 +286,7 @@ TrajDETest.Seurat <- function(
 #' cor_genes <- QuickCorTest(seurat_obj, Y = "pseudotime")
 #' }
 #'
-#' @importFrom stats cor model.matrix
+#' @importFrom stats model.matrix sd
 #' @importFrom SeuratObject FetchData DefaultAssay Assays LayerData Layers CellsByIdentities Idents<- Cells
 #'
 QuickCorTest <- function(
@@ -331,8 +331,9 @@ QuickCorTest <- function(
   }
   # check
   if(is.null(x = cor.cutoff) & is.null(x = top.prop)) stop("Must provide at least one of 'top.prop' and 'cor.cutoff'.")
-  ####  loop through the cell types to get the top DEGs (separately for each column in Y)
-  slct_genes_list <- lapply(names(cell_celltype_list), function(CELLTYPE) {
+  #### build each group's response matrix first, so that groups which are too small,
+  #### or whose responses turn out to be constant, never reach the expression data
+  responses <- lapply(names(cell_celltype_list), function(CELLTYPE) {
     idx <- cell_celltype_list[[CELLTYPE]]
     # Skip if the number of cells is less than min.cells
     if(length(idx) < min.cells){
@@ -350,46 +351,79 @@ QuickCorTest <- function(
     }
     if(length(rm_idx) > 0) Y2 <- Y2[, -rm_idx, drop = F]
     if(ncol(Y2) == 0) return(NULL)
-    # get X - extract data only once
-    df_data <- LayerData(object = data.use, assay = assay, layer = layer, cells = idx)
-    # Calculate gene percentage more efficiently
-    idx_rowCount <- SeuratObject::rowSums(x = df_data > 0) >= min.pct*ncol(df_data)
-    df_data <- df_data[idx_rowCount, , drop = FALSE]
-    # Calculate correlation more efficiently
-    cor_res = apply(df_data, MARGIN = 1, FUN = function(x) {
-      return(cor(x, Y2))
-    })
-
-    # Handle both vector (continuous Y) and matrix (categorical Y) cases
-    if (is.vector(cor_res)) {
-      # For continuous variables, cor_res is a vector
-      n_top <- ceiling(top.prop * length(cor_res))
-      abs_cor <- abs(cor_res)
-      idx_slct <- order(abs_cor, decreasing = TRUE)[1:n_top]
-      if(!is.null(x = cor.cutoff)){
-        cutoff_idx <- which(abs_cor >= cor.cutoff)
-        idx_slct <- intersect(idx_slct, cutoff_idx)
-      }
-    } else {
-      # For categorical variables, cor_res is a matrix
-      n_top <- ceiling(top.prop * ncol(cor_res))
-      idx_slct <- apply(abs(cor_res), 1, function(x) {
-        a <- order(x, decreasing = TRUE)[1:n_top]
-        if(!is.null(x = cor.cutoff)){
-          b <- which(x >= cor.cutoff)
-          return(intersect(a, b))
-        } else {
-          return(a)
-        }
-      })
-      idx_slct <- sort(unique(as.vector(unlist(idx_slct))))
-    }
-
-    # Return the selected genes
-    rownames(df_data)[idx_slct]
+    return(Y2)
   })
-  # clean up the list
+  names(responses) <- names(cell_celltype_list)
+  tested <- names(responses)[!sapply(responses, is.null)]
+  slct_genes_list <- vector(mode = "list", length = length(x = cell_celltype_list))
   names(slct_genes_list) <- names(cell_celltype_list)
+
+  #### read the expression matrix once and derive every group's statistics and
+  #### cross-products from that, instead of subsetting cells group by group
+  if(length(tested) > 0){
+    responses <- responses[tested]
+    df_data <- LayerData(object = data.use, assay = assay, layer = layer)
+    index <- lapply(cell_celltype_list[tested], match, table = colnames(df_data))
+    groups <- factor(rep_len(NA_character_, ncol(df_data)), levels = tested)
+    for(CELLTYPE in tested) groups[index[[CELLTYPE]]] <- CELLTYPE
+    # cells outside every tested group still need a level to be counted under
+    if(anyNA(groups)){
+      levels(groups) <- c(tested, ".unused")
+      groups[is.na(groups)] <- ".unused"
+    }
+    # Detection rate, mean and SD of every gene in every group, in a single pass
+    group.stats <- GroupStats(x = df_data, groups = groups)
+    # Cross-products of every gene against every group's responses, in a second pass
+    xy <- GroupCrossprod(x = df_data, responses = responses, index = index)
+
+    ####  loop through the cell types to get the top DEGs (separately for each column in Y)
+    slct_genes_list[tested] <- lapply(tested, function(CELLTYPE) {
+      Y2 <- responses[[CELLTYPE]]
+      n <- nrow(x = Y2)
+      idx_rowCount <- group.stats$nonzero[, CELLTYPE] >= min.pct*n
+      features <- rownames(df_data)[idx_rowCount]
+      # Calculate correlation more efficiently
+      cor_res <- CorFromCrossprod(
+        xy = xy[[CELLTYPE]][idx_rowCount, , drop = FALSE],
+        n = n,
+        x.mean = group.stats$mean[idx_rowCount, CELLTYPE],
+        x.sd = group.stats$sd[idx_rowCount, CELLTYPE],
+        y = Y2
+      )
+      # a single response collapses to the named vector that apply() used to return
+      if (nrow(x = cor_res) == 1) {
+        cor_res <- cor_res[1, ]
+      }
+
+      # Handle both vector (continuous Y) and matrix (categorical Y) cases
+      if (is.vector(cor_res)) {
+        # For continuous variables, cor_res is a vector
+        n_top <- ceiling(top.prop * length(cor_res))
+        abs_cor <- abs(cor_res)
+        idx_slct <- order(abs_cor, decreasing = TRUE)[seq_len(length.out = n_top)]
+        if(!is.null(x = cor.cutoff)){
+          cutoff_idx <- which(abs_cor >= cor.cutoff)
+          idx_slct <- intersect(idx_slct, cutoff_idx)
+        }
+      } else {
+        # For categorical variables, cor_res is a matrix
+        n_top <- ceiling(top.prop * ncol(cor_res))
+        idx_slct <- apply(abs(cor_res), 1, function(x) {
+          a <- order(x, decreasing = TRUE)[seq_len(length.out = n_top)]
+          if(!is.null(x = cor.cutoff)){
+            b <- which(x >= cor.cutoff)
+            return(intersect(a, b))
+          } else {
+            return(a)
+          }
+        })
+        idx_slct <- sort(unique(as.vector(unlist(idx_slct))))
+      }
+
+      # Return the selected genes
+      features[idx_slct]
+    })
+  }
   # Remove NULL entries (skipped cell types)
   if(isTRUE(x = unlist)){
     slct_genes_list <- slct_genes_list[!sapply(slct_genes_list, is.null)]
@@ -398,6 +432,79 @@ QuickCorTest <- function(
   } else {
     return(slct_genes_list)
   }
+}
+
+# Helper function: nonzero count, mean and standard deviation of every gene within
+# every group, as features x groups matrices. BPCells::pseudobulk_matrix() returns
+# all three for all groups from a single streamed pass, so an on-disk matrix is read
+# once no matter how many groups there are -- subsetting its cells group by group
+# would instead cost one random-access pass each.
+GroupStats <- function(x, groups) {
+  if (inherits(x = x, what = 'IterableMatrix')) {
+    pb <- BPCells::pseudobulk_matrix(
+      mat = x,
+      cell_groups = groups,
+      method = c('nonzeros', 'mean', 'variance')
+    )
+    return(list(nonzero = pb$nonzeros, mean = pb$mean, sd = sqrt(x = pb$variance)))
+  }
+  n <- tabulate(bin = groups, nbins = nlevels(x = groups))
+  indicator <- Matrix::sparseMatrix(
+    i = seq_along(along.with = groups),
+    j = as.integer(x = groups),
+    x = 1,
+    dims = c(length(x = groups), nlevels(x = groups)),
+    dimnames = list(colnames(x = x), levels(x = groups))
+  )
+  group.mean <- t(x = t(x = as.matrix(x = x %*% indicator)) / n)
+  group.sumsq <- as.matrix(x = (x ^ 2) %*% indicator)
+  group.var <- t(x = (t(x = group.sumsq) - n * t(x = group.mean) ^ 2) / (n - 1))
+  return(list(
+    nonzero = as.matrix(x = (x > 0) %*% indicator),
+    mean = group.mean,
+    sd = sqrt(x = pmax(group.var, 0))
+  ))
+}
+
+# Helper function: sum_i x_gi * y_ik over each group's cells, for every gene g,
+# response k and group. Every group's responses are packed side by side into one
+# right-hand side, zero outside that group's cells, so a single x %*% y covers all
+# of them in one streamed pass. Groups are packed in batches to keep that dense
+# right-hand side bounded. Returns one features x responses matrix per group.
+GroupCrossprod <- function(x, responses, index, max.bytes = 2.5e8) {
+  n <- ncol(x = x)
+  widths <- vapply(X = responses, FUN = ncol, FUN.VALUE = integer(length = 1L))
+  batch.size <- max(1, floor(x = max.bytes / (8 * n)))
+  res <- vector(mode = 'list', length = length(x = responses))
+  names(x = res) <- names(x = responses)
+  for (batch in split(x = seq_along(along.with = responses), f = ceiling(x = cumsum(x = widths) / batch.size))) {
+    rhs <- matrix(data = 0, nrow = n, ncol = sum(widths[batch]))
+    offsets <- cumsum(x = c(0, widths[batch]))
+    for (i in seq_along(along.with = batch)) {
+      rhs[index[[batch[i]]], offsets[i] + seq_len(length.out = widths[batch[i]])] <- responses[[batch[i]]]
+    }
+    product <- as.matrix(x = x %*% rhs)
+    for (i in seq_along(along.with = batch)) {
+      res[[batch[i]]] <- product[, offsets[i] + seq_len(length.out = widths[batch[i]]), drop = FALSE]
+    }
+  }
+  return(res)
+}
+
+# Helper function: Pearson correlations from precomputed cross-products. Given
+# xy[g, k] = sum_i x_gi * y_ik over the group's n cells, the correlation follows in
+# closed form from the gene and response means/SDs, with no further access to the
+# expression data. Returns a responses x features matrix, matching the orientation
+# apply(x, 1, cor, y) produced.
+CorFromCrossprod <- function(xy, n, x.mean, x.sd, y) {
+  y.mean <- colMeans(x = y)
+  y.sd <- apply(X = y, MARGIN = 2, FUN = sd)
+  # cov(x_i, y_j) = (sum_k x_ik * y_kj - n * mean(x_i) * mean(y_j)) / (n - 1)
+  covariance <- (xy - n * outer(X = x.mean, Y = y.mean)) / (n - 1)
+  res <- t(x = covariance / outer(X = x.sd, Y = y.sd))
+  # constant genes have no correlation, as cor() would also report
+  res[!is.finite(x = res)] <- NA
+  return(res)
 }
 
 # Helper function: simplified cpm calculation
