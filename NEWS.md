@@ -13,6 +13,7 @@
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
 - Sped up `LeverageScore`/`SketchData` on `IterableMatrix` (BPCells) data by computing the random projection in blocks of cells against a dense operand, replacing `transpose_storage_order()` with a grouped sum over cells when the sketching matrix comes from `CountSketch`, and vectorizing `CountSketch`. Leverage scores for a given sketching matrix are unchanged, but `CountSketch` now consumes its random draws differently, so results for a given `seed` will differ from previous versions
 - Fixed `LeverageScore` deleting unrelated files from the session temporary directory, and leaking a full on-disk copy of the input matrix, when run on `IterableMatrix` (BPCells) data
+- Fixed `LeverageScore` densifying the whole layer when retrying after a failure, and reporting that no zero-variance features were found even when it had removed some
 - Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
 - Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
 - Fixed `ImageDimPlot` and `ImageFeaturePlot` with FOV and boundary names containing underscores
@@ -24,6 +25,7 @@
 
 - Soft deprecation of `flip.xy` in `LoadXenium`
   - Existing calls with `flip.xy = TRUE` will retain their behavior (requiring SeuratObject >= v5.3.0 to do so)
+- Fixed `LeverageScore` densifying the whole layer when retrying after a failure, and reporting that no zero-variance features were found even when it had removed some. The retry now computes feature variances without leaving the input's storage format, names the features it removed, and reports the error that triggered it
 
 # Seurat 5.6.0 (2026-10-03)
 

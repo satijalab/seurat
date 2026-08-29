@@ -602,17 +602,34 @@ LeverageScore.StdAssay <- function(
       )
     }, error = function(e) {
       # Rerun LeverageScore with zero-variance rows removed
-      nonzero_var <- which(apply(mat, 1, function(x) var(x) > 0))
-      zero_var_features <- setdiff(rownames(mat), rownames(mat)[nonzero_var])
+      feature.var <- if (inherits(x = mat, what = 'IterableMatrix')) {
+        BPCells::matrix_stats(
+          matrix = mat,
+          row_stats = 'variance'
+        )$row_stats['variance',]
+      } else if (inherits(x = mat, what = 'dgCMatrix')) {
+        RowVarSparse(mat = mat)
+      } else {
+        RowVar(x = mat)
+      }
+      nonzero_var <- which(x = feature.var > 0)
+      # 'mat' is fetched with 'fast = TRUE' and so carries no dimnames; its rows
+      # come back in layer order, which 'intersect()' reproduces
+      zero_var_features <- intersect(
+        x = Features(x = object, layer = l),
+        y = features.use
+      )[feature.var == 0]
 
       # Warn user if any zero-variance features encountered
       # Display the first 5 such problematic features
       if (length(zero_var_features) > 0) {
-        message("LeverageScore failed on full matrix due to presence of features with zero-variance in matrix. Removed ", length(zero_var_features),
-                " zero-variance features from layer ", l, ". First few problematic features: ",
+        message("LeverageScore failed on full matrix (", conditionMessage(e),
+                "). Removed ", length(zero_var_features),
+                " zero-variance features from layer ", l, " and retrying. First few problematic features: ",
                 paste(head(zero_var_features, 5), collapse = ", "), " ...")
       } else {
-        message("LeverageScore failed on full matrix, retrying with same data (no zero-variance features found).")
+        message("LeverageScore failed on full matrix (", conditionMessage(e),
+                "), retrying with same data (no zero-variance features found).")
       }
 
       LeverageScore(
