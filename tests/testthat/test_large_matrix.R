@@ -195,6 +195,37 @@ test_that("block-native ops do not warn about materializing", {
   expect_false(any(grepl("loaded into memory in full", w)))
 })
 
+context("SingleCellExperiment interoperability")
+
+test_that("as.Seurat materializes on-disk assays instead of erroring", {
+  skip_if_not_installed("DelayedArray")
+  skip_if_not_installed("SingleCellExperiment")
+  m <- .make_counts()
+  obj <- suppressWarnings(CreateSeuratObject(counts = as.DelayedMatrix(m)))
+  obj <- suppressWarnings(NormalizeData(obj, verbose = FALSE))
+  sce <- suppressWarnings(as.SingleCellExperiment(obj))
+  # A v3 Assay cannot hold an on-disk matrix in its slots; without an explicit
+  # conversion this failed with an opaque "not valid for slot 'data'" error
+  expect_warning(as.Seurat(sce), "loaded into memory in full")
+  back <- suppressWarnings(as.Seurat(sce))
+  expect_equal(as.matrix(LayerData(back, layer = "counts")), as.matrix(m))
+})
+
+test_that("as.Seurat on an in-memory SingleCellExperiment is unchanged", {
+  skip_if_not_installed("SingleCellExperiment")
+  m <- .make_counts()
+  obj <- suppressWarnings(CreateSeuratObject(counts = m))
+  obj <- suppressWarnings(NormalizeData(obj, verbose = FALSE))
+  sce <- suppressWarnings(as.SingleCellExperiment(obj))
+  w <- character()
+  back <- withCallingHandlers(
+    as.Seurat(sce),
+    warning = function(x) { w <<- c(w, conditionMessage(x)); invokeRestart("muffleWarning") }
+  )
+  expect_false(any(grepl("loaded into memory in full", w)))
+  expect_equal(as.matrix(LayerData(back, layer = "counts")), as.matrix(m))
+})
+
 context("spam coercion")
 
 test_that("as.sparse.spam returns an equivalent dgCMatrix", {
