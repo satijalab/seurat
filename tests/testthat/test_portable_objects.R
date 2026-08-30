@@ -102,3 +102,87 @@ test_that("SaveSeurat round-trips a fully in-memory object", {
                expected = m)
   expect_equal(object = colnames(x = loaded), expected = colnames(x = obj))
 })
+
+test_that("SaveSeurat preserves a full analysed object across a move", {
+  skip_if_not_installed("BPCells")
+  store <- tempfile(pattern = "bpcells-store")
+  built <- .portable_bpcells_object(dir = store, m = .portable_counts(nfeat = 200, ncell = 120))
+  obj <- built$object
+  obj <- suppressWarnings(expr = NormalizeData(object = obj, verbose = FALSE))
+  obj <- suppressWarnings(expr = FindVariableFeatures(object = obj, nfeatures = 50, verbose = FALSE))
+  obj <- suppressWarnings(expr = ScaleData(object = obj, verbose = FALSE))
+  obj <- suppressWarnings(expr = RunPCA(object = obj, npcs = 10, verbose = FALSE))
+  obj <- suppressWarnings(expr = FindNeighbors(object = obj, dims = 1:10, verbose = FALSE))
+  obj <- suppressWarnings(expr = FindClusters(object = obj, verbose = FALSE))
+  # a second assay, and metadata of several types
+  adt <- .portable_counts(nfeat = 12, ncell = 120)
+  rownames(x = adt) <- paste0("adt", seq_len(length.out = 12))
+  colnames(x = adt) <- colnames(x = obj)
+  obj[["ADT"]] <- CreateAssayObject(counts = adt)
+  obj$score <- seq_len(length.out = ncol(x = obj)) / 10
+  obj$label <- factor(x = rep(c("p", "q"), length.out = ncol(x = obj)))
+  obj$flag <- rep(c(TRUE, FALSE), length.out = ncol(x = obj))
+
+  ref.counts <- as.matrix(x = LayerData(object = obj, layer = "counts"))
+  ref.emb <- Embeddings(object = obj, reduction = "pca")
+  ref.load <- Loadings(object = obj, reduction = "pca")
+  ref.vf <- VariableFeatures(object = obj)
+  ref.idents <- Idents(object = obj)
+
+  f1 <- tempfile(fileext = ".seurat")
+  SaveSeurat(object = obj, file = f1, verbose = FALSE)
+  f2 <- tempfile(fileext = ".seurat")
+  expect_true(object = file.rename(from = f1, to = f2))
+  unlink(x = store, recursive = TRUE)
+  loaded <- LoadSeurat(file = f2, dir = tempfile(pattern = "bundle"), verbose = FALSE)
+
+  expect_setequal(object = Assays(object = loaded), expected = c("RNA", "ADT"))
+  expect_equal(
+    object = as.matrix(x = LayerData(object = loaded, layer = "counts", assay = "RNA")),
+    expected = ref.counts
+  )
+  expect_equal(
+    object = as.matrix(x = LayerData(object = loaded, layer = "counts", assay = "ADT")),
+    expected = as.matrix(x = adt)
+  )
+  expect_equal(object = Embeddings(object = loaded, reduction = "pca"), expected = ref.emb)
+  expect_equal(object = Loadings(object = loaded, reduction = "pca"), expected = ref.load)
+  expect_equal(object = VariableFeatures(object = loaded), expected = ref.vf)
+  expect_equal(object = Idents(object = loaded), expected = ref.idents)
+  expect_equal(object = loaded$score, expected = obj$score)
+  expect_equal(object = as.character(x = loaded$label), expected = as.character(x = obj$label))
+  expect_equal(object = loaded$flag, expected = obj$flag)
+  # the reloaded object is still usable, not just readable
+  expect_silent(object = suppressWarnings(expr = RunPCA(object = loaded, npcs = 5, verbose = FALSE)))
+})
+
+test_that("SaveSeurat bundles every on-disk layer of a split assay", {
+  skip_if_not_installed("BPCells")
+  store <- tempfile(pattern = "bpcells-store")
+  built <- .portable_bpcells_object(dir = store, m = .portable_counts(nfeat = 80, ncell = 60))
+  obj <- built$object
+  obj$batch <- rep(c("a", "b"), each = 30)
+  obj[["RNA"]] <- split(x = obj[["RNA"]], f = obj$batch)
+  expect_gt(object = length(x = Layers(object = obj)), expected = 1)
+  ref <- lapply(
+    X = Layers(object = obj),
+    FUN = function(l) as.matrix(x = LayerData(object = obj, layer = l))
+  )
+  names(x = ref) <- Layers(object = obj)
+
+  f <- tempfile(fileext = ".seurat")
+  SaveSeurat(object = obj, file = f, verbose = FALSE)
+  unlink(x = store, recursive = TRUE)
+  loaded <- LoadSeurat(file = f, dir = tempfile(pattern = "bundle"), verbose = FALSE)
+
+  expect_setequal(object = Layers(object = loaded), expected = names(x = ref))
+  for (lyr in names(x = ref)) {
+    expect_true(object = inherits(
+      x = LayerData(object = loaded, layer = lyr), what = "IterableMatrix"
+    ))
+    expect_equal(
+      object = as.matrix(x = LayerData(object = loaded, layer = lyr)),
+      expected = ref[[lyr]]
+    )
+  }
+})
