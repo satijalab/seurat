@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed `Radius` returning `NULL` for `VisiumV2` images: `Radius.VisiumV2` was never registered as an S3 method, so dispatch fell through to `SeuratObject`'s `Radius.SpatialImage`. Spatial plots of Visium V2 and Visium HD data consequently fell back to a fixed spot size instead of one scaled to the image
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
