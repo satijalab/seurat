@@ -2,6 +2,9 @@
 
 ### Additions
 
+- Added `SaveSeurat`/`LoadSeurat`, which bundle a Seurat object together with its on-disk (e.g. BPCells) matrix stores into a single portable archive, so objects with on-disk layers can be moved or shared without the absolute paths recorded in the object breaking ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Added `AsInMemory` to materialize on-disk layers into an in-memory object that a plain `saveRDS` writes to a single self-contained file ([#9798](https://github.com/satijalab/seurat/issues/9798))
+
 ### Fixes
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
