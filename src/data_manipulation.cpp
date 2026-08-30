@@ -364,6 +364,13 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
 // [[Rcpp::export(rng = false)]]
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
   NumericVector out(x.rows());
+  // A variance needs at least two observations. Eigen's reductions assert on an
+  // empty matrix, which aborts the R session rather than raising, and a single
+  // column would divide by zero. Return NA per row, as stats::var() does.
+  if (x.cols() < 2) {
+    std::fill(out.begin(), out.end(), NA_REAL);
+    return out;
+  }
   for(int i=0; i < x.rows(); ++i){
     Eigen::ArrayXd r = x.row(i).array();
     double rowMean = r.mean();

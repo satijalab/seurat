@@ -4,6 +4,11 @@
 
 ### Fixes
 
+- Fixed `FindSpatiallyVariableFeatures` aborting the R session on objects backed by an FOV image (Xenium, Vizgen, VisiumV2): `GetTissueCoordinates` returns cell identifiers in a `cell` column with integer row names, and the row names were used to select cells, so none were selected and `RowVar` was handed an empty matrix ([#10099](https://github.com/satijalab/seurat/issues/10099), [#9087](https://github.com/satijalab/seurat/issues/9087))
+- `RowVar` now returns `NA` per row for matrices with fewer than two columns, as `stats::var` does, instead of tripping an Eigen assertion and killing the session
+- Fixed `FindSpatiallyVariableFeatures` erroring with \dQuote{promise already under evaluation} when called on an assay without supplying `nfeatures`, whose default referred to itself
+- Fixed `FindSpatiallyVariableFeatures` failing when only one feature has non-zero variance
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))

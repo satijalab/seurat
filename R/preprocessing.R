@@ -3656,6 +3656,11 @@ RunMarkVario <- function(
   } else {
     pp[["marks"]] <- as.data.frame(x = t(x = data))
     mv <- markvario(X = pp, normalise = TRUE, ...)
+    # With a single mark markvario() returns one variogram rather than a list
+    # of them; keep the shape consistent so callers can always iterate
+    if (inherits(x = mv, what = 'fv')) {
+      mv <- setNames(object = list(mv), nm = rownames(x = data))
+    }
   }
   return(mv)
 }
@@ -4724,7 +4729,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
-  nfeatures = nfeatures,
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 ) {
@@ -4744,7 +4749,23 @@ FindSpatiallyVariableFeatures.Assay <- function(
   cells <- rownames(spatial.location)
   data <- LayerData(object, layer = layer, cells = cells, features = features)
   data <- as.matrix(x = data)
-  data <- data[RowVar(x = data) > 0, ]
+  # RowVar() is C++ and aborts the session on an empty matrix rather than
+  # erroring, so catch the case that produces one: coordinates whose row names
+  # are not cell names select no cells at all
+  if (!ncol(x = data)) {
+    stop(
+      "None of the cells in 'spatial.location' are present in the '",
+      layer, "' layer; its row names must be cell names.",
+      call. = FALSE
+    )
+  }
+  if (!nrow(x = data)) {
+    stop(
+      "None of the requested features are present in the '", layer, "' layer.",
+      call. = FALSE
+    )
+  }
+  data <- data[RowVar(x = data) > 0, , drop = FALSE]
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
       object = data,
@@ -4819,6 +4840,14 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   image <- image %||% DefaultImage(object = object)
   features <- features %||% Features(object, assay = assay, layer = layer)
   tc <- GetTissueCoordinates(object = object[[image]])
+  # FOV-based images (VisiumV2 and friends) return the cell identifiers as a
+  # 'cell' column rather than as row names. That column is not a coordinate:
+  # passing it on coerces the whole frame to character inside dist(), and
+  # leaves the rows unnamed so features and cells cannot be matched up
+  if ('cell' %in% colnames(x = tc)) {
+    rownames(x = tc) <- as.character(x = tc[['cell']])
+    tc <- tc[, setdiff(x = colnames(x = tc), y = 'cell'), drop = FALSE]
+  }
 
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
