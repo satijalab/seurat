@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed `AggregateExpression` and `AverageExpression` mangling identity names that contain colons, e.g. `anything:A` becoming `A_anything`: `CreateCategoryMatrix` recovered each grouping variable's level by splitting the `sparse.model.matrix` column names on `:`, which also split any colon inside a level ([#9137](https://github.com/satijalab/seurat/issues/9137))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
