@@ -302,7 +302,7 @@ PCHeatmap <- function(object, ...) {
 #' @export
 #'
 PCAPlot <- function(object, ...) {
-  return(SpecificDimPlot(object = object, ...))
+  return(SpecificDimPlot(object = object, name = 'pca', ...))
 }
 
 #' @rdname SpatialPlot
@@ -422,7 +422,7 @@ SpatialFeaturePlot <- function(
 #' @export
 #'
 TSNEPlot <- function(object, ...) {
-  return(SpecificDimPlot(object = object, ...))
+  return(SpecificDimPlot(object = object, name = 'tsne', ...))
 }
 
 #' @rdname DimPlot
@@ -430,7 +430,7 @@ TSNEPlot <- function(object, ...) {
 #' @export
 #'
 UMAPPlot <- function(object, ...) {
-  return(SpecificDimPlot(object = object, ...))
+  return(SpecificDimPlot(object = object, name = 'umap', ...))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -447,10 +447,7 @@ UMAPPlot <- function(object, ...) {
 
 # @rdname DimPlot
 #
-SpecificDimPlot <- function(object, ...) {
-  funs <- sys.calls()
-  name <- as.character(x = funs[[length(x = funs) - 1]])[1]
-  name <- tolower(x = gsub(pattern = 'Plot', replacement = '', x = name))
+SpecificDimPlot <- function(object, name, ...) {
   args <- list('object' = object)
   args <- c(args, list(...))
   reduc <- grep(
