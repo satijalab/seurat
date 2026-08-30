@@ -13,7 +13,7 @@ NULL
 #' Wrap a matrix-like object in a \code{\link[DelayedArray]{DelayedMatrix}} so it
 #' can be used as an out-of-memory Seurat layer. Existing \code{DelayedMatrix}
 #' objects are returned unchanged; other inputs (\code{matrix},
-#' \code{\link[Matrix]{dgCMatrix}}, \code{IterableMatrix}) are wrapped, preserving
+#' \code{\link[Matrix:dgCMatrix-class]{dgCMatrix}}, \code{IterableMatrix}) are wrapped, preserving
 #' dimnames.
 #'
 #' For sparse input the in-memory result (\code{ondisk = FALSE}) is backed by a

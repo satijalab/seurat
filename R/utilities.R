@@ -2881,7 +2881,7 @@ RowSparseCheck <- function(mat) {
 
 #' Check whether a matrix exceeds R's 32-bit indexing limit
 #'
-#' R's in-memory matrix classes (\code{matrix} and \code{\link[Matrix]{dgCMatrix}})
+#' R's in-memory matrix classes (\code{matrix} and \code{\link[Matrix:dgCMatrix-class]{dgCMatrix}})
 #' index their entries with 32-bit signed integers, which caps the number of
 #' (non-zero) elements at \code{.Machine$integer.max} (\eqn{2^{31} - 1}, about
 #' 2.1 billion). Beyond this, construction fails with errors such as

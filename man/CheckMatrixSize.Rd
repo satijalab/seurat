@@ -19,7 +19,7 @@ Invisibly, a list with \code{n} (relevant element or non-zero count),
   backend)
 }
 \description{
-R's in-memory matrix classes (\code{matrix} and \code{\link[Matrix]{dgCMatrix}})
+R's in-memory matrix classes (\code{matrix} and \code{\link[Matrix:dgCMatrix-class]{dgCMatrix}})
 index their entries with 32-bit signed integers, which caps the number of
 (non-zero) elements at \code{.Machine$integer.max} (\eqn{2^{31} - 1}, about
 2.1 billion). Beyond this, construction fails with errors such as
