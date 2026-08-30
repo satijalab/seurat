@@ -174,6 +174,45 @@ test_that("split DelayedMatrix layers join and integrate", {
   expect_true("integrated.dr" %in% Reductions(obj))
 })
 
+context("Materializing an on-disk layer is never silent")
+
+test_that("non-block-native ops warn even when verbose = FALSE", {
+  skip_if_not_installed("DelayedArray")
+  m <- .make_counts()
+  obj <- suppressWarnings(CreateSeuratObject(counts = as.DelayedMatrix(m)))
+  # A user picks an on-disk backend precisely because the data may not fit in
+  # RAM, so a full materialization must never be silenced by verbose = FALSE
+  expect_warning(
+    NormalizeData(obj, normalization.method = "CLR", verbose = FALSE),
+    "loaded into memory in full"
+  )
+  expect_warning(
+    NormalizeData(obj, normalization.method = "RC", verbose = FALSE),
+    "loaded into memory in full"
+  )
+  norm <- suppressWarnings(NormalizeData(obj, verbose = FALSE))
+  expect_warning(
+    FindVariableFeatures(norm, selection.method = "dispersion",
+                         nfeatures = 10, verbose = FALSE),
+    "loaded into memory in full"
+  )
+})
+
+test_that("block-native ops do not warn about materializing", {
+  skip_if_not_installed("DelayedArray")
+  skip_if_not_installed("DelayedMatrixStats")
+  m <- .make_counts()
+  obj <- suppressWarnings(CreateSeuratObject(counts = as.DelayedMatrix(m)))
+  norm <- suppressWarnings(NormalizeData(obj, verbose = FALSE))
+  expect_s4_class(LayerData(norm, "data"), "DelayedMatrix")
+  w <- character()
+  withCallingHandlers(
+    invisible(FindVariableFeatures(norm, nfeatures = 20, verbose = FALSE)),
+    warning = function(x) { w <<- c(w, conditionMessage(x)); invokeRestart("muffleWarning") }
+  )
+  expect_false(any(grepl("loaded into memory in full", w)))
+})
+
 context("spam coercion")
 
 test_that("as.sparse.spam returns an equivalent dgCMatrix", {
