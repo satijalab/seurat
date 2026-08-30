@@ -2880,22 +2880,31 @@ RowSparseCheck <- function(mat) {
 }
 
 # Materialize an on-disk matrix (BPCells IterableMatrix, DelayedMatrix) to an
-# in-memory dgCMatrix for operations that are not backend-native, when it fits
-# under the 2^31 limit. In-memory inputs are returned unchanged. Errors with
-# guidance when conversion fails (e.g. the layer exceeds the dgCMatrix limit).
+# in-memory dgCMatrix for operations that have no block-wise implementation.
+# In-memory inputs are returned unchanged. Errors with guidance when conversion
+# fails (e.g. the layer exceeds the dgCMatrix limit).
+#
+# Pulling an out-of-core layer into memory in full defeats the point of the
+# backend and can exhaust RAM, so it always warns. The warning is deliberately
+# not gated on a `verbose` argument: a user who chose an on-disk backend because
+# the data does not fit in memory must not have this happen silently.
 #
 # @param mat A matrix-like object
 # @param context Short description of the calling operation, used in messages
-# @param verbose Emit a note when materializing
 # @return A dgCMatrix (or the unchanged input if already in memory)
 #
-.AsSparseIfFits <- function(mat, context = 'this operation', verbose = TRUE) {
+.AsSparseIfFits <- function(mat, context = 'this operation') {
   if (!inherits(x = mat, what = c('IterableMatrix', 'DelayedMatrix'))) {
     return(mat)
   }
-  if (isTRUE(x = verbose)) {
-    message('Materializing on-disk matrix in memory for ', context)
-  }
+  warning(
+    context, ' has no out-of-core implementation, so the on-disk matrix (',
+    paste(dim(x = mat), collapse = ' x '),
+    ') is being loaded into memory in full. Use a block-wise alternative ',
+    "(normalization.method = 'LogNormalize', selection.method = 'vst') to ",
+    'keep the data on disk.',
+    call. = FALSE, immediate. = TRUE
+  )
   tryCatch(
     expr = as.sparse(x = mat),
     error = function(e) {
