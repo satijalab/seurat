@@ -2,6 +2,11 @@
 
 ### Additions
 
+- Added a `DelayedMatrix` (`DelayedArray`/`HDF5Array`) layer backend for matrices larger than the `dgCMatrix` 2^31 limit, with `LogNormalize`, `VST` and `.CalcN` methods so `NormalizeData`, `FindVariableFeatures`, `ScaleData` and `RunPCA` run block-wise on `DelayedMatrix`-backed objects ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Added `as.DelayedMatrix`, which backs in-memory sparse layers with a 64-bit `SVT_SparseMatrix` seed or, with `ondisk = TRUE`, an HDF5 `TENxMatrix`, so a layer can exceed the `dgCMatrix` 2^31 limit ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Added `CheckMatrixSize` to report how close a matrix is to R's 32-bit indexing limit, and `as.sparse.spam` for coercing `spam` matrices ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- `PseudobulkExpression` now supports `DelayedArray`-backed layers instead of erroring
+
 ### Fixes
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
