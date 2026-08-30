@@ -2963,18 +2963,19 @@ CheckMatrixSize <- function(object, warn = TRUE) {
 #
 # @param mat A matrix-like object
 # @param context Short description of the calling operation, used in messages
+# @param alternative Optional sentence naming an out-of-core alternative,
+# appended to the warning
 # @return A dgCMatrix (or the unchanged input if already in memory)
 #
-.AsSparseIfFits <- function(mat, context = 'this operation') {
+.AsSparseIfFits <- function(mat, context = 'this operation', alternative = NULL) {
   if (!inherits(x = mat, what = c('IterableMatrix', 'DelayedMatrix'))) {
     return(mat)
   }
   warning(
     context, ' has no out-of-core implementation, so the on-disk matrix (',
     paste(dim(x = mat), collapse = ' x '),
-    ') is being loaded into memory in full. Use a block-wise alternative ',
-    "(normalization.method = 'LogNormalize', selection.method = 'vst') to ",
-    'keep the data on disk.',
+    ') is being loaded into memory in full.',
+    if (is.null(x = alternative)) '' else paste0(' ', alternative),
     call. = FALSE, immediate. = TRUE
   )
   tryCatch(

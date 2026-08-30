@@ -6,6 +6,7 @@
 - Added `as.DelayedMatrix`, which backs in-memory sparse layers with a 64-bit `SVT_SparseMatrix` seed or, with `ondisk = TRUE`, an HDF5 `TENxMatrix`, so a layer can exceed the `dgCMatrix` 2^31 limit ([#9798](https://github.com/satijalab/seurat/issues/9798))
 - Added `CheckMatrixSize` to report how close a matrix is to R's 32-bit indexing limit, and `as.sparse.spam` for coercing `spam` matrices ([#9798](https://github.com/satijalab/seurat/issues/9798))
 - `PseudobulkExpression` now supports `DelayedArray`-backed layers instead of erroring
+- `as.Seurat` on a `SingleCellExperiment` whose assays are on-disk (BPCells `IterableMatrix`, `DelayedMatrix`) now materializes them with a warning instead of failing with an opaque "not valid for slot 'data'" class error
 
 ### Fixes
 
