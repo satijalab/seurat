@@ -5,6 +5,7 @@
 - Added a `DelayedMatrix` (`DelayedArray`/`HDF5Array`) layer backend for matrices larger than the `dgCMatrix` 2^31 limit, with `LogNormalize`, `VST` and `.CalcN` methods so `NormalizeData`, `FindVariableFeatures`, `ScaleData` and `RunPCA` run block-wise on `DelayedMatrix`-backed objects ([#9798](https://github.com/satijalab/seurat/issues/9798))
 - Added `as.DelayedMatrix`, which backs in-memory sparse layers with a 64-bit `SVT_SparseMatrix` seed or, with `ondisk = TRUE`, an HDF5 `TENxMatrix`, so a layer can exceed the `dgCMatrix` 2^31 limit ([#9798](https://github.com/satijalab/seurat/issues/9798))
 - `PseudobulkExpression` now supports `DelayedArray`-backed layers instead of erroring
+- `as.Seurat` on a `SingleCellExperiment` whose assays are on-disk (BPCells `IterableMatrix`, `DelayedMatrix`) now materializes them with a warning instead of failing with an opaque "not valid for slot 'data'" class error
 
 ### Fixes
 
