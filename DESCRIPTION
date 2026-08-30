@@ -107,6 +107,7 @@ Suggests:
     ggrastr,
     harmony,
     hdf5r,
+    HDF5Array,
     IRanges,
     leidenbase,
     limma,
@@ -153,3 +154,4 @@ Collate:
     'sketching.R'
     'tree.R'
     'utilities.R'
+    'save-portable.R'
