@@ -23,7 +23,7 @@ on-disk layer found}
 \description{
 Convert out-of-memory layers (BPCells \code{IterableMatrix},
 \code{DelayedMatrix}) of a Seurat object into in-memory sparse matrices
-(\code{\link[Matrix]{dgCMatrix}}). The result is fully self-contained, so a
+(\code{\link[Matrix:dgCMatrix-class]{dgCMatrix}}). The result is fully self-contained, so a
 plain \code{\link[base]{saveRDS}} writes it to a single portable file with no
 external on-disk matrix directories to keep alongside it. Use when the data
 fits in memory; for layers exceeding the \code{dgCMatrix} \eqn{2^{31}} limit,
