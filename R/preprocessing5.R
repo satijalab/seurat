@@ -1235,12 +1235,31 @@ SCTransform.StdAssay <- function(
   )
   LayerData(assay_out, layer = "scale.data") <- residuals
 
-  # Set the output's variable features.
-  VariableFeatures(assay_out) <- VariableFeatures(
-    assay_out, 
-    use.var.features = FALSE,
-    nfeatures = variable.features.n
-  )
+  # Set the output's variable features. A variable feature with no residuals is
+  # dropped by everything downstream, silently apart from a PrepDR warning, so
+  # choose them from the features that were actually scaled.
+  scaled.features <- rownames(x = residuals)
+  if (is.null(x = variable.features.n)) {
+    # each layer chose its own features by residual variance threshold, so
+    # there is no number of features to rank down to; keep what they chose
+    variable.features <- Reduce(
+      f = union,
+      x = lapply(X = output_list, FUN = VariableFeatures)
+    )
+    VariableFeatures(assay_out) <- variable.features[
+      variable.features %in% scaled.features
+    ]
+  } else {
+    ranked <- VariableFeatures(
+      assay_out, 
+      use.var.features = FALSE,
+      nfeatures = nrow(x = assay_out)
+    )
+    VariableFeatures(assay_out) <- head(
+      x = ranked[ranked %in% scaled.features],
+      n = variable.features.n
+    )
+  }
 
   return (assay_out)
 }

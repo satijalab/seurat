@@ -4,6 +4,9 @@
 
 ### Fixes
 
+- Fixed `SCTransform` on a split assay returning variable features that have no residuals, so that `RunPCA` warned they had not been scaled and ran without them; variable features are now chosen from the features that were scaled ([#8880](https://github.com/satijalab/seurat/issues/8880))
+- Fixed `SCTransform` failing on a split assay with `variable.features.n = NULL` and a `variable.features.rv.th` cutoff ([#9189](https://github.com/satijalab/seurat/issues/9189))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
