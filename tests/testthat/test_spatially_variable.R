@@ -88,3 +88,32 @@ test_that("a single feature with variance stays a matrix", {
     verbose = FALSE
   )))
 })
+
+# selection.method defaults to the whole vector of choices and was never
+# resolved, so leaving it out reached switch() with a length-2 value
+test_that("selection.method does not have to be supplied", {
+  object <- build_fov_object()
+  result <- suppressWarnings(FindSpatiallyVariableFeatures(
+    object,
+    assay = "Spatial",
+    layer = "data",
+    features = rownames(object)[1:5],
+    verbose = FALSE
+  ))
+  expect_length(SpatiallyVariableFeatures(result, method = "markvariogram"), 5L)
+})
+
+test_that("an unknown selection.method is rejected before any work", {
+  object <- build_fov_object()
+  expect_error(
+    suppressWarnings(FindSpatiallyVariableFeatures(
+      object,
+      assay = "Spatial",
+      layer = "data",
+      features = rownames(object)[1:5],
+      selection.method = "bogus",
+      verbose = FALSE
+    )),
+    "should be one of"
+  )
+})

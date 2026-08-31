@@ -4676,6 +4676,10 @@ FindSpatiallyVariableFeatures.default <- function(
   verbose = TRUE,
   ...
 ) {
+  # the default is the full vector of choices, and nothing resolved it, so
+  # omitting the argument reached switch() and the comparisons below with a
+  # length-2 value
+  selection.method <- match.arg(arg = selection.method)
   # error check dimensions
   if (ncol(x = object) != nrow(x = spatial.location)) {
     stop("Please provide the same number of observations as spatial locations.")
@@ -4741,6 +4745,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
     )
     layer <- slot %||% layer
   }
+  selection.method <- match.arg(arg = selection.method)
   features <- features %||% Features(object, layer = layer)
   if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
     features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
@@ -4836,6 +4841,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     layer <- slot %||% layer
   }
 
+  selection.method <- match.arg(arg = selection.method)
   assay <- assay %||% DefaultAssay(object = object)
   image <- image %||% DefaultImage(object = object)
   features <- features %||% Features(object, assay = assay, layer = layer)
