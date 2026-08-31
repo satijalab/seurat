@@ -2460,7 +2460,8 @@ ReadNanostring <- function(
         tx <- tx[, which(colSums(tx) != 0)]
         ratio <- getOption(x = 'Seurat.input.sparse_ratio', default = 0.4)
 
-        if ((sum(tx == 0) / length(x = tx)) > ratio) {
+        # tx is a data frame here, so length() is its number of columns
+        if ((sum(tx == 0) / prod(dim(x = tx))) > ratio) {
           ptx(
             message = 'Converting counts to sparse matrix',
             class = 'sticky',
@@ -2511,7 +2512,9 @@ ReadNanostring <- function(
           amount = 0
         )
         pmeta(type = 'finish')
-        df <- md[,metadata]
+        # a single column would otherwise come back as a vector, and the cell
+        # names assigned just below would be dropped
+        df <- md[, metadata, drop = FALSE]
         df$cell <- paste0(as.character(md$cell_ID), "_", md$fov)
         df
       },
