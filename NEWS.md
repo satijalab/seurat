@@ -1,5 +1,9 @@
 # Unreleased
 
+### Fixes
+
+- Fixed `LoadXenium` failing on panels that carry a single feature type, such as the standalone gene panels, where `Read10X_h5` returns a bare matrix rather than a named list ([#9142](https://github.com/satijalab/seurat/issues/9142))
+
 ### Additions
 
 - `Read10X_h5` falls back to `rhdf5` when `hdf5r` is not installed, so 10x HDF5 files remain readable on systems where `hdf5r` cannot be built against a current system HDF5 ([#9182](https://github.com/satijalab/seurat/issues/9182))

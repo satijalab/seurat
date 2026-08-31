@@ -264,7 +264,15 @@ LoadXenium <- function(
     `Protein Expression` = 'ProteinExpression'
   )
 
-  xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+  # Read10X_h5() returns a bare matrix when the panel carries a single feature
+  # type, which is the case for standalone gene panels, and a named list only
+  # when control probes or other modalities sit alongside it
+  counts <- if (is.list(x = data$matrix)) {
+    data$matrix[["Gene Expression"]]
+  } else {
+    data$matrix
+  }
+  xenium.obj <- CreateSeuratObject(counts = counts, assay = assay)
 
   if(!is.null(data$metadata)) {
     Misc(xenium.obj, 'run_metadata') <- data$metadata
