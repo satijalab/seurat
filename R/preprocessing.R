@@ -1638,6 +1638,48 @@ Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
   segmentation_polygons
 }
+# Read a QuPath centroid column as numbers
+#
+# The column can come back as text: QuPath writes a decimal comma in some
+# locales, and units are sometimes carried in the values. Both leave the
+# coordinates as character, and the failure surfaces later as
+# \dQuote{non-numeric argument to binary operator} from inside diff()
+#
+# @param values The column as read
+# @param column The name of the column, for the messages
+#
+# @return The column as numbers
+#
+.NumericCentroid <- function(values, column) {
+  if (is.numeric(x = values)) {
+    return(values)
+  }
+  chr <- trimws(x = as.character(x = values))
+  present <- nzchar(x = chr)
+  numbers <- suppressWarnings(expr = as.numeric(x = chr))
+  if (!anyNA(x = numbers[present])) {
+    return(numbers)
+  }
+  # a decimal comma, which QuPath writes under some locales
+  swapped <- suppressWarnings(
+    expr = as.numeric(x = sub(pattern = ',', replacement = '.', x = chr, fixed = TRUE))
+  )
+  if (!anyNA(x = swapped[present])) {
+    warning(
+      "The ", column, " column uses a decimal comma, reading it as numbers",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    return(swapped)
+  }
+  stop(
+    "The ", column, " column does not hold numbers: ",
+    paste(sQuote(x = utils::head(x = chr[present][is.na(x = numbers[present])], n = 3L)), collapse = ', '),
+    ". Centroids must be plain numbers, without units",
+    call. = FALSE
+  )
+}
+
 
 
 
@@ -1925,8 +1967,8 @@ ReadAkoya <- function(
         )
       }
       centroids <- data.frame(
-        x = mtx[[xpos]],
-        y = mtx[[ypos]],
+        x = .NumericCentroid(values = mtx[[xpos]], column = xpos),
+        y = .NumericCentroid(values = mtx[[ypos]], column = ypos),
         cell = rownames(x = mtx),
         stringsAsFactors = FALSE
       )

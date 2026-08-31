@@ -59,3 +59,35 @@ test_that("a missing centroid column is reported, not turned into a row mismatch
     "Columns present"
   )
 })
+
+# QuPath writes a decimal comma under some locales, and units are sometimes
+# carried in the values. Either leaves the coordinates as text, and the failure
+# surfaced later as "non-numeric argument to binary operator" from diff()
+write_text_centroids <- function(values) {
+  n <- length(values)
+  df <- data.frame(id = seq_len(n))
+  df[["Centroid X"]] <- values
+  df[["Centroid Y"]] <- values
+  df[["Cell: Mean DAPI"]] <- runif(n)
+  path <- tempfile(fileext = ".csv")
+  write.csv(df, path, row.names = FALSE)
+  path
+}
+
+test_that("a decimal comma is read as numbers", {
+  path <- write_text_centroids(c("1,5", "2,25", "30,125"))
+  out <- expect_warning(
+    suppressMessages(ReadAkoya(path, type = "qupath")),
+    "decimal comma"
+  )
+  expect_equal(out$centroids$x, c(1.5, 2.25, 30.125))
+  expect_equal(out$centroids$y, c(1.5, 2.25, 30.125))
+})
+
+test_that("coordinates that are not numbers are named", {
+  path <- write_text_centroids(c("1.5 um", "2.25 um", "30 um"))
+  expect_error(
+    suppressWarnings(suppressMessages(ReadAkoya(path, type = "qupath"))),
+    "does not hold numbers"
+  )
+})
