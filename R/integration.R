@@ -6087,7 +6087,9 @@ ValidateParams_FindTransferAnchors <- function(
       query.sct.models <- slot(object = query[[query.assay]], name = "SCTModel.list")
       query.umi.assay <- unique(x = unname(obj = unlist(x = lapply(X = query.sct.models, FUN = slot, name = "umi.assay"))))
       if (length(x = query.umi.assay) > 1) {
-        stop("Query assay provided is an SCTAssay with multiple different original umi assays", call = FALSE)
+        stop("Query assay provided is an SCTAssay with multiple different ",
+             "original umi assays: ", paste(sQuote(x = query.umi.assay), collapse = ", "),
+             call. = FALSE)
       }
       if (!query.umi.assay %in% Assays(object = query)) {
         stop("Query assay provided is an SCTAssay based on an orignal UMI assay",
