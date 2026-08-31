@@ -4885,6 +4885,35 @@ LogNormalize.V3Matrix <- function(
   return(norm.data)
 }
 
+# Normalize a single block of data
+#
+# Defined at package level rather than as a closure inside
+# NormalizeData.default(): a closure created there carries that frame as its
+# environment, and the frame holds the full matrix, so `future` exports the
+# whole dataset to every worker no matter how the data is chunked.
+#
+# @param data One block of the data
+# @param norm.function The normalization function to apply
+# @param scale.factor Scale factor for normalization
+# @param margin Margin to normalize over
+#
+# @return The normalized block
+#
+.NormalizeBlock <- function(data, norm.function, scale.factor, margin) {
+  clr_function <- function(x) {
+    return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
+  }
+  args <- list(
+    data = data,
+    scale.factor = scale.factor,
+    verbose = FALSE,
+    custom_function = clr_function,
+    margin = margin
+  )
+  args <- args[names(x = formals(fun = norm.function))]
+  return(do.call(what = norm.function, args = args))
+}
+
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #'
@@ -4949,30 +4978,27 @@ NormalizeData.V3Matrix <- function(
       dsize = dsize,
       csize = block.size %||% ceiling(x = dsize / nbrOfWorkers())
     )
-    normalized.data <- future_lapply(
-      X = 1:ncol(x = chunk.points),
+    # Split the data before dispatching. Iterating over block indices instead
+    # made the worker function reference `object`, so the whole matrix was
+    # exported to every worker rather than each worker receiving its own block;
+    # on a moderately sized object that alone exceeds future.globals.maxSize
+    blocks <- lapply(
+      X = seq_len(length.out = ncol(x = chunk.points)),
       FUN = function(i) {
         block <- chunk.points[, i]
-        data <- if (margin == 1) {
+        if (margin == 1) {
           object[block[1]:block[2], , drop = FALSE]
         } else {
           object[, block[1]:block[2], drop = FALSE]
         }
-        clr_function <- function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        }
-        args <- list(
-          data = data,
-          scale.factor = scale.factor,
-          verbose = FALSE,
-          custom_function = clr_function, margin = margin
-        )
-        args <- args[names(x = formals(fun = norm.function))]
-        return(do.call(
-          what = norm.function,
-          args = args
-        ))
       }
+    )
+    normalized.data <- future_lapply(
+      X = blocks,
+      FUN = .NormalizeBlock,
+      norm.function = norm.function,
+      scale.factor = scale.factor,
+      margin = margin
     )
     do.call(
       what = switch(

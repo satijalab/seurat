@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed `NormalizeData` sending the entire matrix to every worker when `future` has more than one worker, so it consumed memory proportional to the number of workers and failed outright on moderately sized objects with \dQuote{The total size of the ... globals exported for future expression}. Each worker now receives only its own block ([#10406](https://github.com/satijalab/seurat/issues/10406))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
