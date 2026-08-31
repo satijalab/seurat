@@ -2,6 +2,8 @@
 
 ### Additions
 
+- `Read10X_h5` falls back to `rhdf5` when `hdf5r` is not installed, so 10x HDF5 files remain readable on systems where `hdf5r` cannot be built against a current system HDF5 ([#9182](https://github.com/satijalab/seurat/issues/9182))
+
 ### Fixes
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
