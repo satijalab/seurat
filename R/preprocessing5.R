@@ -1696,6 +1696,23 @@ FetchResidualSCTModel <- function(
         dimnames = list(features_to_compute, model.cells)
       ))
     }
+    # Some of the requested features are modelled here and some are not. The
+    # computation above runs only when every one of them is, so falling through
+    # reaches `return(new_residual)` for a `new_residual` this path never
+    # created. Compute the ones this model does have instead of dropping them
+    return(FetchResidualSCTModel(
+      object = object,
+      umi.object = umi.object,
+      layer = layer,
+      chunk_size = chunk_size,
+      layer.cells = layer.cells,
+      SCTModel = SCTModel,
+      reference.SCT.model = reference.SCT.model,
+      new_features = intersect_features,
+      clip.range = clip.range,
+      replace.value = replace.value,
+      verbose = verbose
+    ))
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {

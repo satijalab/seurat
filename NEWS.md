@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed `GetResidual` failing on an `SCTAssay` with several models when a requested feature is modelled by only some of them, with `object 'new_residual' not found` or `number of rows of matrices must match`; residuals for such a feature are now returned for the cells whose model covers it, and `NA` elsewhere ([#10441](https://github.com/satijalab/seurat/issues/10441))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))

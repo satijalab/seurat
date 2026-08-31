@@ -466,12 +466,23 @@ GetResidual <- function(
   if (nrow(x = existing.data) > 0){
     new.scale[1:nrow(x = existing.data), ] <- existing.data
   }
+  # Models covering different feature sets return matrices with different rows,
+  # which cbind cannot combine. Fill by name instead, so each model contributes
+  # the features it actually has
   if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
-    new.residuals <- new.residuals[[1]]
-  } else {
-    new.residuals <- Reduce(cbind, new.residuals)
+    new.residuals <- list(new.residuals[[1]])
   }
-  new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
+  for (residual in new.residuals) {
+    rdim <- dim(x = residual)
+    if (is.null(x = rdim) || any(rdim == 0L)) {
+      next
+    }
+    keep <- intersect(x = rownames(x = residual), y = rownames(x = new.scale))
+    if (!length(x = keep)) {
+      next
+    }
+    new.scale[keep, colnames(x = residual)] <- residual[keep, , drop = FALSE]
+  }
   if (na.rm) {
     new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
   }
