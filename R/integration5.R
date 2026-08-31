@@ -618,6 +618,22 @@ IntegrateLayers <- function(
       assay = assay,
       nfeatures = 2000L
     )
+    # There is nothing to integrate across a single layer, and the integration
+    # methods fail deep inside with an opaque error when handed one
+    if (length(x = layers) < 2L) {
+      abort(message = paste0(
+        "Integration requires at least two layers, but ",
+        ifelse(
+          test = length(x = layers) == 1L,
+          yes = paste0("assay ", sQuote(x = assay), " has one (", sQuote(x = layers), ")"),
+          no = paste0("assay ", sQuote(x = assay), " has none")
+        ),
+        ". Split the assay before integrating, for example ",
+        "`object[[", sQuote(x = assay), "]] <- split(object[[", sQuote(x = assay),
+        "]], f = object$batch)`. A subset drawn from a single batch cannot be ",
+        "integrated."
+      ))
+    }
   } else {
     abort(message = "'assay' must be a v5 or SCT assay")
   }
