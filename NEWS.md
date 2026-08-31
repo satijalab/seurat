@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed `PrepSCTFindMarkers` skipping the objects that need it most: after cells are removed, a model's observed median UMI can fall below the depth its `median_umi` records, and those objects were returned untouched with \dQuote{Minimum UMI unchanged}, after which `FindMarkers` refused to run on them with \dQuote{Object contains multiple models with unequal library sizes} ([#9130](https://github.com/satijalab/seurat/issues/9130))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))

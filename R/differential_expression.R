@@ -2217,7 +2217,9 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   }
   model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
   min_median_umi <- min(unlist(x = observed_median_umis), na.rm = TRUE)
-  if (all(unlist(x = model_median_umis) > min_median_umi)){
+  # nothing to do only when every model already sits at the shared depth;
+  # models above it are exactly the ones FindMarkers() rejects
+  if (all(unlist(x = model_median_umis) == min_median_umi)){
     if (verbose){
       message("Minimum UMI unchanged. Skipping re-correction.")
     }
