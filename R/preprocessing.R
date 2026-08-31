@@ -2844,7 +2844,17 @@ ReadXenium <- function(
           y_location = letters[25-flip.xy],
           feature_name = 'gene'
         )
+        # `mols.qv.threshold` was documented and accepted but never applied,
+        # because the quality column was not among those read. Ask for it, and
+        # fall back to reading without it for outputs that lack it
+        qv.wanted <- is.numeric(x = mols.qv.threshold) &&
+          length(x = mols.qv.threshold) == 1L &&
+          !is.na(x = mols.qv.threshold)
+        if (qv.wanted) {
+          col.use <- c(col.use, qv = 'qv')
+        }
 
+        read.transcripts <- function(col.use) {
         for(option in Filter(function(x) x$req, list(
           list(
             filename = "transcripts.parquet",
@@ -2861,6 +2871,31 @@ ReadXenium <- function(
           transcripts <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(transcripts, "try-error")) { break }
         }
+          return(transcripts)
+        }
+
+        transcripts <- read.transcripts(col.use = col.use)
+        # Outputs without a quality column either fail the read (readers that
+        # select columns) or return a frame without it (readers that do not).
+        # Handle both: fall back and say the threshold could not be honoured,
+        # rather than filtering silently or failing on a missing column
+        if (qv.wanted) {
+          missing.qv <- inherits(x = transcripts, what = 'try-error') ||
+            !'qv' %in% colnames(x = transcripts)
+          if (missing.qv) {
+            col.use <- col.use[setdiff(x = names(x = col.use), y = 'qv')]
+            qv.wanted <- FALSE
+            transcripts <- read.transcripts(col.use = col.use)
+            if (!inherits(x = transcripts, what = 'try-error')) {
+              warning(
+                "No 'qv' column in the transcripts file; 'mols.qv.threshold' ",
+                "was not applied.",
+                call. = FALSE,
+                immediate. = TRUE
+              )
+            }
+          }
+        }
 
         if(!exists('transcripts') || inherits(transcripts, "try-error")) {
           hint <- ""
@@ -2873,6 +2908,12 @@ ReadXenium <- function(
 
         transcripts <- transcripts[, names(col.use)]
         colnames(transcripts) <- col.use
+
+        if (qv.wanted) {
+          keep <- !is.na(x = transcripts$qv) & transcripts$qv >= mols.qv.threshold
+          transcripts <- transcripts[keep, , drop = FALSE]
+          transcripts$qv <- NULL
+        }
 
         transcripts$gene <- binary_to_string(transcripts$gene)
 
