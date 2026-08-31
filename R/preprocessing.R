@@ -2709,7 +2709,11 @@ ReadXenium <- function(
 
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
   has_arrow <- requireNamespace("arrow", quietly = TRUE)
-  has_hdf5r <- requireNamespace("hdf5r", quietly = TRUE)
+  # Read10X_h5() reads through hdf5r or, failing that, rhdf5; gate on whether
+  # either is available rather than on hdf5r alone, or the .h5 is skipped on a
+  # system where it is perfectly readable
+  has_h5 <- requireNamespace("hdf5r", quietly = TRUE) ||
+    requireNamespace("rhdf5", quietly = TRUE)
 
   binary_to_string <- function(arrow_binary) {
     if(typeof(arrow_binary) == 'list') {
@@ -2731,7 +2735,7 @@ ReadXenium <- function(
         pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
 
         for(option in Filter(function(x) x$req, list(
-          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_hdf5r),
+          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_h5),
           list(filename = "cell_feature_matrix", fn = Read10X, req = TRUE)
         ))) {
           matrix <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
