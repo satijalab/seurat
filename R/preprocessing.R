@@ -529,6 +529,42 @@ GetResidual <- function(
 #' }
 #'
 
+# Build the Seurat object for one Visium capture area.
+#
+# Read10X_h5() returns one matrix per modality for a Gene + Protein panel.
+# Passing that list straight to CreateSeuratObject() stacks the modalities into
+# a single assay, so nCount and nFeature become sums across them. Antibody
+# counts run orders of magnitude higher than gene counts, so the gene
+# expression metrics are then meaningless. Give each modality its own assay.
+#
+# @param counts A counts matrix, or a named list of them, one per modality
+# @param assay Name for the assay holding the primary modality
+# @return A Seurat object
+#
+#' @importFrom SeuratObject CreateAssayObject CreateSeuratObject
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+.CreateSpatialObject <- function(counts, assay) {
+  if (!is.list(x = counts)) {
+    return(CreateSeuratObject(counts = counts, assay = assay))
+  }
+  primary <- if ('Gene Expression' %in% names(x = counts)) {
+    'Gene Expression'
+  } else {
+    names(x = counts)[1L]
+  }
+  object <- CreateSeuratObject(counts = counts[[primary]], assay = assay)
+  for (modality in setdiff(x = names(x = counts), y = primary)) {
+    object[[make.names(names = modality)]] <- CreateAssayObject(
+      counts = counts[[modality]]
+    )
+  }
+  return(object)
+}
+
 Load10X_Spatial <- function (
   data.dir,
   filename = "filtered_feature_bc_matrix.h5",
@@ -645,7 +681,12 @@ Load10X_Spatial <- function (
     }
 
     # for each counts matrix, build a Seurat object
-    object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+    object.list <- mapply(
+      FUN = .CreateSpatialObject,
+      counts.list,
+      assay = assay.names,
+      SIMPLIFY = FALSE
+    )
     # associate each counts matrix with its corresponding image
     object.list <- mapply(
       function(

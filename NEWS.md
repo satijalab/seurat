@@ -1,5 +1,9 @@
 # Unreleased
 
+### Fixes
+
+- Fixed `Load10X_Spatial` stacking every modality of a Visium Gene + Protein panel into one assay, which made `nCount_Spatial` and `nFeature_Spatial` sums across gene and antibody counts; each modality now gets its own assay ([#9182](https://github.com/satijalab/seurat/issues/9182))
+
 ### Additions
 
 - `Read10X_h5` falls back to `rhdf5` when `hdf5r` is not installed, so 10x HDF5 files remain readable on systems where `hdf5r` cannot be built against a current system HDF5 ([#9182](https://github.com/satijalab/seurat/issues/9182))
