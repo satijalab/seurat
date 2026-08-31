@@ -2190,6 +2190,16 @@ VariableFeaturePlot <- function(
     method = selection.method,
     status = TRUE
   )
+  if (is.null(hvf.info)) {
+    stop(
+      paste0(
+        "VariableFeaturePlot() cannot be generated because no variable feature information is available (HVFInfo() returned NULL).\n",
+        "This can occur when FindVariableFeatures() is run on split layers and the layers are subsequently joined.\n",
+        "Re-run FindVariableFeatures() after JoinLayers(), or avoid joining layers before plotting."
+      ),
+      call. = FALSE
+    )
+  }
   status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]
   var.status <- c('no', 'yes')[unlist(hvf.info[[status.col]]) + 1]
   if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
