@@ -95,3 +95,37 @@ test_that("Read10X_h5 reports both options when neither reader is installed", {
   skip_unless_rhdf5()
   expect_error(Read10X_h5(tempfile(fileext = ".h5")), "File not found")
 })
+
+test_that("probe metadata is read", {
+  skip_unless_rhdf5()
+  dir <- tempfile("probe")
+  dir.create(dir)
+  path <- file.path(dir, "raw_probe_bc_matrix.h5")
+  rhdf5::h5createFile(path)
+  rhdf5::h5createGroup(path, "matrix")
+  rhdf5::h5createGroup(path, "matrix/features")
+  rhdf5::h5write(paste0("probe", 1:5), path, "matrix/features/name")
+  rhdf5::h5write(
+    c("chr1:100-200", "chr2:300-400", "", "chr3:500-600", "chr4:1-2"),
+    path, "matrix/features/probe_region"
+  )
+  rhdf5::h5closeAll()
+  got <- Read10X_probe_metadata(dir)
+  expect_equal(nrow(got), 5L)
+  expect_setequal(colnames(got), c("probe.name", "probe.region"))
+  expect_identical(got$probe.name, paste0("probe", 1:5))
+})
+
+test_that("a file without probe_region returns NULL, as before", {
+  skip_unless_rhdf5()
+  dir <- tempfile("probe")
+  dir.create(dir)
+  path <- file.path(dir, "raw_probe_bc_matrix.h5")
+  rhdf5::h5createFile(path)
+  rhdf5::h5createGroup(path, "matrix")
+  rhdf5::h5createGroup(path, "matrix/features")
+  rhdf5::h5write(paste0("probe", 1:3), path, "matrix/features/name")
+  rhdf5::h5closeAll()
+  # pre-existing behaviour: the function falls off the end and returns NULL
+  expect_null(Read10X_probe_metadata(dir))
+})
