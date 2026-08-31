@@ -2265,6 +2265,20 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   names(set_median_umi) <- levels(x = object[[assay]])
   set_median_umi <- as.list(set_median_umi)
   all_genes <- rownames(x = object[[assay]])
+  # features the SCT assay carries but the counts assay does not cannot be
+  # recorrected at all, and would silently come back as zeros
+  no.counts <- setdiff(x = all_genes, y = rownames(x = raw_umi))
+  if (length(x = no.counts) > 0) {
+    warning(
+      length(x = no.counts),
+      " features of assay '", assay, "' are not in assay '", umi.assay,
+      "' and cannot be recorrected, so their counts are set to zero: ",
+      paste(head(x = no.counts, n = 5L), collapse = ", "),
+      if (length(x = no.counts) > 5) ", ...",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   # correct counts
   # Recorrect raw UMI counts for one SCT model at a shared target depth
   # We only recorrect genes whose fitted SCT parameters are all finite
@@ -2283,13 +2297,20 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
       is.finite(pars[, "log_umi"])
     ]
 
-    cells <- rownames(cell_attr[[model_name]])
+    # A model records the features and cells it was fit on, and subsetting the
+    # object does not prune that record, so a model can name features or cells
+    # that the counts assay no longer has. Recorrect what is still there.
+    valid_genes <- intersect(x = valid_genes, y = rownames(x = raw_umi))
+    cells <- intersect(
+      x = rownames(x = cell_attr[[model_name]]),
+      y = colnames(x = raw_umi)
+    )
     # Prepare input list for correct_counts function
     x <- list(
       model_str = model_str[[model_name]],
       arguments = arguments[[model_name]],
       model_pars_fit = as.matrix(pars[valid_genes, , drop = FALSE]),
-      cell_attr = cell_attr[[model_name]]
+      cell_attr = cell_attr[[model_name]][cells, , drop = FALSE]
     )
     # Retrieve raw UMI counts for valid genes and cells
     umi <- raw_umi[valid_genes, cells, drop = FALSE]
