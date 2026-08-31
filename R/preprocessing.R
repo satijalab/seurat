@@ -5207,6 +5207,9 @@ ScaleData.default <- function(
           }
         )
         object <- do.call(what = 'cbind', args = object)
+        # cbind puts the cells in split order, and dimnames are overwritten
+        # with the object's order further down, so put the cells back first
+        object <- object[, match(x = object.names[[2]], table = unlist(x = split.cells, use.names = FALSE)), drop = FALSE]
       } else {
         object <- do.call(what = 'rbind', args = object)
       }
@@ -5228,6 +5231,8 @@ ScaleData.default <- function(
         }
       )
       object <- do.call(what = 'cbind', args = object)
+      # as above, cbind puts the cells in split order
+      object <- object[, match(x = object.names[[2]], table = unlist(x = split.cells, use.names = FALSE)), drop = FALSE]
     }
     dimnames(x = object) <- object.names
     CheckGC()
@@ -5295,6 +5300,9 @@ ScaleData.default <- function(
         }
       )
       scaled.data <- suppressWarnings(expr = do.call(what = 'cbind', args = scaled.data))
+      # cbind puts the cells in split order, and dimnames are overwritten with
+      # the object's order further down, so put the cells back first
+      scaled.data <- scaled.data[, match(x = object.names[[2]], table = unlist(x = split.cells, use.names = FALSE)), drop = FALSE]
     } else {
       suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
     }
