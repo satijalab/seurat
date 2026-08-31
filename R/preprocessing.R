@@ -4351,6 +4351,29 @@ SubsetByBarcodeInflections <- function(object) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Explain that variable features cannot be selected
+#
+# Every variance is zero, so the loess fit that follows has nothing to fit and
+# fails with \dQuote{invalid 'x'}, which says nothing about the data
+#
+# @param ncells The number of cells the data has
+#
+# @return Stops with a message
+#
+.NoFeatureVariance <- function(ncells) {
+  msg <- "Cannot select variable features: no feature has non-zero variance"
+  if (ncells < 2L) {
+    msg <- paste0(
+      msg,
+      ", as the data has ",
+      ncells,
+      " cell",
+      if (ncells == 1L) "" else "s"
+    )
+  }
+  stop(msg, call. = FALSE)
+}
+
 
 #' @param selection.method How to choose top variable features. Choose one of :
 #' \itemize{
@@ -4428,7 +4451,10 @@ FindVariableFeatures.V3Matrix <- function(
     )
     hvf.info$variance.expected <- 0
     hvf.info$variance.standardized <- 0
-    not.const <- hvf.info$variance > 0
+    not.const <- !is.na(x = hvf.info$variance) & hvf.info$variance > 0
+    if (!any(not.const)) {
+      .NoFeatureVariance(ncells = ncol(x = object))
+    }
     fit <- loess(
       formula = log10(x = variance) ~ log10(x = mean),
       data = hvf.info[not.const, ],
