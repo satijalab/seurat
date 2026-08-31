@@ -1892,14 +1892,38 @@ ReadAkoya <- function(
         class = 'sticky',
         amount = 0
       )
-      xpos <- sort(
-        x = grep(pattern = 'Centroid X', x = colnames(x = mtx), value = TRUE),
-        decreasing = TRUE
-      )[1L]
-      ypos <- sort(
-        x = grep(pattern = 'Centroid Y', x = colnames(x = mtx), value = TRUE),
-        decreasing = TRUE
-      )[1L]
+      # QuPath exports name these columns inconsistently: with or without units,
+      # in either case, and with the space replaced by a dot once read.csv() has
+      # applied check.names. Match all of those rather than one literal spelling
+      .CentroidColumn <- function(axis, columns) {
+        hits <- grep(
+          pattern = paste0('centroid[ ._]*', axis),
+          x = columns,
+          ignore.case = TRUE,
+          value = TRUE
+        )
+        return(sort(x = hits, decreasing = TRUE)[1L])
+      }
+      xpos <- .CentroidColumn(axis = 'x', columns = colnames(x = mtx))
+      ypos <- .CentroidColumn(axis = 'y', columns = colnames(x = mtx))
+      if (is.na(x = xpos) || is.na(x = ypos)) {
+        # otherwise the missing column yields a zero-length vector and the frame
+        # below fails with "arguments imply differing number of rows"
+        missing <- c('X', 'Y')[c(is.na(x = xpos), is.na(x = ypos))]
+        stop(
+          "Could not find the centroid ", paste(missing, collapse = ' and '),
+          " column", ifelse(test = length(x = missing) > 1L, yes = 's', no = ''),
+          " in this QuPath export; a column named like 'Centroid X' is ",
+          "expected. Columns present: ",
+          paste(sQuote(x = utils::head(x = colnames(x = mtx), n = 8L)), collapse = ', '),
+          ifelse(
+            test = ncol(x = mtx) > 8L,
+            yes = paste0(', and ', ncol(x = mtx) - 8L, ' more'),
+            no = ''
+          ),
+          call. = FALSE
+        )
+      }
       centroids <- data.frame(
         x = mtx[[xpos]],
         y = mtx[[ypos]],
