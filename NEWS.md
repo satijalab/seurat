@@ -12,6 +12,7 @@
 - Fixed `SCTransform` on a split assay returning variable features that have no residuals, so that `RunPCA` warned they had not been scaled and ran without them; variable features are now chosen from the features that were scaled ([#8880](https://github.com/satijalab/seurat/issues/8880))
 - Fixed `SCTransform` failing on a split assay with `variable.features.n = NULL` and a `variable.features.rv.th` cutoff ([#9189](https://github.com/satijalab/seurat/issues/9189))
 - Fixed `RenameCells` on an SCT assay failing with \dQuote{missing values in 'row.names' are not allowed} when a model records cells the assay no longer has, which is what `RunAzimuth` hits on a subset object ([#256](https://github.com/satijalab/seurat-object/issues/256))
+- `SCTransform` now says when cells have no counts for the features given, or when too few features are detected for a model to be fit, instead of failing inside `sctransform` with \dQuote{cell attribute "log_umi" contains NA, NaN, or infinite value} or \dQuote{need at least 2 data points} ([#8385](https://github.com/satijalab/seurat/issues/8385))
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
