@@ -1482,7 +1482,10 @@ PseudobulkExpression.StdAssay <- function(
     }
     category.matrix.i <- category.matrix[colnames(x = data.i),]
     if (inherits(x = data.i, what = 'DelayedArray')) {
-      stop("PseudobulkExpression does not support DelayedArray objects")
+      # Multiply block-wise; the pseudobulk result (features x groups) is small
+      data.return.i <- as.sparse(x = as.matrix(
+        x = data.use.i %*% as.matrix(x = category.matrix.i)
+      ))
     } else {
       data.return.i <- as.sparse(x = data.use.i %*% category.matrix.i)
     }
@@ -2801,6 +2804,11 @@ RemoveLastField <- function(string, delim = "_") {
 # @return A vector of row mean
 #
 RowMeanSparse <- function(mat) {
+  if (inherits(x = mat, what = 'DelayedMatrix')) {
+    output <- DelayedMatrixStats::rowMeans2(x = mat)
+    names(x = output) <- rownames(x = mat)
+    return(output)
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_mean_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2818,6 +2826,11 @@ RowMeanSparse <- function(mat) {
 # @return A vector of row sum
 #
 RowSumSparse <- function(mat) {
+  if (inherits(x = mat, what = 'DelayedMatrix')) {
+    output <- DelayedMatrixStats::rowSums2(x = mat)
+    names(x = output) <- rownames(x = mat)
+    return(output)
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_sum_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2835,6 +2848,11 @@ RowSumSparse <- function(mat) {
 # @return A vector of row variance
 #
 RowVarSparse <- function(mat) {
+  if (inherits(x = mat, what = 'DelayedMatrix')) {
+    output <- DelayedMatrixStats::rowVars(x = mat)
+    names(x = output) <- rownames(x = mat)
+    return(output)
+  }
   mat <- RowSparseCheck(mat = mat)
   output <- row_var_dgcmatrix(
     x = slot(object = mat, name = "x"),
@@ -2859,6 +2877,35 @@ RowSparseCheck <- function(mat) {
     mat <- as.sparse(x = mat)
   }
   return(mat)
+}
+
+# Materialize an on-disk matrix (BPCells IterableMatrix, DelayedMatrix) to an
+# in-memory dgCMatrix for operations that are not backend-native, when it fits
+# under the 2^31 limit. In-memory inputs are returned unchanged. Errors with
+# guidance when conversion fails (e.g. the layer exceeds the dgCMatrix limit).
+#
+# @param mat A matrix-like object
+# @param context Short description of the calling operation, used in messages
+# @param verbose Emit a note when materializing
+# @return A dgCMatrix (or the unchanged input if already in memory)
+#
+.AsSparseIfFits <- function(mat, context = 'this operation', verbose = TRUE) {
+  if (!inherits(x = mat, what = c('IterableMatrix', 'DelayedMatrix'))) {
+    return(mat)
+  }
+  if (isTRUE(x = verbose)) {
+    message('Materializing on-disk matrix in memory for ', context)
+  }
+  tryCatch(
+    expr = as.sparse(x = mat),
+    error = function(e) {
+      stop(
+        context, ' is not supported on-disk and converting the matrix in ',
+        'memory failed (it likely exceeds the dgCMatrix 2^31 limit). ',
+        'Original error: ', conditionMessage(e), call. = FALSE
+      )
+    }
+  )
 }
 
 # Sweep out array summaries
