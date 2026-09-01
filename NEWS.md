@@ -13,6 +13,7 @@
 - `AddModuleScore` (and `CellCycleScoring`) now says when `ctrl` is larger than the expression bins it draws control features from, instead of failing with \dQuote{cannot take a sample larger than the population}; this is what a small or heavily filtered object hits with the default `ctrl = 100`
 - `RunUMAP` and `RunTSNE` now say when `dims` goes past what the reduction holds, as `FindNeighbors` does, instead of failing with \dQuote{subscript out of bounds} or a misleading complaint about perplexity
 - `RunPCA` now says when there are too few features to compute components, and `PrepDR` stops when none of the requested features are scaled, instead of the decomposition failing with \dQuote{max(nu, nv) must be positive} or \dQuote{non-conformable arguments}
+- `BuildClusterTree` now says that at least two identities are needed, instead of `hclust` reporting \dQuote{must have n >= 2 objects to cluster}
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))

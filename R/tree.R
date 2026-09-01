@@ -74,6 +74,16 @@ BuildClusterTree <- function(
     stop(cluster.ape, call. = FALSE)
   }
   assay <- assay %||% DefaultAssay(object = object)
+  # hclust() needs two things to join, and says so in its own terms:
+  # "must have n >= 2 objects to cluster"
+  if (length(x = levels(x = object)) < 2L) {
+    stop(
+      "Cannot build a tree from ", length(x = levels(x = object)),
+      " identity: at least two are needed. Set Idents() to a grouping with ",
+      "more than one level, or run FindClusters() first",
+      call. = FALSE
+    )
+  }
   if (!is.null(x = graph)) {
     idents <- levels(x = object)
     nclusters <- length(x = idents)
