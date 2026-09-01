@@ -488,6 +488,43 @@ GetResidual <- function(
   }
   return(object)
 }
+# Keep the array coordinates a Visium tissue positions file carries
+#
+# A VisiumV2 image holds only the pixel position of each spot, so the array row
+# and column, and whether the spot is over tissue, are dropped when the image is
+# built. A VisiumV1 image kept all five columns in its `coordinates` slot, and
+# tools that read them have no way to recover them from the object.
+#
+# @param object A Seurat object
+# @param image.dir The spatial directory the image was read from
+# @param filter.matrix Filter to spots over tissue, as for the image
+#
+# @return \code{object} with array_row, array_col and in_tissue meta data,
+# unchanged if the file has none of them
+#
+.AddArrayCoordinates <- function(object, image.dir, filter.matrix = TRUE) {
+  positions <- Sys.glob(paths = file.path(image.dir, "*tissue_positions*"))
+  if (!length(x = positions)) {
+    return(object)
+  }
+  coordinates <- tryCatch(
+    expr = Read10X_Coordinates(
+      filename = positions[1L],
+      filter.matrix = filter.matrix
+    ),
+    error = function(...) NULL
+  )
+  columns <- c(array_row = 'row', array_col = 'col', in_tissue = 'tissue')
+  columns <- columns[columns %in% colnames(x = coordinates)]
+  cells <- intersect(x = colnames(x = object), y = rownames(x = coordinates))
+  if (!length(x = columns) || !length(x = cells)) {
+    return(object)
+  }
+  md <- coordinates[cells, columns, drop = FALSE]
+  colnames(x = md) <- names(x = columns)
+  return(AddMetaData(object = object, metadata = md))
+}
+
 
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
 #'
@@ -688,23 +725,41 @@ Load10X_Spatial <- function (
       SIMPLIFY = FALSE
     )
     # associate each counts matrix with its corresponding image
+    # the directory each image was read from, so the array coordinates it holds
+    # can be kept; NA when the caller supplied the images themselves
+    image.dirs <- if (is.null(x = image)) {
+      file.path(data.dirs, "spatial")
+    } else {
+      rep_len(x = NA_character_, length.out = length(x = image.list))
+    }
     object.list <- mapply(
       function(
         .object,
         .image,
         .assay,
-        .slice
+        .slice,
+        .dir
       ) {
         # align the image's identifiers with the object's
         .image <- .image[Cells(.object)]
         # add the image to the corresponding Seurat instance
         .object[[.slice]] <- .image
+        # a VisiumV2 image keeps only the pixel positions, so hold on to the
+        # array coordinates the tissue positions file carries
+        if (!is.na(x = .dir)) {
+          .object <- .AddArrayCoordinates(
+            object = .object,
+            image.dir = .dir,
+            filter.matrix = filter.matrix
+          )
+        }
         return (.object)
       },
       object.list,
       image.list,
       assay.names,
-      slice.names
+      slice.names,
+      image.dirs
     )
     # merge the Seurat instances - each assay should have unique Cell identifiers
     object <- merge(
