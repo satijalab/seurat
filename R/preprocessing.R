@@ -3887,6 +3887,34 @@ SCTransform.default <- function(
   vst.args <- list(...)
   object <- as.sparse(x = object)
   umi <- object
+  # sctransform models log10 of the counts per cell, which is -Inf for a cell
+  # with none, and stops with 'cell attribute "log_umi" contains NA, NaN, or
+  # infinite value'. That happens as soon as features have been subset
+  empty.cells <- which(x = Matrix::colSums(x = umi) == 0)
+  if (length(x = empty.cells)) {
+    stop(
+      length(x = empty.cells), " of ", ncol(x = umi),
+      " cells have no counts for the features given",
+      if (!is.null(x = colnames(x = umi))) {
+        paste0(", such as ", paste(sQuote(x = head(x = colnames(x = umi)[empty.cells], n = 3L), q = FALSE), collapse = ", "))
+      },
+      ". Remove them first, for example with subset(object, subset = nCount_RNA > 0)",
+      call. = FALSE
+    )
+  }
+  # and it fits a density over the expressed features, which needs more than a
+  # couple of them: 'need at least 2 data points' out of bw.SJ() otherwise
+  min.cells <- vst.args[['min_cells']] %||% 5
+  expressed <- sum(Matrix::rowSums(x = umi > 0) >= min.cells)
+  if (expressed < 3L) {
+    stop(
+      "Only ", expressed, " features are detected in at least ", min.cells,
+      " cells, out of ", nrow(x = umi),
+      ". sctransform cannot fit a model to that; lower min_cells, or use ",
+      "NormalizeData() for an object this sparse",
+      call. = FALSE
+    )
+  }
   # check for batch_var in meta data
   if ('batch_var' %in% names(x = vst.args)) {
     if (!(vst.args[['batch_var']] %in% colnames(x = cell.attr))) {

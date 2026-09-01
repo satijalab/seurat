@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- `SCTransform` now says when cells have no counts for the features given, or when too few features are detected for a model to be fit, instead of failing inside `sctransform` with \dQuote{cell attribute "log_umi" contains NA, NaN, or infinite value} or \dQuote{need at least 2 data points} ([#8385](https://github.com/satijalab/seurat/issues/8385))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
