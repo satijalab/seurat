@@ -4898,6 +4898,8 @@ DotPlot <- function(
     names(x = feature.groups) <- features
   }
   cells <- unlist(x = CellsByIdentities(object = object, cells = colnames(object[[assay]]), idents = idents))
+  # cells with no identity come back as NA, which FetchData cannot look up
+  cells <- cells[!is.na(x = cells)]
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -4909,6 +4911,19 @@ DotPlot <- function(
   }
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
+  # cells with no identity would be summarised into a group named NA, and the
+  # frames built per group then fail to bind with "duplicate 'row.names'"
+  keep <- !is.na(x = data.features$id)
+  if (!all(keep)) {
+    warning(
+      sum(!keep),
+      " cells have no identity and are not shown",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    data.features <- data.features[keep, , drop = FALSE]
+    cells <- cells[keep]
+  }
   if (!is.null(x = split.by)) {
     splits <- FetchData(object = object, vars = split.by)[cells, split.by]
     if (split.colors) {
@@ -4994,7 +5009,9 @@ DotPlot <- function(
   data.plot$avg.exp.scaled <- avg.exp.scaled
   data.plot$features.plot <- factor(
     x = data.plot$features.plot,
-    levels = features
+    # a feature named twice, which happens when marker lists are combined,
+    # would be a duplicated factor level
+    levels = unique(x = features)
   )
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
