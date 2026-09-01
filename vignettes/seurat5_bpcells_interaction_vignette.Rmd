@@ -114,6 +114,23 @@ SaveSeuratRds(
   file = "obj.Rds")
 ```
 
+### Sharing objects with on-disk layers
+
+`SaveSeuratRds()` records the *path* of each on-disk matrix, so the `.Rds` alone is not self-contained: if the object is emailed, uploaded, or the matrix directory is moved or renamed, the layers can no longer be read.
+
+`SaveSeurat()` bundles the object together with all of its on-disk matrix stores into a single archive, and `LoadSeurat()` extracts it and reconnects the layers automatically. The bundle can be copied or shared like any other file.
+
+```{r, eval=FALSE}
+SaveSeurat(object = brain, file = "brain.seurat")
+brain <- LoadSeurat("brain.seurat")
+```
+
+If the data fits in memory, `AsInMemory()` instead materializes the on-disk layers, so a plain `saveRDS()` yields a single portable file with no external stores to carry along.
+
+```{r, eval=FALSE}
+brain <- AsInMemory(brain)
+saveRDS(brain, "brain.rds")
+```
 
 If needed, a layer with an on-disk matrix can be converted to an in-memory matrix using the `as()` function. For the purposes of this demo, we'll subset the object so that it takes up less space in memory. 
 ```{r}

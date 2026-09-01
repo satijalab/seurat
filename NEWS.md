@@ -7,6 +7,8 @@
 - Added `CheckMatrixSize` to report how close a matrix is to R's 32-bit indexing limit, and `as.sparse.spam` for coercing `spam` matrices ([#9798](https://github.com/satijalab/seurat/issues/9798))
 - `PseudobulkExpression` now supports `DelayedArray`-backed layers instead of erroring
 - `as.Seurat` on a `SingleCellExperiment` whose assays are on-disk (BPCells `IterableMatrix`, `DelayedMatrix`) now materializes them with a warning instead of failing with an opaque "not valid for slot 'data'" class error
+- Added `SaveSeurat`/`LoadSeurat`, which bundle a Seurat object together with its on-disk (e.g. BPCells) matrix stores into a single portable archive, so objects with on-disk layers can be moved or shared without the absolute paths recorded in the object breaking ([#9798](https://github.com/satijalab/seurat/issues/9798))
+- Added `AsInMemory` to materialize on-disk layers into an in-memory object that a plain `saveRDS` writes to a single self-contained file ([#9798](https://github.com/satijalab/seurat/issues/9798))
 
 ### Fixes
 
