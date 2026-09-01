@@ -1,6 +1,6 @@
 set.seed(42)
 
-# Build a small reference dgCMatrix-backed object and a matching DelayedMatrix
+# Build a small dgCMatrix to report on
 .make_counts <- function(nfeat = 120, ncell = 60, lambda = 1.3) {
   m <- as(matrix(rpois(nfeat * ncell, lambda), nfeat, ncell), "dgCMatrix")
   dimnames(m) <- list(paste0("g", seq_len(nfeat)), paste0("c", seq_len(ncell)))
@@ -17,10 +17,21 @@ test_that("CheckMatrixSize reports counts and the 2^31 limit", {
   expect_false(res$on.disk)
 })
 
-test_that("CheckMatrixSize flags on-disk backends as exempt", {
+test_that("CheckMatrixSize flags out-of-memory backends as exempt", {
   skip_if_not_installed("DelayedArray")
-  d <- as.DelayedMatrix(.make_counts())
+  d <- DelayedArray::DelayedArray(.make_counts())
   res <- CheckMatrixSize(d, warn = FALSE)
   expect_true(res$on.disk)
+  expect_false(res$exceeds)
+})
+
+test_that("CheckMatrixSize warns as the limit is approached", {
+  m <- .make_counts()
+  # pretend the object is large, rather than allocating 2 billion entries
+  local_mocked_bindings(
+    .MatrixElementCount = function(object) .Machine$integer.max + 1
+  )
+  expect_warning(CheckMatrixSize(m), "exceeds")
+  expect_true(CheckMatrixSize(m, warn = FALSE)$exceeds)
 })
 
