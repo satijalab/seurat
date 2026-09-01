@@ -11,6 +11,8 @@
 - `ImageDimPlot` and `ImageFeaturePlot` now say why no field of view could be used, naming what was asked for and what the object holds, instead of \dQuote{No compatible spatial coordinates present} ([#7117](https://github.com/satijalab/seurat/issues/7117))
 - `FindVariableFeatures` now says why it cannot select features when no feature has non-zero variance, such as on a single cell, instead of failing inside `loess` with \dQuote{invalid 'x'}; a variance of `NA` is also no longer treated as non-constant ([#191](https://github.com/satijalab/seurat-object/issues/191))
 - `AddModuleScore` (and `CellCycleScoring`) now says when `ctrl` is larger than the expression bins it draws control features from, instead of failing with \dQuote{cannot take a sample larger than the population}; this is what a small or heavily filtered object hits with the default `ctrl = 100`
+- `RunUMAP` and `RunTSNE` now say when `dims` goes past what the reduction holds, as `FindNeighbors` does, instead of failing with \dQuote{subscript out of bounds} or a misleading complaint about perplexity
+- `RunPCA` now says when there are too few features to compute components, and `PrepDR` stops when none of the requested features are scaled, instead of the decomposition failing with \dQuote{max(nu, nv) must be positive} or \dQuote{non-conformable arguments}
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
