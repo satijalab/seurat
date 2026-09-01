@@ -11,6 +11,7 @@
 - Fixed `PrepSCTFindMarkers` failing with \dQuote{subscript out of bounds} on objects whose features or cells were subset after `SCTransform`: an SCT model records what it was fit on, subsetting does not prune that record, and the counts assay was then indexed with features it no longer has ([#9112](https://github.com/satijalab/seurat/issues/9112))
 - Fixed `SCTransform` on a split assay returning variable features that have no residuals, so that `RunPCA` warned they had not been scaled and ran without them; variable features are now chosen from the features that were scaled ([#8880](https://github.com/satijalab/seurat/issues/8880))
 - Fixed `SCTransform` failing on a split assay with `variable.features.n = NULL` and a `variable.features.rv.th` cutoff ([#9189](https://github.com/satijalab/seurat/issues/9189))
+- Fixed `RenameCells` on an SCT assay failing with \dQuote{missing values in 'row.names' are not allowed} when a model records cells the assay no longer has, which is what `RunAzimuth` hits on a subset object ([#256](https://github.com/satijalab/seurat-object/issues/256))
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
