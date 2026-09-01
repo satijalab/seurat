@@ -2811,6 +2811,32 @@ ReadNanostring <- function(
   }
   return(outs)
 }
+# Check that a Xenium output file has the columns it is about to be read for
+#
+# The readers select the columns they need by name. When the file does not have
+# them, the selection fails with \dQuote{undefined columns selected}, which
+# names neither the file nor the column.
+#
+# @param df The data read from the file
+# @param wanted The columns the reader needs
+# @param filename The file the data came from
+#
+# @return Invisibly \code{NULL}, stopping when a column is missing
+#
+.CheckXeniumColumns <- function(df, wanted, filename) {
+  missing <- setdiff(x = wanted, y = colnames(x = df))
+  if (!length(x = missing)) {
+    return(invisible(x = NULL))
+  }
+  stop(
+    "The Xenium ", filename, " has no ",
+    paste(sQuote(x = missing), collapse = ", "),
+    " column", if (length(x = missing) > 1) "s" else "",
+    ". Columns found: ", paste(colnames(x = df), collapse = ", "),
+    call. = FALSE
+  )
+}
+
 
 #' Read and Load 10x Genomics Xenium in-situ data
 #'
@@ -3004,6 +3030,12 @@ ReadXenium <- function(
           stop("Xenium outputs were incomplete: missing cells")
         }
 
+        .CheckXeniumColumns(
+          df = cell_info,
+          wanted = names(x = col.use),
+          filename = "cells file"
+        )
+
         cell_info$cell_id <- binary_to_string(cell_info$cell_id)
 
         cell_info <- cell_info[, names(col.use)]
@@ -3168,6 +3200,12 @@ ReadXenium <- function(
 
           stop(paste0("Xenium outputs were incomplete: missing transcripts", hint))
         }
+
+        .CheckXeniumColumns(
+          df = transcripts,
+          wanted = names(x = col.use),
+          filename = "transcripts file"
+        )
 
         transcripts <- transcripts[, names(col.use)]
         colnames(transcripts) <- col.use
