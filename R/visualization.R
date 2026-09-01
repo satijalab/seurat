@@ -2405,6 +2405,57 @@ PolyFeaturePlot <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Spatial Plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Explain why no field of view could be used
+#
+# The name given may not be in the object at all, or it may name an image that
+# is not a field of view, such as the VisiumV1 images that SpatialDimPlot()
+# takes. Say which of the two it is, and what the object does have.
+#
+# @param object A Seurat object
+# @param requested The fields of view that were asked for
+#
+# @return The message to stop with
+#
+.NoFOVMessage <- function(object, requested) {
+  images <- Images(object = object)
+  if (!length(x = images)) {
+    return("This object has no images, so there are no spatial coordinates to plot")
+  }
+  classes <- vapply(
+    X = images,
+    FUN = function(x) class(x = object[[x]])[1L],
+    FUN.VALUE = character(length = 1L)
+  )
+  is.fov <- vapply(
+    X = images,
+    FUN = function(x) inherits(x = object[[x]], what = 'FOV'),
+    FUN.VALUE = logical(length = 1L)
+  )
+  present <- paste0("'", images, "' (", classes, ")", collapse = ", ")
+  requested <- setdiff(x = requested, y = NA_character_)
+  msg <- if (!length(x = requested)) {
+    "No compatible spatial coordinates present"
+  } else if (any(requested %in% images)) {
+    paste0(
+      "'", paste(intersect(x = requested, y = images), collapse = "', '"),
+      "' is not a field of view"
+    )
+  } else {
+    paste0(
+      "No image named '", paste(requested, collapse = "', '"), "' in this object"
+    )
+  }
+  msg <- paste0(msg, ". Images present: ", present)
+  if (!any(is.fov)) {
+    msg <- paste0(
+      msg,
+      ". None of them is a field of view; images of this kind are plotted with ",
+      "SpatialDimPlot() and SpatialFeaturePlot()"
+    )
+  }
+  return(msg)
+}
+
 
 #' Spatial Cluster Plots
 #'
@@ -2475,6 +2526,7 @@ ImageDimPlot <- function(
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
   fov <- fov %||% DefaultFOV(object = object)
+  requested <- fov
   fov <- Filter(
     f = function(x) {
       return(
@@ -2485,7 +2537,7 @@ ImageDimPlot <- function(
     x = fov
   )
   if (!length(x = fov)) {
-    stop("No compatible spatial coordinates present")
+    stop(.NoFOVMessage(object = object, requested = requested), call. = FALSE)
   }
   # Identify boundaries to use
   boundaries <- boundaries %||% sapply(
@@ -2727,6 +2779,7 @@ ImageFeaturePlot <- function(
   )
   # Determine fov to use
   fov <- fov %||% DefaultFOV(object = object)
+  requested <- fov
   fov <- Filter(
     f = function(x) {
       return(
@@ -2737,7 +2790,7 @@ ImageFeaturePlot <- function(
     x = fov
   )
   if (!length(x = fov)) {
-    stop("No compatible spatial coordinates present")
+    stop(.NoFOVMessage(object = object, requested = requested), call. = FALSE)
   }
   # Identify boundaries to use
   boundaries <- boundaries %||% sapply(
