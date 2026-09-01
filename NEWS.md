@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- `IntegrateLayers` now says when `method` names something that is not an integration method, and lists the ones that ship with Seurat, instead of reporting \dQuote{object 'harmony' not found}
+
 - Fixed the `FindTransferAnchors` error for a query with several original UMI assays being emitted as \dQuote{...original umi assaysFALSE}: `stop()` was passed `call = FALSE` rather than `call. = FALSE`, so the `FALSE` was pasted into the message. The message now also names the assays involved ([#9110](https://github.com/satijalab/seurat/issues/9110))
 - `IntegrateLayers` now reports that it needs at least two layers, and how to split the assay, instead of failing inside the integration method with \dQuote{no applicable method for 'Assays' applied to an object of class \dQuote{NULL}} (or, for `HarmonyIntegration`, \dQuote{attempt to set an attribute on NULL}). This is what a subset drawn from a single sample produces ([#9381](https://github.com/satijalab/seurat/issues/9381), [#9023](https://github.com/satijalab/seurat/issues/9023))
 

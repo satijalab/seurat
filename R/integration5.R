@@ -554,6 +554,24 @@ JointPCAIntegration <- function(
 }
 
 attr(x = JointPCAIntegration, which = 'Seurat.method') <- 'integration'
+# The integration methods this package provides
+#
+# Used to say what is available when a method cannot be found
+#
+# @return A character vector of function names
+#
+.IntegrationMethods <- function() {
+  methods <- c(
+    'CCAIntegration',
+    'RPCAIntegration',
+    'HarmonyIntegration',
+    'FastMNNIntegration',
+    'JointPCAIntegration',
+    'scVIIntegration'
+  )
+  return(Filter(f = exists, x = methods))
+}
+
 
 #' Integrate Layers
 #'
@@ -596,7 +614,19 @@ IntegrateLayers <- function(
     )
   }
   if (is.character(x = method)) {
-    method <- get(x = method)
+    # get() would fail with "object 'harmony' not found", which does not say
+    # that a method was being looked for, nor which ones there are
+    method <- tryCatch(
+      expr = match.fun(FUN = method),
+      error = function(...) {
+        abort(message = paste0(
+          sQuote(x = method, q = FALSE),
+          " is not an integration method. The methods that ship with Seurat ",
+          "are: ",
+          paste(.IntegrationMethods(), collapse = ", ")
+        ))
+      }
+    )
   }
   if (!is.function(x = method)) {
     abort(message = "'method' must be a function for integrating layers")

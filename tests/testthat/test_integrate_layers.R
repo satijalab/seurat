@@ -89,3 +89,29 @@ test_that("the multi-umi-assay message is not mangled and names the assays", {
   expect_match(message, "multiple different")
   expect_match(message, "OTHER")
 })
+
+# A method given as a string that names nothing reached get(), which reports
+# "object 'harmony' not found" without saying a method was being looked for
+test_that("an unknown integration method is named, with what is available", {
+  object <- suppressWarnings(CreateSeuratObject(counts = as.sparse(matrix(
+    rpois(150 * 40, lambda = 3),
+    nrow = 150,
+    dimnames = list(paste0("g", seq_len(150)), paste0("c", seq_len(40)))
+  ))))
+  object$batch <- rep(c("a", "b"), length.out = ncol(object))
+  object[["RNA"]] <- split(object[["RNA"]], f = object$batch)
+
+  expect_error(
+    suppressWarnings(IntegrateLayers(object, method = "harmony", orig.reduction = "pca", verbose = FALSE)),
+    "'harmony' is not an integration method"
+  )
+  expect_error(
+    suppressWarnings(IntegrateLayers(object, method = "harmony", orig.reduction = "pca", verbose = FALSE)),
+    "HarmonyIntegration"
+  )
+  # a function, or the name of one, is still accepted
+  expect_error(
+    suppressWarnings(IntegrateLayers(object, method = 42, orig.reduction = "pca", verbose = FALSE)),
+    "must be a function"
+  )
+})
