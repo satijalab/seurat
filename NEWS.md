@@ -15,6 +15,7 @@
 - `ReadAkoya` now reads QuPath centroid columns that come back as text, converting a decimal comma and naming the column when the values are not numbers, instead of failing later with \dQuote{non-numeric argument to binary operator} ([#7792](https://github.com/satijalab/seurat/issues/7792))
 
 - Fixed `ReadAkoya(type = "qupath")` failing with `arguments imply differing number of rows` when the centroid columns are not named exactly `Centroid X`/`Centroid Y`; the match now tolerates units, case and the dot that `read.csv` substitutes, and a genuinely missing column is reported by name ([#9102](https://github.com/satijalab/seurat/issues/9102))
+- Fixed `ReadNanostring` returning nothing usable when a single `metadata` column is requested, and deciding whether the counts are sparse from the number of columns rather than the number of values ([#8812](https://github.com/satijalab/seurat/issues/8812))
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
