@@ -79,3 +79,34 @@ test_that("a shared feature is unaffected by the presence of a partial one", {
     LayerData(together[["SCT"]], layer = "scale.data")[b$shared, ]
   )
 })
+
+# na.rm = FALSE promises NA for features a model has no fit for, but the
+# per-model matrices were combined with cbind, which needs matching rows
+test_that("residuals can be fetched with na.rm = FALSE", {
+  skip_if_not_installed("sctransform")
+  data("pbmc_small", package = "SeuratObject", envir = environment())
+  object <- pbmc_small
+  object$stim <- rep(c("a", "b"), length.out = ncol(object))
+  object[["RNA"]] <- split(object[["RNA"]], f = object$stim)
+  object <- suppressWarnings(SCTransform(object, variable.features.n = 30, verbose = FALSE))
+
+  models <- levels(object[["SCT"]])
+  modelled <- lapply(
+    X = models,
+    FUN = function(x) rownames(SCTResults(object[["SCT"]], slot = "feature.attributes", model = x))
+  )
+  # features one model has and another does not
+  partial <- setdiff(modelled[[1]], modelled[[2]])
+  skip_if(length(partial) < 2)
+  shared <- Reduce(intersect, modelled)
+  requested <- c(head(shared, 2), head(partial, 2))
+
+  kept <- suppressWarnings(FetchResiduals(object, features = requested, na.rm = FALSE, verbose = FALSE))
+  expect_setequal(rownames(kept), requested)
+  # the shared features are complete, the partial ones are NA where no model fits
+  expect_false(anyNA(kept[head(shared, 2), ]))
+  expect_true(anyNA(kept[head(partial, 2), ]))
+
+  dropped <- suppressWarnings(FetchResiduals(object, features = requested, na.rm = TRUE, verbose = FALSE))
+  expect_setequal(rownames(dropped), head(shared, 2))
+})

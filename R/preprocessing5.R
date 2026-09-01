@@ -1444,18 +1444,26 @@ FetchResiduals.SCTAssay <- function(
   if (nrow(x = existing.data) > 0) {
     new.scale[rownames(x = existing.data), common_cells] <- existing.data[, common_cells]
   }
-  if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
-    new.residuals <- new.residuals[[1]]
-  } else {
-    new.residuals <- Reduce(cbind, new.residuals)
+  # Models covering different feature sets return matrices with different rows,
+  # which cbind cannot combine. Fill by name instead, so each model contributes
+  # the features it has and the rest stay NA, which is what na.rm describes
+  for (residual in new.residuals) {
+    rdim <- dim(x = residual)
+    if (is.null(x = rdim) || any(rdim == 0L)) {
+      next
+    }
+    keep <- intersect(x = rownames(x = residual), y = rownames(x = new.scale))
+    if (!length(x = keep)) {
+      next
+    }
+    new.scale[keep, colnames(x = residual)] <- residual[keep, , drop = FALSE]
   }
-  new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
 
   if (na.rm) {
-    new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
+    new.scale <- new.scale[!rowAnyNAs(x = new.scale), , drop = FALSE]
   }
 
-  return(new.scale[features, ])
+  return(new.scale[intersect(x = features, y = rownames(x = new.scale)), , drop = FALSE])
 }
 
 #' Calculate pearson residuals of features not in the scale.data

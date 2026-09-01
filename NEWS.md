@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed `FetchResiduals(na.rm = FALSE)` failing with \dQuote{number of rows of matrices must match}: the per-model residuals were combined with `cbind`, which cannot combine models that cover different features, so the NA that `na.rm = FALSE` describes was never reached
+
 - Fixed `GetResidual` failing on an `SCTAssay` with several models when a requested feature is modelled by only some of them, with `object 'new_residual' not found` or `number of rows of matrices must match`; residuals for such a feature are now returned for the cells whose model covers it, and `NA` elsewhere ([#10441](https://github.com/satijalab/seurat/issues/10441))
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
