@@ -5,6 +5,170 @@ NULL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Find the anchors between one pair of objects
+#
+# Defined at package level rather than as a closure inside
+# FindIntegrationAnchors(): a closure created there carries that frame as its
+# environment, and the frame holds every object being integrated, so `future`
+# sends all of them to every worker no matter which pair the worker is given.
+#
+# @param pair The two objects and the bookkeeping for their comparison
+# @param anchor.features Features to use
+# @param reduction Dimensional reduction to use
+# @param slot Layer to pull data from
+# @param l2.norm Perform L2 normalization
+# @param dims,k.anchor,k.filter,k.score,max.features,nn.method,n.trees,eps
+# As in \code{FindIntegrationAnchors}
+# @param nn.reduction Reduction for nearest neighbors
+# @param verbose Print messages
+#
+# @return The anchors for this pair, with the offsets applied
+#
+.AnchorsForPair <- function(
+  pair,
+  anchor.features,
+  reduction,
+  slot,
+  l2.norm,
+  dims,
+  k.anchor,
+  k.filter,
+  k.score,
+  max.features,
+  nn.method,
+  nn.reduction,
+  n.trees,
+  eps,
+  verbose
+) {
+  object.1 <- pair$object.1
+  object.2 <- pair$object.2
+    # suppress key duplication warning
+    suppressWarnings(object.1[["ToIntegrate"]] <- object.1[[pair$assay.1]])
+    DefaultAssay(object = object.1) <- "ToIntegrate"
+    if (reduction %in% Reductions(object = object.1)) {
+      slot(object = object.1[[reduction]], name = "assay.used") <- "ToIntegrate"
+    }
+    object.1 <- DietSeurat(object = object.1, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
+    suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[pair$assay.2]])
+    DefaultAssay(object = object.2) <- "ToIntegrate"
+    if (reduction %in% Reductions(object = object.2)) {
+      slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
+    }
+    object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
+    object.pair <- switch(
+      EXPR = reduction,
+      'cca' = {
+        object.pair <- RunCCA(
+          object1 = object.1,
+          object2 = object.2,
+          assay1 = "ToIntegrate",
+          assay2 = "ToIntegrate",
+          features = anchor.features,
+          num.cc = max(dims),
+          renormalize = FALSE,
+          rescale = FALSE,
+          verbose = verbose
+        )
+        if (l2.norm){
+          object.pair <- L2Dim(object = object.pair, reduction = reduction)
+          reduction <- paste0(reduction, ".l2")
+          nn.reduction <- reduction
+        }
+        reduction.2 <- character()
+        object.pair
+      },
+      'pca' = {
+        object.pair <- ReciprocalProject(
+          object.1 = object.1,
+          object.2 = object.2,
+          reduction = 'pca',
+          projected.name = 'projectedpca',
+          features = anchor.features,
+          do.scale = FALSE,
+          do.center = FALSE,
+          slot = 'scale.data',
+          l2.norm = l2.norm,
+          verbose = verbose
+        )
+        reduction <- "projectedpca.ref"
+        reduction.2 <- "projectedpca.query"
+        if (l2.norm) {
+          reduction <- paste0(reduction, ".l2")
+          reduction.2 <- paste0(reduction.2, ".l2")
+        }
+        object.pair
+      },
+      'lsi' = {
+        object.pair <- ReciprocalProject(
+          object.1 = object.1,
+          object.2 = object.2,
+          reduction = 'lsi',
+          projected.name = 'projectedlsi',
+          features = anchor.features,
+          do.center = TRUE,
+          do.scale = FALSE,
+          slot = 'data',
+          l2.norm = l2.norm,
+          verbose = verbose
+        )
+        reduction <- "projectedlsi.ref"
+        reduction.2 <- "projectedlsi.query"
+        if (l2.norm) {
+          reduction <- paste0(reduction, ".l2")
+          reduction.2 <- paste0(reduction.2, ".l2")
+        }
+        object.pair
+      },
+      'joint.pca' = {
+        object.pair <- merge(x = object.1, y = object.2)
+        reduction.2 <- "joint.pca"
+        object.pair[['joint.pca']] <- CreateDimReducObject(
+          embeddings = rbind(Embeddings(object.1[['joint.pca']]),
+                             Embeddings(object.2[['joint.pca']])),
+          loadings = Loadings(object.1[['joint.pca']]),
+            key = 'Joint_',
+          assay = 'ToIntegrate')
+        if (l2.norm) {
+          object.pair <- L2Dim(object = object.pair,
+                               reduction = 'joint.pca',
+                               new.dr = 'joint.pca.l2',
+                               new.key = 'Jl2_'
+                               )
+          reduction <- paste0(reduction, ".l2")
+          reduction.2 <- paste0(reduction.2, ".l2")
+        }
+        object.pair
+      },
+      stop("Invalid reduction parameter. Please choose either cca, rpca, or rlsi")
+    )
+    internal.neighbors <- pair$internal.neighbors
+    anchors <- FindAnchors(
+      object.pair = object.pair,
+      assay = c("ToIntegrate", "ToIntegrate"),
+      slot = slot,
+      cells1 = colnames(x = object.1),
+      cells2 = colnames(x = object.2),
+      internal.neighbors = internal.neighbors,
+      reduction = reduction,
+      reduction.2 = reduction.2,
+      nn.reduction = nn.reduction,
+      dims = dims,
+      k.anchor = k.anchor,
+      k.filter = k.filter,
+      k.score = k.score,
+      max.features = max.features,
+      nn.method = nn.method,
+      n.trees = n.trees,
+      eps = eps,
+      verbose = verbose
+    )
+    anchors[, 1] <- anchors[, 1] + pair$offset.1
+    anchors[, 2] <- anchors[, 2] + pair$offset.2
+    return(anchors)
+  return(anchors)
+}
+
 
 #' Find integration anchors
 #'
@@ -310,159 +474,60 @@ FindIntegrationAnchors <- function(
     }
   }
   # determine all anchors
-  anchoring.fxn <- function(row) {
-    i <- combinations[row, 1]
-    j <- combinations[row, 2]
-    object.1 <- DietSeurat(
-      object = object.list[[i]],
-      assays = assay[i],
-      features = anchor.features,
-      counts = FALSE,
-      scale.data = TRUE,
-      dimreducs = reduction
-    )
-    object.2 <- DietSeurat(
-      object = object.list[[j]],
-      assays = assay[j],
-      features = anchor.features,
-      counts = FALSE,
-      scale.data = TRUE,
-      dimreducs = reduction
-    )
-    # suppress key duplication warning
-    suppressWarnings(object.1[["ToIntegrate"]] <- object.1[[assay[i]]])
-    DefaultAssay(object = object.1) <- "ToIntegrate"
-    if (reduction %in% Reductions(object = object.1)) {
-      slot(object = object.1[[reduction]], name = "assay.used") <- "ToIntegrate"
+  # Trim each object once, here, so that a worker is sent the pair it is asked
+  # about rather than every object being integrated
+  dieted <- lapply(
+    X = seq_along(along.with = object.list),
+    FUN = function(i) {
+      return(DietSeurat(
+        object = object.list[[i]],
+        assays = assay[i],
+        features = anchor.features,
+        counts = FALSE,
+        scale.data = TRUE,
+        dimreducs = reduction
+      ))
     }
-    object.1 <- DietSeurat(object = object.1, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
-    suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[assay[j]]])
-    DefaultAssay(object = object.2) <- "ToIntegrate"
-    if (reduction %in% Reductions(object = object.2)) {
-      slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
+  )
+  pairs <- lapply(
+    X = seq_len(length.out = nrow(x = combinations)),
+    FUN = function(row) {
+      i <- combinations[row, 1]
+      j <- combinations[row, 2]
+      return(list(
+        object.1 = dieted[[i]],
+        object.2 = dieted[[j]],
+        assay.1 = assay[i],
+        assay.2 = assay[j],
+        internal.neighbors = internal.neighbors[c(i, j)],
+        offset.1 = offsets[i],
+        offset.2 = offsets[j]
+      ))
     }
-    object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
-    object.pair <- switch(
-      EXPR = reduction,
-      'cca' = {
-        object.pair <- RunCCA(
-          object1 = object.1,
-          object2 = object.2,
-          assay1 = "ToIntegrate",
-          assay2 = "ToIntegrate",
-          features = anchor.features,
-          num.cc = max(dims),
-          renormalize = FALSE,
-          rescale = FALSE,
-          verbose = verbose
-        )
-        if (l2.norm){
-          object.pair <- L2Dim(object = object.pair, reduction = reduction)
-          reduction <- paste0(reduction, ".l2")
-          nn.reduction <- reduction
-        }
-        reduction.2 <- character()
-        object.pair
-      },
-      'pca' = {
-        object.pair <- ReciprocalProject(
-          object.1 = object.1,
-          object.2 = object.2,
-          reduction = 'pca',
-          projected.name = 'projectedpca',
-          features = anchor.features,
-          do.scale = FALSE,
-          do.center = FALSE,
-          slot = 'scale.data',
-          l2.norm = l2.norm,
-          verbose = verbose
-        )
-        reduction <- "projectedpca.ref"
-        reduction.2 <- "projectedpca.query"
-        if (l2.norm) {
-          reduction <- paste0(reduction, ".l2")
-          reduction.2 <- paste0(reduction.2, ".l2")
-        }
-        object.pair
-      },
-      'lsi' = {
-        object.pair <- ReciprocalProject(
-          object.1 = object.1,
-          object.2 = object.2,
-          reduction = 'lsi',
-          projected.name = 'projectedlsi',
-          features = anchor.features,
-          do.center = TRUE,
-          do.scale = FALSE,
-          slot = 'data',
-          l2.norm = l2.norm,
-          verbose = verbose
-        )
-        reduction <- "projectedlsi.ref"
-        reduction.2 <- "projectedlsi.query"
-        if (l2.norm) {
-          reduction <- paste0(reduction, ".l2")
-          reduction.2 <- paste0(reduction.2, ".l2")
-        }
-        object.pair
-      },
-      'joint.pca' = {
-        object.pair <- merge(x = object.1, y = object.2)
-        reduction.2 <- "joint.pca"
-        object.pair[['joint.pca']] <- CreateDimReducObject(
-          embeddings = rbind(Embeddings(object.1[['joint.pca']]),
-                             Embeddings(object.2[['joint.pca']])),
-          loadings = Loadings(object.1[['joint.pca']]),
-            key = 'Joint_',
-          assay = 'ToIntegrate')
-        if (l2.norm) {
-          object.pair <- L2Dim(object = object.pair,
-                               reduction = 'joint.pca',
-                               new.dr = 'joint.pca.l2',
-                               new.key = 'Jl2_'
-                               )
-          reduction <- paste0(reduction, ".l2")
-          reduction.2 <- paste0(reduction.2, ".l2")
-        }
-        object.pair
-      },
-      stop("Invalid reduction parameter. Please choose either cca, rpca, or rlsi")
-    )
-    internal.neighbors <- internal.neighbors[c(i, j)]
-    anchors <- FindAnchors(
-      object.pair = object.pair,
-      assay = c("ToIntegrate", "ToIntegrate"),
-      slot = slot,
-      cells1 = colnames(x = object.1),
-      cells2 = colnames(x = object.2),
-      internal.neighbors = internal.neighbors,
-      reduction = reduction,
-      reduction.2 = reduction.2,
-      nn.reduction = nn.reduction,
-      dims = dims,
-      k.anchor = k.anchor,
-      k.filter = k.filter,
-      k.score = k.score,
-      max.features = max.features,
-      nn.method = nn.method,
-      n.trees = n.trees,
-      eps = eps,
-      verbose = verbose
-    )
-    anchors[, 1] <- anchors[, 1] + offsets[i]
-    anchors[, 2] <- anchors[, 2] + offsets[j]
-    return(anchors)
-  }
-  if (nbrOfWorkers() == 1) {
-    all.anchors <- pblapply(
-      X = 1:nrow(x = combinations),
-      FUN = anchoring.fxn
-    )
+  )
+  rm(dieted)
+  anchor.args <- list(
+    anchor.features = anchor.features,
+    reduction = reduction,
+    slot = slot,
+    l2.norm = l2.norm,
+    dims = dims,
+    k.anchor = k.anchor,
+    k.filter = k.filter,
+    k.score = k.score,
+    max.features = max.features,
+    nn.method = nn.method,
+    nn.reduction = nn.reduction,
+    n.trees = n.trees,
+    eps = eps,
+    verbose = verbose
+  )
+  all.anchors <- if (nbrOfWorkers() == 1) {
+    do.call(what = pblapply, args = c(list(X = pairs, FUN = .AnchorsForPair), anchor.args))
   } else {
-    all.anchors <- future_lapply(
-      X = 1:nrow(x = combinations),
-      FUN = anchoring.fxn,
-      future.seed = TRUE
+    do.call(
+      what = future_lapply,
+      args = c(list(X = pairs, FUN = .AnchorsForPair, future.seed = TRUE), anchor.args)
     )
   }
   all.anchors <- do.call(what = 'rbind', args = all.anchors)
