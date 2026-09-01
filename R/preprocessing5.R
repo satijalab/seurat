@@ -502,7 +502,10 @@ VST.IterableMatrix <- function(
   # Calculate feature variance
   hvf.info$variance <- hvf.stats['variance', ]
   hvf.info$variance.expected <- 0L
-  not.const <- hvf.info$variance > 0
+  not.const <- !is.na(x = hvf.info$variance) & hvf.info$variance > 0
+  if (!any(not.const)) {
+    .NoFeatureVariance(ncells = ncol(x = data))
+  }
   fit <- loess(
     formula = log10(x = variance) ~ log10(x = mean),
     data = hvf.info[not.const, , drop = TRUE],
@@ -559,7 +562,10 @@ VST.dgCMatrix <- function(
     display_progress = verbose
   )
   hvf.info$variance.expected <- 0L
-  not.const <- hvf.info$variance > 0
+  not.const <- !is.na(x = hvf.info$variance) & hvf.info$variance > 0
+  if (!any(not.const)) {
+    .NoFeatureVariance(ncells = ncol(x = data))
+  }
   fit <- loess(
     formula = log10(x = variance) ~ log10(x = mean),
     data = hvf.info[not.const, , drop = TRUE],
@@ -972,7 +978,10 @@ DISP <- function(
     verbose = verbose
   )
   hvf.info$variance.expected <- 0L
-  not.const <- hvf.info$variance > 0
+  not.const <- !is.na(x = hvf.info$variance) & hvf.info$variance > 0
+  if (!any(not.const)) {
+    .NoFeatureVariance(ncells = ncol(x = data))
+  }
   fit <- loess(
     formula = log10(x = variance) ~ log10(x = mean),
     data = hvf.info[not.const, , drop = TRUE],
