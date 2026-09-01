@@ -1892,19 +1892,21 @@ RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
   old.names <- Cells(x = object)
   names(x = new.names) <- old.names
   cell.attributes <- SCTResults(object = object, slot = "cell.attributes")
+  # A model records the cells it was fit on, and subsetting the object does not
+  # prune that record, so a model can name cells the assay no longer has. Those
+  # have no new name, and assigning NA leaves the frame with missing or
+  # duplicated row names
+  .RenameAttributes <- function(x) {
+    old <- rownames(x = x)
+    renamed <- unname(obj = new.names[old])
+    rownames(x = x) <- ifelse(test = is.na(x = renamed), yes = old, no = renamed)
+    return(x)
+  }
   if (length(x = cell.attributes) > 0) {
     if (is.data.frame(x = cell.attributes)) {
-      old.names <- rownames(x = cell.attributes)
-      rownames(x = cell.attributes) <- unname(obj = new.names[old.names])
+      cell.attributes <- .RenameAttributes(x = cell.attributes)
     } else {
-      cell.attributes <- lapply(
-        X = cell.attributes,
-        FUN = function(x) {
-          old.names <- rownames(x = x)
-          rownames(x = x) <- unname(obj = new.names[old.names])
-          return(x)
-        }
-      )
+      cell.attributes <- lapply(X = cell.attributes, FUN = .RenameAttributes)
     }
     SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
   }
