@@ -3,6 +3,7 @@
 ### Fixes
 
 - Fixed `Load10X_Spatial` stacking every modality of a Visium Gene + Protein panel into one assay, which made `nCount_Spatial` and `nFeature_Spatial` sums across gene and antibody counts; each modality now gets its own assay ([#9182](https://github.com/satijalab/seurat/issues/9182))
+- Fixed `LoadXenium` failing on panels that carry a single feature type, such as the standalone gene panels, where `Read10X_h5` returns a bare matrix rather than a named list ([#9142](https://github.com/satijalab/seurat/issues/9142))
 
 ### Additions
 
