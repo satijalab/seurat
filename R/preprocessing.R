@@ -529,6 +529,42 @@ GetResidual <- function(
 #' }
 #'
 
+# Build the Seurat object for one Visium capture area.
+#
+# Read10X_h5() returns one matrix per modality for a Gene + Protein panel.
+# Passing that list straight to CreateSeuratObject() stacks the modalities into
+# a single assay, so nCount and nFeature become sums across them. Antibody
+# counts run orders of magnitude higher than gene counts, so the gene
+# expression metrics are then meaningless. Give each modality its own assay.
+#
+# @param counts A counts matrix, or a named list of them, one per modality
+# @param assay Name for the assay holding the primary modality
+# @return A Seurat object
+#
+#' @importFrom SeuratObject CreateAssayObject CreateSeuratObject
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+.CreateSpatialObject <- function(counts, assay) {
+  if (!is.list(x = counts)) {
+    return(CreateSeuratObject(counts = counts, assay = assay))
+  }
+  primary <- if ('Gene Expression' %in% names(x = counts)) {
+    'Gene Expression'
+  } else {
+    names(x = counts)[1L]
+  }
+  object <- CreateSeuratObject(counts = counts[[primary]], assay = assay)
+  for (modality in setdiff(x = names(x = counts), y = primary)) {
+    object[[make.names(names = modality)]] <- CreateAssayObject(
+      counts = counts[[modality]]
+    )
+  }
+  return(object)
+}
+
 Load10X_Spatial <- function (
   data.dir,
   filename = "filtered_feature_bc_matrix.h5",
@@ -645,7 +681,12 @@ Load10X_Spatial <- function (
     }
 
     # for each counts matrix, build a Seurat object
-    object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+    object.list <- mapply(
+      FUN = .CreateSpatialObject,
+      counts.list,
+      assay = assay.names,
+      SIMPLIFY = FALSE
+    )
     # associate each counts matrix with its corresponding image
     object.list <- mapply(
       function(
@@ -1243,12 +1284,106 @@ Read10X <- function(
 #' @export
 #' @concept preprocessing
 #'
-Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
-    stop("Please install hdf5r to read HDF5 files")
+# Read a 10x HDF5 matrix using rhdf5, for systems where hdf5r cannot be built.
+# Mirrors Read10X_h5(): CellRanger 2 and 3 layouts, optional unique feature
+# names, the multimodal split, and the protein scaling factor.
+#
+# @inheritParams Read10X_h5
+# @return The same value as Read10X_h5()
+#
+#' @importFrom Matrix sparseMatrix
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+.Read10Xh5Rhdf5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
+  contents <- rhdf5::h5ls(file = filename)
+  on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
+  paths <- paste0(
+    ifelse(test = contents$group == '/', yes = '', no = contents$group),
+    '/', contents$name
+  )
+  genomes <- contents$name[contents$group == '/']
+  feature_slot <- if ('matrix' %in% genomes) {
+    # CellRanger 3
+    ifelse(test = use.names, yes = 'features/name', no = 'features/id')
+  } else {
+    ifelse(test = use.names, yes = 'gene_names', no = 'genes')
   }
+  read <- function(...) as.vector(x = rhdf5::h5read(file = filename, name = file.path(...)))
+  output <- list()
+  for (genome in genomes) {
+    shp <- read(genome, 'shape')
+    sparse.mat <- sparseMatrix(
+      i = read(genome, 'indices') + 1,
+      p = read(genome, 'indptr'),
+      x = as.numeric(x = read(genome, 'data')),
+      dims = shp,
+      repr = 'T'
+    )
+    features <- read(genome, feature_slot)
+    if (unique.features) {
+      features <- make.unique(names = features)
+    }
+    rownames(x = sparse.mat) <- features
+    colnames(x = sparse.mat) <- read(genome, 'barcodes')
+    sparse.mat <- as.sparse(x = sparse.mat)
+    # check the dataset itself, not just the group: a file may carry feature
+    # names without types, and reading it unconditionally would then fail
+    if (paste0('/', genome, '/features/feature_type') %in% paths) {
+      types <- read(genome, 'features/feature_type')
+      types.unique <- unique(x = types)
+      if (length(x = types.unique) > 1) {
+        message(
+          "Genome ", genome,
+          " has multiple modalities, returning a list of matrices for this genome"
+        )
+        sparse.mat <- sapply(
+          X = types.unique,
+          FUN = function(x) {
+            return(sparse.mat[which(x = types == x), ])
+          },
+          simplify = FALSE,
+          USE.NAMES = TRUE
+        )
+        if ('Protein Expression' %in% types.unique) {
+          attrs <- rhdf5::h5readAttributes(file = filename, name = '/')
+          if ('protein_scaling_factor' %in% names(x = attrs)) {
+            apply_scaling_factor <- 1.0 / as.vector(x = attrs$protein_scaling_factor)
+            message("Scaling 'Protein Expression' by ", apply_scaling_factor)
+            sparse.mat[['Protein Expression']] <-
+              sparse.mat[['Protein Expression']] * apply_scaling_factor
+          }
+        }
+      }
+    }
+    output[[genome]] <- sparse.mat
+  }
+  if (length(x = output) == 1) {
+    return(output[[1L]])
+  }
+  return(output)
+}
+
+Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!file.exists(filename)) {
     stop("File not found")
+  }
+  # hdf5r builds against the system HDF5 and does not compile against 1.12 or
+  # newer, which is what current package managers ship, so it can be
+  # uninstallable on an otherwise working system. rhdf5 carries its own copy of
+  # the library via Rhdf5lib. Prefer hdf5r when it is there, so nothing changes
+  # for existing users, and fall back to rhdf5 rather than refusing to read
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
+    if (requireNamespace('rhdf5', quietly = TRUE)) {
+      return(.Read10Xh5Rhdf5(
+        filename = filename,
+        use.names = use.names,
+        unique.features = unique.features
+      ))
+    }
+    stop("Please install hdf5r or rhdf5 to read HDF5 files")
   }
   infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
   genomes <- names(x = infile)
