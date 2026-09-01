@@ -2,6 +2,8 @@
 
 ### Additions
 
+- Added `CheckMatrixSize`, reporting where a matrix stands against R's 32-bit indexing limit and naming the out-of-memory backends when it is near or past it
+
 ### Fixes
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
