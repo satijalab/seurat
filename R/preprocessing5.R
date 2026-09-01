@@ -276,6 +276,7 @@ NormalizeData.default <- function(
         warning('Convert input dgTMatrix into dgCMatrix')
         object <- as(object = object, Class = 'dgCMatrix')
       }
+      object <- .AsSparseIfFits(mat = object, context = 'CLR normalization')
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
         stop('CLR normalization is only supported for dense and dgCMatrix')
@@ -290,6 +291,7 @@ NormalizeData.default <- function(
       )
     },
     'RC' = {
+      object <- .AsSparseIfFits(mat = object, context = 'RC normalization')
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
         stop('RC normalization is only supported for dense and dgCMatrix')
@@ -635,6 +637,10 @@ CalcDispersion <- function(
   verbose = TRUE,
   ...
 ) {
+  object <- .AsSparseIfFits(
+    mat = object,
+    context = 'mean.var.plot/dispersion feature selection'
+  )
   if (!inherits(x = object, what = c('dgCMatrix', 'matrix'))) {
     stop('mean.var.plot and dispersion methods only \
      support dense and sparse matrix input')
