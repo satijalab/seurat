@@ -3774,6 +3774,80 @@ SampleUMI <- function(
   dimnames(x = new_data) <- dimnames(x = data)
   return(new_data)
 }
+#' Name the Variables That Cannot Be Regressed Out
+#'
+#' A variable holding one value for every cell explains nothing and makes the
+#' model matrix rank-deficient, which \code{lm} reports as \dQuote{contrasts can
+#' be applied only to factors with 2 or more levels} without saying which
+#' variable it means
+#'
+#' @param data Data frame of the variables to regress out
+#' @param vars Names of the variables being regressed out
+#'
+#' @return Invisibly \code{NULL}; called for the error it raises
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+.CheckVarsToRegress <- function(data, vars) {
+  vars <- intersect(x = vars, y = colnames(x = data))
+  constant <- vapply(
+    X = vars,
+    FUN = function(v) {
+      x <- data[[v]]
+      x <- x[!is.na(x = x)]
+      if (!length(x = x)) {
+        return(TRUE)
+      }
+      return(length(x = unique(x = x)) < 2L)
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  if (!any(constant)) {
+    return(invisible(x = NULL))
+  }
+  # a constant factor makes the model matrix rank-deficient and lm() fails on
+  # it; a constant numeric contributes nothing but does not stop the fit, and
+  # is regularly constant only within one split of a split-by run, so that one
+  # is worth saying out loud rather than refusing
+  discrete <- vapply(
+    X = vars[constant],
+    FUN = function(v) {
+      return(is.factor(x = data[[v]]) ||
+               is.character(x = data[[v]]) ||
+               is.logical(x = data[[v]]))
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  named <- function(x) {
+    return(paste0(
+      paste(sQuote(x = x), collapse = ", "),
+      ": ",
+      ifelse(test = length(x = x) > 1, yes = "they hold", no = "it holds"),
+      " a single value for every cell"
+    ))
+  }
+  if (any(discrete)) {
+    stop(
+      "Cannot regress out ",
+      named(x = vars[constant][discrete]),
+      ", so there is nothing to regress. Drop ",
+      ifelse(test = sum(discrete) > 1, yes = "them", no = "it"),
+      " from vars.to.regress",
+      call. = FALSE
+    )
+  }
+  warning(
+    "Regressing out ",
+    named(x = vars[constant][!discrete]),
+    " and will have no effect",
+    call. = FALSE,
+    immediate. = TRUE
+  )
+  return(invisible(x = NULL))
+}
+
 
 #' SCTransform: Regularized NB regression for UMI count normalization
 #'
@@ -3920,6 +3994,7 @@ SCTransform.default <- function(
   if (any(!vars.to.regress %in% colnames(x = cell.attr))) {
     stop('problem with second non-regularized linear regression; not all variables found in seurat object meta data; check vars.to.regress parameter')
   }
+  .CheckVarsToRegress(data = cell.attr, vars = vars.to.regress)
   if (any(c('cell_attr', 'verbosity', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
     warning(
       'the following arguments will be ignored because they are set within this function:',
@@ -5193,6 +5268,7 @@ ScaleData.default <- function(
       )
       vars.to.regress <- colnames(x = latent.data)
     }
+    .CheckVarsToRegress(data = latent.data, vars = vars.to.regress)
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
@@ -5421,6 +5497,7 @@ ScaleData.IterableMatrix <- function(
       )
       vars.to.regress <- colnames(x = latent.data)
     }
+    .CheckVarsToRegress(data = latent.data, vars = vars.to.regress)
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
