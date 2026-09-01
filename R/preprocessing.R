@@ -4845,6 +4845,32 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   assay <- assay %||% DefaultAssay(object = object)
   image <- image %||% DefaultImage(object = object)
   features <- features %||% Features(object, assay = assay, layer = layer)
+  # a merged object has one image per sample, and only one of them is used, so
+  # say which and how much of the object it covers rather than quietly
+  # analysing a part of it
+  images <- Filter(
+    f = function(x) {
+      return(isTRUE(x = DefaultAssay(object = object[[x]]) == assay))
+    },
+    x = Images(object = object)
+  )
+  if (length(x = images) > 1L) {
+    covered <- length(x = intersect(
+      x = Cells(x = object[[image]]),
+      y = colnames(x = object[[assay]])
+    ))
+    warning(
+      "This object has ", length(x = images), " images (",
+      paste(sQuote(x = images, q = FALSE), collapse = ", "),
+      "); using ", sQuote(x = image, q = FALSE), ", which covers ",
+      covered, " of the ", ncol(x = object[[assay]]),
+      " cells in assay ", sQuote(x = assay, q = FALSE),
+      ". Pass image = to choose another, and run each image separately to ",
+      "cover them all",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   tc <- GetTissueCoordinates(object = object[[image]])
   # FOV-based images (VisiumV2 and friends) return the cell identifiers as a
   # 'cell' column rather than as row names. That column is not a coordinate:

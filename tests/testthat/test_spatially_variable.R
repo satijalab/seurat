@@ -117,3 +117,38 @@ test_that("an unknown selection.method is rejected before any work", {
     "should be one of"
   )
 })
+
+# A merged object has one image per sample, and only the default one is used,
+# so the analysis silently covered a part of the object
+test_that("using one image out of several is reported", {
+  first <- build_fov_object(n = 40, nfeat = 20)
+  second <- build_fov_object(n = 40, nfeat = 20)
+  second <- RenameCells(second, new.names = paste0("second_", Cells(second)))
+  names(slot(second, name = "images")) <- "fov2"
+  merged <- merge(first, second)
+
+  expect_warning(
+    suppressMessages(FindSpatiallyVariableFeatures(
+      merged,
+      assay = "Spatial",
+      layer = "data",
+      features = rownames(merged)[1:5],
+      selection.method = "moransi",
+      verbose = FALSE
+    )),
+    "covers 40 of the 80 cells"
+  )
+})
+
+test_that("a single image says nothing about images", {
+  object <- build_fov_object(n = 40, nfeat = 20)
+  warnings <- testthat::capture_warnings(suppressMessages(FindSpatiallyVariableFeatures(
+    object,
+    assay = "Spatial",
+    layer = "data",
+    features = rownames(object)[1:5],
+    selection.method = "moransi",
+    verbose = FALSE
+  )))
+  expect_false(any(grepl("images", warnings)))
+})

@@ -9,6 +9,7 @@
 - Fixed `FindSpatiallyVariableFeatures` erroring with \dQuote{promise already under evaluation} when called on an assay without supplying `nfeatures`, whose default referred to itself
 - Fixed `FindSpatiallyVariableFeatures` failing when only one feature has non-zero variance
 - Fixed `FindSpatiallyVariableFeatures` failing when `selection.method` is not supplied: the default is the whole vector of choices and was never resolved, so it reached `switch()` as a length-2 value ([#7020](https://github.com/satijalab/seurat/issues/7020))
+- `FindSpatiallyVariableFeatures` now says when an object has several images and only one of them is used, naming it and how much of the object it covers ([#9092](https://github.com/satijalab/seurat/issues/9092))
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
