@@ -4,6 +4,9 @@
 
 ### Fixes
 
+- `RunUMAP` and `RunTSNE` now say when `dims` goes past what the reduction holds, as `FindNeighbors` does, instead of failing with \dQuote{subscript out of bounds} or a misleading complaint about perplexity
+- `RunPCA` now says when there are too few features to compute components, and `PrepDR` stops when none of the requested features are scaled, instead of the decomposition failing with \dQuote{max(nu, nv) must be positive} or \dQuote{non-conformable arguments}
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
