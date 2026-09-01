@@ -729,4 +729,34 @@ if (requireNamespace('metap', quietly = TRUE)) {
     expect_equal(nrow(markers.missing), 226)
     expect_equal(rownames(markers.missing)[1], "HLA-DPB1")
   })
+
+  test_that("PrepSCTFindMarkers works after features are removed", {
+    kept <- rownames(sct_merged[["SCT"]])[1:50]
+    sct_subset <- subset(sct_merged, features = kept)
+    expect_true(any(!rownames(SCTResults(sct_subset[["SCT"]], slot = "feature.attributes")[[1]]) %in%
+                      rownames(sct_subset[["RNA"]])))
+
+    result <- expect_no_error(PrepSCTFindMarkers(sct_subset, verbose = FALSE))
+    full <- PrepSCTFindMarkers(sct_merged, verbose = FALSE)
+
+    # the retained features are corrected exactly as they are on the full object
+    expect_equal(
+      as.matrix(GetAssayData(result, assay = "SCT", layer = "counts")),
+      as.matrix(GetAssayData(full, assay = "SCT", layer = "counts")[rownames(result[["SCT"]]), colnames(result)])
+    )
+  })
+
+  test_that("PrepSCTFindMarkers works when a model names cells the object lost", {
+    sct_test <- sct_merged
+    model <- slot(sct_test[["SCT"]], name = "SCTModel.list")[["model1"]]
+    attributes <- slot(model, name = "cell.attributes")
+    # a cell the counts assay does not have
+    ghost <- attributes[1, , drop = FALSE]
+    rownames(ghost) <- "ghost_cell"
+    slot(slot(sct_test[["SCT"]], name = "SCTModel.list")[["model1"]],
+         name = "cell.attributes") <- rbind(attributes, ghost)
+
+    result <- expect_no_error(PrepSCTFindMarkers(sct_test, verbose = FALSE))
+    expect_identical(colnames(result), colnames(sct_test))
+  })
 }
