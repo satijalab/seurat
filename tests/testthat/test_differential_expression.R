@@ -416,6 +416,34 @@ if (is_not_cran_submission) {
     expect_true(all(is.finite(result_counts@x)))
   })
 
+  # subsetting cells lowers the observed median UMI of a model below the depth
+  # its stored median_umi records. PrepSCTFindMarkers() skipped those objects,
+  # and FindMarkers() then refused to run on them, so neither could be used
+  test_that("PrepSCTFindMarkers recorrects after cells are removed", {
+    attributes <- SCTResults(sct_merged[["SCT"]], slot = "cell.attributes")
+    lowest <- rownames(attributes[["model1.1"]])[
+      order(attributes[["model1.1"]][, "umi"])
+    ][1:10]
+    sct_subset <- subset(sct_merged, cells = c(rownames(attributes[["model1"]]), lowest))
+    observed <- sapply(
+      X = SCTResults(sct_subset[["SCT"]], slot = "cell.attributes"),
+      FUN = function(x) median(x[, "umi"])
+    )
+    # every stored median now sits above the shared depth
+    expect_true(all(unlist(SCTResults(sct_subset[["SCT"]], slot = "median_umi")) > min(observed)))
+
+    result <- PrepSCTFindMarkers(sct_subset, verbose = FALSE)
+    expect_equal(unname(unlist(SCTResults(result[["SCT"]], slot = "median_umi"))),
+                 rep(min(observed), 2))
+    Idents(result) <- rep(c("a", "b"), length.out = ncol(result))
+    expect_no_error(suppressWarnings(FindMarkers(result, ident.1 = "a", ident.2 = "b", verbose = FALSE)))
+  })
+
+  test_that("PrepSCTFindMarkers skips work when every model is at the shared depth", {
+    prepped <- PrepSCTFindMarkers(sct_merged, verbose = FALSE)
+    expect_message(PrepSCTFindMarkers(prepped), "Skipping re-correction")
+  })
+
   test_that("PrepSCTFindMarkers drops rows with NaN corrected counts", {
     sct_test <- sct_merged
     model_name <- "model1.1"
