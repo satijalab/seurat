@@ -8,6 +8,8 @@
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
 - Fixed bugs in behavior of `RidgePlot` parameters `fill.by`, `y.max`, and `same.y.lims` ([#10424](https://github.com/satijalab/seurat/pull/10424))
+- Fixed naming of combined p-value column in output of `FindConservedMarkers` when a non-default `meta.method` is specified ([#10429](https://github.com/satijalab/seurat/pull/10429))
+- Updated minimum required `uwot` version to `0.2.1` ([#10447](https://github.com/satijalab/seurat/pull/10447))
 
 # Seurat 5.5.1
 
