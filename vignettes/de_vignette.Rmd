@@ -14,7 +14,7 @@ This vignette highlights some example workflows for performing differential expr
 
 A key consideration for differential expression testing with single cell data is the unit of analysis. 
 Analyses which treat individual cells as independent replicates do not account for biological variability, e.g. between different cells from different individuals or lines. 
-Such pseudoreplicate-based analyses and have been shown to find a large number of false positive associations [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2), [Zimmerman et al., 2021](https://www.nature.com/articles/s41467-021-21038-1), [Junttila et al., 2022](https://academic.oup.com/bib/article/23/5/bbac286/6649780). Below, we show how pseudobulking can be used to account for such within-sample correlation. 
+Such pseudoreplicate-based analyses have been shown to find a large number of false positive associations [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2), [Zimmerman et al., 2021](https://www.nature.com/articles/s41467-021-21038-1), [Junttila et al., 2022](https://academic.oup.com/bib/article/23/5/bbac286/6649780). Below, we show how pseudobulking can be used to account for such within-sample correlation. 
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(Seurat)
@@ -25,21 +25,21 @@ ifnb <- LoadData("ifnb")
 
 ### Perform default differential expression tests
 
-The bulk of Seurat’s differential expression features can be accessed through the `FindMarkers()` function. By default, Seurat performs differential expression (DE) testing based on the non-parametric Wilcoxon rank sum test. To test for DE genes between two specific groups of cells, specify the `ident.1` and `ident.2` parameters.
+The bulk of Seurat's differential expression features can be accessed through the `FindMarkers()` function. By default, Seurat performs differential expression (DE) testing based on the non-parametric Wilcoxon rank sum test. To test for DE genes between two specific groups of cells, specify the `ident.1` and `ident.2` parameters.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # Normalize the data
 ifnb <- NormalizeData(ifnb)
 
 # Find DE features between CD16 Mono and CD14 Mono
-# Note that this test treats individual cells as the unit of analysis, which may be justified for comparing cell types within an individual. A significant p-value for a gene supports the conclusion that the gene has a different mean expression level in CD16 Mono vs. CD1 Mono cells from *this donor*. However, the findings should be interpreted cautiously since they do not necessarily support generalization of such differential expression to cells from *other donors*. See the section on pseudobulk analysis below.
+# Note that this test treats individual cells as the unit of analysis, which may be justified for comparing cell types within an individual. A significant p-value for a gene supports the conclusion that the gene has a different mean expression level in CD16 Mono vs. CD14 Mono cells from *this donor*. However, the findings should be interpreted cautiously since they do not necessarily support generalization of such differential expression to cells from *other donors*. See the section on pseudobulk analysis below.
 Idents(ifnb) <- "seurat_annotations"
 monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = "CD14 Mono")
 # view results
 head(monocyte.de.markers)
 ```
 
-The results data frame has the following columns :
+The results data frame has the following columns:
 
 * p_val : p-value (unadjusted)
 * avg_log2FC : log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
@@ -194,6 +194,7 @@ Finally, we also support many other DE tests using other methods. For completene
 * "LR" : Uses a logistic regression framework to determine differentially expressed genes. Constructs a logistic regression model predicting group membership based on each feature individually and compares this to a null model with a likelihood ratio test.
 * "MAST" : GLM-framework that treats cellular detection rate as a covariate (Finak et al, Genome Biology, 2015) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/MAST.html))
 * "DESeq2" : DE based on a model using the negative binomial distribution (Love et al, Genome Biology, 2014) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/DESeq2.html))
+
 For MAST and DESeq2, please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, the `test.use` parameter can be used to specify which DE test to use.
 
 ```{r echo=TRUE, message=FALSE,warning=FALSE,results=TRUE,eval=FALSE}

@@ -64,7 +64,7 @@ We use the `LoadVizgen()` function, which we have written to read in the output 
 -   A count matrix, indicating the number of observed molecules for each of the 483 transcripts in each cell. This matrix is analogous to a count matrix in scRNA-seq, and is stored by default in the RNA assay of the Seurat object
 
 ```{r, message=FALSE, warning=FALSE}
-# Loading segmentations is a slow process and multi processing with the future pacakge is recommended
+# Loading segmentations is a slow process and multi processing with the future package is recommended
 vizgen.obj <- LoadVizgen(data.dir = "/brahms/hartmana/vignette_data/vizgen/s2r1/", fov = "s2r1")
 ```
 
@@ -303,7 +303,7 @@ We can now use `ImageDimPlot()` to color the cell positions colored by the clust
 ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
 ```
 
-Using the positional information of each cell, we compute spatial niches. We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex. The Allen Brain reference can be installed [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1).
+Using the positional information of each cell, we compute spatial niches. We use a cortex reference from the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex. The Allen Brain reference can be installed [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1).
 
 Below, we use Slc17a7 expression to help determine the cortical region.
 
