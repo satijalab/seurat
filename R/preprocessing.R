@@ -445,8 +445,10 @@ GetResidual <- function(
     new.residuals <- lapply(
       X = sct.models,
       FUN = function(x) {
+        model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[x]])
         FetchResidualSCTModel(object = object[[assay]],
                               umi.object = object[[umi.assay]],
+                              layer.cells = model.cells,
                               SCTModel = x,
                               new_features = features,
                               replace.value = replace.value,
@@ -5978,18 +5980,19 @@ GetResidualSCTModel <- function(
       " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
     )
     if (length(x = intersect_features) == 0) {
-      return(matrix(
+      new_residual <- matrix(
         data = NA,
         nrow = length(x = features_to_compute),
         ncol = length(x = model.cells),
         dimnames = list(features_to_compute, model.cells)
-      ))
+      )
+    } else {
+      umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[intersect_features, model.cells, drop = FALSE]
     }
-    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[intersect_features, model.cells, drop = FALSE]
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
-  if (nrow(x = umi) > 0) {
+  if (exists(x = "umi", inherits = FALSE) && nrow(x = umi) > 0) {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
     if (verbose) {
       message("sct.model: ", SCTModel)
@@ -6002,15 +6005,48 @@ GetResidualSCTModel <- function(
       verbosity = as.numeric(x = verbose) * 2
     )
     new_residual <- as.matrix(x = new_residual)
+    if (!identical(dim(x = new_residual), dim(x = umi))) {
+      new_residual <- matrix(
+        data = new_residual,
+        nrow = nrow(x = umi),
+        ncol = ncol(x = umi),
+        dimnames = dimnames(x = umi)
+      )
+    } else {
+      dimnames(x = new_residual) <- dimnames(x = umi)
+    }
     # centered data
-    new_residual <- new_residual - rowMeans(x = new_residual)
-  } else {
+    new_residual <- sweep(
+      x = new_residual,
+      MARGIN = 1,
+      STATS = rowMeans(x = new_residual),
+      FUN = "-"
+    )
+  } else if (!exists(x = "new_residual", inherits = FALSE)) {
     new_residual <- matrix(data = NA, nrow = 0, ncol = length(x = model.cells), dimnames = list(c(), model.cells))
+  }
+  if (length(x = diff_features) > 0 && length(x = intersect_features) > 0) {
+    padded_residual <- matrix(
+      data = NA,
+      nrow = length(x = features_to_compute),
+      ncol = length(x = model.cells),
+      dimnames = list(features_to_compute, model.cells)
+    )
+    padded_residual[rownames(x = new_residual), colnames(x = new_residual)] <- new_residual
+    new_residual <- padded_residual
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
     old_residuals <- GetAssayData(object = object[[assay]], layer = "scale.data")[old.features, model.cells, drop = FALSE]
-    new_residual <- rbind(new_residual, old_residuals)[new_features, ]
+    combined_residual <- matrix(
+      data = NA,
+      nrow = length(x = new_features),
+      ncol = length(x = model.cells),
+      dimnames = list(new_features, model.cells)
+    )
+    combined_residual[rownames(x = new_residual), colnames(x = new_residual)] <- new_residual
+    combined_residual[rownames(x = old_residuals), colnames(x = old_residuals)] <- old_residuals
+    new_residual <- combined_residual
   }
   return(new_residual)
 }
