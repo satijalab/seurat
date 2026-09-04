@@ -1877,7 +1877,7 @@ Radius.VisiumV1 <- function(object, scale = "lowres", ...) {
 #' @rdname Radius
 #' @concept objects
 #' @concept spatial
-#' @method Radius VisiumV1
+#' @method Radius VisiumV2
 #' @export
 #'
 Radius.VisiumV2 <- Radius.VisiumV1

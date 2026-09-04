@@ -3141,8 +3141,15 @@ CreateCategoryMatrix <- function(
   colnames(x = category.matrix) <- unname(sapply(
     X = colnames(x = category.matrix),
     FUN = function(name) {
-      name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
-      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
+      # `sparse.model.matrix` names each column by concatenating the 'data[, i]'
+      # term with that variable's level, joining the variables with ':'. Split on
+      # the 'data[, i]' markers themselves rather than on ':', so that a level
+      # which contains a colon is not mistaken for a variable boundary
+      levels <- unlist(x = strsplit(x = name, split = ':?data\\[, [0-9]+\\]'))
+      if (length(x = levels) && !nzchar(x = levels[1L])) {
+        levels <- levels[-1L]
+      }
+      return(paste0(rev(x = levels), collapse = "_"))
     }))
   rownames(category.matrix) <- cells.name
   return(category.matrix)
