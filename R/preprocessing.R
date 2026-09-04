@@ -488,6 +488,43 @@ GetResidual <- function(
   }
   return(object)
 }
+# Keep the array coordinates a Visium tissue positions file carries
+#
+# A VisiumV2 image holds only the pixel position of each spot, so the array row
+# and column, and whether the spot is over tissue, are dropped when the image is
+# built. A VisiumV1 image kept all five columns in its `coordinates` slot, and
+# tools that read them have no way to recover them from the object.
+#
+# @param object A Seurat object
+# @param image.dir The spatial directory the image was read from
+# @param filter.matrix Filter to spots over tissue, as for the image
+#
+# @return \code{object} with array_row, array_col and in_tissue meta data,
+# unchanged if the file has none of them
+#
+.AddArrayCoordinates <- function(object, image.dir, filter.matrix = TRUE) {
+  positions <- Sys.glob(paths = file.path(image.dir, "*tissue_positions*"))
+  if (!length(x = positions)) {
+    return(object)
+  }
+  coordinates <- tryCatch(
+    expr = Read10X_Coordinates(
+      filename = positions[1L],
+      filter.matrix = filter.matrix
+    ),
+    error = function(...) NULL
+  )
+  columns <- c(array_row = 'row', array_col = 'col', in_tissue = 'tissue')
+  columns <- columns[columns %in% colnames(x = coordinates)]
+  cells <- intersect(x = colnames(x = object), y = rownames(x = coordinates))
+  if (!length(x = columns) || !length(x = cells)) {
+    return(object)
+  }
+  md <- coordinates[cells, columns, drop = FALSE]
+  colnames(x = md) <- names(x = columns)
+  return(AddMetaData(object = object, metadata = md))
+}
+
 
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
 #'
@@ -528,6 +565,42 @@ GetResidual <- function(
 #' Load10X_Spatial(data.dir = data_dir)
 #' }
 #'
+
+# Build the Seurat object for one Visium capture area.
+#
+# Read10X_h5() returns one matrix per modality for a Gene + Protein panel.
+# Passing that list straight to CreateSeuratObject() stacks the modalities into
+# a single assay, so nCount and nFeature become sums across them. Antibody
+# counts run orders of magnitude higher than gene counts, so the gene
+# expression metrics are then meaningless. Give each modality its own assay.
+#
+# @param counts A counts matrix, or a named list of them, one per modality
+# @param assay Name for the assay holding the primary modality
+# @return A Seurat object
+#
+#' @importFrom SeuratObject CreateAssayObject CreateSeuratObject
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+.CreateSpatialObject <- function(counts, assay) {
+  if (!is.list(x = counts)) {
+    return(CreateSeuratObject(counts = counts, assay = assay))
+  }
+  primary <- if ('Gene Expression' %in% names(x = counts)) {
+    'Gene Expression'
+  } else {
+    names(x = counts)[1L]
+  }
+  object <- CreateSeuratObject(counts = counts[[primary]], assay = assay)
+  for (modality in setdiff(x = names(x = counts), y = primary)) {
+    object[[make.names(names = modality)]] <- CreateAssayObject(
+      counts = counts[[modality]]
+    )
+  }
+  return(object)
+}
 
 Load10X_Spatial <- function (
   data.dir,
@@ -645,25 +718,48 @@ Load10X_Spatial <- function (
     }
 
     # for each counts matrix, build a Seurat object
-    object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+    object.list <- mapply(
+      FUN = .CreateSpatialObject,
+      counts.list,
+      assay = assay.names,
+      SIMPLIFY = FALSE
+    )
     # associate each counts matrix with its corresponding image
+    # the directory each image was read from, so the array coordinates it holds
+    # can be kept; NA when the caller supplied the images themselves
+    image.dirs <- if (is.null(x = image)) {
+      file.path(data.dirs, "spatial")
+    } else {
+      rep_len(x = NA_character_, length.out = length(x = image.list))
+    }
     object.list <- mapply(
       function(
         .object,
         .image,
         .assay,
-        .slice
+        .slice,
+        .dir
       ) {
         # align the image's identifiers with the object's
         .image <- .image[Cells(.object)]
         # add the image to the corresponding Seurat instance
         .object[[.slice]] <- .image
+        # a VisiumV2 image keeps only the pixel positions, so hold on to the
+        # array coordinates the tissue positions file carries
+        if (!is.na(x = .dir)) {
+          .object <- .AddArrayCoordinates(
+            object = .object,
+            image.dir = .dir,
+            filter.matrix = filter.matrix
+          )
+        }
         return (.object)
       },
       object.list,
       image.list,
       assay.names,
-      slice.names
+      slice.names,
+      image.dirs
     )
     # merge the Seurat instances - each assay should have unique Cell identifiers
     object <- merge(
@@ -1243,12 +1339,106 @@ Read10X <- function(
 #' @export
 #' @concept preprocessing
 #'
-Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
-    stop("Please install hdf5r to read HDF5 files")
+# Read a 10x HDF5 matrix using rhdf5, for systems where hdf5r cannot be built.
+# Mirrors Read10X_h5(): CellRanger 2 and 3 layouts, optional unique feature
+# names, the multimodal split, and the protein scaling factor.
+#
+# @inheritParams Read10X_h5
+# @return The same value as Read10X_h5()
+#
+#' @importFrom Matrix sparseMatrix
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+.Read10Xh5Rhdf5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
+  contents <- rhdf5::h5ls(file = filename)
+  on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
+  paths <- paste0(
+    ifelse(test = contents$group == '/', yes = '', no = contents$group),
+    '/', contents$name
+  )
+  genomes <- contents$name[contents$group == '/']
+  feature_slot <- if ('matrix' %in% genomes) {
+    # CellRanger 3
+    ifelse(test = use.names, yes = 'features/name', no = 'features/id')
+  } else {
+    ifelse(test = use.names, yes = 'gene_names', no = 'genes')
   }
+  read <- function(...) as.vector(x = rhdf5::h5read(file = filename, name = file.path(...)))
+  output <- list()
+  for (genome in genomes) {
+    shp <- read(genome, 'shape')
+    sparse.mat <- sparseMatrix(
+      i = read(genome, 'indices') + 1,
+      p = read(genome, 'indptr'),
+      x = as.numeric(x = read(genome, 'data')),
+      dims = shp,
+      repr = 'T'
+    )
+    features <- read(genome, feature_slot)
+    if (unique.features) {
+      features <- make.unique(names = features)
+    }
+    rownames(x = sparse.mat) <- features
+    colnames(x = sparse.mat) <- read(genome, 'barcodes')
+    sparse.mat <- as.sparse(x = sparse.mat)
+    # check the dataset itself, not just the group: a file may carry feature
+    # names without types, and reading it unconditionally would then fail
+    if (paste0('/', genome, '/features/feature_type') %in% paths) {
+      types <- read(genome, 'features/feature_type')
+      types.unique <- unique(x = types)
+      if (length(x = types.unique) > 1) {
+        message(
+          "Genome ", genome,
+          " has multiple modalities, returning a list of matrices for this genome"
+        )
+        sparse.mat <- sapply(
+          X = types.unique,
+          FUN = function(x) {
+            return(sparse.mat[which(x = types == x), ])
+          },
+          simplify = FALSE,
+          USE.NAMES = TRUE
+        )
+        if ('Protein Expression' %in% types.unique) {
+          attrs <- rhdf5::h5readAttributes(file = filename, name = '/')
+          if ('protein_scaling_factor' %in% names(x = attrs)) {
+            apply_scaling_factor <- 1.0 / as.vector(x = attrs$protein_scaling_factor)
+            message("Scaling 'Protein Expression' by ", apply_scaling_factor)
+            sparse.mat[['Protein Expression']] <-
+              sparse.mat[['Protein Expression']] * apply_scaling_factor
+          }
+        }
+      }
+    }
+    output[[genome]] <- sparse.mat
+  }
+  if (length(x = output) == 1) {
+    return(output[[1L]])
+  }
+  return(output)
+}
+
+Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!file.exists(filename)) {
     stop("File not found")
+  }
+  # hdf5r builds against the system HDF5 and does not compile against 1.12 or
+  # newer, which is what current package managers ship, so it can be
+  # uninstallable on an otherwise working system. rhdf5 carries its own copy of
+  # the library via Rhdf5lib. Prefer hdf5r when it is there, so nothing changes
+  # for existing users, and fall back to rhdf5 rather than refusing to read
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
+    if (requireNamespace('rhdf5', quietly = TRUE)) {
+      return(.Read10Xh5Rhdf5(
+        filename = filename,
+        use.names = use.names,
+        unique.features = unique.features
+      ))
+    }
+    stop("Please install hdf5r or rhdf5 to read HDF5 files")
   }
   infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
   genomes <- names(x = infile)
@@ -1638,6 +1828,48 @@ Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
   segmentation_polygons
 }
+# Read a QuPath centroid column as numbers
+#
+# The column can come back as text: QuPath writes a decimal comma in some
+# locales, and units are sometimes carried in the values. Both leave the
+# coordinates as character, and the failure surfaces later as
+# \dQuote{non-numeric argument to binary operator} from inside diff()
+#
+# @param values The column as read
+# @param column The name of the column, for the messages
+#
+# @return The column as numbers
+#
+.NumericCentroid <- function(values, column) {
+  if (is.numeric(x = values)) {
+    return(values)
+  }
+  chr <- trimws(x = as.character(x = values))
+  present <- nzchar(x = chr)
+  numbers <- suppressWarnings(expr = as.numeric(x = chr))
+  if (!anyNA(x = numbers[present])) {
+    return(numbers)
+  }
+  # a decimal comma, which QuPath writes under some locales
+  swapped <- suppressWarnings(
+    expr = as.numeric(x = sub(pattern = ',', replacement = '.', x = chr, fixed = TRUE))
+  )
+  if (!anyNA(x = swapped[present])) {
+    warning(
+      "The ", column, " column uses a decimal comma, reading it as numbers",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    return(swapped)
+  }
+  stop(
+    "The ", column, " column does not hold numbers: ",
+    paste(sQuote(x = utils::head(x = chr[present][is.na(x = numbers[present])], n = 3L)), collapse = ', '),
+    ". Centroids must be plain numbers, without units",
+    call. = FALSE
+  )
+}
+
 
 
 
@@ -1892,17 +2124,41 @@ ReadAkoya <- function(
         class = 'sticky',
         amount = 0
       )
-      xpos <- sort(
-        x = grep(pattern = 'Centroid X', x = colnames(x = mtx), value = TRUE),
-        decreasing = TRUE
-      )[1L]
-      ypos <- sort(
-        x = grep(pattern = 'Centroid Y', x = colnames(x = mtx), value = TRUE),
-        decreasing = TRUE
-      )[1L]
+      # QuPath exports name these columns inconsistently: with or without units,
+      # in either case, and with the space replaced by a dot once read.csv() has
+      # applied check.names. Match all of those rather than one literal spelling
+      .CentroidColumn <- function(axis, columns) {
+        hits <- grep(
+          pattern = paste0('centroid[ ._]*', axis),
+          x = columns,
+          ignore.case = TRUE,
+          value = TRUE
+        )
+        return(sort(x = hits, decreasing = TRUE)[1L])
+      }
+      xpos <- .CentroidColumn(axis = 'x', columns = colnames(x = mtx))
+      ypos <- .CentroidColumn(axis = 'y', columns = colnames(x = mtx))
+      if (is.na(x = xpos) || is.na(x = ypos)) {
+        # otherwise the missing column yields a zero-length vector and the frame
+        # below fails with "arguments imply differing number of rows"
+        missing <- c('X', 'Y')[c(is.na(x = xpos), is.na(x = ypos))]
+        stop(
+          "Could not find the centroid ", paste(missing, collapse = ' and '),
+          " column", ifelse(test = length(x = missing) > 1L, yes = 's', no = ''),
+          " in this QuPath export; a column named like 'Centroid X' is ",
+          "expected. Columns present: ",
+          paste(sQuote(x = utils::head(x = colnames(x = mtx), n = 8L)), collapse = ', '),
+          ifelse(
+            test = ncol(x = mtx) > 8L,
+            yes = paste0(', and ', ncol(x = mtx) - 8L, ' more'),
+            no = ''
+          ),
+          call. = FALSE
+        )
+      }
       centroids <- data.frame(
-        x = mtx[[xpos]],
-        y = mtx[[ypos]],
+        x = .NumericCentroid(values = mtx[[xpos]], column = xpos),
+        y = .NumericCentroid(values = mtx[[ypos]], column = ypos),
         cell = rownames(x = mtx),
         stringsAsFactors = FALSE
       )
@@ -2460,7 +2716,8 @@ ReadNanostring <- function(
         tx <- tx[, which(colSums(tx) != 0)]
         ratio <- getOption(x = 'Seurat.input.sparse_ratio', default = 0.4)
 
-        if ((sum(tx == 0) / length(x = tx)) > ratio) {
+        # tx is a data frame here, so length() is its number of columns
+        if ((sum(tx == 0) / prod(dim(x = tx))) > ratio) {
           ptx(
             message = 'Converting counts to sparse matrix',
             class = 'sticky',
@@ -2511,7 +2768,9 @@ ReadNanostring <- function(
           amount = 0
         )
         pmeta(type = 'finish')
-        df <- md[,metadata]
+        # a single column would otherwise come back as a vector, and the cell
+        # names assigned just below would be dropped
+        df <- md[, metadata, drop = FALSE]
         df$cell <- paste0(as.character(md$cell_ID), "_", md$fov)
         df
       },
@@ -2552,6 +2811,32 @@ ReadNanostring <- function(
   }
   return(outs)
 }
+# Check that a Xenium output file has the columns it is about to be read for
+#
+# The readers select the columns they need by name. When the file does not have
+# them, the selection fails with \dQuote{undefined columns selected}, which
+# names neither the file nor the column.
+#
+# @param df The data read from the file
+# @param wanted The columns the reader needs
+# @param filename The file the data came from
+#
+# @return Invisibly \code{NULL}, stopping when a column is missing
+#
+.CheckXeniumColumns <- function(df, wanted, filename) {
+  missing <- setdiff(x = wanted, y = colnames(x = df))
+  if (!length(x = missing)) {
+    return(invisible(x = NULL))
+  }
+  stop(
+    "The Xenium ", filename, " has no ",
+    paste(sQuote(x = missing), collapse = ", "),
+    " column", if (length(x = missing) > 1) "s" else "",
+    ". Columns found: ", paste(colnames(x = df), collapse = ", "),
+    call. = FALSE
+  )
+}
+
 
 #' Read and Load 10x Genomics Xenium in-situ data
 #'
@@ -2615,7 +2900,11 @@ ReadXenium <- function(
 
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
   has_arrow <- requireNamespace("arrow", quietly = TRUE)
-  has_hdf5r <- requireNamespace("hdf5r", quietly = TRUE)
+  # Read10X_h5() reads through hdf5r or, failing that, rhdf5; gate on whether
+  # either is available rather than on hdf5r alone, or the .h5 is skipped on a
+  # system where it is perfectly readable
+  has_h5 <- requireNamespace("hdf5r", quietly = TRUE) ||
+    requireNamespace("rhdf5", quietly = TRUE)
 
   binary_to_string <- function(arrow_binary) {
     if(typeof(arrow_binary) == 'list') {
@@ -2637,7 +2926,7 @@ ReadXenium <- function(
         pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
 
         for(option in Filter(function(x) x$req, list(
-          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_hdf5r),
+          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_h5),
           list(filename = "cell_feature_matrix", fn = Read10X, req = TRUE)
         ))) {
           matrix <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
@@ -2740,6 +3029,12 @@ ReadXenium <- function(
         if(!exists('cell_info') || inherits(cell_info, "try-error")) {
           stop("Xenium outputs were incomplete: missing cells")
         }
+
+        .CheckXeniumColumns(
+          df = cell_info,
+          wanted = names(x = col.use),
+          filename = "cells file"
+        )
 
         cell_info$cell_id <- binary_to_string(cell_info$cell_id)
 
@@ -2844,7 +3139,17 @@ ReadXenium <- function(
           y_location = letters[25-flip.xy],
           feature_name = 'gene'
         )
+        # `mols.qv.threshold` was documented and accepted but never applied,
+        # because the quality column was not among those read. Ask for it, and
+        # fall back to reading without it for outputs that lack it
+        qv.wanted <- is.numeric(x = mols.qv.threshold) &&
+          length(x = mols.qv.threshold) == 1L &&
+          !is.na(x = mols.qv.threshold)
+        if (qv.wanted) {
+          col.use <- c(col.use, qv = 'qv')
+        }
 
+        read.transcripts <- function(col.use) {
         for(option in Filter(function(x) x$req, list(
           list(
             filename = "transcripts.parquet",
@@ -2861,6 +3166,31 @@ ReadXenium <- function(
           transcripts <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
           if(!inherits(transcripts, "try-error")) { break }
         }
+          return(transcripts)
+        }
+
+        transcripts <- read.transcripts(col.use = col.use)
+        # Outputs without a quality column either fail the read (readers that
+        # select columns) or return a frame without it (readers that do not).
+        # Handle both: fall back and say the threshold could not be honoured,
+        # rather than filtering silently or failing on a missing column
+        if (qv.wanted) {
+          missing.qv <- inherits(x = transcripts, what = 'try-error') ||
+            !'qv' %in% colnames(x = transcripts)
+          if (missing.qv) {
+            col.use <- col.use[setdiff(x = names(x = col.use), y = 'qv')]
+            qv.wanted <- FALSE
+            transcripts <- read.transcripts(col.use = col.use)
+            if (!inherits(x = transcripts, what = 'try-error')) {
+              warning(
+                "No 'qv' column in the transcripts file; 'mols.qv.threshold' ",
+                "was not applied.",
+                call. = FALSE,
+                immediate. = TRUE
+              )
+            }
+          }
+        }
 
         if(!exists('transcripts') || inherits(transcripts, "try-error")) {
           hint <- ""
@@ -2871,8 +3201,20 @@ ReadXenium <- function(
           stop(paste0("Xenium outputs were incomplete: missing transcripts", hint))
         }
 
+        .CheckXeniumColumns(
+          df = transcripts,
+          wanted = names(x = col.use),
+          filename = "transcripts file"
+        )
+
         transcripts <- transcripts[, names(col.use)]
         colnames(transcripts) <- col.use
+
+        if (qv.wanted) {
+          keep <- !is.na(x = transcripts$qv) & transcripts$qv >= mols.qv.threshold
+          transcripts <- transcripts[keep, , drop = FALSE]
+          transcripts$qv <- NULL
+        }
 
         transcripts$gene <- binary_to_string(transcripts$gene)
 
