@@ -327,6 +327,20 @@ test_that("IntegrateLayers fails when expected", {
       new.reduction = "integrated"
     )
   )
+
+  # an error should be raised if the assay has only one layer after split
+  test.data.one <- test.data.std
+  test.data.one[["RNA"]] <- JoinLayers(test.data.one[["RNA"]])
+  test.data.one[["RNA"]] <- split(test.data.one[["RNA"]], f = rep("single", ncol(test.data.one)))
+  expect_error(
+    IntegrateLayers(
+      test.data.one,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated"
+    ),
+    regexp = "at least two groups/layers"
+  )
 })
 
 
