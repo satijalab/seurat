@@ -5972,9 +5972,8 @@ GetResidualSCTModel <- function(
   }
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
-  features_to_compute_model <- features_to_compute
   if (length(x = diff_features) == 0) {
-    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts" )[features_to_compute_model, model.cells, drop = FALSE]
+    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts" )[features_to_compute, model.cells, drop = FALSE]
   } else {
     warning(
       "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
@@ -5988,8 +5987,7 @@ GetResidualSCTModel <- function(
         dimnames = list(features_to_compute, model.cells)
       )
     } else {
-      features_to_compute_model <- intersect_features
-      umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[features_to_compute_model, model.cells, drop = FALSE]
+      umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[intersect_features, model.cells, drop = FALSE]
     }
   }
   clip.max <- max(clip.range)
@@ -6027,14 +6025,14 @@ GetResidualSCTModel <- function(
   } else if (!exists(x = "new_residual", inherits = FALSE)) {
     new_residual <- matrix(data = NA, nrow = 0, ncol = length(x = model.cells), dimnames = list(c(), model.cells))
   }
-  if (length(x = diff_features) > 0) {
+  if (length(x = diff_features) > 0 && length(x = intersect_features) > 0) {
     padded_residual <- matrix(
       data = NA,
       nrow = length(x = features_to_compute),
       ncol = length(x = model.cells),
       dimnames = list(features_to_compute, model.cells)
     )
-    padded_residual[features_to_compute_model, colnames(x = new_residual)] <- new_residual
+    padded_residual[rownames(x = new_residual), colnames(x = new_residual)] <- new_residual
     new_residual <- padded_residual
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
