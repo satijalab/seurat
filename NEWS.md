@@ -2,6 +2,8 @@
 
 ### Additions
 
+- HDF5 files are now read with `rhdf5` rather than `hdf5r`. `hdf5r` builds against the system HDF5 and does not compile against 1.12 or newer, which is what current package managers ship, so it can be uninstallable on an otherwise working system; `rhdf5` carries its own copy of the library. Affects `Read10X_h5`, `Read10X_probe_metadata`, `ReadXenium` and the Vizgen segmentation reader ([#9182](https://github.com/satijalab/seurat/issues/9182))
+
 ### Fixes
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix

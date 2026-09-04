@@ -772,17 +772,22 @@ Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
 ) {
-  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
-    stop("Please install hdf5r to read HDF5 files")
+  if (isFALSE(x = requireNamespace('rhdf5', quietly = TRUE))) {
+    stop("Please install rhdf5 to read HDF5 files")
   }
   file.path = paste0(data.dir,"/", filename)
   if (!file.exists(file.path)) {
     stop("File not found")
   }
-  infile <- hdf5r::H5File$new(filename = file.path, mode = 'r')
-  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
-    probe.name <- infile[['matrix/features/name']][]
-    probe.region<- infile[['matrix/features/probe_region']][]
+  contents <- rhdf5::h5ls(file = file.path)
+  on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
+  objects <- paste0(
+    ifelse(test = contents$group == '/', yes = '', no = contents$group),
+    '/', contents$name
+  )
+  if("/matrix/features/probe_region" %in% objects) {
+    probe.name <- as.vector(x = rhdf5::h5read(file = file.path, name = 'matrix/features/name'))
+    probe.region<- as.vector(x = rhdf5::h5read(file = file.path, name = 'matrix/features/probe_region'))
     meta.data <- data.frame(probe.name, probe.region)
     return(meta.data)
   }
@@ -1243,59 +1248,59 @@ Read10X <- function(
 #' @export
 #' @concept preprocessing
 #'
-Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
-    stop("Please install hdf5r to read HDF5 files")
-  }
-  if (!file.exists(filename)) {
-    stop("File not found")
-  }
-  infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
-  genomes <- names(x = infile)
-  output <- list()
-  if (hdf5r::existsGroup(infile, 'matrix')) {
-    # cellranger version 3
-    if (use.names) {
-      feature_slot <- 'features/name'
-    } else {
-      feature_slot <- 'features/id'
-    }
+# Read a 10x HDF5 matrix using rhdf5.
+# Implements Read10X_h5(): CellRanger 2 and 3 layouts, optional unique feature
+# names, the multimodal split, and the protein scaling factor.
+#
+# @inheritParams Read10X_h5
+# @return The same value as Read10X_h5()
+#
+#' @importFrom Matrix sparseMatrix
+#'
+#' @keywords internal
+#'
+#' @noRd
+#
+.Read10Xh5Rhdf5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
+  contents <- rhdf5::h5ls(file = filename)
+  on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
+  paths <- paste0(
+    ifelse(test = contents$group == '/', yes = '', no = contents$group),
+    '/', contents$name
+  )
+  genomes <- contents$name[contents$group == '/']
+  feature_slot <- if ('matrix' %in% genomes) {
+    # CellRanger 3
+    ifelse(test = use.names, yes = 'features/name', no = 'features/id')
   } else {
-    if (use.names) {
-      feature_slot <- 'gene_names'
-    } else {
-      feature_slot <- 'genes'
-    }
+    ifelse(test = use.names, yes = 'gene_names', no = 'genes')
   }
+  read <- function(...) as.vector(x = rhdf5::h5read(file = filename, name = file.path(...)))
+  output <- list()
   for (genome in genomes) {
-    counts <- infile[[paste0(genome, '/data')]]
-    indices <- infile[[paste0(genome, '/indices')]]
-    indptr <- infile[[paste0(genome, '/indptr')]]
-    shp <- infile[[paste0(genome, '/shape')]]
-    features <- infile[[paste0(genome, '/', feature_slot)]][]
-    barcodes <- infile[[paste0(genome, '/barcodes')]]
-
+    shp <- read(genome, 'shape')
     sparse.mat <- sparseMatrix(
-      i = indices[] + 1,
-      p = indptr[],
-      x = as.numeric(x = counts[]),
-      dims = shp[],
-      repr = "T"
+      i = read(genome, 'indices') + 1,
+      p = read(genome, 'indptr'),
+      x = as.numeric(x = read(genome, 'data')),
+      dims = shp,
+      repr = 'T'
     )
+    features <- read(genome, feature_slot)
     if (unique.features) {
       features <- make.unique(names = features)
     }
     rownames(x = sparse.mat) <- features
-    colnames(x = sparse.mat) <- barcodes[]
+    colnames(x = sparse.mat) <- read(genome, 'barcodes')
     sparse.mat <- as.sparse(x = sparse.mat)
-    # Split v3 multimodal
-    if (infile$exists(name = paste0(genome, '/features'))) {
-      types <- infile[[paste0(genome, '/features/feature_type')]][]
+    # check the dataset itself, not just the group: a file may carry feature
+    # names without types, and reading it unconditionally would then fail
+    if (paste0('/', genome, '/features/feature_type') %in% paths) {
+      types <- read(genome, 'features/feature_type')
       types.unique <- unique(x = types)
       if (length(x = types.unique) > 1) {
         message(
-          "Genome ",
-          genome,
+          "Genome ", genome,
           " has multiple modalities, returning a list of matrices for this genome"
         )
         sparse.mat <- sapply(
@@ -1306,25 +1311,37 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
           simplify = FALSE,
           USE.NAMES = TRUE
         )
-
-        # Apply scaling factor that was used when serializing.
-        if ("Protein Expression" %in% types.unique) {
-          if ("protein_scaling_factor" %in% hdf5r::h5attr_names(infile)) {
-            apply_scaling_factor <- 1.0 / hdf5r::h5attr(infile, "protein_scaling_factor")
+        if ('Protein Expression' %in% types.unique) {
+          attrs <- rhdf5::h5readAttributes(file = filename, name = '/')
+          if ('protein_scaling_factor' %in% names(x = attrs)) {
+            apply_scaling_factor <- 1.0 / as.vector(x = attrs$protein_scaling_factor)
             message("Scaling 'Protein Expression' by ", apply_scaling_factor)
-            sparse.mat[["Protein Expression"]] <- sparse.mat[["Protein Expression"]] * apply_scaling_factor
+            sparse.mat[['Protein Expression']] <-
+              sparse.mat[['Protein Expression']] * apply_scaling_factor
           }
         }
       }
     }
     output[[genome]] <- sparse.mat
   }
-  infile$close_all()
   if (length(x = output) == 1) {
-    return(output[[genome]])
-  } else{
-    return(output)
+    return(output[[1L]])
   }
+  return(output)
+}
+
+Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
+  if (!file.exists(filename)) {
+    stop("File not found")
+  }
+  if (isFALSE(x = requireNamespace('rhdf5', quietly = TRUE))) {
+    stop("Please install rhdf5 to read HDF5 files")
+  }
+  return(.Read10Xh5Rhdf5(
+    filename = filename,
+    use.names = use.names,
+    unique.features = unique.features
+  ))
 }
 
 #' Load a 10X Genomics Visium Image
@@ -2615,7 +2632,7 @@ ReadXenium <- function(
 
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
   has_arrow <- requireNamespace("arrow", quietly = TRUE)
-  has_hdf5r <- requireNamespace("hdf5r", quietly = TRUE)
+  has_h5 <- requireNamespace("rhdf5", quietly = TRUE)
 
   binary_to_string <- function(arrow_binary) {
     if(typeof(arrow_binary) == 'list') {
@@ -2637,7 +2654,7 @@ ReadXenium <- function(
         pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
 
         for(option in Filter(function(x) x$req, list(
-          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_hdf5r),
+          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_h5),
           list(filename = "cell_feature_matrix", fn = Read10X, req = TRUE)
         ))) {
           matrix <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
@@ -3158,7 +3175,7 @@ ReadVitessce <- function(
 #' or more of:
 #' \itemize{
 #'  \item \dQuote{segmentations}: cell segmentation vertices; requires
-#'  \href{https://cran.r-project.org/package=hdf5r}{\pkg{hdf5r}} to be
+#'  \href{https://bioconductor.org/packages/rhdf5}{\pkg{rhdf5}} to be
 #'   installed and requires a directory \dQuote{\code{cell_boundaries}} within
 #'   \code{data.dir}. Within \dQuote{\code{cell_boundaries}}, there must be
 #'   one or more HDF5 file named \dQuote{\code{feature_data_##.hdf5}}
@@ -3228,9 +3245,9 @@ ReadVizgen <- function(
   if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
-  # hdf5r is only used for loading polygon boundaries
+  # rhdf5 is only used for loading polygon boundaries
   # Not needed for all Vizgen input
-  hdf5 <- requireNamespace("hdf5r", quietly = TRUE)
+  hdf5 <- requireNamespace("rhdf5", quietly = TRUE)
   # Argument checking
   type <- match.arg(
     arg = type,
@@ -3324,7 +3341,7 @@ ReadVizgen <- function(
     if ('segmentations' %in% type) {
       poly <- if (isFALSE(x = hdf5)) {
         warning(
-          "Cannot find hdf5r; unable to load segmentation vertices",
+          "Cannot find rhdf5; unable to load segmentation vertices",
           immediate. = TRUE
         )
         FALSE
@@ -3453,15 +3470,17 @@ ReadVizgen <- function(
               )
               return(NULL)
             }
-            hfile <- hdf5r::H5File$new(filename = fname, mode = 'r')
-            on.exit(expr = hfile$close_all())
+            on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
             cells <- rownames(x = subset(x = sp, subset = fov == f))
             df <- lapply(
               X = cells,
               FUN = function(x) {
                 return(tryCatch(
                   expr = {
-                    cc <- hfile[['featuredata']][[x]][[zidx]][['p_0']][['coordinates']]$read()
+                    cc <- rhdf5::h5read(
+                      file = fname,
+                      name = paste('featuredata', x, zidx, 'p_0', 'coordinates', sep = '/')
+                    )
                     cc <- as.data.frame(x = t(x = cc))
                     colnames(x = cc) <- c('x', 'y')
                     cc$cell <- x
