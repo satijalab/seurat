@@ -1554,10 +1554,6 @@ FetchResidualSCTModel <- function(
     features_to_compute <- character()
   }
 
-  # these features do not have feature attriutes
-  diff_features <- setdiff(x = features_to_compute, y = model.features)
-  intersect_features <- intersect(x = features_to_compute, y = model.features)
-  features_to_compute_model <- features_to_compute
   if (sct.method == "reference") {
     vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
 
@@ -1565,15 +1561,17 @@ FetchResidualSCTModel <- function(
     clip.range <- vst_out$arguments$sct.clip.range
     # get rid of the cell attributes
     vst_out$cell_attr <- NULL
-    all.features <- intersect(
-      x = rownames(x = vst_out$gene_attr),
-      y = features_to_compute
-    )
-    vst_out$gene_attr <- vst_out$gene_attr[all.features, , drop = FALSE]
-    vst_out$model_pars_fit <- vst_out$model_pars_fit[all.features, , drop = FALSE]
   } else {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object, name = "SCTModel.list")[[SCTModel]])
     clip.range <- vst_out$arguments$sct.clip.range
+  }
+  # these features do not have feature attriutes
+  model.features <- intersect(x = rownames(x = vst_out$gene_attr), y = rownames(x = vst_out$model_pars_fit))
+  diff_features <- setdiff(x = features_to_compute, y = model.features)
+  intersect_features <- intersect(x = features_to_compute, y = model.features)
+  if (sct.method == "reference") {
+    vst_out$gene_attr <- vst_out$gene_attr[intersect_features, , drop = FALSE]
+    vst_out$model_pars_fit <- vst_out$model_pars_fit[intersect_features, , drop = FALSE]
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
@@ -1593,8 +1591,6 @@ FetchResidualSCTModel <- function(
         ncol = length(x = layer.cells),
         dimnames = list(features_to_compute, layer.cells)
       )
-    } else {
-      features_to_compute_model <- intersect_features
     }
   }
   if (!exists(x = "new_residual", inherits = FALSE)) {
@@ -1605,6 +1601,11 @@ FetchResidualSCTModel <- function(
     )
     cells.vector <- 1:length(x = layer.cells)
     cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/chunk_size))
+    umi_features <- if (length(x = diff_features) == 0) {
+      features_to_compute
+    } else {
+      intersect_features
+    }
     new_residuals <- list()
 
     for (i in seq_len(length.out = length(x = cells.grid))) {
@@ -1619,7 +1620,7 @@ FetchResidualSCTModel <- function(
         nz_median <- median(umi.all@x)
         min_var_custom <- (nz_median / 5)^2
       }
-      umi <- umi.all[features_to_compute_model, , drop = FALSE]
+      umi <- umi.all[umi_features, , drop = FALSE]
 
       ## Add cell_attr for missing cells
       cell_attr <- data.frame(
@@ -1714,14 +1715,14 @@ FetchResidualSCTModel <- function(
         FUN = "-"
       )
     }
-    if (length(x = diff_features) > 0) {
+    if (length(x = diff_features) > 0 && length(x = intersect_features) > 0) {
       padded_residual <- matrix(
         data = NA,
         nrow = length(x = features_to_compute),
         ncol = length(x = layer.cells),
         dimnames = list(features_to_compute, layer.cells)
       )
-      padded_residual[features_to_compute_model, colnames(x = new_residual)] <- new_residual
+      padded_residual[rownames(x = new_residual), colnames(x = new_residual)] <- new_residual
       new_residual <- padded_residual
     }
   }
