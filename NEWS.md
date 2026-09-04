@@ -4,6 +4,12 @@
 
 ### Fixes
 
+- Fixed `NormalizeData` sending the entire matrix to every worker when `future` has more than one worker, so it consumed memory proportional to the number of workers and failed outright on moderately sized objects with \dQuote{The total size of the ... globals exported for future expression}. Each worker now receives only its own block ([#10406](https://github.com/satijalab/seurat/issues/10406))
+- `ScaleData` now sends each worker its own block of the data instead of exporting the whole matrix to every worker, which on a moderately sized object exceeds `future.globals.maxSize` before any work starts ([#10420](https://github.com/satijalab/seurat/issues/10420))
+
+- Fixed `ScaleData` giving cells another cell's values when `split.by` is used: the splits were bound back together in split order and the dimnames were then overwritten with the object's own order. This affected every cell whose position moved, with more than one worker, or with any plan when `vars.to.regress` is also given
+- `FindIntegrationAnchors` now sends each worker the pair of objects it is asked about, rather than exporting every object being integrated to every worker ([#10238](https://github.com/satijalab/seurat/issues/10238), [#10406](https://github.com/satijalab/seurat/issues/10406))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))

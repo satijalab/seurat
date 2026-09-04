@@ -4885,6 +4885,35 @@ LogNormalize.V3Matrix <- function(
   return(norm.data)
 }
 
+# Normalize a single block of data
+#
+# Defined at package level rather than as a closure inside
+# NormalizeData.default(): a closure created there carries that frame as its
+# environment, and the frame holds the full matrix, so `future` exports the
+# whole dataset to every worker no matter how the data is chunked.
+#
+# @param data One block of the data
+# @param norm.function The normalization function to apply
+# @param scale.factor Scale factor for normalization
+# @param margin Margin to normalize over
+#
+# @return The normalized block
+#
+.NormalizeBlock <- function(data, norm.function, scale.factor, margin) {
+  clr_function <- function(x) {
+    return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
+  }
+  args <- list(
+    data = data,
+    scale.factor = scale.factor,
+    verbose = FALSE,
+    custom_function = clr_function,
+    margin = margin
+  )
+  args <- args[names(x = formals(fun = norm.function))]
+  return(do.call(what = norm.function, args = args))
+}
+
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #'
@@ -4949,30 +4978,27 @@ NormalizeData.V3Matrix <- function(
       dsize = dsize,
       csize = block.size %||% ceiling(x = dsize / nbrOfWorkers())
     )
-    normalized.data <- future_lapply(
-      X = 1:ncol(x = chunk.points),
+    # Split the data before dispatching. Iterating over block indices instead
+    # made the worker function reference `object`, so the whole matrix was
+    # exported to every worker rather than each worker receiving its own block;
+    # on a moderately sized object that alone exceeds future.globals.maxSize
+    blocks <- lapply(
+      X = seq_len(length.out = ncol(x = chunk.points)),
       FUN = function(i) {
         block <- chunk.points[, i]
-        data <- if (margin == 1) {
+        if (margin == 1) {
           object[block[1]:block[2], , drop = FALSE]
         } else {
           object[, block[1]:block[2], drop = FALSE]
         }
-        clr_function <- function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        }
-        args <- list(
-          data = data,
-          scale.factor = scale.factor,
-          verbose = FALSE,
-          custom_function = clr_function, margin = margin
-        )
-        args <- args[names(x = formals(fun = norm.function))]
-        return(do.call(
-          what = norm.function,
-          args = args
-        ))
       }
+    )
+    normalized.data <- future_lapply(
+      X = blocks,
+      FUN = .NormalizeBlock,
+      norm.function = norm.function,
+      scale.factor = scale.factor,
+      margin = margin
     )
     do.call(
       what = switch(
@@ -5075,6 +5101,59 @@ NormalizeData.Seurat <- function(
   object <- LogSeuratCommand(object = object)
   return(object)
 }
+# Regress latent variables out of one block of data
+#
+# Defined at package level rather than as a closure inside ScaleData.default():
+# a closure created there carries that frame as its environment, and the frame
+# holds the full matrix, so `future` exports the whole dataset to every worker
+# no matter how the data is chunked.
+#
+# @param block A list with the block of data and its latent data
+# @param features.regress Features to regress
+# @param model.use Model to use
+# @param use.umi Regress on UMI count data
+#
+# @return The block with the latent variables regressed out
+#
+.RegressOutBlock <- function(block, features.regress, model.use, use.umi) {
+  return(RegressOutMatrix(
+    data.expr = block$data,
+    latent.data = block$latent,
+    features.regress = features.regress,
+    model.use = model.use,
+    use.umi = use.umi,
+    verbose = FALSE
+  ))
+}
+
+# Center and scale one block of data
+#
+# Defined at package level for the same reason as .RegressOutBlock()
+#
+# @param mat One block of the data
+# @param scale.function The scaling function to apply
+# @param do.scale Scale the data
+# @param do.center Center the data
+# @param scale.max Maximum value in the scaled data
+#
+# @return The scaled block
+#
+.ScaleBlock <- function(mat, scale.function, do.scale, do.center, scale.max) {
+  arg.list <- list(
+    mat = mat,
+    scale = do.scale,
+    center = do.center,
+    scale_max = scale.max,
+    display_progress = FALSE
+  )
+  arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
+  data.scale <- do.call(what = scale.function, args = arg.list)
+  dimnames(x = data.scale) <- dimnames(x = mat)
+  suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
+  CheckGC()
+  return(data.scale)
+}
+
 
 #' @importFrom future nbrOfWorkers
 #'
@@ -5177,22 +5256,29 @@ ScaleData.default <- function(
         1:ncol(x = chunk.points),
         stringsAsFactors = FALSE
       )
-      object <- future_lapply(
-        X = 1:nrow(x = chunks),
+      # Split the data before dispatching. Chunking inside the worker function
+      # made it reference `object`, so `future` exported the whole matrix to
+      # every worker rather than each worker receiving its own block
+      blocks <- lapply(
+        X = seq_len(length.out = nrow(x = chunks)),
         FUN = function(i) {
           row <- chunks[i, ]
           group <- row[[1]]
           index <- as.numeric(x = row[[2]])
-          return(RegressOutMatrix(
-            data.expr = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
-            latent.data = latent.data[split.cells[[group]], , drop = FALSE],
-            features.regress = features,
-            model.use = model.use,
-            use.umi = use.umi,
-            verbose = FALSE
+          return(list(
+            data = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
+            latent = latent.data[split.cells[[group]], , drop = FALSE]
           ))
         }
       )
+      object <- future_lapply(
+        X = blocks,
+        FUN = .RegressOutBlock,
+        features.regress = features,
+        model.use = model.use,
+        use.umi = use.umi
+      )
+      rm(blocks)
       if (length(x = split.cells) > 1) {
         merge.indices <- lapply(
           X = 1:length(x = split.cells),
@@ -5207,6 +5293,9 @@ ScaleData.default <- function(
           }
         )
         object <- do.call(what = 'cbind', args = object)
+        # cbind puts the cells in split order, and dimnames are overwritten
+        # with the object's order further down, so put the cells back first
+        object <- object[, match(x = object.names[[2]], table = unlist(x = split.cells, use.names = FALSE)), drop = FALSE]
       } else {
         object <- do.call(what = 'rbind', args = object)
       }
@@ -5228,6 +5317,8 @@ ScaleData.default <- function(
         }
       )
       object <- do.call(what = 'cbind', args = object)
+      # as above, cbind puts the cells in split order
+      object <- object[, match(x = object.names[[2]], table = unlist(x = split.cells, use.names = FALSE)), drop = FALSE]
     }
     dimnames(x = object) <- object.names
     CheckGC()
@@ -5260,27 +5351,26 @@ ScaleData.default <- function(
       1:ncol(x = blocks),
       stringsAsFactors = FALSE
     )
-    scaled.data <- future_lapply(
-      X = 1:nrow(x = chunks),
+    # Split the data before dispatching, so that each worker receives its own
+    # block instead of the whole matrix (see .RegressOutBlock above)
+    chunk.data <- lapply(
+      X = seq_len(length.out = nrow(x = chunks)),
       FUN = function(index) {
         row <- chunks[index, ]
         group <- row[[1]]
         block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
-        arg.list <- list(
-          mat = object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE],
-          scale = do.scale,
-          center = do.center,
-          scale_max = scale.max,
-          display_progress = FALSE
-        )
-        arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
-        data.scale <- do.call(what = scale.function, args = arg.list)
-        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], split.cells[[group]]])
-        suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
-        CheckGC()
-        return(data.scale)
+        return(object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE])
       }
     )
+    scaled.data <- future_lapply(
+      X = chunk.data,
+      FUN = .ScaleBlock,
+      scale.function = scale.function,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = scale.max
+    )
+    rm(chunk.data)
     if (length(x = split.cells) > 1) {
       merge.indices <- lapply(
         X = 1:length(x = split.cells),
@@ -5295,6 +5385,9 @@ ScaleData.default <- function(
         }
       )
       scaled.data <- suppressWarnings(expr = do.call(what = 'cbind', args = scaled.data))
+      # cbind puts the cells in split order, and dimnames are overwritten with
+      # the object's order further down, so put the cells back first
+      scaled.data <- scaled.data[, match(x = object.names[[2]], table = unlist(x = split.cells, use.names = FALSE)), drop = FALSE]
     } else {
       suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
     }
