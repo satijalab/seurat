@@ -84,6 +84,7 @@
 # Seurat 5.3.1
 
 ## Changes
+- Fixed `as.Seurat` on a `SingleCellExperiment` with duplicated cell names or feature names, which failed with `subscript out of bounds` because only the first matrix had its names made unique ([#10498](https://github.com/satijalab/seurat/issues/10498))
 
 ### Additions
 - Added option to use `cluster_leiden` from `igraph` when running Leiden clustering ([#9931](https://github.com/satijalab/seurat/pull/9931))
