@@ -407,6 +407,21 @@ AddModuleScore.Assay <- function(
   data.cut <- cut_number(x = data.avg + rnorm(n = length(data.avg))/1e30, n = nbin, labels = FALSE, right = FALSE)
   #data.cut <- as.numeric(x = Hmisc::cut2(x = data.avg, m = round(x = length(x = data.avg) / (nbin + 1))))
   names(x = data.cut) <- names(x = data.avg)
+  # sample() below draws ctrl features from the bin a feature sits in, so a bin
+  # smaller than ctrl fails with "cannot take a sample larger than the
+  # population", which says nothing about ctrl, nbin or the object's size
+  bins.used <- na.omit(object = data.cut[unlist(x = features, use.names = FALSE)])
+  bin.sizes <- table(data.cut)[as.character(x = unique(x = bins.used))]
+  if (length(x = bin.sizes) && ctrl > min(bin.sizes)) {
+    stop(
+      "Cannot sample ", ctrl, " control features: the smallest expression bin ",
+      "holding a feature of the set has ", min(bin.sizes), ". Lower ctrl to at ",
+      "most ", min(bin.sizes), ", or lower nbin (currently ", nbin,
+      ") so that the ", length(x = data.cut), " features are spread over ",
+      "larger bins",
+      call. = FALSE
+    )
+  }
   ctrl.use <- vector(mode = "list", length = cluster.length)
   for (i in 1:cluster.length) {
     features.use <- features[[i]]

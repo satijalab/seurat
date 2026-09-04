@@ -868,6 +868,57 @@ RunICA.Seurat <- function(
   object <- LogSeuratCommand(object = object)
   return(object)
 }
+# Check that a reduction has the dimensions being asked of it
+#
+# Subsetting past the end of the embeddings gives \dQuote{subscript out of
+# bounds}, or quietly returns fewer dimensions and fails further on
+#
+# @param dims The dimensions requested
+# @param computed The number of dimensions the reduction has
+# @param reduction The name of the reduction, for the message
+#
+# @return Invisibly \code{NULL}, stopping when too many are asked for
+#
+.CheckDims <- function(dims, computed, reduction) {
+  if (!length(x = dims) || max(dims) <= computed) {
+    return(invisible(x = NULL))
+  }
+  stop(
+    "More dimensions specified in dims than have been computed: ",
+    max(dims), " requested, ", reduction, " has ", computed,
+    call. = FALSE
+  )
+}
+
+# Check that enough components can be computed
+#
+# With fewer than three features the decomposition is handed nv = 0 or 1 and
+# fails with \dQuote{max(nu, nv) must be positive} or
+# \dQuote{non-conformable arguments}
+#
+# @param npcs The number of components, already capped
+# @param n The number of features or cells available
+# @param what Which of the two, for the message
+#
+# @return Invisibly \code{NULL}, stopping when there are too few
+#
+.CheckComponents <- function(npcs, n, what) {
+  if (npcs >= 2) {
+    return(invisible(x = NULL))
+  }
+  if (!n) {
+    stop(
+      "There are no ", what, " to compute principal components from",
+      call. = FALSE
+    )
+  }
+  stop(
+    "Cannot compute principal components from ", n, " ", what,
+    ": at least 3 are needed",
+    call. = FALSE
+  )
+}
+
 
 #' @param assay Name of Assay PCA is being run on
 #' @param npcs Total Number of PCs to compute and store (50 by default)
@@ -927,6 +978,7 @@ RunPCA.default <- function(
  }
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
+    .CheckComponents(npcs = npcs, n = ncol(x = object), what = 'cells')
     pca.results <- svd.function(A = object, nv = npcs, ...)
     total.variance <- sum(RowVar.function(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
@@ -941,6 +993,7 @@ RunPCA.default <- function(
     total.variance <- sum(RowVar.function(x = object))
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
+      .CheckComponents(npcs = npcs, n = nrow(x = object), what = 'features')
       pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
@@ -951,6 +1004,7 @@ RunPCA.default <- function(
       }
     } else {
       npcs <- min(npcs, nrow(x = object))
+      .CheckComponents(npcs = npcs, n = nrow(x = object), what = 'features')
       pca.results <- prcomp(x = t(object), rank. = npcs, ...)
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
@@ -1224,6 +1278,11 @@ RunTSNE.DimReduc <- function(
   reduction.key = "tSNE_",
   ...
 ) {
+  .CheckDims(
+    dims = dims,
+    computed = ncol(x = object),
+    reduction = Key(object = object)
+  )
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
   args$object <- args$object[[cells, args$dims]]
@@ -1925,6 +1984,7 @@ RunUMAP.Seurat <- function(
       )
     }
   } else if (!is.null(x = dims)) {
+    .CheckDims(dims = dims, computed = ncol(x = object[[reduction]]), reduction = reduction)
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
     if (length(x = dims) < n.components) {
@@ -2527,6 +2587,15 @@ PrepDR <- function(
   }
   features <- features.keep
   features <- features[!is.na(x = features)]
+  if (!length(x = features)) {
+    # otherwise the reduction is handed a matrix with no rows, and fails inside
+    # the decomposition with a message about nu and nv
+    stop(
+      "None of the requested features are in the scale.data layer with ",
+      "non-zero variance. Run ScaleData() on them first",
+      call. = FALSE
+    )
+  }
   data.use <- data.use[features, ]
   return(data.use)
 }
