@@ -466,12 +466,23 @@ GetResidual <- function(
   if (nrow(x = existing.data) > 0){
     new.scale[1:nrow(x = existing.data), ] <- existing.data
   }
+  # Models covering different feature sets return matrices with different rows,
+  # which cbind cannot combine. Fill by name instead, so each model contributes
+  # the features it actually has
   if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
-    new.residuals <- new.residuals[[1]]
-  } else {
-    new.residuals <- Reduce(cbind, new.residuals)
+    new.residuals <- list(new.residuals[[1]])
   }
-  new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
+  for (residual in new.residuals) {
+    rdim <- dim(x = residual)
+    if (is.null(x = rdim) || any(rdim == 0L)) {
+      next
+    }
+    keep <- intersect(x = rownames(x = residual), y = rownames(x = new.scale))
+    if (!length(x = keep)) {
+      next
+    }
+    new.scale[keep, colnames(x = residual)] <- residual[keep, , drop = FALSE]
+  }
   if (na.rm) {
     new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
   }
@@ -3887,6 +3898,34 @@ SCTransform.default <- function(
   vst.args <- list(...)
   object <- as.sparse(x = object)
   umi <- object
+  # sctransform models log10 of the counts per cell, which is -Inf for a cell
+  # with none, and stops with 'cell attribute "log_umi" contains NA, NaN, or
+  # infinite value'. That happens as soon as features have been subset
+  empty.cells <- which(x = Matrix::colSums(x = umi) == 0)
+  if (length(x = empty.cells)) {
+    stop(
+      length(x = empty.cells), " of ", ncol(x = umi),
+      " cells have no counts for the features given",
+      if (!is.null(x = colnames(x = umi))) {
+        paste0(", such as ", paste(sQuote(x = head(x = colnames(x = umi)[empty.cells], n = 3L), q = FALSE), collapse = ", "))
+      },
+      ". Remove them first, for example with subset(object, subset = nCount_RNA > 0)",
+      call. = FALSE
+    )
+  }
+  # and it fits a density over the expressed features, which needs more than a
+  # couple of them: 'need at least 2 data points' out of bw.SJ() otherwise
+  min.cells <- vst.args[['min_cells']] %||% 5
+  expressed <- sum(Matrix::rowSums(x = umi > 0) >= min.cells)
+  if (expressed < 3L) {
+    stop(
+      "Only ", expressed, " features are detected in at least ", min.cells,
+      " cells, out of ", nrow(x = umi),
+      ". sctransform cannot fit a model to that; lower min_cells, or use ",
+      "NormalizeData() for an object this sparse",
+      call. = FALSE
+    )
+  }
   # check for batch_var in meta data
   if ('batch_var' %in% names(x = vst.args)) {
     if (!(vst.args[['batch_var']] %in% colnames(x = cell.attr))) {

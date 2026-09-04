@@ -4,6 +4,16 @@
 
 ### Fixes
 
+- Fixed `FetchResiduals(na.rm = FALSE)` failing with \dQuote{number of rows of matrices must match}: the per-model residuals were combined with `cbind`, which cannot combine models that cover different features, so the NA that `na.rm = FALSE` describes was never reached
+
+- Fixed `GetResidual` failing on an `SCTAssay` with several models when a requested feature is modelled by only some of them, with `object 'new_residual' not found` or `number of rows of matrices must match`; residuals for such a feature are now returned for the cells whose model covers it, and `NA` elsewhere ([#10441](https://github.com/satijalab/seurat/issues/10441))
+- Fixed `PrepSCTFindMarkers` skipping the objects that need it most: after cells are removed, a model's observed median UMI can fall below the depth its `median_umi` records, and those objects were returned untouched with \dQuote{Minimum UMI unchanged}, after which `FindMarkers` refused to run on them with \dQuote{Object contains multiple models with unequal library sizes} ([#9130](https://github.com/satijalab/seurat/issues/9130))
+- Fixed `PrepSCTFindMarkers` failing with \dQuote{subscript out of bounds} on objects whose features or cells were subset after `SCTransform`: an SCT model records what it was fit on, subsetting does not prune that record, and the counts assay was then indexed with features it no longer has ([#9112](https://github.com/satijalab/seurat/issues/9112))
+- Fixed `SCTransform` on a split assay returning variable features that have no residuals, so that `RunPCA` warned they had not been scaled and ran without them; variable features are now chosen from the features that were scaled ([#8880](https://github.com/satijalab/seurat/issues/8880))
+- Fixed `SCTransform` failing on a split assay with `variable.features.n = NULL` and a `variable.features.rv.th` cutoff ([#9189](https://github.com/satijalab/seurat/issues/9189))
+- Fixed `RenameCells` on an SCT assay failing with \dQuote{missing values in 'row.names' are not allowed} when a model records cells the assay no longer has, which is what `RunAzimuth` hits on a subset object ([#256](https://github.com/satijalab/seurat-object/issues/256))
+- `SCTransform` now says when cells have no counts for the features given, or when too few features are detected for a model to be fit, instead of failing inside `sctransform` with \dQuote{cell attribute "log_umi" contains NA, NaN, or infinite value} or \dQuote{need at least 2 data points} ([#8385](https://github.com/satijalab/seurat/issues/8385))
+
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))

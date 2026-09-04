@@ -1235,12 +1235,31 @@ SCTransform.StdAssay <- function(
   )
   LayerData(assay_out, layer = "scale.data") <- residuals
 
-  # Set the output's variable features.
-  VariableFeatures(assay_out) <- VariableFeatures(
-    assay_out, 
-    use.var.features = FALSE,
-    nfeatures = variable.features.n
-  )
+  # Set the output's variable features. A variable feature with no residuals is
+  # dropped by everything downstream, silently apart from a PrepDR warning, so
+  # choose them from the features that were actually scaled.
+  scaled.features <- rownames(x = residuals)
+  if (is.null(x = variable.features.n)) {
+    # each layer chose its own features by residual variance threshold, so
+    # there is no number of features to rank down to; keep what they chose
+    variable.features <- Reduce(
+      f = union,
+      x = lapply(X = output_list, FUN = VariableFeatures)
+    )
+    VariableFeatures(assay_out) <- variable.features[
+      variable.features %in% scaled.features
+    ]
+  } else {
+    ranked <- VariableFeatures(
+      assay_out, 
+      use.var.features = FALSE,
+      nfeatures = nrow(x = assay_out)
+    )
+    VariableFeatures(assay_out) <- head(
+      x = ranked[ranked %in% scaled.features],
+      n = variable.features.n
+    )
+  }
 
   return (assay_out)
 }
@@ -1444,18 +1463,26 @@ FetchResiduals.SCTAssay <- function(
   if (nrow(x = existing.data) > 0) {
     new.scale[rownames(x = existing.data), common_cells] <- existing.data[, common_cells]
   }
-  if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
-    new.residuals <- new.residuals[[1]]
-  } else {
-    new.residuals <- Reduce(cbind, new.residuals)
+  # Models covering different feature sets return matrices with different rows,
+  # which cbind cannot combine. Fill by name instead, so each model contributes
+  # the features it has and the rest stay NA, which is what na.rm describes
+  for (residual in new.residuals) {
+    rdim <- dim(x = residual)
+    if (is.null(x = rdim) || any(rdim == 0L)) {
+      next
+    }
+    keep <- intersect(x = rownames(x = residual), y = rownames(x = new.scale))
+    if (!length(x = keep)) {
+      next
+    }
+    new.scale[keep, colnames(x = residual)] <- residual[keep, , drop = FALSE]
   }
-  new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
 
   if (na.rm) {
-    new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
+    new.scale <- new.scale[!rowAnyNAs(x = new.scale), , drop = FALSE]
   }
 
-  return(new.scale[features, ])
+  return(new.scale[intersect(x = features, y = rownames(x = new.scale)), , drop = FALSE])
 }
 
 #' Calculate pearson residuals of features not in the scale.data
@@ -1696,6 +1723,23 @@ FetchResidualSCTModel <- function(
         dimnames = list(features_to_compute, model.cells)
       ))
     }
+    # Some of the requested features are modelled here and some are not. The
+    # computation above runs only when every one of them is, so falling through
+    # reaches `return(new_residual)` for a `new_residual` this path never
+    # created. Compute the ones this model does have instead of dropping them
+    return(FetchResidualSCTModel(
+      object = object,
+      umi.object = umi.object,
+      layer = layer,
+      chunk_size = chunk_size,
+      layer.cells = layer.cells,
+      SCTModel = SCTModel,
+      reference.SCT.model = reference.SCT.model,
+      new_features = intersect_features,
+      clip.range = clip.range,
+      replace.value = replace.value,
+      verbose = verbose
+    ))
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
