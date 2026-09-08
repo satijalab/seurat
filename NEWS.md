@@ -11,6 +11,7 @@
 - Fixed bugs in behavior of `RidgePlot` parameters `fill.by`, `y.max`, and `same.y.lims` ([#10424](https://github.com/satijalab/seurat/pull/10424))
 - Fixed naming of combined p-value column in output of `FindConservedMarkers` when a non-default `meta.method` is specified ([#10429](https://github.com/satijalab/seurat/pull/10429))
 - Updated minimum required `uwot` version to `0.2.1` ([#10447](https://github.com/satijalab/seurat/pull/10447))
+- Registered `Radius.VisiumV2` as an S3 method to fix `Radius` returning `NULL` for `VisiumV2` images ([#10454](https://github.com/satijalab/seurat/pull/10454))
 
 # Seurat 5.5.1
 
