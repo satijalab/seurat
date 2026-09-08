@@ -4,6 +4,7 @@
 
 ### Fixes
 
+- Fixed `as.Seurat` on a `SingleCellExperiment` with duplicated cell names or feature names, which failed with `subscript out of bounds` because only the first matrix had its names made unique ([#10498](https://github.com/satijalab/seurat/issues/10498))
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
 - Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
