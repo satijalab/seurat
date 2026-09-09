@@ -4746,8 +4746,23 @@ FindSpatiallyVariableFeatures.Assay <- function(
     features <- features[! features %in% features.computed]
   }
   cells <- rownames(spatial.location)
+  if (!any(cells %in% Cells(x = object, layer = layer))) {
+    stop(
+      "None of the row names in 'spatial.location' match cells in the '",
+      layer, "' layer. Row names must be cell names.",
+      call. = FALSE
+    )
+  }
   data <- LayerData(object, layer = layer, cells = cells, features = features)
   data <- as.matrix(x = data)
+  # RowVar() is C++ and aborts the session on an empty matrix rather than
+  # raising an R error, so catch any remaining path that produces one.
+  if (!ncol(x = data)) {
+    stop(
+      "No cells were returned from the '", layer, "' layer.",
+      call. = FALSE
+    )
+  }
   data <- data[RowVar(x = data) > 0, ]
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
@@ -4821,8 +4836,31 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 
   assay <- assay %||% DefaultAssay(object = object)
   selection.method <- match.arg(arg = selection.method)
+  images <- Images(object = object, assay = assay)
+  if (is.null(x = image)) {
+    if (!length(x = images)) {
+      stop(
+        "No image is associated with assay ", sQuote(x = assay, q = FALSE),
+        call. = FALSE
+      )
+    }
+    image <- images[[1L]]
+  }
   features <- features %||% Features(object, assay = assay, layer = layer)
   tc <- GetTissueCoordinates(object = object[[image]])
+  if ('cell' %in% colnames(x = tc)) {
+    cell.names <- as.character(x = tc[['cell']])
+    if (anyNA(cell.names) || any(!nzchar(x = cell.names)) || anyDuplicated(x = cell.names)) {
+      stop(
+        "Spatial coordinates must contain exactly one row per cell. Use ",
+        "'DefaultBoundary()' to select a centroid-based boundary or provide ",
+        "'spatial.location'.",
+        call. = FALSE
+      )
+    }
+    rownames(x = tc) <- cell.names
+    tc <- tc[, setdiff(x = colnames(x = tc), y = 'cell'), drop = FALSE]
+  }
 
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
