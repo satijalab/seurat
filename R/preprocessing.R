@@ -4726,7 +4726,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
-  nfeatures = nfeatures,
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 ) {
