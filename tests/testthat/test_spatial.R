@@ -350,3 +350,71 @@ test_that("SpatialDimPlot works with multiple assays, layers, & images", {
   expect_true(equivalent_plots(plots[[1]], plot.2))
   expect_true(equivalent_plots(plots[[2]], plot.1))
 })
+
+test_that("FindSpatiallyVariableFeatures uses FOV cell names for the requested assay", {
+  set.seed(42)
+  test.case <- merge(test.data.1, test.data.3)
+  segment.cells <- colnames(x = test.case[["Spatial.A"]])
+  bin.cells <- colnames(x = test.case[["Spatial.B"]])
+  features <- rownames(x = test.case[["Spatial.B"]])[1:6]
+
+  test.case[["slice1.A"]] <- NULL
+  test.case[["slice2.B"]] <- NULL
+  test.case[["segmentation"]] <- CreateFOV(
+    CreateSegmentation(data.frame(
+      x = rep(c(0, 1, 1, 0), 2L) + rep(1:2, each = 4L),
+      y = rep(c(0, 0, 1, 1), 2L),
+      cell = rep(segment.cells[1:2], each = 4L)
+    )),
+    assay = "Spatial.A"
+  )
+  test.case[["bins"]] <- CreateFOV(
+    CreateCentroids(data.frame(
+      x = runif(length(x = bin.cells)) * 100,
+      y = runif(length(x = bin.cells)) * 100,
+      cell = bin.cells
+    )),
+    type = "centroids",
+    assay = "Spatial.B"
+  )
+  DefaultAssay(test.case) <- "Spatial.A"
+  test.case <- suppressWarnings(NormalizeData(test.case, assay = "Spatial.B", verbose = FALSE))
+
+  result <- suppressWarnings(FindSpatiallyVariableFeatures(
+    test.case,
+    assay = "Spatial.B",
+    layer = "data",
+    features = features,
+    selection.method = "markvariogram",
+    verbose = FALSE
+  ))
+  expect_length(SpatiallyVariableFeatures(result[["Spatial.B"]], method = "markvariogram"), 6L)
+
+  coords <- GetTissueCoordinates(test.case[["bins"]])[, c("x", "y")]
+  rownames(coords) <- seq_len(nrow(coords))
+  expect_error(
+    FindSpatiallyVariableFeatures(
+      test.case[["Spatial.B"]],
+      layer = "data",
+      features = features,
+      spatial.location = coords,
+      selection.method = "markvariogram",
+      nfeatures = length(x = features),
+      verbose = FALSE
+    ),
+    "Row names must be cell names"
+  )
+
+  expect_error(
+    suppressWarnings(FindSpatiallyVariableFeatures(
+      test.case,
+      assay = "Spatial.A",
+      layer = "counts",
+      image = "segmentation",
+      features = features,
+      selection.method = "markvariogram",
+      verbose = FALSE
+    )),
+    "centroid-based boundary"
+  )
+})
