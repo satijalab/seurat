@@ -4673,6 +4673,7 @@ FindSpatiallyVariableFeatures.default <- function(
   verbose = TRUE,
   ...
 ) {
+  selection.method <- match.arg(arg = selection.method)
   # error check dimensions
   if (ncol(x = object) != nrow(x = spatial.location)) {
     stop("Please provide the same number of observations as spatial locations.")
@@ -4739,6 +4740,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
     layer <- slot %||% layer
   }
   features <- features %||% Features(object, layer = layer)
+  selection.method <- match.arg(selection.method)
   if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
     features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
     features <- features[! features %in% features.computed]
@@ -4818,7 +4820,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   }
 
   assay <- assay %||% DefaultAssay(object = object)
-  image <- image %||% DefaultImage(object = object)
+  selection.method <- match.arg(arg = selection.method)
   features <- features %||% Features(object, assay = assay, layer = layer)
   tc <- GetTissueCoordinates(object = object[[image]])
 
