@@ -3138,6 +3138,7 @@ CreateCategoryMatrix <- function(
                                           x = colnames(x = category.matrix)
     )
   }
+  data.pattern <- "data\\[, *[0-9]+\\]"
   colnames(x = category.matrix) <- unname(sapply(
     X = colnames(x = category.matrix),
     FUN = function(name) {
