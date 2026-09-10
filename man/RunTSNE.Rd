@@ -17,6 +17,7 @@ RunTSNE(object, ...)
   tsne.method = "Rtsne",
   dim.embed = 2,
   reduction.key = "tSNE_",
+  deterministic = getOption(x = "Seurat.deterministic", default = TRUE),
   ...
 )
 
@@ -80,6 +81,16 @@ methods are:
 
 \item{reduction.key}{dimensional reduction key, specifies the string before
 the number for the dimension names. \dQuote{\code{tSNE_}} by default}
+
+\item{deterministic}{Make the embedding depend only on the input and on
+\code{seed.use}. When \code{TRUE} (the default), Seurat pins Rtsne's
+\code{num_threads} to 1 - Barnes-Hut t-SNE applies its gradient updates in
+a nondeterministic order when run on several threads - and restores the
+caller's random stream on exit. This matches Rtsne's own default, so it does
+not change the embedding; it stops the embedding from depending on unrelated
+code that ran earlier in the session. As with \code{\link{RunUMAP}},
+bit-identical results are not guaranteed across operating systems, CPU
+architectures, or BLAS implementations.}
 
 \item{cells}{Which cells to analyze (default, all cells)}
 

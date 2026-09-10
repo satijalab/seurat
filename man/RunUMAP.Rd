@@ -40,6 +40,9 @@ RunUMAP(object, ...)
   dens.lambda = 2,
   dens.frac = 0.3,
   dens.var.shift = 0.1,
+  n.threads = NULL,
+  n.sgd.threads = NULL,
+  deterministic = getOption(x = "Seurat.deterministic", default = TRUE),
   verbose = TRUE,
   ...
 )
@@ -107,6 +110,9 @@ RunUMAP(object, ...)
   dens.lambda = 2,
   dens.frac = 0.3,
   dens.var.shift = 0.1,
+  n.threads = NULL,
+  n.sgd.threads = NULL,
+  deterministic = getOption(x = "Seurat.deterministic", default = TRUE),
   verbose = TRUE,
   reduction.name = "umap",
   reduction.key = NULL,
@@ -229,6 +235,27 @@ added to the variance of local radii in the embedding when calculating
 the density correlation objective to prevent numerical instability from
 dividing by a small number. Default is 0.1.}
 
+\item{n.threads}{Number of threads uwot may use for the nearest-neighbor
+search. Defaults to \code{future::nbrOfWorkers()}, which depends on the
+machine and on the active \code{future} plan; set it explicitly to keep a
+script from behaving differently on a different machine. The neighbor
+search itself is order-independent, so this does not affect the embedding.}
+
+\item{n.sgd.threads}{Number of threads uwot may use for stochastic gradient
+descent. Anything above 1 applies gradient updates in a nondeterministic
+order and makes the embedding irreproducible, so this defaults to 1 when
+\code{deterministic = TRUE} and to uwot's own default otherwise.}
+
+\item{deterministic}{Make the embedding depend only on the input and on
+\code{seed.use}. When \code{TRUE} (the default), Seurat pins
+\code{n.sgd.threads} to 1, passes \code{seed.use} to uwot directly rather
+than relying on the ambient random stream, pins \code{n.epochs} to the
+value uwot would currently choose so that a change to uwot's default cannot
+move the embedding, and restores the caller's random stream on exit. None
+of this changes the embedding produced by Seurat 5.5.1 with the same seed;
+it stops the embedding from depending on the machine, the \code{future}
+plan, or unrelated code that ran earlier in the session.}
+
 \item{verbose}{Controls verbosity}
 
 \item{densmap.kwds}{A dictionary of arguments to pass on to the densMAP optimization.}
@@ -263,6 +290,20 @@ found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
 discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 \url{https://arxiv.org/abs/1802.03426}.
 }
+\section{Reproducibility}{
+
+With \code{deterministic = TRUE} and a fixed \code{seed.use}, repeated runs
+on the same input give bit-identical embeddings on a given installation,
+independently of the number of workers, the \code{future} plan, and the
+state of the random stream when \code{RunUMAP} is called. Results are
+\emph{not} guaranteed to be bit-identical across different operating
+systems, CPU architectures, or BLAS/LAPACK implementations: UMAP is
+iterative and floating-point summation is not associative, so different
+hardware can diverge in the last bits and, over hundreds of epochs, in the
+visible layout. This limitation is shared by every UMAP implementation,
+scanpy included.
+}
+
 \examples{
 \dontrun{
 data("pbmc_small")

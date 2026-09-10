@@ -32,6 +32,12 @@ Seurat uses the following [options()] to configure behaviour:
   default behavior of split/multi violin plots}
   \item{\code{Seurat.warn.findmarkers.bpcells.colmajor}}{Show message about improving
   memory usage when running FindMarkers with a column-major ordered BPCells IterableMatrix.}
+  \item{\code{Seurat.deterministic}}{Default for the \code{deterministic}
+  argument of \code{\link{RunPCA}}, \code{\link{RunUMAP}} and
+  \code{\link{RunTSNE}}, which makes their output depend only on the input
+  and on \code{seed.use} rather than on the machine, the \code{future}
+  plan, or the ambient random stream. Set to \code{FALSE} to restore the
+  behaviour of Seurat <= 5.5.1.}
 }
 }
 
