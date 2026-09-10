@@ -3650,15 +3650,28 @@ RunMarkVario <- function(
       f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
     )
     mv <- future_lapply(X = features, FUN = function(x) {
-      pp[["marks"]] <- as.data.frame(x = t(x = data[x, ]))
-      markvario(X = pp, normalise = TRUE, ...)
+      # drop = FALSE so that a chunk holding a single feature stays a matrix
+      # and t() keeps one row per cell
+      pp[["marks"]] <- as.data.frame(x = t(x = data[x, , drop = FALSE]))
+      chunk <- markvario(X = pp, normalise = TRUE, ...)
+      # markvario() hands back a bare 'fv' for a single mark and a named list
+      # of them for several. Keep every chunk a list, so that the unlist()
+      # below contributes one entry per feature rather than one per column of
+      # an 'fv' whenever a chunk holds a single feature.
+      if (inherits(x = chunk, what = 'fv')) {
+        chunk <- list(chunk)
+      }
+      return(chunk)
     })
     mv <- unlist(x = mv, recursive = FALSE)
-    names(x = mv) <- rownames(x = data)
   } else {
     pp[["marks"]] <- as.data.frame(x = t(x = data))
     mv <- markvario(X = pp, normalise = TRUE, ...)
+    if (inherits(x = mv, what = 'fv')) {
+      mv <- list(mv)
+    }
   }
+  names(x = mv) <- rownames(x = data)
   return(mv)
 }
 
@@ -4673,6 +4686,7 @@ FindSpatiallyVariableFeatures.default <- function(
   verbose = TRUE,
   ...
 ) {
+  selection.method <- match.arg(arg = selection.method)
   # error check dimensions
   if (ncol(x = object) != nrow(x = spatial.location)) {
     stop("Please provide the same number of observations as spatial locations.")
@@ -4726,7 +4740,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
-  nfeatures = nfeatures,
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 ) {
@@ -4739,14 +4753,38 @@ FindSpatiallyVariableFeatures.Assay <- function(
     layer <- slot %||% layer
   }
   features <- features %||% Features(object, layer = layer)
+  selection.method <- match.arg(selection.method)
   if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
     features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
     features <- features[! features %in% features.computed]
   }
   cells <- rownames(spatial.location)
+  cell.mismatch <- setdiff(cells, Cells(x = object, layer = layer))
+  if (length(cell.mismatch) > 0L) {
+    stop(
+      "At least some of the row names in 'spatial.location' do not match cells in the '",
+      layer, "' layer; check that the row names of 'spatial.location' are cell names.",
+      call. = FALSE
+    )
+  }
   data <- LayerData(object, layer = layer, cells = cells, features = features)
   data <- as.matrix(x = data)
-  data <- data[RowVar(x = data) > 0, ]
+  # RowVar() is C++ and aborts the session on an empty matrix rather than
+  # raising an R error, so catch any remaining path that produces one. One
+  # column is caught here too: RowVar() divides by 'ncol - 1', so a single
+  # cell yields NaN for every feature, and the NA subscript that follows
+  # fails further down with a message that says nothing about the cause.
+  if (ncol(x = data) < 2) {
+    stop(
+      "Fewer than two cells were returned from the '", layer, "' layer; ",
+      "finding spatially variable features requires at least two cells.",
+      call. = FALSE
+    )
+  }
+  # Keep a single surviving feature as a one-row matrix; without drop = FALSE it
+  # becomes a vector and `nrow()` returns NULL, triggering "argument is of length
+  # zero" in the `if (nrow(x = data) != 0)` check below.
+  data <- data[RowVar(x = data) > 0, , drop = FALSE]
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
       object = data,
@@ -4761,10 +4799,22 @@ FindSpatiallyVariableFeatures.Assay <- function(
   } else {
     svf.info <- c()
   }
+  if (selection.method == "markvariogram" &&
+      "markvariogram" %in% names(x = Misc(object = object))) {
+    svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
+  }
+  # Nothing was computed and nothing was cached: every requested feature had
+  # zero variance. The branches below index into 'svf.info', so return here
+  # rather than letting them fail on a NULL.
+  if (!length(x = svf.info)) {
+    warning(
+      "None of the requested features vary across the given cells in the '",
+      layer, "' layer; returning the object unchanged.",
+      call. = FALSE
+    )
+    return(object)
+  }
   if (selection.method == "markvariogram") {
-    if ("markvariogram" %in% names(x = Misc(object = object))) {
-      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
-    }
     suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
     svf.info <- ComputeRMetric(mv = svf.info, r.metric)
     svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
@@ -4818,9 +4868,32 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   }
 
   assay <- assay %||% DefaultAssay(object = object)
-  image <- image %||% DefaultImage(object = object)
+  selection.method <- match.arg(arg = selection.method)
+  images <- Images(object = object, assay = assay)
+  if (is.null(x = image)) {
+    if (!length(x = images)) {
+      stop(
+        "No image is associated with assay ", sQuote(x = assay, q = FALSE),
+        call. = FALSE
+      )
+    }
+    image <- images[[1L]]
+  }
   features <- features %||% Features(object, assay = assay, layer = layer)
   tc <- GetTissueCoordinates(object = object[[image]])
+  if ('cell' %in% colnames(x = tc)) {
+    cell.names <- as.character(x = tc[['cell']])
+    if (anyNA(cell.names) || any(!nzchar(x = cell.names)) || anyDuplicated(x = cell.names)) {
+      stop(
+        "Spatial coordinates must contain exactly one row per cell. Use ",
+        "'DefaultBoundary()' to select a centroid-based boundary or provide ",
+        "'spatial.location'.",
+        call. = FALSE
+      )
+    }
+    rownames(x = tc) <- cell.names
+    tc <- tc[, setdiff(x = colnames(x = tc), y = 'cell'), drop = FALSE]
+  }
 
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
