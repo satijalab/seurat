@@ -418,3 +418,113 @@ test_that("FindSpatiallyVariableFeatures uses FOV cell names for the requested a
     "centroid-based boundary"
   )
 })
+
+# Degenerate inputs to FindSpatiallyVariableFeatures ---------------------------
+
+#' Returns a small assay plus matching coordinates for the tests below.
+build_svf_case <- function(counts) {
+  object <- suppressWarnings(CreateSeuratObject(counts = as.sparse(counts)))
+  object <- suppressWarnings(NormalizeData(object, verbose = FALSE))
+  list(
+    assay = object[["RNA"]],
+    coordinates = data.frame(
+      x = seq_len(ncol(counts)),
+      y = rev(seq_len(ncol(counts))),
+      row.names = colnames(counts)
+    )
+  )
+}
+
+svf_counts <- function(varying = 0L) {
+  cells <- paste0("cell", seq_len(12L))
+  counts <- matrix(
+    data = 3L,
+    nrow = 4L,
+    ncol = length(x = cells),
+    dimnames = list(paste0("gene", 1:4), cells)
+  )
+  for (i in seq_len(varying)) {
+    counts[i, ] <- sample(x = seq_along(cells))
+  }
+  return(counts)
+}
+
+test_that("FindSpatiallyVariableFeatures needs at least two cells", {
+  set.seed(42)
+  case <- build_svf_case(svf_counts(varying = 4L))
+  # Only the first row name is a real cell, which is enough to clear the check
+  # on 'spatial.location' but leaves a single column to compute variance over.
+  coordinates <- case$coordinates
+  rownames(x = coordinates) <- c(
+    rownames(x = coordinates)[1],
+    paste0("absent", seq_len(nrow(x = coordinates) - 1L))
+  )
+  expect_error(
+    FindSpatiallyVariableFeatures(
+      case$assay,
+      layer = "counts",
+      features = rownames(x = case$assay),
+      spatial.location = coordinates,
+      selection.method = "moransi",
+      verbose = FALSE
+    ),
+    "at least two"
+  )
+})
+
+test_that("FindSpatiallyVariableFeatures handles a single varying feature", {
+  for (method in c("moransi", "markvariogram")) {
+    set.seed(42)
+    case <- build_svf_case(svf_counts(varying = 1L))
+    result <- suppressWarnings(FindSpatiallyVariableFeatures(
+      case$assay,
+      layer = "counts",
+      features = rownames(x = case$assay),
+      spatial.location = case$coordinates,
+      selection.method = method,
+      nfeatures = 4L,
+      verbose = FALSE
+    ))
+    expect_equal(SpatiallyVariableFeatures(result, method = method), "gene1")
+  }
+})
+
+test_that("FindSpatiallyVariableFeatures warns when nothing varies", {
+  for (method in c("moransi", "markvariogram")) {
+    set.seed(42)
+    case <- build_svf_case(svf_counts(varying = 0L))
+    expect_warning(
+      result <- FindSpatiallyVariableFeatures(
+        case$assay,
+        layer = "counts",
+        features = rownames(x = case$assay),
+        spatial.location = case$coordinates,
+        selection.method = method,
+        verbose = FALSE
+      ),
+      "None of the requested features vary"
+    )
+    expect_identical(result, case$assay)
+  }
+})
+
+test_that("RunMarkVario returns one named entry per feature", {
+  set.seed(42)
+  n.cells <- 12L
+  positions <- data.frame(x = seq_len(n.cells), y = rev(seq_len(n.cells)))
+  # markvario() hands back a bare 'fv' for a single mark and a named list of
+  # them for several; the caller relies on always getting the list.
+  for (n.features in c(1L, 3L)) {
+    marks <- matrix(
+      data = rnorm(n = n.features * n.cells),
+      nrow = n.features,
+      dimnames = list(
+        paste0("gene", seq_len(n.features)),
+        paste0("cell", seq_len(n.cells))
+      )
+    )
+    mv <- RunMarkVario(spatial.location = positions, data = marks)
+    expect_named(mv, rownames(x = marks))
+    expect_true(all(vapply(mv, inherits, logical(1L), what = "fv")))
+  }
+})
