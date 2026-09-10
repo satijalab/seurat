@@ -12,6 +12,9 @@
 - Fixed naming of combined p-value column in output of `FindConservedMarkers` when a non-default `meta.method` is specified ([#10429](https://github.com/satijalab/seurat/pull/10429))
 - Updated minimum required `uwot` version to `0.2.1` ([#10447](https://github.com/satijalab/seurat/pull/10447))
 - Registered `Radius.VisiumV2` as an S3 method to fix `Radius` returning `NULL` for `VisiumV2` images ([#10454](https://github.com/satijalab/seurat/pull/10454))
+- Fixed `FindSpatiallyVariableFeatures()` to correctly match FOV coordinates to cells in the requested assay and handle various edge cases, including fewer than two matched cells, a single varying feature, or no varying requested features ([#10504](https://github.com/satijalab/seurat/pull/10504))
+- Updated argument handling in `FindSpatiallyVariableFeatures()` by resolving `selection.method` with `match.arg()` and restoring the `FindSpatiallyVariableFeatures.Assay()` default `nfeatures` value to `2000` ([#10504](https://github.com/satijalab/seurat/pull/10504))
+- Fixed `RunMarkVario()` to return one named mark variogram result per feature for single-feature inputs and parallel execution chunks ([#10505](https://github.com/satijalab/seurat/pull/10505))
 
 # Seurat 5.5.1
 
