@@ -402,7 +402,7 @@ test_that("FindSpatiallyVariableFeatures uses FOV cell names for the requested a
       nfeatures = length(x = features),
       verbose = FALSE
     ),
-    "Row names must be cell names"
+    "row names in 'spatial.location' do not match cells"
   )
 
   expect_error(
@@ -419,63 +419,46 @@ test_that("FindSpatiallyVariableFeatures uses FOV cell names for the requested a
   )
 })
 
-# Degenerate inputs to FindSpatiallyVariableFeatures ---------------------------
-
 #' Returns a small assay plus matching coordinates for the tests below.
-build_svf_case <- function(counts) {
+build_svf_case <- function(n_features_vary = 0L) {
+  cells <- paste0("cell", seq_len(12L))
+  counts <- matrix(3L, nrow = 4L, ncol = length(x = cells))
+  dimnames(x = counts) <- list(paste0("gene", 1:4), cells)
+  for (i in seq_len(n_features_vary)) {
+    counts[i, ] <- sample(x = seq_along(cells))
+  }
   object <- suppressWarnings(CreateSeuratObject(counts = as.sparse(counts)))
   object <- suppressWarnings(NormalizeData(object, verbose = FALSE))
   list(
     assay = object[["RNA"]],
     coordinates = data.frame(
-      x = seq_len(ncol(counts)),
-      y = rev(seq_len(ncol(counts))),
-      row.names = colnames(counts)
+      x = seq_len(length(x = cells)),
+      y = rev(seq_len(length(x = cells))),
+      row.names = cells
     )
   )
 }
 
-svf_counts <- function(varying = 0L) {
-  cells <- paste0("cell", seq_len(12L))
-  counts <- matrix(
-    data = 3L,
-    nrow = 4L,
-    ncol = length(x = cells),
-    dimnames = list(paste0("gene", 1:4), cells)
-  )
-  for (i in seq_len(varying)) {
-    counts[i, ] <- sample(x = seq_along(cells))
-  }
-  return(counts)
-}
-
-test_that("FindSpatiallyVariableFeatures needs at least two cells", {
+test_that("FindSpatiallyVariableFeatures handles bad inputs", {
   set.seed(42)
-  case <- build_svf_case(svf_counts(varying = 4L))
-  # Only the first row name is a real cell, which is enough to clear the check
-  # on 'spatial.location' but leaves a single column to compute variance over.
-  coordinates <- case$coordinates
-  rownames(x = coordinates) <- c(
-    rownames(x = coordinates)[1],
-    paste0("absent", seq_len(nrow(x = coordinates) - 1L))
-  )
+  case <- build_svf_case(n_features_vary = 4L)
+  # error when there are too few cells passed to spatial.location
   expect_error(
     FindSpatiallyVariableFeatures(
       case$assay,
       layer = "counts",
       features = rownames(x = case$assay),
-      spatial.location = coordinates,
+      spatial.location = case$coordinates[1, , drop = FALSE],
       selection.method = "moransi",
       verbose = FALSE
     ),
     "at least two"
   )
-})
 
-test_that("FindSpatiallyVariableFeatures handles a single varying feature", {
+  # test that no errors are thrown when identifying a single varying feature
   for (method in c("moransi", "markvariogram")) {
     set.seed(42)
-    case <- build_svf_case(svf_counts(varying = 1L))
+    case <- build_svf_case(n_features_vary = 1L)
     result <- suppressWarnings(FindSpatiallyVariableFeatures(
       case$assay,
       layer = "counts",
@@ -487,25 +470,21 @@ test_that("FindSpatiallyVariableFeatures handles a single varying feature", {
     ))
     expect_equal(SpatiallyVariableFeatures(result, method = method), "gene1")
   }
-})
 
-test_that("FindSpatiallyVariableFeatures warns when nothing varies", {
-  for (method in c("moransi", "markvariogram")) {
-    set.seed(42)
-    case <- build_svf_case(svf_counts(varying = 0L))
-    expect_warning(
-      result <- FindSpatiallyVariableFeatures(
-        case$assay,
-        layer = "counts",
-        features = rownames(x = case$assay),
-        spatial.location = case$coordinates,
-        selection.method = method,
-        verbose = FALSE
-      ),
-      "None of the requested features vary"
-    )
-    expect_identical(result, case$assay)
-  }
+  # warn when no features vary
+  case <- build_svf_case(n_features_vary = 0L)
+  expect_warning(
+    result <- FindSpatiallyVariableFeatures(
+      case$assay,
+      layer = "counts",
+      features = rownames(x = case$assay),
+      spatial.location = case$coordinates,
+      selection.method = "markvariogram",
+      verbose = FALSE
+    ),
+    "None of the requested features vary"
+  )
+  expect_identical(result, case$assay)
 })
 
 test_that("RunMarkVario returns one named entry per feature", {
