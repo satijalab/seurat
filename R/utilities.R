@@ -3142,11 +3142,11 @@ CreateCategoryMatrix <- function(
   colnames(x = category.matrix) <- unname(sapply(
     X = colnames(x = category.matrix),
     FUN = function(name) {
-      name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
+      name <- sub(pattern = paste0("^", data.pattern), replacement = "", x = name)
       if (length(group.by) == 1) {
         return(name)
       }
-      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
+      return(paste0(rev(x = unlist(x = strsplit(x = name, split = paste0(":", data.pattern)))), collapse = "_"))
     }))
   rownames(category.matrix) <- cells.name
   return(category.matrix)
