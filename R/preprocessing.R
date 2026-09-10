@@ -4762,8 +4762,8 @@ FindSpatiallyVariableFeatures.Assay <- function(
   cell.mismatch <- setdiff(cells, Cells(x = object, layer = layer))
   if (length(cell.mismatch) > 0L) {
     stop(
-      "None of the row names in 'spatial.location' match cells in the '",
-      layer, "' layer. Row names must be cell names.",
+      "At least some of the row names in 'spatial.location' do not match cells in the '",
+      layer, "' layer; check that the row names of 'spatial.location' are cell names.",
       call. = FALSE
     )
   }
@@ -4777,8 +4777,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   if (ncol(x = data) < 2) {
     stop(
       "Fewer than two cells were returned from the '", layer, "' layer; ",
-      "spatial variability is measured across cells and needs at least two. ",
-      "Check that the row names of 'spatial.location' are cell names.",
+      "finding spatially variable features requires at least two cells.",
       call. = FALSE
     )
   }
