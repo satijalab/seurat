@@ -4781,9 +4781,9 @@ FindSpatiallyVariableFeatures.Assay <- function(
       call. = FALSE
     )
   }
-  # Keep a single surviving feature as a one-row matrix; without drop = FALSE
-  # it becomes a vector and the call fails on 'attempt to set colnames on an
-  # object with less than two dimensions'.
+  # Keep a single surviving feature as a one-row matrix; without drop = FALSE it
+  # becomes a vector and `nrow()` returns NULL, triggering "argument is of length
+  # zero" in the `if (nrow(x = data) != 0)` check below.
   data <- data[RowVar(x = data) > 0, , drop = FALSE]
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
