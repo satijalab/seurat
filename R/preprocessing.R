@@ -4759,7 +4759,8 @@ FindSpatiallyVariableFeatures.Assay <- function(
     features <- features[! features %in% features.computed]
   }
   cells <- rownames(spatial.location)
-  if (!any(cells %in% Cells(x = object, layer = layer))) {
+  cell.mismatch <- setdiff(cells, Cells(x = object, layer = layer))
+  if (length(cell.mismatch) > 0L) {
     stop(
       "None of the row names in 'spatial.location' match cells in the '",
       layer, "' layer. Row names must be cell names.",
