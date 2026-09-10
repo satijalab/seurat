@@ -210,7 +210,7 @@ embed_url("https://youtu.be/10PZqjcSKrg")
 
 ## Identification of Spatially Variable Features
 
-Seurat offers two workflows to identify molecular features that correlate with spatial location within a tissue. The first is to perform differential expression based on pre-annotated anatomical regions within the tissue, which may be determined either from unsupervised clustering or prior knowledge. This strategy works will in this case, as the clusters above exhibit clear spatial restriction.
+Seurat offers two workflows to identify molecular features that correlate with spatial location within a tissue. The first is to perform differential expression based on pre-annotated anatomical regions within the tissue, which may be determined either from unsupervised clustering or prior knowledge. This strategy works well in this case, as the clusters above exhibit clear spatial restriction.
 
 ```{r de, fig.height = 4}
 de_markers <- FindMarkers(brain, ident.1 = 5, ident.2 = 7)

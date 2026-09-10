@@ -55,7 +55,7 @@ This vignette will give a brief demonstration on how to work with data produced 
   <div class="panel-body"> <ul>
   <li> Data represent peripheral blood mononuclear cells (PBMCs) from eight different donors. </li>
   <li> Cells from each donor are uniquely labeled, using CD45 as a hashing antibody.</li>
-  <li> Samples were subsequently pooled, and run on a single lane of the the 10X Chromium v2 system.</li>
+  <li> Samples were subsequently pooled, and run on a single lane of the 10X Chromium v2 system.</li>
   <li> You can download the count matrices for RNA and HTO [here](https://www.dropbox.com/sh/ntc33ium7cg1za1/AAD_8XIDmu4F7lJ-5sp-rGFYa?dl=0), or the FASTQ files from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE108313)</li>
   </ul></div>
 

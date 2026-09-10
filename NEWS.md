@@ -12,9 +12,14 @@
 - `FindSpatiallyVariableFeatures` now says when an object has several images and only one of them is used, naming it and how much of the object it covers ([#9092](https://github.com/satijalab/seurat/issues/9092))
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
+- Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
+- Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
 - Fixed bugs in behavior of `RidgePlot` parameters `fill.by`, `y.max`, and `same.y.lims` ([#10424](https://github.com/satijalab/seurat/pull/10424))
+- Fixed naming of combined p-value column in output of `FindConservedMarkers` when a non-default `meta.method` is specified ([#10429](https://github.com/satijalab/seurat/pull/10429))
+- Updated minimum required `uwot` version to `0.2.1` ([#10447](https://github.com/satijalab/seurat/pull/10447))
+- Registered `Radius.VisiumV2` as an S3 method to fix `Radius` returning `NULL` for `VisiumV2` images ([#10454](https://github.com/satijalab/seurat/pull/10454))
 
 # Seurat 5.5.1
 
