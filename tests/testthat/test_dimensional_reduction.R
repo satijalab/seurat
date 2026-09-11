@@ -1,10 +1,10 @@
-#' Returns a random counts matrix.
-get_random_counts <- function() {
-  # Populate a 100 by 100 matrix with random integers from 1 to 50.
+#' Returns a random counts matrix with `nfeatures` rows and `ncells` columns.
+get_random_counts <- function(nfeatures = 100, ncells = 100) {
+  # Populate an `nfeatures` by `ncells` matrix with random integers from 1 to 50.
   counts <- matrix(
-    data = sample(c(1:50), size = 1e4, replace = TRUE),
-    ncol = 100,
-    nrow = 100
+    data = sample(c(1:50), size = nfeatures * ncells, replace = TRUE),
+    ncol = ncells,
+    nrow = nfeatures
   )
 
   # Assign column and row names to the matrix to label cells and genes.
@@ -193,16 +193,45 @@ test_that("`RunICA` works as expected", {
   counts <- get_random_counts()
   input_v3 <- get_test_data(counts, assay_version = "v3")
   input_v5 <- get_test_data(counts, assay_version = "v5")
+  # Unlike `RunPCA` above, `RunICA` densifies its input via `as.matrix`, so
+  # there is no `IterableMatrix` case to add here.
   inputs <- c(input_v3, input_v5)
+
+  # Check that `RunICA` returns equivalent results for every input in `inputs`.
   test_dimensional_reduction(inputs = inputs, method = RunICA, nics = 10)
 })
 
-test_that("`RunICA` on SCT assay creates valid DimReduc (issue #9104)", {
-  skip_if_not_installed("ica")
-  obj <- get_test_data()
-  obj <- SCTransform(obj, verbose = FALSE)
-  obj <- RunICA(obj, assay = "SCT", verbose = FALSE, nics = 5)
-  emb <- Embeddings(obj, reduction = "ica")
-  expect_equal(rownames(emb), colnames(obj))
-  expect_false(anyNA(emb))
+test_that("`RunICA` labels its embeddings and loadings", {
+  # For the motivation behind this test see
+  # https://github.com/satijalab/seurat/issues/9104. `ica::icafast` only
+  # propagates dimnames when its input has at least as many rows as columns,
+  # so `RunICA` has to set them itself. Otherwise `CreateDimReducObject`
+  # fails with "rownames must be present in 'cell.embeddings'". Which of
+  # `icafast`'s branches gets hit depends on both the shape of the input and
+  # on `rev.ica`, so exercise every combination.
+  shapes <- list(
+    c(nfeatures = 100, ncells = 60),
+    c(nfeatures = 60, ncells = 100)
+  )
+  for (shape in shapes) {
+    test_case <- get_test_data(
+      get_random_counts(nfeatures = shape[["nfeatures"]], ncells = shape[["ncells"]])
+    )
+    for (rev.ica in c(FALSE, TRUE)) {
+      result <- RunICA(
+        test_case,
+        features = rownames(test_case),
+        nics = 10,
+        rev.ica = rev.ica,
+        verbose = FALSE
+      )
+      embeddings <- Embeddings(result, reduction = "ica")
+      loadings <- Loadings(result, reduction = "ica")
+
+      expect_equal(rownames(embeddings), colnames(test_case))
+      expect_equal(rownames(loadings), rownames(test_case))
+      # Both matrices should be labelled with the same set of components.
+      expect_equal(colnames(embeddings), colnames(loadings))
+    }
+  }
 })
