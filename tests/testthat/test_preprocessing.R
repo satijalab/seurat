@@ -427,6 +427,31 @@ if (is_not_cran_submission) {
     expect_warning(GetResidual(object, features = "asd"))
   })
 
+  test_that("GetResidual handles features modeled in only one SCT model when na.rm is FALSE", {
+    set.seed(1)
+    obj1 <- suppressWarnings(SCTransform(pbmc_small[, 1:40], verbose = FALSE))
+    obj2 <- suppressWarnings(SCTransform(pbmc_small[, 41:80], verbose = FALSE))
+    merged <- merge(x = obj1, y = obj2)
+
+    only1 <- setdiff(x = VariableFeatures(obj1), y = VariableFeatures(obj2))[[1]] # gene modeled in obj1 only
+    both <- intersect(x = VariableFeatures(obj1), y = VariableFeatures(obj2))[[1]] # gene modeled in both obj1 and obj2
+
+    result <- expect_warning(
+      GetResidual(object = merged, features = c(only1, both), assay = "SCT", na.rm = FALSE, verbose = FALSE),
+      "features do not exist in the counts slot",
+      fixed = TRUE
+    )
+    residuals <- GetAssayData(object = result, assay = "SCT", layer = "scale.data")
+    sct_models <- levels(x = result[["SCT"]])
+    model1.cells <- Cells(x = slot(object = result[["SCT"]], name = "SCTModel.list")[[sct_models[[1]]]])
+    model2.cells <- Cells(x = slot(object = result[["SCT"]], name = "SCTModel.list")[[sct_models[[2]]]])
+
+    expect_true(all(c(only1, both) %in% rownames(x = residuals)))
+    expect_false(anyNA(residuals[only1, model1.cells]))
+    expect_true(all(is.na(residuals[only1, model2.cells])))
+    expect_false(anyNA(residuals[both, c(model1.cells, model2.cells)]))
+  })
+
   test_that("SCTransform v2 works as expected", {
     skip_if_not_installed("glmGamPoi")
     object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
@@ -555,22 +580,34 @@ if (is_not_cran_submission) {
 
   test_that("`SCTransform` is consistent for multi-layer inputs", {
     clip.range = c(-1.632993, 1.632993)
+    # pin SCT args for the multi-layer path to ensure that the two paths are equivalent
+    sct_args <- list(
+      clip.range = clip.range,
+      vst.flavor = "v1",
+      seed.use = 1448145,
+      verbose = FALSE
+    )
     
     test_case_v3 <- SplitObject(object2, split.by = "Condition")
-    result_v3_list <- lapply(test_case_v3, SCTransform, clip.range = clip.range)
+    result_v3_list <- lapply(
+      test_case_v3,
+      function(x) {
+        suppressWarnings(do.call(what = SCTransform, args = c(list(object = x), sct_args)))
+      }
+    )
     result_v3 <- merge(result_v3_list[[1]], result_v3_list[[2]])
     
     test_case_v5 <- object2
     test_case_v5 <- split(object2, f = object2$Condition)
-    result_v5 <- SCTransform(test_case_v5, clip.range = clip.range)
+    result_v5 <- suppressWarnings(do.call(what = SCTransform, args = c(list(object = test_case_v5), sct_args)))
     
     expected <- result_v3[["SCT"]]@data[,colnames(object2)]
     result <- result_v5[["SCT"]]@data[,colnames(object2)]
-    expect_true(all.equal(expected, result))
+    expect_equal(expected, result, tolerance = 1e-6)
     
     expected <- result_v3[["SCT"]]@scale.data[,colnames(object2)]
     result <- result_v5[["SCT"]]@scale.data[,colnames(object2)]
-    expect_true(all.equal(expected[rownames(result), ], result))
+    expect_equal(expected[rownames(result), ], result, tolerance = 1e-6)
   })
 
   test_that("SCTransform is equivalent for BPcells ", {

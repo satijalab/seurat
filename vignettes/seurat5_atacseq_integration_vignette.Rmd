@@ -102,13 +102,6 @@ p2 <- DimPlot(pbmc.atac, group.by = 'orig.ident', label = FALSE) + NoLegend() + 
 p1 + p2
 ```
 
-```{r save.img, include = TRUE}
-plot <- (p1 + p2) &
-  xlab("UMAP 1") & ylab("UMAP 2") & 
-  theme(axis.title = element_text(size = 18))
-ggsave(filename = "../output/images/atacseq_integration_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
-```
-
 # Identifying anchors between scRNA-seq and scATAC-seq datasets
 
 In order to identify 'anchors' between scRNA-seq and scATAC-seq experiments, we first generate a rough estimate of the transcriptional activity of each gene by quantifying ATAC-seq counts in the 2 kb-upstream region and gene body, using the `GeneActivity()` function in the Signac package. The ensuing gene activity scores from the scATAC-seq data are then used as input for canonical correlation analysis, along with the gene expression quantifications from scRNA-seq. We perform this quantification for all genes identified as being highly variable from the scRNA-seq dataset.
@@ -219,9 +212,6 @@ coembed <- RunUMAP(coembed, dims = 1:30)
 DimPlot(coembed, group.by = c("orig.ident","seurat_annotations"))
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_atacseq_integration_vignette.csv")
-```
 
 <details>
   <summary>**Session Info**</summary>

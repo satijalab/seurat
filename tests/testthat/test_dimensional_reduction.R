@@ -124,6 +124,45 @@ test_that("`RunPCA` returns total variance", {
   )
 })
 
+test_that("`RunPCA` does not drop features when there are zero-variance features outside the supplied set", {
+  set.seed(123)
+  
+  mat <- get_random_counts()
+  # Set some features outside the supplied set to have zero variance
+  mat[1:50, ] <- 0
+
+  test_case <- get_test_data(counts = mat, assay_version = "v5")
+  supplied_features <- rownames(mat)[51:80]
+
+  result <- suppressWarnings(RunPCA(test_case, features = supplied_features, npcs = 10, verbose = FALSE))
+
+  loadings_features <- rownames(Loadings(result[["pca"]]))
+  expect_equal(length(loadings_features), length(supplied_features))
+  expect_equal(loadings_features, supplied_features)
+})
+
+test_that("`RunPCA` drops zero-variance features only within the supplied feature set", {
+  set.seed(123)
+
+  mat <- get_random_counts()
+  # Set some features outside the supplied set to have zero variance
+  mat[1:50, ] <- 0
+  # Set some features within the supplied set to have zero variance
+  mat[51:60, ] <- 0
+
+  test_case <- get_test_data(counts = mat, assay_version = "v5")
+
+  supplied_features <- rownames(mat)[51:100]
+
+  result <- suppressWarnings(RunPCA(test_case, features = supplied_features, npcs = 10, verbose = FALSE))
+
+  loadings_features <- rownames(Loadings(result[["pca"]]))
+  expected_features <- setdiff(supplied_features, rownames(mat)[51:60])
+
+  expect_equal(loadings_features, expected_features)
+  expect_false(any(rownames(mat)[51:60] %in% loadings_features))
+})
+
 context("RunICA")
 
 test_that("`RunPCA` works as expected", {

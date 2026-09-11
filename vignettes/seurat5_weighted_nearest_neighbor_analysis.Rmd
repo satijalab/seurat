@@ -300,7 +300,7 @@ tcells <- subset(pbmc, idents = tcell.names)
 CoveragePlot(tcells, region = 'CD8A', features = 'CD8A', assay = 'ATAC', expression.assay = 'SCT', peaks = FALSE)
 ```
 
-Next, we will examine the accessible regions of each cell to determine enriched motifs. As described in the [Signac motifs vignette](https://satijalab.org/signac/articles/motif_vignette.html), there are a few ways to do this, but we will use the [chromVAR](https://www.nature.com/articles/nmeth.4401) package from the Greenleaf lab. This calculates a per-cell accessibility score for known motifs, and adds these scores as a third assay (`chromvar`) in the Seurat object.
+Next, we will examine the accessible regions of each cell to determine enriched motifs. As described in the [Signac motifs vignette](https://satijalab.org/signac/articles/motif_vignette.html), there are a few ways to do this, but we will use the [chromVAR](https://www.nature.com/articles/nmeth.4401) package from the Greenleaf lab directly (the `RunChromVAR()` wrapper was removed in recent Signac releases). This calculates a per-cell accessibility score for known motifs, and adds these scores as a third assay (`chromvar`) in the Seurat object.
 
 To continue, please make sure you have the following packages installed. 
 
@@ -335,11 +335,27 @@ motif.matrix <- CreateMotifMatrix(features = granges(pbmc), pwm = pwm_set, genom
 motif.object <- CreateMotifObject(data = motif.matrix, pwm = pwm_set)
 pbmc <- SetAssayData(pbmc, assay = 'ATAC', layer = 'motifs', new.data = motif.object)
 
-# Note that this step can take 30-60 minutes 
-pbmc <- RunChromVAR(
-  object = pbmc,
-  genome = BSgenome.Hsapiens.UCSC.hg38
+# Build chromVAR input object from ATAC counts
+peak_counts <- GetAssayData(pbmc, assay = "ATAC", layer = "counts")
+chromvar_input <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(counts = peak_counts),
+  rowRanges = granges(pbmc)
 )
+chromvar_input <- chromVAR::addGCBias(chromvar_input, genome = BSgenome.Hsapiens.UCSC.hg38)
+motif_ix <- GetMotifData(pbmc, assay = "ATAC", slot = "data")
+bg_peaks <- chromVAR::getBackgroundPeaks(chromvar_input)
+
+# Note that this step can take 30-60 minutes
+dev <- chromVAR::computeDeviations(
+  object = chromvar_input,
+  annotations = motif_ix,
+  background_peaks = bg_peaks
+)
+chromvar_scores <- chromVAR::deviationScores(dev)
+
+# Store per-cell motif accessibility as a third assay
+pbmc[["chromvar"]] <- CreateAssayObject(counts = chromvar_scores)
+pbmc <- SetAssayData(pbmc, assay = "chromvar", layer = "data", new.data = chromvar_scores)
 ```
 
 Finally, we explore the multimodal dataset to identify key regulators of each cell state. Paired data provides a unique opportunity to identify transcription factors (TFs) that satisfy multiple criteria, helping to narrow down the list of putative regulators to the most likely candidates. We aim to identify TFs whose expression is enriched in multiple cell types in the RNA measurements, but *also* have enriched accessibility for their motifs in the ATAC measurements. 
@@ -426,11 +442,6 @@ head(topTFs("HSPC"), 3)
 head(topTFs("Plasma"), 3)
 ```
 
-
-```{r save.times, include=TRUE}
-# write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_weighted_nearest_neighbor_analysis_times.csv")
-print("done")
-```
 
 <details>
   <summary>**Session Info**</summary>
