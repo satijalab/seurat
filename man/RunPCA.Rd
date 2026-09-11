@@ -21,6 +21,7 @@ RunPCA(object, ...)
   reduction.key = "PC_",
   seed.use = 42,
   approx = TRUE,
+  deterministic = getOption(x = "Seurat.deterministic", default = TRUE),
   ...
 )
 
@@ -84,6 +85,19 @@ the number for the dimension names. PC by default}
 NULL will not set a seed.}
 
 \item{approx}{Use truncated singular value decomposition to approximate PCA}
+
+\item{deterministic}{Apply a reproducible sign convention to the returned
+principal components. Truncated SVD solvers return singular vectors whose
+sign is arbitrary: it depends on the random starting vector, on the
+BLAS/LAPACK in use, and on how many iterations the solver needed, so the
+same data can yield sign-flipped PCs on a different machine or package
+version. When \code{TRUE} (the default) the entry of largest absolute value
+in each loading vector is forced to be positive, the same convention
+scikit-learn and scanpy use. Set to \code{FALSE} to reproduce the output of
+Seurat <= 5.5.1. Note that a sign flip applied to a whole component leaves
+every pairwise Euclidean and cosine distance unchanged, so this affects the
+orientation of PC plots and the sign of loadings but not \code{FindNeighbors},
+\code{FindClusters}, \code{RunUMAP}, or \code{RunTSNE}.}
 
 \item{features}{Features to compute PCA on. If features=NULL, PCA will be run
 using the variable features for the Assay. Note that the features must be present

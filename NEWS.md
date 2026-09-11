@@ -2,8 +2,11 @@
 
 ### Additions
 
+- Added `n.threads`, `n.sgd.threads` and `deterministic` to `RunUMAP`, and `deterministic` to `RunPCA` and `RunTSNE`, so that a fixed `seed.use` is the only thing an embedding depends on. `RunUMAP` now passes `seed.use` to `uwot` directly, pins the SGD to one thread, and pins `n.epochs` to the value `uwot` currently chooses; `RunPCA` canonicalizes the sign of each component the way scikit-learn and scanpy do. Bit-identical results are still not guaranteed across operating systems, CPU architectures, or BLAS implementations ([#10502](https://github.com/satijalab/seurat/issues/10502))
+
 ### Fixes
 
+- Fixed `RunPCA`, `RunUMAP` and `RunTSNE` leaving the global random stream advanced after they returned, which made every subsequent random draw depend on which reductions had been run before it ([#10502](https://github.com/satijalab/seurat/issues/10502))
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
 - Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
