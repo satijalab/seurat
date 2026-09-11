@@ -622,7 +622,13 @@ IntegrateLayers <- function(
     abort(message = "'assay' must be a v5 or SCT assay")
   }
   n.groups <- if (inherits(x = object[[assay]], what = 'SCTAssay')) {
-    length(levels(x = object[[assay]]))
+    sum(vapply(
+      X = levels(x = object[[assay]]),
+      FUN = function(model) {
+        length(Cells(x = object[[assay]], layer = model)) > 0L
+      },
+      FUN.VALUE = logical(1L)
+    ))
   } else {
     length(layers)
   }
