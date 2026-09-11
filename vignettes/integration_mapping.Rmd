@@ -47,11 +47,11 @@ library(SeuratData)
 library(ggplot2)
 ```
 
-```{r install.data, eval=FALSE}
+```{r install.data, warning=FALSE, message=FALSE}
 InstallData('panc8')
 ```
 
-As a demonstration, we will use a subset of technologies to construct a reference. We will then map the remaining datasets onto this reference. We start by selecting cells from four technologies, and performing an analysis without integration.
+As a demonstration, we will use a subset of technologies to construct a reference. We will then map the remaining datasets onto this reference. We start by selecting cells from two technologies, and performing an analysis without integration.
 
 ```{r preprocessing1}
 panc8 <- LoadData('panc8')
@@ -72,7 +72,8 @@ pancreas.ref <- RunUMAP(pancreas.ref, dims = 1:30)
 DimPlot(pancreas.ref,group.by = c("celltype","tech"))
 ```
 
-Next, we integrate the datasets into a shared reference. Please see our [introduction to integration vignette](https://satijalab.org/seurat/articles/integration_introduction)
+Next, we integrate the datasets into a shared reference. Please see our [introduction to integration vignette](https://satijalab.org/seurat/articles/integration_introduction).
+
 ```{r preprocessing3, fig.height = 4}
 pancreas.ref <- IntegrateLayers(
   object = pancreas.ref, method = CCAIntegration,
@@ -86,17 +87,14 @@ DimPlot(pancreas.ref,group.by = c("tech","celltype"))
 
 # Cell type classification using an integrated reference
 
-Seurat also supports the projection of reference data (or meta data) onto a query object. While many of the methods are conserved (both procedures begin by identifying anchors), there are two important distinctions between data transfer and integration:
-
-1. In data transfer, Seurat does not correct or modify the query expression data.
-2. In data transfer, Seurat has an option (set by default) to project the PCA structure of a reference onto the query, instead of learning a joint structure with CCA. We generally suggest using this option when projecting data between scRNA-seq datasets.
+Seurat also supports the projection of reference data (or meta data) onto a query object. While many of the methods are conserved (both procedures begin by identifying anchors), there is an important distinction between data transfer and integration: in data transfer, Seurat does not correct or modify the query expression data. Seurat has an option (set by default) to project the PCA structure of a reference onto the query, instead of learning a joint structure with CCA. We generally suggest using this option when projecting data between scRNA-seq datasets.
 
 After finding anchors, we use the `TransferData()` function to classify the query cells based on reference data (a vector of reference cell type labels). `TransferData()` returns a matrix with predicted IDs and prediction scores, which we can add to the query metadata.
 
 ```{r label.transfer, warning = FALSE, message = FALSE}
 
 # select two technologies for the query datasets
-pancreas.query <- subset(panc8, tech %in% c("fluidigmc1","celseq"))
+pancreas.query <- subset(panc8, tech %in% c("fluidigmc1", "celseq"))
 pancreas.query <- NormalizeData(pancreas.query)
 pancreas.anchors <- FindTransferAnchors(reference = pancreas.ref, query = pancreas.query, dims = 1:30, reference.reduction="pca")
 predictions <- TransferData(anchorset = pancreas.anchors, refdata = pancreas.ref$celltype, dims = 1:30)
@@ -171,9 +169,6 @@ p2 <- DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.cell
 p1 + p2
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_reference_mapping.csv")
-```
 
 <details>
   <summary>**Session Info**</summary>

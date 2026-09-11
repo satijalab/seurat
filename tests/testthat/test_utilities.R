@@ -442,3 +442,35 @@ test_that("AddModuleScore works in the multi-layer case", {
     all(object1$CD_Features1 == object2$CD_Features1)
   )
 })
+
+test_that("AddModuleScore preserves IterableMatrix layers", {
+  skip_if_not_installed("BPCells")
+  library(BPCells)
+  library(Matrix)
+  mat_bpcells <- t(as(t(object[['RNA']]$counts ), "IterableMatrix"))
+  object[["RNA"]]$counts <- mat_bpcells
+  object <- NormalizeData(object)
+  mod_features <- list(c('CD79B','CD79A','CD3D','CD2','CD3E','CD7',
+                        'CD14','CD68','CD247'))
+  object2 <- AddModuleScore(object = object, features = mod_features, ctrl = 5)
+  expect_s4_class(object2[['RNA']]$counts, "IterableMatrix")
+  expect_s4_class(object2[['RNA']]$data, "IterableMatrix")
+})
+
+test_that("PercentageFeatureSet works with v5 layers", {
+  counts <- LayerData(object, assay = "RNA", layer = "counts")
+  counts <- rbind(counts, rep(5, ncol(counts)))
+
+  # Test with pattern matching on counts layer
+  result <- PercentageFeatureSet(object = object, pattern = "^HLA-", assay = "RNA")
+  
+  # Should return a numeric vector with one value per cell
+  expect_is(result, "numeric")
+  expect_equal(length(result), ncol(object))
+  
+  # Test with explicit features parameter
+  result_features <- PercentageFeatureSet(object = object, features = "HLA-DRB1", assay = "RNA")
+  
+  expect_is(result_features, "numeric")
+  expect_equal(length(result_features), ncol(object))
+})

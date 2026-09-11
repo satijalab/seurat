@@ -19,12 +19,10 @@ make_href2 <- function(url, text){
   paste0("<a href=", url ,">", text, "</a>")
 }
 process_entry <- function(dat) {
-  if (grepl(pattern = "https://satijalab.org/img/vignette_images", x = dat$image)) {
-    img <- paste0('![](', dat$image, '){width=3000px}')
-  } else if (grepl(pattern = "assets/", x= dat$image)) {
+  if (grepl(pattern = "assets/", x= dat$image)) {
     img <- paste0('![](', dat$image, '){width=3000px}') 
   } else {
-    img <- paste0('![](', '../output/images/', dat$image, '){width=3000px}')
+    img <- paste0('![](', dat$image, '){width=3000px}')
   }
   if (grepl(pattern = "https://satijalab.org/", x = dat$name)) {
     link <- dat$name
@@ -99,7 +97,9 @@ vdat <- read_yaml(file = "vignettes_v5_new.yaml")
 </style>
 ```
 
-We provide a series of vignettes, tutorials, and analysis walkthroughs to help users get started with Seurat. You can also check out our [Reference page](../reference/index.html) which contains a full list of functions available to users. 
+We provide a series of vignettes, tutorials, and analysis walkthroughs to help users get started with Seurat. 
+
+You can refer to the documentation for Seurat functions [here](../reference/index.html).
 
 Our previous Get Started page for Seurat v4 is archived [here](get_started.html). 
 
