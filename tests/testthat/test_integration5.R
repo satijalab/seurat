@@ -328,10 +328,15 @@ test_that("IntegrateLayers fails when expected", {
     )
   )
 
-  # an error should be raised if the assay has only one layer after split
+  # an error should be raised if there is only one layer to integrate - for the
+  # motivation behind this check see
+  # https://github.com/satijalab/seurat/issues/9381
   test.data.one <- test.data.std
   test.data.one[["RNA"]] <- JoinLayers(test.data.one[["RNA"]])
-  test.data.one[["RNA"]] <- split(test.data.one[["RNA"]], f = rep("single", ncol(test.data.one)))
+  test.data.one[["RNA"]] <- split(
+    test.data.one[["RNA"]],
+    f = rep("single", ncol(test.data.one))
+  )
   expect_error(
     IntegrateLayers(
       test.data.one,
@@ -339,50 +344,8 @@ test_that("IntegrateLayers fails when expected", {
       orig.reduction = "pca",
       new.reduction = "integrated"
     ),
-    regexp = "at least two groups/layers"
+    regexp = "requires at least two"
   )
-
-  if (is_not_cran_submission) {
-    # an error should also be raised for SCTAssay objects when only one
-    # SCT model is represented in the current cells, including after subsetting
-    split.cells <- split(colnames(test.data), rep(c("a", "b"), length.out = ncol(test.data)))
-    test.data.sct.a <- suppressWarnings(
-      SCTransform(
-        subset(test.data, cells = split.cells[[1]]),
-        vst.flavor = "v1",
-        seed.use = 12345,
-        verbose = FALSE
-      )
-    )
-    test.data.sct.b <- suppressWarnings(
-      SCTransform(
-        subset(test.data, cells = split.cells[[2]]),
-        vst.flavor = "v1",
-        seed.use = 12345,
-        verbose = FALSE
-      )
-    )
-    test.data.sct.multi <- merge(test.data.sct.a, y = test.data.sct.b)
-    test.data.sct.multi <- RunPCA(
-      test.data.sct.multi,
-      assay = "SCT",
-      verbose = FALSE
-    )
-    test.data.sct.one.model <- subset(
-      test.data.sct.multi,
-      cells = colnames(test.data.sct.a)
-    )
-    expect_error(
-      IntegrateLayers(
-        test.data.sct.one.model,
-        method = CCAIntegration,
-        assay = "SCT",
-        orig.reduction = "pca",
-        new.reduction = "integrated"
-      ),
-      regexp = "at least two groups/layers"
-    )
-  }
 })
 
 
@@ -553,6 +516,27 @@ if (is_not_cran_submission) {
     expect_abs_equal(
       Embeddings(integrated[["integrated"]])[75, 45],
       0.0855
+    )
+  })
+
+  test_that("IntegrateLayers fails when only one SCT model is represented", {
+    # subsetting a multi-model SCT assay can leave behind cells from a single
+    # model, in which case there is nothing to integrate - for the motivation
+    # behind this check see https://github.com/satijalab/seurat/issues/9381
+    model <- levels(test.data.sct[["SCT"]])[1]
+    test.data.sct.one.model <- subset(
+      test.data.sct,
+      cells = Cells(test.data.sct[["SCT"]], layer = model)
+    )
+    expect_error(
+      IntegrateLayers(
+        test.data.sct.one.model,
+        method = CCAIntegration,
+        assay = "SCT",
+        orig.reduction = "pca",
+        new.reduction = "integrated"
+      ),
+      regexp = "requires at least two"
     )
   })
 }

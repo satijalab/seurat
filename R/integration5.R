@@ -610,6 +610,16 @@ IntegrateLayers <- function(
       object = object,
       assay = assay
     )
+    # cells in an SCT assay are grouped by model, and a model that no longer
+    # has any cells contributes no group - see `CreateIntegrationGroups`
+    sct.assay <- object[[assay]]
+    n.groups <- sum(vapply(
+      X = levels(x = sct.assay),
+      FUN = function(model) {
+        length(x = Cells(x = sct.assay, layer = model)) > 0L
+      },
+      FUN.VALUE = logical(length = 1L)
+    ))
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
     layers <- Layers(object = object, assay = assay, search = layers %||% 'data')
     scale.layer <- Layers(object = object, search = scale.layer)
@@ -618,27 +628,20 @@ IntegrateLayers <- function(
       assay = assay,
       nfeatures = 2000L
     )
+    # cells in a v5 assay are grouped by layer - see `CreateIntegrationGroups`
+    n.groups <- length(x = layers)
   } else {
     abort(message = "'assay' must be a v5 or SCT assay")
   }
-  n.groups <- if (inherits(x = object[[assay]], what = 'SCTAssay')) {
-    sum(vapply(
-      X = levels(x = object[[assay]]),
-      FUN = function(model) {
-        length(Cells(x = object[[assay]], layer = model)) > 0L
-      },
-      FUN.VALUE = logical(1L)
-    ))
-  } else {
-    length(layers)
-  }
+  # `CreateIntegrationGroups` silently returns `NULL` when it cannot split the
+  # cells into more than one group, which surfaces as an unhelpful error from
+  # whichever method was passed in - bail out here instead
   if (n.groups < 2L) {
     abort(message = paste0(
-      "IntegrateLayers requires at least two groups/layers in assay '",
-      assay,
-      "', but found ",
-      n.groups,
-      ". Split the assay by sample/batch (e.g. object[[assay]] <- split(object[[assay]], f = object$batch)) and check that subsetting retained cells from multiple batches."
+      "The ", sQuote(x = assay), " assay holds ", n.groups,
+      " group(s) of cells but 'IntegrateLayers' requires at least two; split ",
+      "the assay by batch and check that any subsetting retained cells from ",
+      "more than one batch"
     ))
   }
   if (!is.null(scale.layer)) {
