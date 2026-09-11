@@ -327,6 +327,25 @@ test_that("IntegrateLayers fails when expected", {
       new.reduction = "integrated"
     )
   )
+
+  # an error should be raised if there is only one layer to integrate - for the
+  # motivation behind this check see
+  # https://github.com/satijalab/seurat/issues/9381
+  test.data.one <- test.data.std
+  test.data.one[["RNA"]] <- JoinLayers(test.data.one[["RNA"]])
+  test.data.one[["RNA"]] <- split(
+    test.data.one[["RNA"]],
+    f = rep("single", ncol(test.data.one))
+  )
+  expect_error(
+    IntegrateLayers(
+      test.data.one,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated"
+    ),
+    regexp = "requires at least two"
+  )
 })
 
 
@@ -497,6 +516,27 @@ if (is_not_cran_submission) {
     expect_abs_equal(
       Embeddings(integrated[["integrated"]])[75, 45],
       0.0855
+    )
+  })
+
+  test_that("IntegrateLayers fails when only one SCT model is represented", {
+    # subsetting a multi-model SCT assay can leave behind cells from a single
+    # model, in which case there is nothing to integrate - for the motivation
+    # behind this check see https://github.com/satijalab/seurat/issues/9381
+    model <- levels(test.data.sct[["SCT"]])[1]
+    test.data.sct.one.model <- subset(
+      test.data.sct,
+      cells = Cells(test.data.sct[["SCT"]], layer = model)
+    )
+    expect_error(
+      IntegrateLayers(
+        test.data.sct.one.model,
+        method = CCAIntegration,
+        assay = "SCT",
+        orig.reduction = "pca",
+        new.reduction = "integrated"
+      ),
+      regexp = "requires at least two"
     )
   })
 }
