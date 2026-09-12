@@ -116,6 +116,7 @@ Suggests:
     mixtools,
     monocle,
     presto,
+    rhdf5,
     rsvd,
     R.utils,
     Rfast2,
