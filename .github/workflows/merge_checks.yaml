@@ -46,7 +46,7 @@ jobs:
       - name: Prepare R Package Library
         run: mkdir -p "$R_LIBS_USER"
       
-      # Install the package and all its dependencies.
+      # Install all dependencies for checks.
       # The setup-r-dependencies action uses pak, 
       # and we enable caching to speed up repeated runs of this workflow.
       - name: Install Dependencies
@@ -54,7 +54,6 @@ jobs:
         with:
           packages: |
             deps::.
-            local::.
             any::rcmdcheck
             any::testthat
           dependencies: '"all"'
