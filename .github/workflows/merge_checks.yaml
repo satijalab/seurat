@@ -39,9 +39,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      # Install the package and all its dependencies using pak
+      # Install the package and all its dependencies.
+      # The setup-r-dependencies action uses pak, 
+      # and we enable caching to speed up repeated runs of this workflow.
       - name: Install Dependencies
-        run: Rscript -e 'options(repos = c(CRAN = Sys.getenv("RSPM"))); Sys.setenv(PAK_PPM_URL = Sys.getenv("RSPM")); pak::local_install(dependencies = TRUE)'
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            deps::.
+            local::.
+            any::rcmdcheck
+            any::testthat
+          dependencies: '"all"'
+          cache-version: 1
         
       # Install SeuratObject from CRAN
       # This helps check updates to SeuratObject and Seurat in rapid succession
