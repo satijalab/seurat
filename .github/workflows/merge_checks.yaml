@@ -58,6 +58,7 @@ jobs:
             any::rcmdcheck
             any::testthat
           dependencies: '"all"'
+          cache: always
           cache-version: 1
         
       # Install SeuratObject from CRAN
