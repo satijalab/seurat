@@ -355,6 +355,49 @@ if (is_not_cran_submission) {
     expect_equal(as.matrix(result_data), as.matrix(log1p(expected_counts)))
   })
 
+  test_that("PrepSCTFindMarkers recorrects when observed median UMI decreases", {
+    cell_attributes <- SCTResults(sct_merged[["SCT"]], slot = "cell.attributes")
+    low_umi_cells <- lapply(cell_attributes, function(x) {
+      rownames(x)[order(x[, "umi"])[seq_len(10)]]
+    })
+    sct_subset <- subset(sct_merged, cells = unlist(low_umi_cells, use.names = FALSE))
+    Idents(sct_subset) <- ifelse(
+      colnames(sct_subset) %in% low_umi_cells[[1]],
+      "model1",
+      "model2"
+    )
+
+    observed_medians <- vapply(
+      SCTResults(sct_subset[["SCT"]], slot = "cell.attributes"),
+      function(x) median(x[, "umi"]),
+      numeric(1)
+    )
+    target_median <- min(observed_medians)
+    stored_before <- unlist(SCTResults(sct_subset[["SCT"]], slot = "median_umi"))
+    expect_true(all(stored_before > target_median))
+
+    prepared <- PrepSCTFindMarkers(sct_subset, verbose = FALSE)
+    stored_after <- unlist(SCTResults(prepared[["SCT"]], slot = "median_umi"))
+    expect_equal(unname(stored_after), rep(target_median, length(stored_after)))
+    expect_no_error(suppressWarnings(FindMarkers(
+      prepared,
+      ident.1 = "model1",
+      ident.2 = "model2",
+      assay = "SCT",
+      verbose = FALSE
+    )))
+
+    counts_after <- GetAssayData(prepared, assay = "SCT", layer = "counts")
+    expect_message(
+      prepared_again <- PrepSCTFindMarkers(prepared),
+      "Minimum UMI unchanged. Skipping re-correction."
+    )
+    expect_equal(
+      GetAssayData(prepared_again, assay = "SCT", layer = "counts"),
+      counts_after
+    )
+  })
+
   test_that("PrepSCTFindMarkers keeps infinite theta genes with valid corrected counts", {
     sct_test <- sct_merged
     model_name <- "model1.1"
