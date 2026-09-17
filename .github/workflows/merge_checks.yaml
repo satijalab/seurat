@@ -65,6 +65,7 @@ jobs:
         run: |
           rcmdcheck::rcmdcheck(
             args = c("--as-cran", "--no-tests"), 
+            repos = c(CRAN = "https://cloud.r-project.org"),
             error_on="warning"
           )
         shell: Rscript {0}
