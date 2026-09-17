@@ -33,11 +33,18 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: satijalab/seurat-ci:latest
+    env:
+      R_LIBS: /tmp/R-lib
+      R_LIBS_USER: /tmp/R-lib
 
     steps:
       # Pull the latest changes from the repository down to the runner.
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Specify a package library for dependencies (cacheable).
+      - name: Prepare R Package Library
+        run: mkdir -p "$R_LIBS_USER"
       
       # Install the package and all its dependencies.
       # The setup-r-dependencies action uses pak, 
