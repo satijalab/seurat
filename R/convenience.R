@@ -264,7 +264,16 @@ LoadXenium <- function(
     `Protein Expression` = 'ProteinExpression'
   )
 
-  xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+  # Check if data$matrix is a list of features and extract "Gene Expression" if it is
+  # Otherwise, use the entire matrix as the counts matrix
+  xenium.obj <- CreateSeuratObject(
+    counts = if (is.list(data$matrix)) {
+      data$matrix[["Gene Expression"]]
+    } else {
+      data$matrix
+    },
+    assay = assay
+  )
 
   if(!is.null(data$metadata)) {
     Misc(xenium.obj, 'run_metadata') <- data$metadata
