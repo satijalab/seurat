@@ -2105,7 +2105,16 @@ VariableFeatures.SCTAssay <- function(
 ) {
   # Is the information already in var.features?
   var.features.existing <- slot(object = object, name = "var.features")
-  nfeatures <- nfeatures %||% length(x = var.features.existing) %||% 3000
+  if (is.null(x = nfeatures)) {
+    # `length()` never returns NULL, so the default cannot be reached with
+    # `%||%`; without this an assay whose variable features have not been set
+    # asks for zero features, which `VariableFeatures.SCTModel` rejects.
+    nfeatures <- if (length(x = var.features.existing) > 0) {
+      length(x = var.features.existing)
+    } else {
+      3000
+    }
+  }
   if (is.null(x = layer) || anyNA(layer)) {
     layer <- levels(x = object)
   }

@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- Fixed `SCTransform` failing on a split assay with `variable.features.n = NULL` and a `variable.features.rv.th` cutoff ([#9189](https://github.com/satijalab/seurat/issues/9189))
+- `SCTransform` on a split assay now warns when variable features have no residuals because they fall below `min_cells` in at least one layer; such features were previously dropped from reductions without notice unless `RunPCA` was run with `verbose = TRUE` ([#8880](https://github.com/satijalab/seurat/issues/8880))
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
 - Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
