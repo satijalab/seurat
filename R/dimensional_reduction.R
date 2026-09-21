@@ -884,6 +884,18 @@ RunICA.Seurat <- function(
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
 #' @param approx Use truncated singular value decomposition to approximate PCA
+#' @param deterministic Apply a reproducible sign convention to the returned
+#' principal components. Truncated SVD solvers return singular vectors whose
+#' sign is arbitrary: it depends on the random starting vector, on the
+#' BLAS/LAPACK in use, and on how many iterations the solver needed, so the
+#' same data can yield sign-flipped PCs on a different machine or package
+#' version. When \code{TRUE} (the default) the entry of largest absolute value
+#' in each loading vector is forced to be positive, the same convention
+#' scikit-learn and scanpy use. Set to \code{FALSE} to reproduce the output of
+#' Seurat <= 5.5.1. Note that a sign flip applied to a whole component leaves
+#' every pairwise Euclidean and cosine distance unchanged, so this affects the
+#' orientation of PC plots and the sign of loadings but not \code{FindNeighbors},
+#' \code{FindClusters}, \code{RunUMAP}, or \code{RunTSNE}.
 #'
 #' @importFrom irlba irlba
 #' @importFrom stats prcomp
@@ -905,9 +917,12 @@ RunPCA.default <- function(
   reduction.key = "PC_",
   seed.use = 42,
   approx = TRUE,
+  deterministic = getOption(x = 'Seurat.deterministic', default = TRUE),
   ...
 ) {
   if (!is.null(x = seed.use)) {
+    rng.state <- GetRandomState()
+    on.exit(expr = RestoreRandomState(state = rng.state), add = TRUE)
     set.seed(seed = seed.use)
   }
  if (inherits(x = object, what = 'matrix')) {
@@ -960,6 +975,14 @@ RunPCA.default <- function(
         cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
       }
     }
+  }
+  if (isTRUE(x = deterministic)) {
+    flipped <- FlipSVDSigns(
+      loadings = feature.loadings,
+      embeddings = cell.embeddings
+    )
+    feature.loadings <- flipped$loadings
+    cell.embeddings <- flipped$embeddings
   }
   rownames(x = feature.loadings) <- rownames(x = object)
   colnames(x = feature.loadings) <- paste0(reduction.key, 1:npcs)
@@ -1164,6 +1187,15 @@ RunPCA.Seurat5 <- function(
 #' (default is 2). For example, set to 3 for a 3d tSNE
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. \dQuote{\code{tSNE_}} by default
+#' @param deterministic Make the embedding depend only on the input and on
+#' \code{seed.use}. When \code{TRUE} (the default), Seurat pins Rtsne's
+#' \code{num_threads} to 1 - Barnes-Hut t-SNE applies its gradient updates in
+#' a nondeterministic order when run on several threads - and restores the
+#' caller's random stream on exit. This matches Rtsne's own default, so it does
+#' not change the embedding; it stops the embedding from depending on unrelated
+#' code that ran earlier in the session. As with \code{\link{RunUMAP}},
+#' bit-identical results are not guaranteed across operating systems, CPU
+#' architectures, or BLAS implementations.
 #'
 #' @importFrom Rtsne Rtsne
 #'
@@ -1179,18 +1211,37 @@ RunTSNE.matrix <- function(
   tsne.method = "Rtsne",
   dim.embed = 2,
   reduction.key = "tSNE_",
+  deterministic = getOption(x = 'Seurat.deterministic', default = TRUE),
   ...
 ) {
   if (!is.null(x = seed.use)) {
+    rng.state <- GetRandomState()
+    on.exit(expr = RestoreRandomState(state = rng.state), add = TRUE)
     set.seed(seed = seed.use)
+  }
+  tsne.args <- list(...)
+  if (isTRUE(x = deterministic) && tsne.method == 'Rtsne') {
+    if (!is.null(x = tsne.args[['num_threads']]) &&
+        !identical(x = tsne.args[['num_threads']], y = 1) &&
+        !identical(x = tsne.args[['num_threads']], y = 1L)) {
+      warning(
+        "Rtsne applies its gradient updates in a nondeterministic order when ",
+        "num_threads > 1, so the embedding will differ between runs even with ",
+        "a fixed seed. Set num_threads = 1 for reproducible output.",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    tsne.args[['num_threads']] <- tsne.args[['num_threads']] %||% 1L
   }
   tsne.data <- switch(
     EXPR = tsne.method,
-    'Rtsne' = Rtsne(
-      X = object,
-      dims = dim.embed,
-      pca = FALSE,
-      ... # PCA/is_distance
+    'Rtsne' = do.call(
+      what = Rtsne,
+      args = c(
+        list(X = object, dims = dim.embed, pca = FALSE),
+        tsne.args # PCA/is_distance
+      )
     )$Y,
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
     stop("Invalid tSNE method: please choose from 'Rtsne' or 'FIt-SNE'")
@@ -1362,12 +1413,29 @@ RunUMAP.default <- function(
   dens.lambda = 2,
   dens.frac = 0.3,
   dens.var.shift = 0.1,
+  n.threads = NULL,
+  n.sgd.threads = NULL,
+  deterministic = getOption(x = 'Seurat.deterministic', default = TRUE),
   verbose = TRUE,
   ...
 ) {
   CheckDots(...)
   if (!is.null(x = seed.use)) {
+    rng.state <- GetRandomState()
+    on.exit(expr = RestoreRandomState(state = rng.state), add = TRUE)
     set.seed(seed = seed.use)
+  }
+  n.threads <- n.threads %||% nbrOfWorkers()
+  n.sgd.threads <- n.sgd.threads %||% if (isTRUE(x = deterministic)) 1L else 0L
+  if (isTRUE(x = deterministic) && isTRUE(x = uwot.sgd)) {
+    warning(
+      "'uwot.sgd = TRUE' runs uwot's multi-threaded stochastic gradient descent, ",
+      "whose updates are applied in a nondeterministic order; the embedding will ",
+      "differ between runs even with a fixed seed. Set uwot.sgd = FALSE for ",
+      "reproducible output, or deterministic = FALSE to silence this warning.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
   if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
     warning(
@@ -1403,6 +1471,21 @@ RunUMAP.default <- function(
       message("Running UMAP projection")
     }
     umap.method <- "uwot-predict"
+  }
+  if (isTRUE(x = deterministic) &&
+      is.null(x = n.epochs) &&
+      umap.method %in% c('uwot', 'uwot2')) {
+    # uwot picks 500 epochs for <= 10,000 observations and 200 otherwise. Pin
+    # the value Seurat asks for so that a change to uwot's default cannot
+    # silently move the embedding between package versions.
+    n.obs <- if (is.list(x = object)) {
+      nrow(x = object$idx)
+    } else if (inherits(x = object, what = 'dist')) {
+      attr(x = object, which = 'Size')
+    } else {
+      nrow(x = object)
+    }
+    n.epochs <- if (n.obs <= 10000) 500L else 200L
   }
   umap.output <- switch(
     EXPR = umap.method,
@@ -1468,7 +1551,7 @@ RunUMAP.default <- function(
         umap(
           X = NULL,
           nn_method = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = n.threads,
           n_components = as.integer(x = n.components),
           metric = metric,
           n_epochs = n.epochs,
@@ -1484,13 +1567,15 @@ RunUMAP.default <- function(
           init = uwot.init,
           fast_sgd = uwot.sgd,
           approx_pow = uwot.approx_pow,
+          n_sgd_threads = n.sgd.threads,
+          seed = seed.use,
           verbose = verbose,
           ret_model = return.model
         )
       } else {
         umap(
           X = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = n.threads,
           n_neighbors = as.integer(x = n.neighbors),
           n_components = as.integer(x = n.components),
           metric = metric,
@@ -1507,6 +1592,8 @@ RunUMAP.default <- function(
           init = uwot.init,
           fast_sgd = uwot.sgd,
           approx_pow = uwot.approx_pow,
+          n_sgd_threads = n.sgd.threads,
+          seed = seed.use,
           verbose = verbose,
           ret_model = return.model
         )
@@ -1517,7 +1604,7 @@ RunUMAP.default <- function(
         umap2(
           X = NULL,
           nn_method = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = n.threads,
           n_components = as.integer(x = n.components),
           metric = metric,
           n_epochs = n.epochs,
@@ -1532,13 +1619,15 @@ RunUMAP.default <- function(
           b = b,
           init = uwot.init,
           fast_sgd = uwot.sgd,
+          n_sgd_threads = n.sgd.threads,
+          seed = seed.use,
           verbose = verbose,
           ret_model = return.model
         )
       } else {
         umap2(
           X = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = n.threads,
           n_neighbors = as.integer(x = n.neighbors),
           n_components = as.integer(x = n.components),
           metric = metric,
@@ -1554,6 +1643,8 @@ RunUMAP.default <- function(
           b = b,
           init = uwot.init,
           fast_sgd = uwot.sgd,
+          n_sgd_threads = n.sgd.threads,
+          seed = seed.use,
           verbose = verbose,
           ret_model = return.model
         )
@@ -1593,16 +1684,20 @@ RunUMAP.default <- function(
           X = NULL,
           nn_method = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = n.threads,
+          n_sgd_threads = n.sgd.threads,
           n_epochs = n.epochs,
+          seed = seed.use,
           verbose = verbose
         )
       } else {
         umap_transform(
           X = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = n.threads,
+          n_sgd_threads = n.sgd.threads,
           n_epochs = n.epochs,
+          seed = seed.use,
           verbose = verbose
         )
       }
@@ -1855,7 +1950,37 @@ RunUMAP.Neighbor <- function(
 #' @param return.model whether UMAP will return the uwot model
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed
+#' @param n.threads Number of threads uwot may use for the nearest-neighbor
+#' search. Defaults to \code{future::nbrOfWorkers()}, which depends on the
+#' machine and on the active \code{future} plan; set it explicitly to keep a
+#' script from behaving differently on a different machine. The neighbor
+#' search itself is order-independent, so this does not affect the embedding.
+#' @param n.sgd.threads Number of threads uwot may use for stochastic gradient
+#' descent. Anything above 1 applies gradient updates in a nondeterministic
+#' order and makes the embedding irreproducible, so this defaults to 1 when
+#' \code{deterministic = TRUE} and to uwot's own default otherwise.
+#' @param deterministic Make the embedding depend only on the input and on
+#' \code{seed.use}. When \code{TRUE} (the default), Seurat pins
+#' \code{n.sgd.threads} to 1, passes \code{seed.use} to uwot directly rather
+#' than relying on the ambient random stream, pins \code{n.epochs} to the
+#' value uwot would currently choose so that a change to uwot's default cannot
+#' move the embedding, and restores the caller's random stream on exit. None
+#' of this changes the embedding produced by Seurat 5.5.1 with the same seed;
+#' it stops the embedding from depending on the machine, the \code{future}
+#' plan, or unrelated code that ran earlier in the session.
 #' @param verbose Controls verbosity
+#'
+#' @section Reproducibility:
+#' With \code{deterministic = TRUE} and a fixed \code{seed.use}, repeated runs
+#' on the same input give bit-identical embeddings on a given installation,
+#' independently of the number of workers, the \code{future} plan, and the
+#' state of the random stream when \code{RunUMAP} is called. Results are
+#' \emph{not} guaranteed to be bit-identical across different operating
+#' systems, CPU architectures, or BLAS/LAPACK implementations: UMAP is
+#' iterative and floating-point summation is not associative, so different
+#' hardware can diverge in the last bits and, over hundreds of epochs, in the
+#' visible layout. This limitation is shared by every UMAP implementation,
+#' scanpy included.
 #'
 #' @rdname RunUMAP
 #' @concept dimensional_reduction
@@ -1897,6 +2022,9 @@ RunUMAP.Seurat <- function(
   dens.lambda = 2,
   dens.frac = 0.3,
   dens.var.shift = 0.1,
+  n.threads = NULL,
+  n.sgd.threads = NULL,
+  deterministic = getOption(x = 'Seurat.deterministic', default = TRUE),
   verbose = TRUE,
   reduction.name = 'umap',
   reduction.key = NULL,
@@ -1985,6 +2113,9 @@ RunUMAP.Seurat <- function(
     uwot.approx_pow = uwot.approx_pow,
     uwot.init = uwot.init,
     seed.use = seed.use,
+    n.threads = n.threads,
+    n.sgd.threads = n.sgd.threads,
+    deterministic = deterministic,
     metric.kwds = metric.kwds,
     angular.rp.forest = angular.rp.forest,
     densmap = densmap,
@@ -2932,4 +3063,79 @@ RunSLSI.Seurat <- function(
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
   return(object)
+}
+
+# Capture the state of the global random number stream
+#
+# @return The current value of \code{.Random.seed}, or \code{NULL} if the
+# stream has not been initialized yet
+#
+GetRandomState <- function() {
+  if (exists(x = '.Random.seed', envir = globalenv(), inherits = FALSE)) {
+    return(get(x = '.Random.seed', envir = globalenv(), inherits = FALSE))
+  }
+  return(NULL)
+}
+
+# Restore the state of the global random number stream
+#
+# @param state A value returned by \code{GetRandomState}
+#
+# @return Invisibly returns \code{NULL}
+#
+RestoreRandomState <- function(state) {
+  if (is.null(x = state)) {
+    if (exists(x = '.Random.seed', envir = globalenv(), inherits = FALSE)) {
+      rm(list = '.Random.seed', envir = globalenv())
+    }
+  } else {
+    assign(x = '.Random.seed', value = state, envir = globalenv())
+  }
+  return(invisible(x = NULL))
+}
+
+# Pick a reproducible sign for each column of a matrix
+#
+# Truncated SVD solvers (irlba, RSpectra, BPCells) return singular vectors
+# whose sign is arbitrary: it depends on the random starting vector, on the
+# BLAS/LAPACK in use, and on how many iterations the solver needed to
+# converge. Two runs that agree to machine precision on the subspace can
+# therefore disagree on the sign of individual components, and a sign flip
+# is not a cosmetic difference downstream - a cosine distance computed on
+# sign-flipped PCA embeddings gives a different neighbor graph, and so a
+# different UMAP.
+#
+# This applies the same convention scikit-learn (and therefore scanpy) uses
+# in \code{svd_flip}: force the entry of largest absolute value in each
+# column to be positive. Ties are broken by taking the first such entry, and
+# an all-zero column is left alone.
+#
+# @param x A matrix
+#
+# @return A numeric vector of 1/-1, one entry per column of \code{x}
+#
+SVDSigns <- function(x) {
+  x <- as.matrix(x = x)
+  if (ncol(x = x) == 0 || nrow(x = x) == 0) {
+    return(rep_len(x = 1, length.out = ncol(x = x)))
+  }
+  pivots <- apply(X = abs(x = x), MARGIN = 2, FUN = which.max)
+  signs <- sign(x = x[cbind(pivots, seq_len(length.out = ncol(x = x)))])
+  signs[signs == 0] <- 1
+  return(signs)
+}
+
+# Apply a deterministic sign convention to an SVD/PCA decomposition
+#
+# @param loadings Feature loadings; the sign convention is derived from these
+# @param embeddings Cell embeddings; flipped with the same signs as
+# \code{loadings} so that the decomposition is preserved
+#
+# @return A list with the sign-corrected \code{loadings} and \code{embeddings}
+#
+FlipSVDSigns <- function(loadings, embeddings) {
+  signs <- SVDSigns(x = loadings)
+  loadings <- sweep(x = loadings, MARGIN = 2, STATS = signs, FUN = `*`)
+  embeddings <- sweep(x = embeddings, MARGIN = 2, STATS = signs, FUN = `*`)
+  return(list(loadings = loadings, embeddings = embeddings))
 }

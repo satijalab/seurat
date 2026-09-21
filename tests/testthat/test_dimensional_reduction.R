@@ -188,3 +188,139 @@ test_that("`RunPCA` works as expected", {
     npcs = 10
   )
 })
+
+# Determinism ------------------------------------------------------------------
+
+set.seed(42)
+determinism_object <- suppressWarnings(CreateSeuratObject(counts = get_random_counts()))
+determinism_object <- suppressWarnings(NormalizeData(determinism_object, verbose = FALSE))
+determinism_object <- suppressWarnings(
+  FindVariableFeatures(determinism_object, verbose = FALSE)
+)
+determinism_object <- suppressWarnings(ScaleData(determinism_object, verbose = FALSE))
+determinism_object <- suppressWarnings(
+  RunPCA(determinism_object, npcs = 10, verbose = FALSE)
+)
+
+test_that("RunPCA uses a reproducible sign convention", {
+  loadings <- Loadings(determinism_object[["pca"]])
+  pivots <- apply(abs(loadings), 2, which.max)
+  pivot.values <- loadings[cbind(pivots, seq_len(ncol(loadings)))]
+  expect_true(all(pivot.values > 0))
+})
+
+test_that("RunPCA sign convention only flips signs", {
+  legacy <- suppressWarnings(RunPCA(
+    determinism_object,
+    npcs = 10,
+    verbose = FALSE,
+    deterministic = FALSE
+  ))
+  signs <- sign(diag(crossprod(
+    Loadings(legacy[["pca"]]),
+    Loadings(determinism_object[["pca"]])
+  )))
+  expect_equal(
+    sweep(Embeddings(determinism_object[["pca"]]), 2, signs, `*`),
+    Embeddings(legacy[["pca"]])
+  )
+  expect_equal(Stdev(determinism_object[["pca"]]), Stdev(legacy[["pca"]]))
+})
+
+test_that("PC sign conventions do not change downstream results", {
+  legacy <- suppressWarnings(RunPCA(
+    determinism_object,
+    npcs = 10,
+    verbose = FALSE,
+    deterministic = FALSE
+  ))
+  expect_equal(
+    as.matrix(FindNeighbors(determinism_object, dims = 1:10, verbose = FALSE)[["RNA_snn"]]),
+    as.matrix(FindNeighbors(legacy, dims = 1:10, verbose = FALSE)[["RNA_snn"]])
+  )
+  expect_equal(
+    Embeddings(suppressWarnings(RunUMAP(
+      determinism_object, dims = 1:10, n.neighbors = 10L, verbose = FALSE
+    ))[["umap"]]),
+    Embeddings(suppressWarnings(RunUMAP(
+      legacy, dims = 1:10, n.neighbors = 10L, verbose = FALSE
+    ))[["umap"]])
+  )
+})
+
+test_that("RunUMAP does not depend on the ambient random stream", {
+  set.seed(1)
+  first <- suppressWarnings(RunUMAP(
+    determinism_object, dims = 1:10, n.neighbors = 10L, verbose = FALSE
+  ))
+  set.seed(9999)
+  invisible(runif(n = 37))
+  second <- suppressWarnings(RunUMAP(
+    determinism_object, dims = 1:10, n.neighbors = 10L, verbose = FALSE
+  ))
+  expect_identical(
+    Embeddings(first[["umap"]]),
+    Embeddings(second[["umap"]])
+  )
+})
+
+test_that("RunUMAP does not depend on the number of workers", {
+  skip_if_not_installed("future")
+  sequential <- suppressWarnings(RunUMAP(
+    determinism_object, dims = 1:10, n.neighbors = 10L, n.threads = 1L, verbose = FALSE
+  ))
+  parallel <- suppressWarnings(RunUMAP(
+    determinism_object, dims = 1:10, n.neighbors = 10L, n.threads = 4L, verbose = FALSE
+  ))
+  expect_identical(
+    Embeddings(sequential[["umap"]]),
+    Embeddings(parallel[["umap"]])
+  )
+})
+
+test_that("RunUMAP warns when asked for nondeterministic SGD", {
+  expect_warning(
+    RunUMAP(
+      determinism_object,
+      dims = 1:10,
+      n.neighbors = 10L,
+      uwot.sgd = TRUE,
+      n.sgd.threads = 4L,
+      verbose = FALSE
+    ),
+    "nondeterministic order"
+  )
+})
+
+test_that("stochastic reductions leave the caller's random stream intact", {
+  expect_stream_preserved <- function(expr) {
+    set.seed(123)
+    expected <- runif(n = 3)
+    set.seed(123)
+    force(expr)
+    expect_identical(runif(n = 3), expected)
+  }
+  expect_stream_preserved(suppressWarnings(
+    RunPCA(determinism_object, npcs = 10, verbose = FALSE)
+  ))
+  expect_stream_preserved(suppressWarnings(
+    RunUMAP(determinism_object, dims = 1:10, n.neighbors = 10L, verbose = FALSE)
+  ))
+  expect_stream_preserved(suppressWarnings(RunTSNE(
+    determinism_object,
+    dims = 1:10,
+    perplexity = 10,
+    check_duplicates = FALSE
+  )))
+})
+
+test_that("FindNeighbors is reproducible", {
+  first <- FindNeighbors(determinism_object, dims = 1:10, verbose = FALSE)
+  set.seed(7)
+  invisible(runif(n = 11))
+  second <- FindNeighbors(determinism_object, dims = 1:10, verbose = FALSE)
+  expect_identical(
+    as.matrix(first[["RNA_snn"]]),
+    as.matrix(second[["RNA_snn"]])
+  )
+})
