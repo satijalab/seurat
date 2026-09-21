@@ -194,7 +194,11 @@ By default, \code{sctransform::vst} will drop features expressed in fewer
 than five cells. In the multi-layer case, this can lead to consenus
 variable-features being excluded from the output's \code{scale.data} when
 a feature is "variable" across many layers but sparsely expressed in at
-least one.
+least one. Such features are still returned as variable features, but are
+dropped by any reduction run on \code{scale.data}; \code{SCTransform} warns
+when this happens. Pass \code{min_cells} through \code{...} to
+\code{sctransform::vst} to lower the threshold, or run \code{SCTransform}
+before splitting, to retain them.
 }
 \seealso{
 \code{\link[sctransform]{vst}},

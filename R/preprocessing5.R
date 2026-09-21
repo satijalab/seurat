@@ -1236,11 +1236,43 @@ SCTransform.StdAssay <- function(
   LayerData(assay_out, layer = "scale.data") <- residuals
 
   # Set the output's variable features.
-  VariableFeatures(assay_out) <- VariableFeatures(
-    assay_out, 
-    use.var.features = FALSE,
-    nfeatures = variable.features.n
+  if (is.null(x = variable.features.n)) {
+    # Each layer selected its own features against `variable.features.rv.th`,
+    # so there is no feature count to rank down to; keep what the layers chose.
+    VariableFeatures(assay_out) <- Reduce(
+      f = union,
+      x = lapply(X = output_list, FUN = VariableFeatures)
+    )
+  } else {
+    VariableFeatures(assay_out) <- VariableFeatures(
+      assay_out,
+      use.var.features = FALSE,
+      nfeatures = variable.features.n
+    )
+  }
+
+  # A feature expressed in fewer than `min_cells` cells in any one layer is not
+  # modeled there, so it has no residuals and is dropped by anything reading
+  # `scale.data`. It stays in the variable features -- it is genuinely variable
+  # -- but the drop is otherwise silent, so report it here.
+  unscaled_features <- setdiff(
+    x = VariableFeatures(assay_out),
+    y = rownames(x = residuals)
   )
+  if (length(x = unscaled_features) > 0) {
+    min_cells <- list(...)[["min_cells"]] %||% 5
+    warning(
+      length(x = unscaled_features), " of ",
+      length(x = VariableFeatures(assay_out)), " variable features have no ",
+      "residuals and will be dropped by any reduction run on `scale.data`: ",
+      "they are expressed in fewer than `min_cells` (", min_cells, ") cells in ",
+      "at least one layer, so no model was fit for them there. Lower ",
+      "`min_cells` or run SCTransform before splitting to retain them. ",
+      "First ", min(10L, length(x = unscaled_features)), ": ",
+      paste0(head(x = unscaled_features, n = 10L), collapse = ", "),
+      call. = FALSE
+    )
+  }
 
   return (assay_out)
 }
