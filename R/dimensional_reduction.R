@@ -722,8 +722,10 @@ RunICA.default <- function(
     cell.embeddings <- ica.results$S
   }
   feature.loadings <- (as.matrix(x = object ) %*% as.matrix(x = cell.embeddings))
+  rownames(x = feature.loadings) <- rownames(x = object)
   colnames(x = feature.loadings) <- paste0(reduction.key, 1:ncol(x = feature.loadings))
-  colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(x = cell.embeddings))
+  rownames(x = cell.embeddings) <- colnames(x = object)
+  colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
   reduction.data <- CreateDimReducObject(
     embeddings = cell.embeddings,
     loadings = feature.loadings,
