@@ -3617,7 +3617,17 @@ TransferData <- function(
          prediction.scores <- (prediction.scores + bridge.prediction.scores)/2
          prediction.scores <- as.matrix(x = prediction.scores)
       }
-      prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
+      best.id <- .MaxScoreIndex(scores = prediction.scores)
+      if (anyNA(x = best.id)) {
+        warning(
+          sum(is.na(x = best.id)), " of ", length(x = best.id),
+          " cells have no usable prediction score and are left unlabelled; ",
+          "their anchor weights were all zero or NaN.",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      }
+      prediction.ids <- possible.ids[best.id]
       prediction.ids <- as.character(prediction.ids)
       prediction.max <- apply(X = prediction.scores, MARGIN = 1, FUN = max)
       if (is.null(x = query)) {
@@ -8100,4 +8110,34 @@ FeatureSketch <- function(features, ratio = 0.8, seed = 123) {
     seed = seed)
   )
   return(sketch.R)
+}
+
+# Index of the highest score in each row of a prediction score matrix
+#
+# which.max() returns integer(0) for a row that is entirely NaN, so applying it
+# rowwise gives a ragged list rather than a vector, and using that list to index
+# the identity vector fails with "invalid subscript type 'list'". A row with no
+# usable score has no defensible label, so it yields NA instead.
+#
+# @param scores A matrix of prediction scores, cells by identities
+#
+# @return An integer vector with one index per row, NA where the row has no
+# usable score
+#
+# @keywords internal
+#
+# @noRd
+#
+.MaxScoreIndex <- function(scores) {
+  return(vapply(
+    X = seq_len(length.out = nrow(x = scores)),
+    FUN = function(i) {
+      idx <- which.max(x = scores[i, ])
+      if (!length(x = idx)) {
+        return(NA_integer_)
+      }
+      return(as.integer(x = idx))
+    },
+    FUN.VALUE = integer(length = 1L)
+  ))
 }

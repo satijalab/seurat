@@ -4,6 +4,9 @@
 
 ### Fixes
 
+- Fixed `TransferData` failing with \dQuote{invalid subscript type 'list'} when any cell's prediction scores are all `NaN`: `which.max` returns `integer(0)` for such a row, so the rowwise `apply` produced a ragged list. Those cells are now left unlabelled, with a warning saying how many ([#10003](https://github.com/satijalab/seurat/issues/10003))
+
+- Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
 - Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
