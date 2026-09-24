@@ -240,8 +240,8 @@ CCAIntegration <- function(
   } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
-    if (inherits(x = object[layers[i]], what = "IterableMatrix")) {
-      warning("Converting BPCells matrix to dgCMatrix for integration ",
+    if (inherits(x = object[layers[i]], what = c("IterableMatrix", "DelayedMatrix"))) {
+      warning("Converting on-disk matrix to dgCMatrix for integration ",
         "as on-disk CCA Integration is not currently supported", call. = FALSE, immediate. = TRUE)
       counts <- as(object = object[layers[i]][features, ],
                    Class = "dgCMatrix")
@@ -250,7 +250,7 @@ CCAIntegration <- function(
       counts <- object[layers[i]][features, ]
     }
     object.list[[i]] <- CreateSeuratObject(counts = counts)
-    if (inherits(x = object[scale.layer], what = "IterableMatrix")) {
+    if (inherits(x = object[scale.layer], what = c("IterableMatrix", "DelayedMatrix"))) {
       scale.data.layer <- as.matrix(object[scale.layer][features,
                                                           Cells(object.list[[i]])])
       object.list[[i]][["RNA"]]$scale.data <- scale.data.layer
