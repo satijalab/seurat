@@ -1214,6 +1214,21 @@ as.Seurat.SingleCellExperiment <- function(
           stop("No data in provided assay - ", mats[[m]], call. = FALSE)
         }
       )
+      # A v3 Assay keeps its matrices in S4 slots typed for in-memory classes,
+      # so an on-disk matrix cannot be stored as-is. Materialize it here, with
+      # the usual warning, rather than letting the slot assignment fail later
+      # with an opaque "not valid for slot 'data'" class error.
+      mats[[m]] <- .AsSparseIfFits(
+        mat = mats[[m]],
+        context = paste0(
+          'Converting the ', names(x = mats)[m],
+          ' matrix of a SingleCellExperiment to a Seurat Assay'
+        ),
+        alternative = paste(
+          'Keep the data out of memory by building the object with',
+          'CreateSeuratObject() on the on-disk matrix directly.'
+        )
+      )
       # if cell names are NULL, fill with cell_X
       if (is.null(x = colnames(x = mats[[m]]))) {
         warning(
