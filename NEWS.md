@@ -2,6 +2,24 @@
 
 ### Additions
 
+- Added `setThreads` and `getThreads` to control threading in supported C++ kernels and `uwot` UMAP backends
+- Updated `NormalizeData` to use threaded sparse log-normalization and reduce matrix-copying overhead
+- Updated `FindVariableFeatures` to share a sparse VST implementation across assay versions with threaded standardized-variance calculations
+- Updated `ScaleData` to center, scale, and clip default inputs in a single threaded C++ call
+- Updated `SCTransform` to use threaded C++ calculations for supported Pearson residuals and corrected counts
+- Updated the v5 `SCTransform` workflow to avoid intermediate assay objects and defer default residual calculation until feature selection is complete
+- Updated `RunPCA` to use a threaded dense Gram-matrix backend by default and reuse feature variances
+- Updated `FindNeighbors` to use threaded C++ Annoy searches and SNN graph construction
+- Updated `FindClusters` to reuse graph preparation across resolutions and parallelize modularity-optimization random starts 
+- Updated `RunUMAP` to use the Seurat thread setting for `uwot`, `uwot2`, and model projection
+- Updated `FindMarkers` to reuse matrix subsets for fold-change calculations and process sparse inputs efficiently
+- Updated `FindAllMarkers` to test supported Wilcoxon comparisons across all identities in one `presto` call, and compute fold changes and detection percentages in bulk
+- Updated `IntegrateLayers` with `RPCAIntegration` to reduce per-layer setup overhead and use threaded integration calculations
+- Updated `IntegrateLayers` with `CCAIntegration` to use threaded anchor scoring and integration-weight calculations
+- Added `svd.method` parameter to `CCAIntegration` for use through `IntegrateLayers`
+- Updated large dense CCA comparisons to use an implicit RSpectra backend (`svd.method = "rspectra"`) and avoid materializing the cell-by-cell cross-product matrix
+- Updated `CCAIntegration` to skip gene loadings when anchor filtering is disabled
+
 ### Fixes
 
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
@@ -16,6 +34,10 @@
 - Updated argument handling in `FindSpatiallyVariableFeatures()` by resolving `selection.method` with `match.arg()` and restoring the `FindSpatiallyVariableFeatures.Assay()` default `nfeatures` value to `2000` ([#10504](https://github.com/satijalab/seurat/pull/10504))
 - Fixed `RunMarkVario()` to return one named mark variogram result per feature for single-feature inputs and parallel execution chunks ([#10505](https://github.com/satijalab/seurat/pull/10505))
 - Updated `IntegrateLayers()` to throw an error message when less than two groups/layers are provided ([#10396](https://github.com/satijalab/seurat/pull/10396))
+- Fixed `FindNeighbors` to correctly convert Annoy angular distances to cosine distances
+- Fixed `RunPCA` on v5 assays to exclude unavailable requested features and cap the number of PCs by the available features and cells
+- Fixed SCT residual retrieval to reuse cached features and respect an explicitly supplied `clip.range`
+- Fixed reference-based RPCA/CCA anchor finding to exclude query-query comparisons regardless of `verbose`
 
 # Seurat 5.5.1
 
