@@ -9156,7 +9156,9 @@ SingleExIPlot <- function(
           )
         }
       }
-      log.scale <- scale_y_log10()
+      log.scale <- function(x.min, x.max) {
+        scale_y_log10(limits = c(x.min, x.max))
+      }
       axis.scale <- ylim
     },
     'ridge' = {
