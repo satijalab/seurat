@@ -56,6 +56,24 @@ test_that("Read10X_h5 works as expected", {
   expect_equal(counts[99, 2328], 1)
 })
 
+test_that("Radius is dispatched for VisiumV2 images", {
+  # Radius.VisiumV2 existed but was never registered as an S3 method, so
+  # dispatch fell through the S4 chain to SeuratObject's Radius.SpatialImage,
+  # which returns NULL. Callers then silently lost the scaled spot size:
+  # SpatialPlot falls back to a fixed 1 mm radius when length(spot.radius) != 1
+  expect_false(is.null(utils::getS3method("Radius", "VisiumV2", optional = TRUE)))
+  image <- Read10X_Image(
+    file.path(path.to.visium, "spatial"),
+    image.name = "tissue_lowres_image.png"
+  )
+  expect_s4_class(image, "VisiumV2")
+  radius <- Radius(image, scale = "lowres")
+  expect_length(radius, 1L)
+  expect_true(is.numeric(radius) && radius > 0)
+  # dispatching through the generic must match calling the method directly
+  expect_identical(radius, Seurat:::Radius.VisiumV2(image, scale = "lowres"))
+})
+
 test_that("Read10X_Image works as expected", {
   path.to.images <- file.path(path.to.visium, "spatial")
   coordinate.filenames <-  "tissue_positions_list.csv"

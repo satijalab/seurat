@@ -629,6 +629,16 @@ IntegrateLayers <- function(
       object = object,
       assay = assay
     )
+    # cells in an SCT assay are grouped by model, and a model that no longer
+    # has any cells contributes no group - see `CreateIntegrationGroups`
+    sct.assay <- object[[assay]]
+    n.groups <- sum(vapply(
+      X = levels(x = sct.assay),
+      FUN = function(model) {
+        length(x = Cells(x = sct.assay, layer = model)) > 0L
+      },
+      FUN.VALUE = logical(length = 1L)
+    ))
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
     layers <- Layers(object = object, assay = assay, search = layers %||% 'data')
     scale.layer <- Layers(object = object, search = scale.layer)
@@ -637,8 +647,20 @@ IntegrateLayers <- function(
       assay = assay,
       nfeatures = 2000L
     )
+    # cells in a v5 assay are grouped by layer - see `CreateIntegrationGroups`
+    n.groups <- length(x = layers)
   } else {
     abort(message = "'assay' must be a v5 or SCT assay")
+  }
+  # `CreateIntegrationGroups` silently returns `NULL` when it cannot split the
+  # cells into more than one group, which surfaces as an unhelpful error from
+  # whichever method was passed in - bail out here instead
+  if (n.groups < 2L) {
+    abort(message = paste0(
+      "The ", sQuote(x = assay), " assay has ", n.groups,
+      ifelse(n.groups == 1L, yes = " group", no = " groups"),
+      " of cells, but 'IntegrateLayers' requires at least two"
+    ))
   }
   if (!is.null(scale.layer)) {
     features <- intersect(

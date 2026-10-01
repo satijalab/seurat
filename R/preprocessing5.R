@@ -1719,14 +1719,10 @@ FetchResidualSCTModel <- function(
   verbose = FALSE
 ) {
   layer.cells <- layer.cells %||% Cells(x = umi.object, layer = layer)
-  model.features <- Features(x = object)
-  model.cells <- character()
   sct.method <- "reference"
 
   if (is.null(x = reference.SCT.model)) {
     clip.range <- clip.range %||% SCTResults(object = object, slot = "clips", model = SCTModel)$sct
-    model.features <- rownames(x = SCTResults(object = object, slot = "feature.attributes", model = SCTModel))
-    model.cells <- Cells(x = slot(object = object, name = "SCTModel.list")[[SCTModel]])
     sct.method <- SCTResults(object = object, slot = "arguments", model = SCTModel)$sct.method %||% "default"
   }
 
@@ -1773,6 +1769,29 @@ FetchResidualSCTModel <- function(
     return(result)
   }
 
+  if (is.null(x = reference.SCT.model)) {
+    vst.out <- SCTModel_to_vst(SCTModel = slot(object = object, name = "SCTModel.list")[[SCTModel]])
+    clip.range <- clip.range %||%
+      vst.out$arguments$sct.clip.range %||%
+      vst.out$arguments$clip.range %||%
+      SCTResults(object = object, slot = "clips", model = SCTModel)$sct
+  } else {
+    vst.out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+    clip.range <- clip.range %||%
+      vst.out$arguments$sct.clip.range %||%
+      vst.out$arguments$clip.range
+    vst.out$cell_attr <- NULL
+  }
+  clip.range <- clip.range %||% c(
+    -sqrt(x = ncol(x = umi.object) / 30),
+    sqrt(x = ncol(x = umi.object) / 30)
+  )
+
+  # Both VST tables are required to calculate a residual for a feature.
+  model.features <- intersect(
+    x = rownames(x = vst.out$gene_attr),
+    y = rownames(x = vst.out$model_pars_fit)
+  )
   missing.features <- setdiff(x = features.to.compute, y = model.features)
   compute.features <- intersect(x = features.to.compute, y = model.features)
   if (length(x = missing.features) > 0) {
@@ -1794,27 +1813,10 @@ FetchResidualSCTModel <- function(
     attr(x = result, which = "has_missing_residuals") <- anyNA(x = result)
     return(result)
   }
-
-  if (is.null(x = reference.SCT.model)) {
-    vst.out <- SCTModel_to_vst(SCTModel = slot(object = object, name = "SCTModel.list")[[SCTModel]])
-    clip.range <- clip.range %||%
-      vst.out$arguments$sct.clip.range %||%
-      vst.out$arguments$clip.range %||%
-      SCTResults(object = object, slot = "clips", model = SCTModel)$sct
-  } else {
-    vst.out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
-    clip.range <- clip.range %||%
-      vst.out$arguments$sct.clip.range %||%
-      vst.out$arguments$clip.range
-    vst.out$cell_attr <- NULL
-    vst.features <- intersect(x = rownames(x = vst.out$gene_attr), y = compute.features)
-    vst.out$gene_attr <- vst.out$gene_attr[vst.features, , drop = FALSE]
-    vst.out$model_pars_fit <- vst.out$model_pars_fit[vst.features, , drop = FALSE]
+  if (!is.null(x = reference.SCT.model)) {
+    vst.out$gene_attr <- vst.out$gene_attr[compute.features, , drop = FALSE]
+    vst.out$model_pars_fit <- vst.out$model_pars_fit[compute.features, , drop = FALSE]
   }
-  clip.range <- clip.range %||% c(
-    -sqrt(x = ncol(x = umi.object) / 30),
-    sqrt(x = ncol(x = umi.object) / 30)
-  )
 
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)

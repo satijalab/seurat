@@ -551,7 +551,7 @@ RidgePlot <- function(
   layer = 'data',
   stack = FALSE,
   combine = TRUE,
-  fill.by = 'feature'
+  fill.by = NULL
 ) {
   if (is_present(arg = slot)) {
     deprecate_soft(
@@ -561,6 +561,7 @@ RidgePlot <- function(
     )
     layer <- slot %||% layer
   }
+  fill.by <- fill.by %||% if (stack) 'feature' else 'ident'
   return(ExIPlot(
     object = object,
     type = 'ridge',
@@ -7292,7 +7293,33 @@ ExIPlot <- function(
       type <- "violin"
     }
   }
-  if (same.y.lims && is.null(x = y.max)) {
+  if (!(fill.by %in% c("feature", "ident"))) {
+    stop("`fill.by` must be either `feature` or `ident`")
+  }
+  # for ridge plots, figure out the y-axis limits for all features if requested
+  ridge.axis.lims <- NULL
+  if (same.y.lims && type == 'ridge') {
+    data.lims <- vapply(
+      X = features,
+      FUN = function(feature) {
+        values <- data[[feature]]
+        # add noise following logic in MultiExIPlot
+        if (log) {
+          noise <- rnorm(n = nrow(x = data)) / 200
+          values <- values + 1
+        } else {
+          noise <- rnorm(n = nrow(x = data)) / 100000
+        }
+        values <- if (add.noise) values + noise else values
+        range(values, finite = TRUE)
+      },
+      FUN.VALUE = numeric(length = 2L)
+    )
+    ridge.axis.lims <- c(min(data.lims[1, ]), max(data.lims[2, ]))
+    if (!is.null(x = y.max)) {
+      ridge.axis.lims[[2]] <- y.max
+    }
+  } else if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
   }
   if (isTRUE(x = stack)) {
@@ -7327,12 +7354,22 @@ ExIPlot <- function(
         pt.size = pt.size,
         alpha = alpha,
         log = log,
+        fill.by = fill.by,
         add.noise = add.noise,
         raster = raster,
         raster.dpi = raster.dpi
       ))
     }
   )
+  # apply the same y-axis limits to all ridge plots if requested
+  if (type == 'ridge' && !is.null(x = ridge.axis.lims)) {
+    plots <- lapply(
+      X = plots,
+      FUN = function(plot) {
+        plot + (if (log) scale_x_log10(expand = c(0, 0), limits = ridge.axis.lims) else scale_x_continuous(expand = c(0, 0), limits = ridge.axis.lims))
+      }
+    )
+  }
   label.fxn <- switch(
     EXPR = type,
     'violin' = if (stack) {
@@ -8967,6 +9004,7 @@ SingleDimPlot <- function(
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
 #' @param log plot Y axis on log10 scale
+#' @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 #' @param add.noise determine if adding small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
@@ -9000,6 +9038,7 @@ SingleExIPlot <- function(
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  fill.by = 'ident',
   add.noise = TRUE,
   raster = NULL,
   raster.dpi = NULL
@@ -9027,6 +9066,7 @@ SingleExIPlot <- function(
   }
   feature <- colnames(x = data)
   data$ident <- idents
+  data$feature <- factor(x = feature, levels = feature)
   if ((is.character(x = sort) && nchar(x = sort) > 0) || sort) {
     data$ident <- factor(
       x = data$ident,
@@ -9067,7 +9107,7 @@ SingleExIPlot <- function(
     type <- 'violin'
   } else {
     vln.geom <- geom_violin
-    fill <- 'ident'
+    fill <- fill.by
   }
   switch(
     EXPR = type,
@@ -9114,13 +9154,14 @@ SingleExIPlot <- function(
       geom <- list(
         geom_density_ridges(scale = 4),
         theme_ridges(),
-        scale_y_discrete(expand = c(0.01, 0)),
-        scale_x_continuous(expand = c(0, 0))
+        scale_y_discrete(expand = c(0.01, 0))
       )
       jitter <- geom_jitter(width = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
-      log.scale <- scale_x_log10()
-      axis.scale <- function(...) {
-        invisible(x = NULL)
+      log.scale <- function(x.min, x.max) {
+        scale_x_log10(expand = c(0, 0), limits = c(x.min, x.max))
+      }
+      axis.scale <- function(x.min, x.max) {
+        scale_x_continuous(expand = c(0, 0), limits = c(x.min, x.max))
       }
     },
     stop("Unknown plot type: ", type)
@@ -9136,7 +9177,7 @@ SingleExIPlot <- function(
     plot <- plot + layer
   }
   plot <- plot + if (log) {
-    log.scale
+    log.scale(min(data[, feature]), y.max)
   } else {
     axis.scale(min(data[, feature]), y.max)
   }

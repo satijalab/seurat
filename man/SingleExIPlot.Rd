@@ -17,6 +17,7 @@ SingleExIPlot(
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  fill.by = "ident",
   add.noise = TRUE,
   raster = NULL,
   raster.dpi = NULL
@@ -47,6 +48,8 @@ expression of the attribute being potted}
 \item{seed.use}{Random seed to use. If NULL, don't set a seed}
 
 \item{log}{plot Y axis on log10 scale}
+
+\item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
 
 \item{add.noise}{determine if adding small noise for plotting}
 
