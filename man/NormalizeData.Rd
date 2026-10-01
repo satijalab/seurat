@@ -59,9 +59,11 @@ NormalizeData(object, ...)
 
 \item{margin}{If performing CLR normalization, normalize across features (1) or cells (2)}
 
-\item{block.size}{How many cells should be run in each chunk, will try to split evenly across threads}
+\item{block.size}{How many cells should be run in each chunk - will be split evenly across threads.
+If supplied, temporarily sets the thread count to \code{ceiling(ncol(object) / block.size)},
+capped at the number of available cores.}
 
-\item{verbose}{Whether to display a progress bar, if running in a single thread}
+\item{verbose}{Whether to display a progress bar}
 
 \item{assay}{Name of assay to use}
 }

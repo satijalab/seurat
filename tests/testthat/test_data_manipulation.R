@@ -99,8 +99,15 @@ test_that("Fast dense row scaling is stable across thread counts", {
 
 # should be the equivalent of scale(mat, TRUE, apply(mat, 2, sd))
 test_that("Standardize returns expected values", {
-  expect_equal(Standardize(mat, display_progress = FALSE), scale(mat, TRUE, apply(mat, 2, sd)),
+  expected <- scale(mat, TRUE, apply(mat, 2, sd))
+  standardized.1 <- Standardize(mat, display_progress = FALSE, nthreads = 1L)
+  standardized.2 <- Standardize(mat, display_progress = FALSE, nthreads = 2L)
+
+  expect_equal(standardized.1, expected,
                check.attributes = FALSE)
+  expect_equal(standardized.2, expected,
+               check.attributes = FALSE)
+  expect_equal(standardized.2, standardized.1)
 })
 
 # should be the equivalent of t(scale(t(mat)))

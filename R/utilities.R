@@ -3201,27 +3201,55 @@ BuildNicheAssay <- function(
 
 #' Set the number of threads to use for parallel processing in Seurat
 #'
-#' @param n Number of threads (>= 1) to use for processing. If NULL, will be set to (number of cores - 1).
+#' @param n Number of threads (>= 1) to use for processing. If NULL, will be set to (available cores / 2).
+#' @param verbose Whether to print the number of threads set and available cores to the console
+#'
+#' @details The default is one thread. Calling \code{setThreads()} without
+#' specifying \code{n} selects half the available cores. This setting 
+#' applies to supported C++ kernels in \code{NormalizeData},
+#' \code{FindVariableFeatures}, \code{ScaleData}, \code{SCTransform},
+#' \code{RunPCA}, \code{FindNeighbors}, \code{FindClusters}, and 
+#' CCA/RPCA integration. \code{RunUMAP} also passes this setting to the 
+#' \pkg{uwot} backend. Support depends on the input type, backend, and arguments; 
+#' not every stage of these functions can be run in parallel.
+#'
+#' Note that this thread setting is separate from \code{\link[future]{plan}}.
+#'
+#' @seealso \code{\link{getThreads}}
+#' 
 #' @concept utilities
+#' 
+#' @importFrom future availableCores
 #' @export
-setThreads <- function(n = NULL) {
-  ncores <- parallel::detectCores()
+setThreads <- function(n = NULL, verbose = TRUE) {
+  ncores <- future::availableCores()
   if (is.null(n)) {
     if (is.na(x = ncores)) {
       warning("Could not detect number of cores, defaulting to 1 thread")
       ncores <- 1L
     }
-    n <- max(1L, ncores - 1)
+    n <- max(1L, as.integer(ncores / 2))
   } else {
     stopifnot("Number of threads must be a positive integer" = (length(n) == 1 && is.numeric(n) && n >= 1))
   }
   options(Seurat.nthreads = n)
+  if (verbose) {
+    message("Seurat threads set to ", n, " (", ncores, " available cores detected)")
+  }
 }
 
 #' Get the number of threads being used for parallel processing in Seurat
 #'
+#' @param verbose Whether to print the number of threads set and available cores to the console
+#' @return The number of threads currently set for processing
+#' 
 #' @concept utilities
 #' @export
-getThreads <- function() {
-  return(getOption("Seurat.nthreads"))
+getThreads <- function(verbose = TRUE) {
+  n <- getOption("Seurat.nthreads")
+  if (verbose) {
+    message("Seurat threads: ", n)
+    message("Number of available cores detected: ", future::availableCores(), "\n")
+  }
+  return(n)
 }

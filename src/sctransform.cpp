@@ -313,7 +313,7 @@ struct SCTResidualMatrixReducer {
     local_touched.reserve(selected);
   }
 
-  void operator()(std::size_t begin, std::size_t end) {
+  void operator()(std::size_t begin, std::size_t end, RcppThread::ProgressBar* bar = NULL) {
     for (std::size_t col = begin; col < end; ++col) {
       local_touched.clear();
       for (int ptr = p[col]; ptr < p[col + 1]; ++ptr) {
@@ -343,6 +343,9 @@ struct SCTResidualMatrixReducer {
 
       for (std::vector<int>::const_iterator it = local_touched.begin(); it != local_touched.end(); ++it) {
         local_y[*it] = 0.0;
+      }
+      if (bar != NULL) {
+        (*bar)++;
       }
     }
   }
@@ -390,7 +393,8 @@ NumericMatrix SCTPearsonResidualMatrix(
   double clip_min,
   double clip_max,
   bool do_center = true,
-  int n_threads = 1
+  int n_threads = 1,
+  bool display_progress = false
 ) {
   const int selected = feature_index.size();
   NumericMatrix out = no_init_matrix(selected, cols);
@@ -448,16 +452,30 @@ NumericMatrix SCTPearsonResidualMatrix(
         row_to_selected, common_slope, first_slope, clip_min, clip_max
       );
     }
-    RcppThread::parallelFor(0, chunks, [&](int chunk) {
-      const int begin = (cols * chunk) / chunks;
-      const int end = (cols * (chunk + 1)) / chunks;
-      reducers[chunk](begin, end);
-    }, chunks);
+    if (display_progress) {
+      RcppThread::ProgressBar bar(cols, 1);
+      RcppThread::parallelFor(0, chunks, [&](int chunk) {
+        const int begin = (cols * chunk) / chunks;
+        const int end = (cols * (chunk + 1)) / chunks;
+        reducers[chunk](begin, end, &bar);
+      }, chunks);
+    } else {
+      RcppThread::parallelFor(0, chunks, [&](int chunk) {
+        const int begin = (cols * chunk) / chunks;
+        const int end = (cols * (chunk + 1)) / chunks;
+        reducers[chunk](begin, end);
+      }, chunks);
+    }
     for (int chunk = 0; chunk < chunks; ++chunk) {
       reducer.join(reducers[chunk]);
     }
   } else {
-    reducer(0, cols);
+    if (display_progress) {
+      RcppThread::ProgressBar bar(cols, 1);
+      reducer(0, cols, &bar);
+    } else {
+      reducer(0, cols);
+    }
   }
 
   if (do_center) {

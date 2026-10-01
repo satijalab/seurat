@@ -114,14 +114,16 @@ Delaney (evolvedmicrobe@github) for the initial rewrite (v2.3.4) of the
 Java modularity optimizer code in Rcpp!
 }
 \details{
-To run Leiden algorithm, you must first install the leidenalg python
-package (e.g. via pip install leidenalg), see Traag et al (2018).
-
-When running Louvain clustering with multiple threads and multiple random
-starts, results may differ from single-threaded runs because each random
+Leiden clustering can be run with either the \code{leidenbase} or
+\code{igraph} backend; see Traag et al (2018).
+}
+\note{
+When running Louvain clustering with multiple threads, results may differ
+from single-threaded runs only when \code{n.start > 1}, because each random
 start uses an independent random number stream based on \code{random.seed}
 plus the restart index. Single-threaded runs use one random number stream
-across all starts. For a fixed \code{random.seed}, multi-threaded Louvain
+across all starts. With \code{n.start = 1}, all thread settings use the same
+serial path. For a fixed \code{random.seed}, multi-threaded Louvain
 results are expected to be reproducible across thread counts.
 }
 \concept{clustering}

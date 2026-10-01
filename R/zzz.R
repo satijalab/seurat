@@ -94,6 +94,9 @@ AttachDeps <- function(deps) {
 #'
 .onAttach <- function(libname, pkgname) {
   AttachDeps(deps = c('SeuratObject'))
+  packageStartupMessage(
+    "v5.6 adds significant improvements in speed and efficiency, particularly for large datasets.\nFor more information, see https://satijalab.org/seurat/articles/announcements.\n"
+  )
   return(invisible(x = NULL))
 }
 

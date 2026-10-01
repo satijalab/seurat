@@ -24,7 +24,7 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
                                              std::vector< std::string > all_rownames);
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor,
                                     bool display_progress );
-NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
+NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_progress, int nthreads);
 Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, bool center,
                                    double scale_max, bool display_progress);
 Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);

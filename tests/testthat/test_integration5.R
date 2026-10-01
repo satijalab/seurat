@@ -1,4 +1,6 @@
 # Tests for IntegrateLayers
+source(test_path("../testdata/test-objects.R"), local = TRUE)
+
 set.seed(42)
 is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
 
@@ -44,31 +46,11 @@ expected_harmony_embeddings <- function(object, assay = NULL, orig.reduction = "
 }
 
 
-# setup shared fixtures
-# update `pbmc_small` to use `Assay5` instances
-test.data <- pbmc_small
-suppressWarnings(
-  test.data[["RNA"]] <- CreateAssay5Object(
-    counts = LayerData(
-      test.data,
-      assay = "RNA",
-      layer = "counts"
-    )
-  )
-)
-# split the assay into multiple layers
-test.data[["RNA"]] <- split(test.data[["RNA"]], f = test.data$groups)
-
-
 context("IntegrateLayers")
 
 # setup fixtures for standard integration workflow
-test.data.std <- NormalizeData(test.data, verbose = FALSE)
-test.data.std <- FindVariableFeatures(test.data.std, verbose = FALSE)
-test.data.std <- ScaleData(test.data.std, verbose = FALSE)
-test.data.std <- suppressWarnings(
-  RunPCA(test.data.std, verbose = FALSE)
-)
+test.data <- create_multilayer_obj()
+test.data.std <- create_integration_obj(object = test.data)
 
 if (is_not_cran_submission) {
   test_that("IntegrateLayers works with HarmonyIntegration", {
@@ -171,6 +153,43 @@ test_that("IntegrateLayers works with CCAIntegration", {
   # didn't specify `dims.to.integrate` (i.e. the same size as the initial
   # reduction)
   expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
+})
+
+test_that("IntegrateLayers works with CCAIntegration using RSpectra backend", {
+  set.seed(seed = 42)
+  integrated_irlba <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      k.weight = 10,
+      dims.to.integrate = 1:10,
+      svd.method = "irlba"
+    )
+  )
+
+  set.seed(seed = 42)
+  integrated_rspectra <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      k.weight = 10,
+      dims.to.integrate = 1:10,
+      svd.method = "rspectra"
+    )
+  )
+
+  rspectra_embeddings <- Embeddings(integrated_rspectra[["integrated"]])
+  irlba_embeddings <- Embeddings(integrated_irlba[["integrated"]])
+  expect_equal(dim(integrated_rspectra[["integrated"]]), c(ncol(test.data.std), 10))
+  expect_equal(rownames(rspectra_embeddings), Cells(test.data.std))
+  expect_true(all(is.finite(rspectra_embeddings)))
+  expect_equal(abs(rspectra_embeddings), abs(irlba_embeddings), tolerance = 1e-5)
 })
 
 test_that("IntegrateLayers works with RPCAIntegration", {
@@ -351,21 +370,7 @@ if (is_not_cran_submission) {
   context("IntegrateData with SCTransform")
 
   # setup fixtures for SCTransform workflow
-  test.data.sct <- suppressWarnings(
-    SCTransform(
-      test.data, 
-      # use v1 to avoid potentially different
-      # return values depending on if `glmGamPoi`
-      # is installed or not
-      vst.flavor="v1", 
-      # set seed for reproducibility
-      seed.use = 12345, 
-      verbose = FALSE
-    )
-  )
-  test.data.sct <- suppressWarnings(
-    RunPCA(test.data.sct, verbose = FALSE)
-  )
+  test.data.sct <- create_integration_obj(object = test.data, sct = TRUE)
 
   test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
     skip_if_not_installed("harmony")

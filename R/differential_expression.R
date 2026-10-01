@@ -67,12 +67,12 @@ FindAllMarkers <- function(
   densify = FALSE,
   ...
 ) {
-  MapVals <- function(vec, from, to) {
+  .MapVals <- function(vec, from, to) {
     vec2 <- setNames(object = to, nm = from)[as.character(x = vec)]
     vec2[is.na(x = vec2)] <- vec[is.na(x = vec2)]
     return(unname(obj = vec2))
   }
-  GetNormMethod <- function(object, assay) {
+  .GetNormMethod <- function(object, assay) {
     norm.command <- paste0("NormalizeData.", assay)
     if (norm.command %in% Command(object = object)) {
       return(Command(
@@ -123,7 +123,7 @@ FindAllMarkers <- function(
     }
     descendants <- DFT(tree = tree, node = node, include.children = TRUE)
     all.children <- sort(x = tree$edge[, 2][!tree$edge[, 2] %in% tree$edge[, 1]])
-    descendants <- MapVals(
+    descendants <- .MapVals(
       vec = descendants,
       from = all.children,
       to = tree$tip.label
@@ -140,15 +140,21 @@ FindAllMarkers <- function(
   }
   genes.de <- vector(mode = "list", length = length(x = idents.all))
   messages <- vector(mode = "list", length = length(x = idents.all))
-  assay <- assay %||% DefaultAssay(object = object)
+  reduction <- list(...)$reduction
+  if (!is.null(x = reduction) && !is.null(x = assay)) {
+    stop("Please only specify either assay or reduction.")
+  }
+  if (is.null(x = reduction)) {
+    assay <- assay %||% DefaultAssay(object = object)
+  }
   data.use <- NULL
   cellnames.use <- NULL
   cells.by.ident <- NULL
   latent.vars.data <- NULL
   norm.method <- NULL
   if (is.null(x = node)) {
-    data.use <- object[[assay]]
-    cellnames.use <- colnames(x = data.use)
+    data.use <- object[[reduction %||% assay]]
+    cellnames.use <- if (is.null(x = reduction)) colnames(x = data.use) else Cells(x = data.use)
     idents.use <- Idents(object = object)[cellnames.use]
     ident.values <- as.character(x = idents.use)
     cells.by.ident <- split(x = cellnames.use, f = idents.use)
@@ -161,11 +167,13 @@ FindAllMarkers <- function(
         cells = cellnames.use
       )
     }
-    norm.method <- GetNormMethod(object = object, assay = assay)
+    if (is.null(x = reduction)) {
+      norm.method <- .GetNormMethod(object = object, assay = assay)
+    }
   }
   # For the common Wilcoxon one-vs-rest case, presto can test all groups in
-  # one matrix pass; unsupported cases return NULL and use the original loop.
-  genes.de.presto <- FindAllMarkersWilcoxPresto(
+  # one matrix pass; unsupported cases use per-identity evaluation.
+  genes.de.presto <- .FindAllMarkersWilcoxPresto(
     object = data.use,
     cells.by.ident = cells.by.ident,
     cellnames.use = cellnames.use,
@@ -186,10 +194,11 @@ FindAllMarkers <- function(
     fc.name = fc.name,
     base = base,
     norm.method = norm.method,
+    verbose = verbose,
     ...
   )
   if (!is.null(x = genes.de.presto)) {
-    return(FindAllMarkersFinalize(
+    return(.FindAllMarkersBuildTable(
       genes.de = genes.de.presto,
       idents.all = idents.all,
       test.use = test.use,
@@ -206,7 +215,29 @@ FindAllMarkers <- function(
       }
       genes.de[[i]] <- tryCatch(
        expr = {
-          if (is.null(x = node)) {
+          if (is.null(x = node) && !is.null(x = reduction)) {
+            # Use Seurat-level dispatch for marker tests on embeddings
+            FindMarkers(
+              object = object,
+              ident.1 = idents.all[i],
+              features = features,
+              logfc.threshold = logfc.threshold,
+              test.use = test.use,
+              min.pct = min.pct,
+              min.diff.pct = min.diff.pct,
+              verbose = verbose,
+              only.pos = only.pos,
+              max.cells.per.ident = max.cells.per.ident,
+              random.seed = random.seed,
+              latent.vars = latent.vars,
+              min.cells.feature = min.cells.feature,
+              min.cells.group = min.cells.group,
+              mean.fxn = mean.fxn,
+              fc.name = fc.name,
+              densify = densify,
+              ...
+            )
+          } else if (is.null(x = node)) {
             cells.1 <- cells.by.ident[[as.character(x = idents.all[i])]]
             cells.2 <- cellnames.use[ident.values != as.character(x = idents.all[i])]
             latent.vars.i <- if (is.null(x = latent.vars.data)) {
@@ -271,7 +302,7 @@ FindAllMarkers <- function(
       )
       if (is.character(x = genes.de[[i]])) {
         messages[[i]] <- genes.de[[i]]
-        genes.de[[i]] <- NULL
+        genes.de[i] <- list(NULL)
       }
     }
   }, warning = function(w) {
@@ -282,7 +313,7 @@ FindAllMarkers <- function(
       invokeRestart("muffleWarning")
     }
   })
-  return(FindAllMarkersFinalize(
+  return(.FindAllMarkersBuildTable(
     genes.de = genes.de,
     idents.all = idents.all,
     test.use = test.use,
@@ -295,642 +326,6 @@ FindAllMarkers <- function(
   ))
 }
 
-#' Finalize FindAllMarkers Results
-#'
-#' Combine per-ident \code{FindMarkers}-style data.frames into the public
-#' \code{FindAllMarkers} table. Both the legacy loop and fast Presto path call
-#' this so row ordering, \code{return.thresh}, cluster/gene columns, and
-#' warnings stay aligned.
-#'
-#' @param genes.de List of per-ident differential expression result data.frames.
-#' @param idents.all Identity classes tested by \code{FindAllMarkers}.
-#' @param test.use Differential expression test used to generate \code{genes.de}.
-#' @param return.thresh Threshold for retaining markers in the final table.
-#' @param only.pos Only retain markers with positive fold-change values.
-#' @param messages Optional list of per-ident messages for tests that were not
-#' run.
-#' @param node Optional tree node tested by \code{FindAllMarkers}.
-#' @param new.nodes,orig.nodes Optional node label mappings used when
-#' \code{node} is set.
-#'
-#' @return A data.frame in \code{FindAllMarkers} output format.
-#' @noRd
-FindAllMarkersFinalize <- function(
-  genes.de,
-  idents.all,
-  test.use,
-  return.thresh,
-  only.pos,
-  messages = NULL,
-  node = NULL,
-  new.nodes = NULL,
-  orig.nodes = NULL
-) {
-  gde.all <- data.frame()
-  for (i in seq_along(along.with = idents.all)) {
-    gde <- genes.de[[i]]
-    if (is.null(x = gde) || nrow(x = gde) == 0) {
-      next
-    }
-    if (test.use == "roc") {
-      gde <- subset(
-        x = gde,
-        subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
-      )
-    } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
-      gde <- gde[order(gde$p_val, -abs(gde$pct.1-gde$pct.2)), , drop = FALSE]
-      gde <- subset(x = gde, subset = p_val < return.thresh)
-    }
-    if (nrow(x = gde) == 0) {
-      next
-    }
-    gde$cluster <- idents.all[i]
-    gde$gene <- rownames(x = gde)
-    gde.all <- rbind(gde.all, gde)
-  }
-  if ((only.pos) && nrow(x = gde.all) > 0) {
-    return(subset(x = gde.all, subset = gde.all[, 2] > 0))
-  }
-  rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
-  if (nrow(x = gde.all) == 0) {
-    warning("No DE genes identified", call. = FALSE, immediate. = TRUE)
-  }
-  if (any(vapply(
-    X = messages,
-    FUN = function(x) !is.null(x),
-    FUN.VALUE = logical(length = 1L)
-  ))) {
-    warning("The following tests were not performed: ", call. = FALSE, immediate. = TRUE)
-    for (i in seq_along(along.with = messages)) {
-      if (!is.null(x = messages[[i]])) {
-        warning("When testing ", idents.all[i], " versus all:\n\t", messages[[i]], call. = FALSE, immediate. = TRUE)
-      }
-    }
-  }
-  if (!is.null(x = node)) {
-    MapVals <- function(vec, from, to) {
-      vec2 <- setNames(object = to, nm = from)[as.character(x = vec)]
-      vec2[is.na(x = vec2)] <- vec[is.na(x = vec2)]
-      return(unname(obj = vec2))
-    }
-    gde.all$cluster <- MapVals(
-      vec = gde.all$cluster,
-      from = new.nodes,
-      to = orig.nodes
-    )
-  }
-  return(gde.all)
-}
-
-#' Get a full per-ident DE list for the fast Presto Wilcoxon path
-#'
-#' @inheritParams FindAllMarkers
-#' @param cells.by.ident Named list of cell names split by identity.
-#' @param cellnames.use Cells included in the one-vs-rest tests.
-#' @param idents.use Identity vector named by cell.
-#' @param idents.all Identity classes to test.
-#' @param norm.method Normalization method recorded for the assay, when
-#' available.
-#'
-#' @return A list of per-ident DE data.frames (\code{NULL} when fallback is required)
-#' @noRd
-FindAllMarkersWilcoxPresto <- function(
-  object,
-  cells.by.ident,
-  cellnames.use,
-  idents.use,
-  idents.all,
-  features,
-  slot,
-  test.use,
-  min.pct,
-  min.diff.pct,
-  min.cells.group,
-  logfc.threshold,
-  latent.vars,
-  max.cells.per.ident,
-  only.pos,
-  densify,
-  mean.fxn,
-  fc.name,
-  base,
-  norm.method,
-  ...
-) {
-  if (is.null(x = object) || test.use != "wilcox" || max.cells.per.ident < Inf) {
-    return(NULL)
-  }
-  ident.sizes <- vapply(X = cells.by.ident, FUN = length, FUN.VALUE = integer(length = 1L))
-  layer.data <- tryCatch(
-    expr = LayerData(object = object, layer = slot),
-    error = function(...) NULL
-  )
-  data.is.iterable <- is.null(x = layer.data) || inherits(x = layer.data, what = "IterableMatrix")
-  # presto::wilcoxauc computes all one-vs-rest Wilcoxon tests in one pass.
-  # Keep BPCells and sampled comparisons on the old path because they have
-  # backend-specific behavior or per-cluster sampling that is not equivalent.
-  if (
-    length(x = ident.sizes) <= 1 ||
-    any(ident.sizes < min.cells.group) ||
-    any((length(x = cellnames.use) - ident.sizes) < min.cells.group) ||
-    data.is.iterable ||
-    !requireNamespace("presto", quietly = TRUE)
-  ) {
-    return(NULL)
-  }
-  if (!is.null(x = latent.vars)) {
-    warning(
-      "'latent.vars' is only used for the following tests: ",
-      paste(DEmethods_latent(), collapse=", "),
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
-
-  tryCatch(
-    expr = FindAllMarkersWilcoxPrestoDE(
-      object = object,
-      cells.by.ident = cells.by.ident,
-      cellnames.use = cellnames.use,
-      idents.use = idents.use,
-      idents.all = idents.all,
-      features = features,
-      slot = slot,
-      min.pct = min.pct,
-      min.diff.pct = min.diff.pct,
-      logfc.threshold = logfc.threshold,
-      only.pos = only.pos,
-      densify = densify,
-      mean.fxn = mean.fxn,
-      fc.name = fc.name,
-      base = base,
-      norm.method = norm.method,
-      layer.data = layer.data,
-      ...
-    ),
-    error = function(...) NULL
-  )
-}
-
-#' Filter features By FoldChange statistics
-#'
-#' Apply the same pct and fold-change feature filters used by
-#' \code{FindMarkers.default} to one per-ident fold-change table
-#'
-#' @param fc.results Fold-change result data.frame for one identity.
-#' @param slot Assay data slot used for differential expression testing.
-#' @param min.pct Minimum fraction of cells expressing a feature in either
-#' group.
-#' @param min.diff.pct Minimum difference in detection fraction between groups.
-#' @param logfc.threshold Minimum fold-change threshold.
-#' @param only.pos Only retain features with positive fold-change values.
-#'
-#' @return A character vector of features that pass filters
-#' @noRd
-FindAllMarkersFilterFeatures <- function(
-  fc.results,
-  slot,
-  min.pct,
-  min.diff.pct,
-  logfc.threshold,
-  only.pos
-) {
-  # Match FindMarkers.default prefiltering: first require expression in either
-  # group, then require a minimum pct difference, then apply the FC threshold
-  alpha.min <- pmax(fc.results$pct.1, fc.results$pct.2)
-  names(x = alpha.min) <- rownames(x = fc.results)
-  features.use <- names(x = which(x = alpha.min >= min.pct))
-  if (!length(x = features.use)) {
-    return(features.use)
-  }
-  alpha.diff <- alpha.min - pmin(fc.results$pct.1, fc.results$pct.2)
-  features.use <- names(
-    x = which(x = alpha.min >= min.pct & alpha.diff >= min.diff.pct)
-  )
-  if (!length(x = features.use) || slot == "scale.data") {
-    return(features.use)
-  }
-  total.diff <- fc.results[, 1]
-  names(x = total.diff) <- rownames(x = fc.results)
-  features.diff <- if (only.pos) {
-    names(x = which(x = total.diff >= logfc.threshold))
-  } else {
-    names(x = which(x = abs(x = total.diff) >= logfc.threshold))
-  }
-  intersect(x = features.use, y = features.diff)
-}
-
-#' Bulk FoldChange For FindAllMarkers
-#'
-#' Compute fold-change and detection percentages for all identities in one pass when 
-#' the requested mean function is available as a default
-#'
-#' @inheritParams FindAllMarkers
-#' @param cellnames.use Cells included in the one-vs-rest tests.
-#' @param idents.use Identity vector named by cell.
-#' @param idents.all Identity classes to test.
-#' @param fc.slot Assay data slot used for fold-change calculations.
-#' @param pseudocount.use Pseudocount added to average expression values.
-#' @param norm.method Normalization method recorded for the assay, when
-#' available.
-#' @param data Optional matrix to reuse for fold-change calculations.
-#'
-#' @return A named list of fold-change data.frames (\code{NULL} when fallback is required)
-#' @noRd
-FoldChangeFindAllMarkers <- function(
-  object,
-  features,
-  cellnames.use,
-  idents.use,
-  idents.all,
-  fc.slot,
-  pseudocount.use,
-  fc.name,
-  mean.fxn,
-  base,
-  norm.method,
-  slot,
-  min.pct,
-  min.diff.pct,
-  logfc.threshold,
-  only.pos,
-  data = NULL
-) {
-  # Bulk FC is exact only for Seurat's built-in mean functions, not custom functions
-  if (!is.null(x = mean.fxn) || !fc.slot %in% c("counts", "data", "scale.data")) {
-    return(NULL)
-  }
-  data <- data %||% tryCatch(
-    expr = GetAssayData(object = object, layer = fc.slot),
-    error = function(...) NULL
-  )
-  if (is.null(x = data)) {
-    return(NULL)
-  }
-  features <- intersect(x = features, y = rownames(x = data))
-  if (!length(x = features)) {
-    return(vector(mode = "list", length = length(idents.all)))
-  }
-  pseudocount.use <- pseudocount.use %||% 1
-  groups <- factor(
-    x = as.character(x = idents.use[cellnames.use]),
-    levels = as.character(x = idents.all)
-  )
-  group.n <- tabulate(bin = as.integer(x = groups), nbins = length(x = idents.all))
-  rest.n <- length(x = cellnames.use) - group.n
-  data <- if (
-    identical(x = features, y = rownames(x = data)) &&
-    identical(x = cellnames.use, y = colnames(x = data))
-  ) {
-    data
-  } else {
-    data[features, cellnames.use, drop = FALSE]
-  }
-  feature.names <- rownames(x = data)
-  sparse.stats <- FindAllMarkersSparseStats(
-    data = data,
-    groups = groups,
-    n.groups = length(x = idents.all),
-    fc.slot = fc.slot,
-    norm.method = norm.method
-  )
-  if (!is.null(x = sparse.stats)) {
-    dimnames(x = sparse.stats$detected) <- list(feature.names, as.character(x = idents.all))
-    dimnames(x = sparse.stats$group_sum) <- list(feature.names, as.character(x = idents.all))
-    dimnames(x = sparse.stats$rest_sum) <- list(feature.names, as.character(x = idents.all))
-    names(x = sparse.stats$total_detected) <- feature.names
-  }
-  # Detection percentages use the same >0 threshold and 3-digit rounding as
-  # FoldChange.default, but derive pct.2 from total-minus-group counts
-  if (is.null(x = sparse.stats)) {
-    # Cell x group membership matrix, multiplying feature x cell data by this
-    # matrix gives feature x group sums/counts for all identities at once
-    group.mat <- Matrix::sparseMatrix(
-      i = seq_along(along.with = groups),
-      j = as.integer(x = groups),
-      x = 1,
-      dims = c(length(x = groups), length(x = idents.all))
-    )
-    detected.1 <- as.matrix(x = (data > 0) %*% group.mat)
-    detected.total <- Matrix::rowSums(x = data > 0)
-  } else {
-    detected.1 <- sparse.stats$detected
-    detected.total <- sparse.stats$total_detected
-  }
-  pct.1 <- round(x = DivideColumnsByDenomList(x = detected.1, denominator = group.n), digits = 3)
-  pct.2 <- round(x = DivideColumnsByDenomList(x = detected.total - detected.1, denominator = rest.n), digits = 3)
-  base.text <- ifelse(test = base == exp(1), yes = "", no = base)
-  fc.name <- fc.name %||% ifelse(
-    test = fc.slot == "scale.data",
-    yes = "avg_diff",
-    no = paste0("avg_log", base.text, "FC")
-  )
-  features.by.pct <- vector(mode = "list", length = length(idents.all))
-  names(x = features.by.pct) <- as.character(x = idents.all)
-  for (i in seq_along(along.with = idents.all)) {
-    alpha.min <- pmax(pct.1[, i], pct.2[, i])
-    features.use <- feature.names[which(x = alpha.min >= min.pct)]
-    if (length(x = features.use)) {
-      alpha.diff <- alpha.min - pmin(pct.1[, i], pct.2[, i])
-      features.use <- feature.names[which(x = alpha.min >= min.pct & alpha.diff >= min.diff.pct)]
-    }
-    features.by.pct[[i]] <- features.use
-  }
-  features.fc <- unique(x = unlist(x = features.by.pct, use.names = FALSE))
-  fc.by.ident <- vector(mode = "list", length = length(idents.all))
-  names(x = fc.by.ident) <- as.character(x = idents.all)
-  if (!length(x = features.fc)) {
-    for (i in seq_along(along.with = idents.all)) {
-      fc.by.ident[[i]] <- data.frame(
-        fc = numeric(length = 0L),
-        pct.1 = numeric(length = 0L),
-        pct.2 = numeric(length = 0L)
-      )
-      colnames(x = fc.by.ident[[i]])[1] <- fc.name
-    }
-    attr(x = fc.by.ident, which = "features.filtered") <- TRUE
-    return(fc.by.ident)
-  }
-  use.full.fc <- length(x = features.fc) > (0.5 * nrow(x = data))
-  data.fc <- if (use.full.fc) {
-    data
-  } else {
-    data[features.fc, , drop = FALSE]
-  }
-  if (is.null(x = sparse.stats)) {
-    data.mean <- switch(
-      EXPR = fc.slot,
-      "scale.data" = data.fc,
-      "data" = if (is.null(x = norm.method) || norm.method == "LogNormalize") {
-        expm1(x = data.fc)
-      } else {
-        data.fc
-      },
-      data.fc
-    )
-    group.sum <- as.matrix(x = data.mean %*% group.mat)
-    rest.sum <- matrix(
-      data = 0,
-      nrow = nrow(x = group.sum),
-      ncol = ncol(x = group.sum),
-      dimnames = dimnames(x = group.sum)
-    )
-    for (i in seq_len(length.out = ncol(x = group.sum))) {
-      rest.sum[, i] <- if (ncol(x = group.sum) == 2L) {
-        group.sum[, 3L - i]
-      } else {
-        Matrix::rowSums(x = group.sum[, -i, drop = FALSE])
-      }
-    }
-  } else {
-    group.sum <- sparse.stats$group_sum[features.fc, , drop = FALSE]
-    rest.sum <- sparse.stats$rest_sum[features.fc, , drop = FALSE]
-  }
-  if (fc.slot == "scale.data") {
-    mean.1 <- DivideColumnsByDenomList(x = group.sum, denominator = group.n)
-    mean.2 <- DivideColumnsByDenomList(x = rest.sum, denominator = rest.n)
-  } else {
-    mean.1 <- log(
-      x = DivideColumnsByDenomList(x = group.sum + pseudocount.use, denominator = group.n),
-      base = base
-    )
-    mean.2 <- log(
-      x = DivideColumnsByDenomList(
-        x = rest.sum + pseudocount.use,
-        denominator = rest.n
-      ),
-      base = base
-    )
-  }
-  fc <- mean.1 - mean.2
-  for (i in seq_along(along.with = idents.all)) {
-    features.use <- features.by.pct[[i]]
-    fc.use <- numeric(length = 0L)
-    if (length(x = features.use)) {
-      fc.use <- fc[features.use, i]
-      names(x = fc.use) <- features.use
-    }
-    if (length(x = features.use) && slot != "scale.data") {
-      total.diff <- fc.use
-      features.diff <- if (only.pos) {
-        names(x = which(x = total.diff >= logfc.threshold))
-      } else {
-        names(x = which(x = abs(x = total.diff) >= logfc.threshold))
-      }
-      features.use <- intersect(x = features.use, y = features.diff)
-    }
-    fc.by.ident[[i]] <- data.frame(
-      fc = fc.use[features.use],
-      pct.1 = pct.1[features.use, i],
-      pct.2 = pct.2[features.use, i],
-      row.names = features.use
-    )
-    colnames(x = fc.by.ident[[i]])[1] <- fc.name
-  }
-  attr(x = fc.by.ident, which = "features.filtered") <- TRUE
-  return(fc.by.ident)
-}
-
-#' Sparse FoldChange Summary Statistics
-#'
-#' Compute detection counts and group/rest sums for supported sparse matrices
-#' using the C++ FindAllMarkers fold-change helper.
-#'
-#' @param data Expression matrix.
-#' @param groups Factor of identity assignments for the columns of \code{data}.
-#' @param n.groups Number of identity groups.
-#' @param fc.slot Assay data slot used for fold-change calculations.
-#' @param norm.method Normalization method recorded for the assay, when
-#' available.
-#'
-#' @return A list of sparse summary matrices, or \code{NULL} when unsupported.
-#' @noRd
-FindAllMarkersSparseStats <- function(
-  data,
-  groups,
-  n.groups,
-  fc.slot,
-  norm.method
-) {
-  if (!inherits(x = data, what = "dgCMatrix") || !fc.slot %in% c("counts", "data")) {
-    return(NULL)
-  }
-  FindAllMarkersSparseFoldChangeStats(
-    x = data@x,
-    i = data@i,
-    p = data@p,
-    rows = nrow(x = data),
-    cols = ncol(x = data),
-    groups = as.integer(x = groups),
-    n_groups = n.groups,
-    log_normalize = fc.slot == "data" && (is.null(x = norm.method) || norm.method == "LogNormalize"),
-    nthreads = getThreads()
-  )
-}
-
-#' FindAllMarkers Wilcoxon w/ presto
-#'
-#' Compute all one-vs-rest Wilcoxon p-values with one \code{presto::wilcoxauc} call,
-#' and attach \code{Seurat::FoldChange} results for each identity.
-#'
-#' @inheritParams FindAllMarkers
-#' @param cells.by.ident Named list of cell names split by identity.
-#' @param cellnames.use Cells included in the one-vs-rest tests.
-#' @param idents.use Identity vector named by cell.
-#' @param idents.all Identity classes to test.
-#' @param norm.method Normalization method recorded for the assay, when
-#' available.
-#' @param layer.data Optional preloaded assay data for \code{slot}.
-#'
-#' @return A list of per-ident DE data.frames
-#' @noRd
-FindAllMarkersWilcoxPrestoDE <- function(
-  object,
-  cells.by.ident,
-  cellnames.use,
-  idents.use,
-  idents.all,
-  features,
-  slot,
-  min.pct,
-  min.diff.pct,
-  logfc.threshold,
-  only.pos,
-  densify,
-  mean.fxn,
-  fc.name,
-  base,
-  norm.method,
-  layer.data = NULL,
-  ...
-) {
-  dots <- list(...)
-  fc.slot <- dots$fc.slot %||% "data"
-  dots$fc.slot <- NULL
-  if (inherits(x = object, what = "SCTAssay")) {
-    ValidateSCTFindMarkers(
-      object = object,
-      recorrect_umi = dots$recorrect_umi %||% TRUE
-    )
-    layer.data <- NULL
-  }
-  dots$recorrect_umi <- NULL
-  data.use <- layer.data %||% LayerData(object = object, layer = slot)
-  features <- features %||% rownames(x = data.use)
-  features <- intersect(x = features, y = rownames(x = data.use))
-  if (!length(x = features)) {
-    return(vector(mode = "list", length = length(idents.all)))
-  }
-  fc.by.ident <- FoldChangeFindAllMarkers(
-    object = object,
-    features = features,
-    cellnames.use = cellnames.use,
-    idents.use = idents.use,
-    idents.all = idents.all,
-    fc.slot = fc.slot,
-    pseudocount.use = dots$pseudocount.use,
-    fc.name = fc.name,
-    mean.fxn = mean.fxn,
-    base = base,
-    norm.method = norm.method,
-    slot = slot,
-    min.pct = min.pct,
-    min.diff.pct = min.diff.pct,
-    logfc.threshold = logfc.threshold,
-    only.pos = only.pos,
-    data = if (identical(x = fc.slot, y = slot)) data.use else NULL
-  )
-  if (is.null(x = fc.by.ident)) {
-    # Fall back to the original FoldChange loop for custom or unsupported FC
-    # semantics, while still using the single Presto call for p-values
-    fc.by.ident <- vector(mode = "list", length = length(idents.all))
-    names(x = fc.by.ident) <- as.character(x = idents.all)
-    for (i in seq_along(along.with = idents.all)) {
-      ident <- as.character(x = idents.all[i])
-      cells.1 <- cells.by.ident[[ident]]
-      cells.2 <- setdiff(x = cellnames.use, y = cells.1)
-      fc.args <- list(
-        object = object,
-        cells.1 = cells.1,
-        cells.2 = cells.2,
-        features = features,
-        slot = fc.slot,
-        fc.name = fc.name,
-        mean.fxn = mean.fxn,
-        base = base,
-        norm.method = norm.method
-      )
-      if (!is.null(x = dots$pseudocount.use)) {
-        fc.args$pseudocount.use <- dots$pseudocount.use
-      }
-      fc.args <- c(fc.args, dots[setdiff(x = names(x = dots), y = "pseudocount.use")])
-      fc.by.ident[[i]] <- do.call(what = FoldChange, args = fc.args)
-    }
-  }
-  features.by.ident <- vector(mode = "list", length = length(idents.all))
-  names(x = features.by.ident) <- as.character(x = idents.all)
-  if (isTRUE(x = attr(x = fc.by.ident, which = "features.filtered"))) {
-    for (i in seq_along(along.with = idents.all)) {
-      features.by.ident[[i]] <- rownames(x = fc.by.ident[[i]])
-    }
-  } else {
-    for (i in seq_along(along.with = idents.all)) {
-      fc.results <- fc.by.ident[[i]]
-      features.use <- FindAllMarkersFilterFeatures(
-        fc.results = fc.results,
-        slot = slot,
-        min.pct = min.pct,
-        min.diff.pct = min.diff.pct,
-        logfc.threshold = logfc.threshold,
-        only.pos = only.pos
-      )
-      fc.by.ident[[i]] <- fc.results[features.use, , drop = FALSE]
-      features.by.ident[[i]] <- features.use
-    }
-  }
-  features.test <- unique(x = unlist(x = features.by.ident, use.names = FALSE))
-  if (!length(x = features.test)) {
-    return(fc.by.ident)
-  }
-  use.full.test <- identical(x = cellnames.use, y = colnames(x = data.use))
-  if (use.full.test) {
-    data.test <- data.use
-    features.test <- rownames(x = data.use)
-  } else {
-    data.test <- data.use[features.test, cellnames.use, drop = FALSE]
-  }
-  if (densify) {
-    data.test <- as.matrix(x = data.test)
-  }
-  groups <- factor(
-    x = as.character(x = idents.use[cellnames.use]),
-    levels = as.character(x = idents.all)
-  )
-  presto.results <- presto::wilcoxauc(X = data.test, y = groups)
-  pval.mat <- matrix(
-    data = presto.results$pval,
-    nrow = length(x = features.test),
-    ncol = length(x = idents.all),
-    dimnames = list(features.test, as.character(x = idents.all))
-  )
-  genes.de <- vector(mode = "list", length = length(idents.all))
-  for (i in seq_along(along.with = idents.all)) {
-    ident <- as.character(x = idents.all[i])
-    fc.results <- fc.by.ident[[i]]
-    if (is.null(x = fc.results) || !nrow(x = fc.results)) {
-      genes.de[[i]] <- fc.results
-      next
-    }
-    de.results <- data.frame(
-      p_val = pval.mat[rownames(x = fc.results), ident],
-      row.names = rownames(x = fc.results)
-    )
-    de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
-    de.results$p_val_adj <- pmin(1, de.results$p_val * nrow(x = data.use))
-    genes.de[[i]] <- de.results
-  }
-  return(genes.de)
-}
 
 #' Finds markers that are conserved between the groups
 #'
@@ -1213,7 +608,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param fc.results data.frame from FoldChange
-#' @param densify Convert the sparse matrix to a dense form before running the 
+#' @param densify Convert the sparse matrix to a dense form before running the
 #' DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
 #'
@@ -1311,7 +706,7 @@ FindMarkers.default <- function(
            " Please rerun with test.use = 'wilcox'")
     }
     if (BPCells::storage_order(object) == "col" && isTRUE(getOption('Seurat.warn.findmarkers.bpcells.colmajor'))) {
-      warning(paste("Column-major order detected; FindMarkers requires row-major order.", 
+      warning(paste("Column-major order detected; FindMarkers requires row-major order.",
               "Consider first running BPCells::transpose_storage_order().",
               "This message will be shown once per session.", sep = "\n"),
               immediate. = TRUE, call. = FALSE)
@@ -1359,8 +754,8 @@ FindMarkers.default <- function(
 }
 
 
-#' @param fc.slot Slot used to calculate fold-change - will also affect the 
-#' default for \code{mean.fxn}, see below for more details. 
+#' @param fc.slot Slot used to calculate fold-change - will also affect the
+#' default for \code{mean.fxn}, see below for more details.
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param norm.method Normalization method for fold change calculation when
@@ -1475,7 +870,7 @@ ValidateSCTFindMarkers <- function(object, recorrect_umi = TRUE) {
   return(invisible(x = NULL))
 }
 
-#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the 
+#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the
 #' median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
 #' @rdname FindMarkers
@@ -1558,7 +953,7 @@ FindMarkers.SCTAssay <- function(
 FindMarkers.DimReduc <- function(
   object,
   cells.1 = NULL,
-  cells.2 = NULL, 
+  cells.2 = NULL,
   features = NULL,
   logfc.threshold = 0.1,
   test.use = "wilcox",
@@ -1629,13 +1024,14 @@ FindMarkers.DimReduc <- function(
     ...
   )
   de.results <- cbind(de.results, fc.results)
+  fc.column <- fc.name %||% 'avg_diff'
   if (only.pos) {
-    de.results <- de.results[de.results$avg_diff > 0, , drop = FALSE]
+    de.results <- de.results[de.results[[fc.column]] > 0, , drop = FALSE]
   }
   if (test.use %in% DEmethods_nocorrect()) {
-    de.results <- de.results[order(-de.results$power, -de.results$avg_diff), ]
+    de.results <- de.results[order(-de.results$power, -de.results[[fc.column]]), ]
   } else {
-    de.results <- de.results[order(de.results$p_val, -de.results$avg_diff), ]
+    de.results <- de.results[order(de.results$p_val, -de.results[[fc.column]]), ]
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
@@ -1651,12 +1047,12 @@ FindMarkers.DimReduc <- function(
 #' @param ident.2 A second identity class for comparison; if \code{NULL},
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
-#' @param group.by Regroup cells into a different identity class prior to 
+#' @param group.by Regroup cells into a different identity class prior to
 #' performing differential expression (see example); \code{"ident"} to use Idents
-#' @param subset.ident Subset a particular identity class prior to regrouping. 
+#' @param subset.ident Subset a particular identity class prior to regrouping.
 #' Only relevant if group.by is set (see example)
 #' @param assay Assay to use in differential expression testing
-#' @param reduction Reduction to use in differential expression testing - will 
+#' @param reduction Reduction to use in differential expression testing - will
 #' test for DE on cell embeddings
 #'
 #' @rdname FindMarkers
@@ -1748,14 +1144,24 @@ FindMarkers.Seurat <- function(
     NULL
   }
 
-  de.results <- FindMarkers(
-    object = data.use,
-    latent.vars = latent.vars,
-    cells.1 = cells$cells.1,
-    cells.2 = cells$cells.2,
-    norm.method = norm.method,
-    ...
-  )
+  if (is.null(x = reduction)) {
+    de.results <- FindMarkers(
+      object = data.use,
+      latent.vars = latent.vars,
+      cells.1 = cells$cells.1,
+      cells.2 = cells$cells.2,
+      norm.method = norm.method,
+      ...
+    )
+  } else { # norm.method is not relevant for reductions
+    de.results <- FindMarkers(
+      object = data.use,
+      latent.vars = latent.vars,
+      cells.1 = cells$cells.1,
+      cells.2 = cells$cells.2,
+      ...
+    )
+  }
 
   return(de.results)
 }
@@ -2065,6 +1471,511 @@ FoldChange.Seurat <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Bind per-identity marker tables into the public FindAllMarkers result
+.FindAllMarkersBuildTable <- function(
+  genes.de,
+  idents.all,
+  test.use,
+  return.thresh,
+  only.pos,
+  messages = NULL,
+  node = NULL,
+  new.nodes = NULL,
+  orig.nodes = NULL
+) {
+  gde.all <- data.frame()
+  for (i in seq_along(along.with = idents.all)) {
+    gde <- genes.de[[i]]
+    if (is.null(x = gde) || nrow(x = gde) == 0) {
+      next
+    }
+    if (test.use == "roc") {
+      gde <- subset(
+        x = gde,
+        subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
+      )
+    } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
+      # DimReduc marker tables have avg_diff rather than detection percentages
+      if (all(c('pct.1', 'pct.2') %in% colnames(x = gde))) {
+        gde <- gde[order(gde$p_val, -abs(gde$pct.1-gde$pct.2)), , drop = FALSE]
+      } else {
+        gde <- gde[order(gde$p_val), , drop = FALSE]
+      }
+      gde <- subset(x = gde, subset = p_val < return.thresh)
+    }
+    if (nrow(x = gde) == 0) {
+      next
+    }
+    gde$cluster <- idents.all[i]
+    gde$gene <- rownames(x = gde)
+    gde.all <- rbind(gde.all, gde)
+  }
+  if ((only.pos) && nrow(x = gde.all) > 0) {
+    return(subset(x = gde.all, subset = gde.all[, 2] > 0))
+  }
+  rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
+  if (nrow(x = gde.all) == 0) {
+    warning("No DE genes identified", call. = FALSE, immediate. = TRUE)
+  }
+  if (any(vapply(
+    X = messages,
+    FUN = function(x) !is.null(x),
+    FUN.VALUE = logical(length = 1L)
+  ))) {
+    warning("The following tests were not performed: ", call. = FALSE, immediate. = TRUE)
+    for (i in seq_along(along.with = messages)) {
+      if (!is.null(x = messages[[i]])) {
+        warning("When testing ", idents.all[i], " versus all:\n\t", messages[[i]], call. = FALSE, immediate. = TRUE)
+      }
+    }
+  }
+  if (!is.null(x = node)) {
+    .MapVals <- function(vec, from, to) {
+      vec2 <- setNames(object = to, nm = from)[as.character(x = vec)]
+      vec2[is.na(x = vec2)] <- vec[is.na(x = vec2)]
+      return(unname(obj = vec2))
+    }
+    gde.all$cluster <- .MapVals(
+      vec = gde.all$cluster,
+      from = new.nodes,
+      to = orig.nodes
+    )
+  }
+  return(gde.all)
+}
+
+# Run the single-pass Presto Wilcoxon path for FindAllMarkers
+.FindAllMarkersWilcoxPresto <- function(
+  object,
+  cells.by.ident,
+  cellnames.use,
+  idents.use,
+  idents.all,
+  features,
+  slot,
+  test.use,
+  min.pct,
+  min.diff.pct,
+  min.cells.group,
+  logfc.threshold,
+  latent.vars,
+  max.cells.per.ident,
+  only.pos,
+  densify,
+  mean.fxn,
+  fc.name,
+  base,
+  norm.method,
+  verbose = TRUE,
+  ...
+) {
+  if (is.null(x = object) || test.use != "wilcox" || max.cells.per.ident < Inf) {
+    return(NULL)
+  }
+  ident.sizes <- vapply(X = cells.by.ident, FUN = length, FUN.VALUE = integer(length = 1L))
+  layer.data <- tryCatch(
+    expr = LayerData(object = object, layer = slot),
+    error = function(...) NULL
+  )
+  data.is.iterable <- is.null(x = layer.data) || inherits(x = layer.data, what = "IterableMatrix")
+  # Use the single-pass Presto path only when it matches the per-cluster
+  # Wilcoxon semantics. BPCells inputs and sampled comparisons are handled by
+  # per-cluster evaluation.
+  if (
+    length(x = ident.sizes) <= 1 ||
+    any(ident.sizes < min.cells.group) ||
+    any((length(x = cellnames.use) - ident.sizes) < min.cells.group) ||
+    data.is.iterable ||
+    !requireNamespace("presto", quietly = TRUE)
+  ) {
+    return(NULL)
+  }
+  if (!is.null(x = latent.vars)) {
+    warning(
+      "'latent.vars' is only used for the following tests: ",
+      paste(DEmethods_latent(), collapse=", "),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+
+  tryCatch(
+    expr = {
+      dots <- list(...)
+      fc.slot <- dots$fc.slot %||% "data"
+      dots$fc.slot <- NULL
+      if (inherits(x = object, what = "SCTAssay")) {
+        ValidateSCTFindMarkers(
+          object = object,
+          recorrect_umi = dots$recorrect_umi %||% TRUE
+        )
+        layer.data <- NULL
+      }
+      dots$recorrect_umi <- NULL
+      data.use <- layer.data %||% LayerData(object = object, layer = slot)
+      features <- features %||% rownames(x = data.use)
+      features <- intersect(x = features, y = rownames(x = data.use))
+      if (!length(x = features)) {
+        return(vector(mode = "list", length = length(idents.all)))
+      }
+      if (isTRUE(x = verbose)) {
+        message(
+          "Calculating marker statistics for ",
+          length(x = idents.all),
+          " clusters using presto"
+        )
+        message("  Calculating fold changes")
+      }
+      fc.by.ident <- .FindAllMarkersFoldChange(
+        object = object,
+        features = features,
+        cellnames.use = cellnames.use,
+        idents.use = idents.use,
+        idents.all = idents.all,
+        fc.slot = fc.slot,
+        pseudocount.use = dots$pseudocount.use,
+        fc.name = fc.name,
+        mean.fxn = mean.fxn,
+        base = base,
+        norm.method = norm.method,
+        slot = slot,
+        min.pct = min.pct,
+        min.diff.pct = min.diff.pct,
+        logfc.threshold = logfc.threshold,
+        only.pos = only.pos,
+        data = if (identical(x = fc.slot, y = slot)) data.use else NULL
+      )
+      if (is.null(x = fc.by.ident)) {
+        # When bulk fold-change calculation cannot represent the requested settings,
+        # compute FoldChange for each identity and keep the Presto p-values.
+        fc.by.ident <- vector(mode = "list", length = length(idents.all))
+        names(x = fc.by.ident) <- as.character(x = idents.all)
+        for (i in seq_along(along.with = idents.all)) {
+          ident <- as.character(x = idents.all[i])
+          cells.1 <- cells.by.ident[[ident]]
+          cells.2 <- setdiff(x = cellnames.use, y = cells.1)
+          fc.args <- list(
+            object = object,
+            cells.1 = cells.1,
+            cells.2 = cells.2,
+            features = features,
+            slot = fc.slot,
+            fc.name = fc.name,
+            mean.fxn = mean.fxn,
+            base = base,
+            norm.method = norm.method
+          )
+          if (!is.null(x = dots$pseudocount.use)) {
+            fc.args$pseudocount.use <- dots$pseudocount.use
+          }
+          fc.args <- c(fc.args, dots[setdiff(x = names(x = dots), y = "pseudocount.use")])
+          fc.by.ident[[i]] <- do.call(what = FoldChange, args = fc.args)
+        }
+      }
+      features.by.ident <- vector(mode = "list", length = length(idents.all))
+      names(x = features.by.ident) <- as.character(x = idents.all)
+      if (isTRUE(x = attr(x = fc.by.ident, which = "features.filtered"))) {
+        for (i in seq_along(along.with = idents.all)) {
+          features.by.ident[[i]] <- rownames(x = fc.by.ident[[i]])
+        }
+      } else {
+        for (i in seq_along(along.with = idents.all)) {
+          fc.results <- fc.by.ident[[i]]
+          # Match FindMarkers.default prefiltering: first require expression in
+          # either group, then require a minimum pct difference, then apply the
+          # FC threshold.
+          alpha.min <- pmax(fc.results$pct.1, fc.results$pct.2)
+          names(x = alpha.min) <- rownames(x = fc.results)
+          features.use <- names(x = which(x = alpha.min >= min.pct))
+          if (length(x = features.use)) {
+            alpha.diff <- alpha.min - pmin(fc.results$pct.1, fc.results$pct.2)
+            features.use <- names(
+              x = which(x = alpha.min >= min.pct & alpha.diff >= min.diff.pct)
+            )
+          }
+          if (length(x = features.use) && slot != "scale.data") {
+            total.diff <- fc.results[, 1]
+            names(x = total.diff) <- rownames(x = fc.results)
+            features.diff <- if (only.pos) {
+              names(x = which(x = total.diff >= logfc.threshold))
+            } else {
+              names(x = which(x = abs(x = total.diff) >= logfc.threshold))
+            }
+            features.use <- intersect(x = features.use, y = features.diff)
+          }
+          fc.by.ident[[i]] <- fc.results[features.use, , drop = FALSE]
+          features.by.ident[[i]] <- features.use
+        }
+      }
+      features.test <- unique(x = unlist(x = features.by.ident, use.names = FALSE))
+      if (!length(x = features.test)) {
+        return(fc.by.ident)
+      }
+      if (isTRUE(x = verbose)) {
+        message("  Running presto::wilcoxauc")
+      }
+      use.full.test <- identical(x = cellnames.use, y = colnames(x = data.use))
+      if (use.full.test) {
+        data.test <- data.use
+        features.test <- rownames(x = data.use)
+      } else {
+        data.test <- data.use[features.test, cellnames.use, drop = FALSE]
+      }
+      if (densify) {
+        data.test <- as.matrix(x = data.test)
+      }
+      groups <- factor(
+        x = as.character(x = idents.use[cellnames.use]),
+        levels = as.character(x = idents.all)
+      )
+      presto.results <- presto::wilcoxauc(X = data.test, y = groups)
+      pval.mat <- matrix(
+        data = presto.results$pval,
+        nrow = length(x = features.test),
+        ncol = length(x = idents.all),
+        dimnames = list(features.test, as.character(x = idents.all))
+      )
+      genes.de <- vector(mode = "list", length = length(idents.all))
+      for (i in seq_along(along.with = idents.all)) {
+        ident <- as.character(x = idents.all[i])
+        fc.results <- fc.by.ident[[i]]
+        if (is.null(x = fc.results) || !nrow(x = fc.results)) {
+          genes.de[[i]] <- fc.results
+          next
+        }
+        de.results <- data.frame(
+          p_val = pval.mat[rownames(x = fc.results), ident],
+          row.names = rownames(x = fc.results)
+        )
+        de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
+        de.results$p_val_adj <- pmin(1, de.results$p_val * nrow(x = data.use))
+        genes.de[[i]] <- de.results
+      }
+      return(genes.de)
+    },
+    error = function(...) NULL
+  )
+}
+
+# Compute fold-change tables for all identities in one matrix pass
+.FindAllMarkersFoldChange <- function(
+  object,
+  features,
+  cellnames.use,
+  idents.use,
+  idents.all,
+  fc.slot,
+  pseudocount.use,
+  fc.name,
+  mean.fxn,
+  base,
+  norm.method,
+  slot,
+  min.pct,
+  min.diff.pct,
+  logfc.threshold,
+  only.pos,
+  data = NULL
+) {
+  # Bulk FC is exact only for Seurat's built-in mean functions, not custom functions
+  if (!is.null(x = mean.fxn) || !fc.slot %in% c("counts", "data", "scale.data")) {
+    return(NULL)
+  }
+  data <- data %||% tryCatch(
+    expr = GetAssayData(object = object, layer = fc.slot),
+    error = function(...) NULL
+  )
+  if (is.null(x = data)) {
+    return(NULL)
+  }
+  features <- intersect(x = features, y = rownames(x = data))
+  if (!length(x = features)) {
+    return(vector(mode = "list", length = length(idents.all)))
+  }
+  pseudocount.use <- pseudocount.use %||% 1
+  groups <- factor(
+    x = as.character(x = idents.use[cellnames.use]),
+    levels = as.character(x = idents.all)
+  )
+  group.n <- tabulate(bin = as.integer(x = groups), nbins = length(x = idents.all))
+  rest.n <- length(x = cellnames.use) - group.n
+  data <- if (
+    identical(x = features, y = rownames(x = data)) &&
+    identical(x = cellnames.use, y = colnames(x = data))
+  ) {
+    data
+  } else {
+    data[features, cellnames.use, drop = FALSE]
+  }
+  feature.names <- rownames(x = data)
+  sparse.stats <- .FindAllMarkersSparseStats(
+    data = data,
+    groups = groups,
+    n.groups = length(x = idents.all),
+    fc.slot = fc.slot,
+    norm.method = norm.method
+  )
+  if (!is.null(x = sparse.stats)) {
+    dimnames(x = sparse.stats$detected) <- list(feature.names, as.character(x = idents.all))
+    dimnames(x = sparse.stats$group_sum) <- list(feature.names, as.character(x = idents.all))
+    dimnames(x = sparse.stats$rest_sum) <- list(feature.names, as.character(x = idents.all))
+    names(x = sparse.stats$total_detected) <- feature.names
+  }
+  # Detection percentages use the same >0 threshold and 3-digit rounding as
+  # FoldChange.default, but derive pct.2 from total-minus-group counts
+  if (is.null(x = sparse.stats)) {
+    # Cell x group membership matrix, multiplying feature x cell data by this
+    # matrix gives feature x group sums/counts for all identities at once
+    group.mat <- Matrix::sparseMatrix(
+      i = seq_along(along.with = groups),
+      j = as.integer(x = groups),
+      x = 1,
+      dims = c(length(x = groups), length(x = idents.all))
+    )
+    detected.1 <- as.matrix(x = (data > 0) %*% group.mat)
+    detected.total <- Matrix::rowSums(x = data > 0)
+  } else {
+    detected.1 <- sparse.stats$detected
+    detected.total <- sparse.stats$total_detected
+  }
+  pct.1 <- round(x = DivideColumnsByDenomList(x = detected.1, denominator = group.n), digits = 3)
+  pct.2 <- round(x = DivideColumnsByDenomList(x = detected.total - detected.1, denominator = rest.n), digits = 3)
+  base.text <- ifelse(test = base == exp(1), yes = "", no = base)
+  fc.name <- fc.name %||% ifelse(
+    test = fc.slot == "scale.data",
+    yes = "avg_diff",
+    no = paste0("avg_log", base.text, "FC")
+  )
+  features.by.pct <- vector(mode = "list", length = length(idents.all))
+  names(x = features.by.pct) <- as.character(x = idents.all)
+  for (i in seq_along(along.with = idents.all)) {
+    alpha.min <- pmax(pct.1[, i], pct.2[, i])
+    features.use <- feature.names[which(x = alpha.min >= min.pct)]
+    if (length(x = features.use)) {
+      alpha.diff <- alpha.min - pmin(pct.1[, i], pct.2[, i])
+      features.use <- feature.names[which(x = alpha.min >= min.pct & alpha.diff >= min.diff.pct)]
+    }
+    features.by.pct[[i]] <- features.use
+  }
+  features.fc <- unique(x = unlist(x = features.by.pct, use.names = FALSE))
+  fc.by.ident <- vector(mode = "list", length = length(idents.all))
+  names(x = fc.by.ident) <- as.character(x = idents.all)
+  if (!length(x = features.fc)) {
+    for (i in seq_along(along.with = idents.all)) {
+      fc.by.ident[[i]] <- data.frame(
+        fc = numeric(length = 0L),
+        pct.1 = numeric(length = 0L),
+        pct.2 = numeric(length = 0L)
+      )
+      colnames(x = fc.by.ident[[i]])[1] <- fc.name
+    }
+    attr(x = fc.by.ident, which = "features.filtered") <- TRUE
+    return(fc.by.ident)
+  }
+  use.full.fc <- length(x = features.fc) > (0.5 * nrow(x = data))
+  data.fc <- if (use.full.fc) {
+    data
+  } else {
+    data[features.fc, , drop = FALSE]
+  }
+  if (is.null(x = sparse.stats)) {
+    data.mean <- switch(
+      EXPR = fc.slot,
+      "scale.data" = data.fc,
+      "data" = if (is.null(x = norm.method) || norm.method == "LogNormalize") {
+        expm1(x = data.fc)
+      } else {
+        data.fc
+      },
+      data.fc
+    )
+    group.sum <- as.matrix(x = data.mean %*% group.mat)
+    rest.sum <- matrix(
+      data = 0,
+      nrow = nrow(x = group.sum),
+      ncol = ncol(x = group.sum),
+      dimnames = dimnames(x = group.sum)
+    )
+    for (i in seq_len(length.out = ncol(x = group.sum))) {
+      rest.sum[, i] <- if (ncol(x = group.sum) == 2L) {
+        group.sum[, 3L - i]
+      } else {
+        Matrix::rowSums(x = group.sum[, -i, drop = FALSE])
+      }
+    }
+  } else {
+    group.sum <- sparse.stats$group_sum[features.fc, , drop = FALSE]
+    rest.sum <- sparse.stats$rest_sum[features.fc, , drop = FALSE]
+  }
+  if (fc.slot == "scale.data") {
+    mean.1 <- DivideColumnsByDenomList(x = group.sum, denominator = group.n)
+    mean.2 <- DivideColumnsByDenomList(x = rest.sum, denominator = rest.n)
+  } else {
+    mean.1 <- log(
+      x = DivideColumnsByDenomList(x = group.sum + pseudocount.use, denominator = group.n),
+      base = base
+    )
+    mean.2 <- log(
+      x = DivideColumnsByDenomList(
+        x = rest.sum + pseudocount.use,
+        denominator = rest.n
+      ),
+      base = base
+    )
+  }
+  fc <- mean.1 - mean.2
+  for (i in seq_along(along.with = idents.all)) {
+    features.use <- features.by.pct[[i]]
+    fc.use <- numeric(length = 0L)
+    if (length(x = features.use)) {
+      fc.use <- fc[features.use, i]
+      names(x = fc.use) <- features.use
+    }
+    if (length(x = features.use) && slot != "scale.data") {
+      total.diff <- fc.use
+      features.diff <- if (only.pos) {
+        names(x = which(x = total.diff >= logfc.threshold))
+      } else {
+        names(x = which(x = abs(x = total.diff) >= logfc.threshold))
+      }
+      features.use <- intersect(x = features.use, y = features.diff)
+    }
+    fc.by.ident[[i]] <- data.frame(
+      fc = fc.use[features.use],
+      pct.1 = pct.1[features.use, i],
+      pct.2 = pct.2[features.use, i],
+      row.names = features.use
+    )
+    colnames(x = fc.by.ident[[i]])[1] <- fc.name
+  }
+  attr(x = fc.by.ident, which = "features.filtered") <- TRUE
+  return(fc.by.ident)
+}
+
+# Compute detection and expression summaries for supported sparse matrices
+.FindAllMarkersSparseStats <- function(
+  data,
+  groups,
+  n.groups,
+  fc.slot,
+  norm.method
+) {
+  if (!inherits(x = data, what = "dgCMatrix") || !fc.slot %in% c("counts", "data")) {
+    return(NULL)
+  }
+  FindAllMarkersSparseFoldChangeStats(
+    x = data@x,
+    i = data@i,
+    p = data@p,
+    rows = nrow(x = data),
+    cols = ncol(x = data),
+    groups = as.integer(x = groups),
+    n_groups = n.groups,
+    log_normalize = fc.slot == "data" && (is.null(x = norm.method) || norm.method == "LogNormalize"),
+    nthreads = getThreads(verbose = FALSE)
+  )
+}
 
 # internal function to calculate AUC values
 #' @importFrom pbapply pblapply
@@ -2999,18 +2910,12 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   names(set_median_umi) <- levels(x = object[[assay]])
   set_median_umi <- as.list(set_median_umi)
   all_genes <- rownames(x = object[[assay]])
-  # correct counts
-  # Recorrect raw UMI counts for one SCT model at a shared target depth
-  # We only recorrect genes whose fitted SCT parameters are all finite
-  # Genes with non finite fitted parameters can produce invalid values during recorrection,
-  # so we exclude them here and add them back later as zero rows to preserve the full feature set
+  # Recorrect each SCT model's raw UMI counts at a shared target depth.
+  # Genes excluded from correction are restored as zero rows.
   my.correct_counts <- function(model_name){
-    # Retrieve model parameters SCT model per-gene
     pars <- model_pars_fit[[model_name]]
 
-    # Keep only genes with finite fitted parameters
-    # This is because in split-layer SCT workflows, some sparse genes may have NaN values for
-    # fitted parameters due to low expression levels in some layers
+    # correct_counts uses genes with non-missing theta and finite intercept/slope.
     valid_genes <- rownames(pars)[
       !is.na(pars[, "theta"]) &
       is.finite(pars[, "(Intercept)"]) &
@@ -3018,18 +2923,14 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     ]
 
     cells <- rownames(cell_attr[[model_name]])
-    # Prepare input list for correct_counts function
     x <- list(
       model_str = model_str[[model_name]],
       arguments = arguments[[model_name]],
       model_pars_fit = as.matrix(pars[valid_genes, , drop = FALSE]),
       cell_attr = cell_attr[[model_name]]
     )
-    # Retrieve raw UMI counts for valid genes and cells
     umi <- raw_umi[valid_genes, cells, drop = FALSE]
 
-    # Recorrect counts to the common minimum median UMI depth so that counts from different 
-    #SCT models are on the same scale
     umi_corrected <- correct_counts(
       x = x,
       umi = umi,
@@ -3037,24 +2938,19 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
       scale_factor = min_median_umi
     )
 
-    # Remove invalid rows to prevent downstream issues with non-finite values in corrected counts
-    # Want to avoid any NaN propagation into SCT assay
+    # Drop rows with non-finite corrected values, then restore missing genes below
+    # so the corrected matrix stays aligned to the full assay feature set.
     bad_idx <- which(!is.finite(umi_corrected@x))
-    # correct_counts produces a sparse matrix so we can use the x and i slots for efficiency
     if (length(bad_idx) > 0) {
-      # For sparse matrices, @x stores nonzero values and @i stores their zero based row indices
       bad_rows <- unique(umi_corrected@i[bad_idx] + 1) 
       umi_corrected <- umi_corrected[-bad_rows, , drop = FALSE]
     }
-    # Add back any genes that were not recorrected for this model (removed above)
-    # This keeps the corrected matrix aligned to the full assay wide gene set
     missing_features <- setdiff(x = all_genes, y = rownames(x = umi_corrected))
     gc(verbose = FALSE)
     empty <- SparseEmptyMatrix(nrow = length(x = missing_features), ncol = ncol(x = umi_corrected))
     rownames(x = empty) <- missing_features
     colnames(x = empty) <- colnames(x = umi_corrected)
 
-    # Restore full gene set, original row order
     umi_corrected <- rbind(umi_corrected, empty)[all_genes,]
 
     return(umi_corrected)
@@ -3292,11 +3188,8 @@ WilcoxDETest <- function(
         --------------------------------------------"
         )
       } else {
-        # Use the vector interface of wilcox.test rather than the formula
-        # interface, which re-parses a model.frame for every gene. Columns of
-        # data.use are ordered c(cells.1, cells.2), so `j` selects group 1 and
-        # the remaining columns are group 2 (matching the factor level order
-        # used by the formula method: Group1 -> x, Group2 -> y).
+        # Run base wilcox.test for each gene. data.use columns are ordered as
+        # cells.1 followed by cells.2, so `j` selects cells.1 and `-j` selects cells.2.
         p_val <- my.sapply(
           X = 1:nrow(x = data.use),
           FUN = function(x) {

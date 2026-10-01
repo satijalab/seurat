@@ -4,7 +4,13 @@
 \alias{getThreads}
 \title{Get the number of threads being used for parallel processing in Seurat}
 \usage{
-getThreads()
+getThreads(verbose = TRUE)
+}
+\arguments{
+\item{verbose}{Whether to print the number of threads set and available cores to the console}
+}
+\value{
+The number of threads currently set for processing
 }
 \description{
 Get the number of threads being used for parallel processing in Seurat

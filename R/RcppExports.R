@@ -9,6 +9,10 @@ RunModularityClusteringCpp_multi <- function(SNN, modularityFunction, resolution
     .Call('_Seurat_RunModularityClusteringCpp_multi', PACKAGE = 'Seurat', SNN, modularityFunction, resolutions, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename, nThreads)
 }
 
+AnnoySearchCpp <- function(index_path, query, k, search_k, include_distance, metric, nthreads) {
+    .Call('_Seurat_AnnoySearchCpp', PACKAGE = 'Seurat', index_path, query, k, search_k, include_distance, metric, nthreads)
+}
+
 RunUMISampling <- function(data, sample_val, upsample = FALSE, display_progress = TRUE) {
     .Call('_Seurat_RunUMISampling', PACKAGE = 'Seurat', data, sample_val, upsample, display_progress)
 }
@@ -29,8 +33,8 @@ FindAllMarkersSparseFoldChangeStats <- function(x, i, p, rows, cols, groups, n_g
     .Call('_Seurat_FindAllMarkersSparseFoldChangeStats', PACKAGE = 'Seurat', x, i, p, rows, cols, groups, n_groups, log_normalize, nthreads)
 }
 
-Standardize <- function(mat, display_progress = TRUE) {
-    .Call('_Seurat_Standardize', PACKAGE = 'Seurat', mat, display_progress)
+Standardize <- function(mat, display_progress = TRUE, nthreads = 1L) {
+    .Call('_Seurat_Standardize', PACKAGE = 'Seurat', mat, display_progress, nthreads)
 }
 
 FastSparseRowScale <- function(x, i, p, rows, cols, features = as.integer( c()), scale = TRUE, center = TRUE, scale_max = 10, nthreads = 1L, display_progress = FALSE) {
@@ -101,16 +105,24 @@ fast_dist <- function(x, y, n) {
     .Call('_Seurat_fast_dist', PACKAGE = 'Seurat', x, y, n)
 }
 
-FindWeightsC <- function(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress) {
-    .Call('_Seurat_FindWeightsC', PACKAGE = 'Seurat', cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress)
+CcaCrossprodMultiply <- function(left, right, x) {
+    .Call('_Seurat_CcaCrossprodMultiply', PACKAGE = 'Seurat', left, right, x)
+}
+
+CountAnchorSharedNeighbors <- function(indices_aa, indices_ab, indices_ba, indices_bb, anchor_cell1, anchor_cell2, offset, k_score, nthreads = 1L) {
+    .Call('_Seurat_CountAnchorSharedNeighbors', PACKAGE = 'Seurat', indices_aa, indices_ab, indices_ba, indices_bb, anchor_cell1, anchor_cell2, offset, k_score, nthreads)
+}
+
+FindWeightsC <- function(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress, nthreads = 1L) {
+    .Call('_Seurat_FindWeightsC', PACKAGE = 'Seurat', cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress, nthreads)
 }
 
 IntegrateDataC <- function(integration_matrix, weights, expression_cells2) {
     .Call('_Seurat_IntegrateDataC', PACKAGE = 'Seurat', integration_matrix, weights, expression_cells2)
 }
 
-ScoreHelper <- function(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress) {
-    .Call('_Seurat_ScoreHelper', PACKAGE = 'Seurat', snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress)
+ScoreHelper <- function(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress, nthreads = 1L) {
+    .Call('_Seurat_ScoreHelper', PACKAGE = 'Seurat', snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress, nthreads)
 }
 
 EigenGramPCA <- function(object, npcs, weight_by_var, nthreads = 1L) {
@@ -121,8 +133,8 @@ SCTResidualStatsAndCorrected <- function(x, i, p, rows, cols, theta, intercept, 
     .Call('_Seurat_SCTResidualStatsAndCorrected', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads, compute_corrected)
 }
 
-SCTPearsonResidualMatrix <- function(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center = TRUE, n_threads = 1L) {
-    .Call('_Seurat_SCTPearsonResidualMatrix', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads)
+SCTPearsonResidualMatrix <- function(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center = TRUE, n_threads = 1L, display_progress = FALSE) {
+    .Call('_Seurat_SCTPearsonResidualMatrix', PACKAGE = 'Seurat', x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads, display_progress)
 }
 
 ComputeSNN <- function(nn_ranked, prune, nthreads) {

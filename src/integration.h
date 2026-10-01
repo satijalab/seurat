@@ -16,7 +16,8 @@ Eigen::SparseMatrix<double> FindWeightsC(
   Eigen::VectorXd anchor_score,
   double min_dist,
   double sd,
-  bool display_progress
+  bool display_progress,
+  int nthreads
 );
 Eigen::SparseMatrix<double> IntegrateDataC(
   Eigen::SparseMatrix<double> integration_matrix,
@@ -30,7 +31,8 @@ std::vector<double> ScoreHelper(
     Eigen::MatrixXd corrected_nns,
     int k_snn,
     bool subtract_first_nn,
-    bool display_progress
+    bool display_progress,
+    int nthreads
 );
 //----------------------------------------------------
 

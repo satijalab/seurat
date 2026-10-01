@@ -52,6 +52,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// AnnoySearchCpp
+SEXP AnnoySearchCpp(std::string index_path, Rcpp::NumericMatrix query, int k, int search_k, bool include_distance, std::string metric, int nthreads);
+RcppExport SEXP _Seurat_AnnoySearchCpp(SEXP index_pathSEXP, SEXP querySEXP, SEXP kSEXP, SEXP search_kSEXP, SEXP include_distanceSEXP, SEXP metricSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< std::string >::type index_path(index_pathSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type query(querySEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type search_k(search_kSEXP);
+    Rcpp::traits::input_parameter< bool >::type include_distance(include_distanceSEXP);
+    Rcpp::traits::input_parameter< std::string >::type metric(metricSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(AnnoySearchCpp(index_path, query, k, search_k, include_distance, metric, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP _Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {
@@ -127,13 +143,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // Standardize
-NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
-RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
+NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress, int nthreads);
+RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(Standardize(mat, display_progress));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(Standardize(mat, display_progress, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -371,9 +388,39 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// CcaCrossprodMultiply
+NumericVector CcaCrossprodMultiply(const Eigen::Map<Eigen::MatrixXd> left, const Eigen::Map<Eigen::MatrixXd> right, const Eigen::Map<Eigen::VectorXd> x);
+RcppExport SEXP _Seurat_CcaCrossprodMultiply(SEXP leftSEXP, SEXP rightSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type left(leftSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type right(rightSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(CcaCrossprodMultiply(left, right, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// CountAnchorSharedNeighbors
+IntegerVector CountAnchorSharedNeighbors(IntegerMatrix indices_aa, IntegerMatrix indices_ab, IntegerMatrix indices_ba, IntegerMatrix indices_bb, IntegerVector anchor_cell1, IntegerVector anchor_cell2, int offset, int k_score, int nthreads);
+RcppExport SEXP _Seurat_CountAnchorSharedNeighbors(SEXP indices_aaSEXP, SEXP indices_abSEXP, SEXP indices_baSEXP, SEXP indices_bbSEXP, SEXP anchor_cell1SEXP, SEXP anchor_cell2SEXP, SEXP offsetSEXP, SEXP k_scoreSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_aa(indices_aaSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_ab(indices_abSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_ba(indices_baSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_bb(indices_bbSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type anchor_cell1(anchor_cell1SEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type anchor_cell2(anchor_cell2SEXP);
+    Rcpp::traits::input_parameter< int >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< int >::type k_score(k_scoreSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(CountAnchorSharedNeighbors(indices_aa, indices_ab, indices_ba, indices_bb, anchor_cell1, anchor_cell2, offset, k_score, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // FindWeightsC
-Eigen::SparseMatrix<double> FindWeightsC(NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress);
-RcppExport SEXP _Seurat_FindWeightsC(SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
+Eigen::SparseMatrix<double> FindWeightsC(NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress, int nthreads);
+RcppExport SEXP _Seurat_FindWeightsC(SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type cells2(cells2SEXP);
@@ -385,7 +432,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type min_dist(min_distSEXP);
     Rcpp::traits::input_parameter< double >::type sd(sdSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(FindWeightsC(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(FindWeightsC(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -402,8 +450,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // ScoreHelper
-std::vector<double> ScoreHelper(Eigen::SparseMatrix<double> snn, Eigen::MatrixXd query_pca, Eigen::MatrixXd query_dists, Eigen::MatrixXd corrected_nns, int k_snn, bool subtract_first_nn, bool display_progress);
-RcppExport SEXP _Seurat_ScoreHelper(SEXP snnSEXP, SEXP query_pcaSEXP, SEXP query_distsSEXP, SEXP corrected_nnsSEXP, SEXP k_snnSEXP, SEXP subtract_first_nnSEXP, SEXP display_progressSEXP) {
+std::vector<double> ScoreHelper(Eigen::SparseMatrix<double> snn, Eigen::MatrixXd query_pca, Eigen::MatrixXd query_dists, Eigen::MatrixXd corrected_nns, int k_snn, bool subtract_first_nn, bool display_progress, int nthreads);
+RcppExport SEXP _Seurat_ScoreHelper(SEXP snnSEXP, SEXP query_pcaSEXP, SEXP query_distsSEXP, SEXP corrected_nnsSEXP, SEXP k_snnSEXP, SEXP subtract_first_nnSEXP, SEXP display_progressSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -414,7 +462,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type k_snn(k_snnSEXP);
     Rcpp::traits::input_parameter< bool >::type subtract_first_nn(subtract_first_nnSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(ScoreHelper(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(ScoreHelper(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -456,8 +505,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // SCTPearsonResidualMatrix
-NumericMatrix SCTPearsonResidualMatrix(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, IntegerVector feature_index, NumericVector min_var, double clip_min, double clip_max, bool do_center, int n_threads);
-RcppExport SEXP _Seurat_SCTPearsonResidualMatrix(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP feature_indexSEXP, SEXP min_varSEXP, SEXP clip_minSEXP, SEXP clip_maxSEXP, SEXP do_centerSEXP, SEXP n_threadsSEXP) {
+NumericMatrix SCTPearsonResidualMatrix(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, IntegerVector feature_index, NumericVector min_var, double clip_min, double clip_max, bool do_center, int n_threads, bool display_progress);
+RcppExport SEXP _Seurat_SCTPearsonResidualMatrix(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP feature_indexSEXP, SEXP min_varSEXP, SEXP clip_minSEXP, SEXP clip_maxSEXP, SEXP do_centerSEXP, SEXP n_threadsSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
@@ -475,7 +524,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type clip_max(clip_maxSEXP);
     Rcpp::traits::input_parameter< bool >::type do_center(do_centerSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(SCTPearsonResidualMatrix(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads));
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SCTPearsonResidualMatrix(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -553,12 +603,13 @@ RcppExport SEXP isnull(SEXP);
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 10},
     {"_Seurat_RunModularityClusteringCpp_multi", (DL_FUNC) &_Seurat_RunModularityClusteringCpp_multi, 10},
+    {"_Seurat_AnnoySearchCpp", (DL_FUNC) &_Seurat_AnnoySearchCpp, 7},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
     {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 5},
     {"_Seurat_FindAllMarkersSparseFoldChangeStats", (DL_FUNC) &_Seurat_FindAllMarkersSparseFoldChangeStats, 9},
-    {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
+    {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 3},
     {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 11},
     {"_Seurat_FastDenseRowScale", (DL_FUNC) &_Seurat_FastDenseRowScale, 7},
     {"_Seurat_FastSparseRowScaleWithKnownStats", (DL_FUNC) &_Seurat_FastSparseRowScaleWithKnownStats, 7},
@@ -576,12 +627,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
     {"_Seurat_GraphToNeighborHelper", (DL_FUNC) &_Seurat_GraphToNeighborHelper, 1},
     {"_Seurat_fast_dist", (DL_FUNC) &_Seurat_fast_dist, 3},
-    {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 9},
+    {"_Seurat_CcaCrossprodMultiply", (DL_FUNC) &_Seurat_CcaCrossprodMultiply, 3},
+    {"_Seurat_CountAnchorSharedNeighbors", (DL_FUNC) &_Seurat_CountAnchorSharedNeighbors, 9},
+    {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
-    {"_Seurat_ScoreHelper", (DL_FUNC) &_Seurat_ScoreHelper, 7},
+    {"_Seurat_ScoreHelper", (DL_FUNC) &_Seurat_ScoreHelper, 8},
     {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 4},
     {"_Seurat_SCTResidualStatsAndCorrected", (DL_FUNC) &_Seurat_SCTResidualStatsAndCorrected, 15},
-    {"_Seurat_SCTPearsonResidualMatrix", (DL_FUNC) &_Seurat_SCTPearsonResidualMatrix, 15},
+    {"_Seurat_SCTPearsonResidualMatrix", (DL_FUNC) &_Seurat_SCTPearsonResidualMatrix, 16},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 3},
     {"_Seurat_SNN_SmallestNonzero_Dist", (DL_FUNC) &_Seurat_SNN_SmallestNonzero_Dist, 4},
     {"_Seurat_row_sum_dgcmatrix", (DL_FUNC) &_Seurat_row_sum_dgcmatrix, 4},

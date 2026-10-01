@@ -1,12 +1,11 @@
 #include <RcppEigen.h>
 #include <RcppThread.h>
-// Spectra (header-only, Eigen-native; the library RSpectra wraps) gives a
-// partial *top-k* symmetric eigensolver. The top-k Lanczos solver below is machine-precision 
-// identical for the leading components but avoids computing the discarded eigenvectors.
+// Spectra (header-only) provides the top-k symmetric eigensolver used below
 #include <Spectra/SymEigsSolver.h>
 #include <Spectra/MatOp/DenseSymMatProd.h>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RSpectra)]]
@@ -14,12 +13,8 @@
 
 using namespace Rcpp;
 
-// Stage 1: form the lower triangle of the Gram matrix X X' by output-column
-// blocks. For a contiguous column range [begin, end) the only rows needed (lower
-// triangle: global row >= global col) start at `begin`, so we multiply the bottom
-// rows of X by the block's rows and copy each column's lower part into XtX. Only
-// the lower triangle is filled, exactly as the previous rankUpdate<Lower> did, and
-// that is what Spectra::DenseSymMatProd / SelfAdjointEigenSolver read below.
+// Fill the lower triangle of the Gram matrix X X' by output-column blocks.
+// Spectra::DenseSymMatProd and SelfAdjointEigenSolver read this triangle below.
 struct GramWorker {
   const Eigen::Map<Eigen::MatrixXd> X;  // nfeatures x ncells (lightweight view)
   Eigen::MatrixXd& XtX;                 // nfeatures x nfeatures, lower triangle
@@ -65,15 +60,9 @@ struct EmbeddingWorker {
   }
 };
 
-// Approximate PCA via the Gram matrix and a top-k symmetric eigendecomposition,
-// using Eigen's own (BLAS-independent) kernels. `object` is the feature-by-cell
-// scaled matrix X. Since X = U D V', the eigenvectors of X X' are the feature
-// loadings U and the eigenvalues are D^2, so the top npcs components are obtained
-// without a dense transpose. Cell embeddings are X' U = V D (weighted by variance)
-// or V (unweighted). The top-k eigenpairs are computed with a Lanczos solver
-// (Spectra), which converges to the same truncated SVD as irlba up to sign, but
-// tighter (tol 1e-10); for the well-separated leading components of scaled data
-// this is numerically indistinguishable from exact.
+// Approximate PCA via the Gram matrix and a top-k symmetric eigendecomposition.
+// `object` is the feature-by-cell scaled matrix X. The eigenvectors of X X' are
+// feature loadings. Cell embeddings are X' U = V D, or V when weight_by_var is false.
 //
 // [[Rcpp::export(rng = false)]]
 List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
@@ -82,15 +71,16 @@ List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
                   int nthreads = 1) {
   const int nfeatures = object.rows();
   const int ncells = object.cols();
-  npcs = std::min(npcs, nfeatures);
+  if (npcs < 1 || npcs >= std::min(nfeatures, ncells)) {
+    stop("npcs must be positive and strictly less than both matrix dimensions.");
+  }
 
   // Gram matrix X X' (features x features); only the lower triangle is formed.
   Eigen::MatrixXd XtX = Eigen::MatrixXd::Zero(nfeatures, nfeatures);
   if (nthreads <= 1) {
     XtX.selfadjointView<Eigen::Lower>().rankUpdate(object);
   } else {
-    // Parallel Gram by output-column blocks (see GramWorker). Fine grain lets RcppThread
-    // balance the unequal per-column work of a triangular fill.
+    // Parallelize the triangular Gram fill by output-column blocks.
     GramWorker gram_worker(object, XtX);
     const int chunks = std::max(1, std::min(nfeatures, nthreads * 8));
     RcppThread::parallelFor(0, chunks, [&](int chunk) {
@@ -105,12 +95,8 @@ List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
   Eigen::MatrixXd loadings;
   Eigen::VectorXd d(npcs);
 
-  // Compute only the top npcs eigenpairs with a Lanczos solver when it is
-  // applicable and beneficial (npcs well below nfeatures, so a partial basis is a
-  // real saving). DenseSymMatProd reads the lower triangle filled above. Spectra
-  // requires 1 <= nev < ncv <= n; ncv ~ 2*nev controls convergence. On any failure
-  // (or when npcs is close to nfeatures) fall back to the full dense eigensolver,
-  // so results are unchanged in every case.
+  // Use the partial Lanczos solver when it can compute fewer eigenpairs than
+  // the full dense eigensolver; otherwise use the full solver.
   bool used_partial = false;
   if ((2 * npcs + 1) < nfeatures) {
     const int ncv = std::min(nfeatures, std::max(2 * npcs + 1, 20));
@@ -156,10 +142,13 @@ List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object,
     }, nthreads);
   }
   if (!weight_by_var) {
+    // Use SVD to recover orthonormal scores for near-zero singular values (R will catch the error and fall back to SVD)
+    const double min_singular = d.maxCoeff() * std::sqrt(std::numeric_limits<double>::epsilon());
+    if (d.minCoeff() <= min_singular) {
+      stop("Unweighted PCA requires SVD for numerically zero singular values.");
+    }
     for (int j = 0; j < npcs; ++j) {
-      if (d(j) > 0) {
-        embeddings.col(j) /= d(j);
-      }
+      embeddings.col(j) /= d(j);
     }
   }
 

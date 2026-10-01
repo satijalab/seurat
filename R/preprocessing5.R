@@ -340,7 +340,7 @@ NormalizeData.StdAssay <- function(
                                 scale.factor = scale.factor,
                                 margin = margin,
                                 verbose = verbose, ...)    
-    # set data directly to avoid unnecessary validation and slot access          
+    # Store normalized layer data directly in the matching layer slots
     object@layers[[s]] <- layer_data
     object@cells[[s]] <- object@cells[[l]]
     object@features[[s]] <- object@features[[l]]
@@ -390,6 +390,7 @@ ScaleData.StdAssay <- function(
     features <- Features(x = object, layer = layer)
   }
   if (isTRUE(x = by.layer)) {
+    # Scale each layer independently and write one scaled layer per input layer.
     if (length(x = save) != length(x = layer)) {
       save <- make.unique(names = gsub(
         pattern = olayer,
@@ -425,6 +426,7 @@ ScaleData.StdAssay <- function(
       )
     }
   } else {
+    # Stitch layers first so centering and scaling use shared multi-layer statistics.
     ldata <- if (length(x = layer) > 1L) {
       StitchMatrix(
         x = LayerData(object = object, layer = layer[1L], features = features),
@@ -540,12 +542,10 @@ VST.IterableMatrix <- function(
   if (clip.max == "auto" || is.null(x = clip.max)) {
     clip.max <- sqrt(x = ncol(x = object))
   }
-  nthreads <- getThreads()
-  # Feature selection is sensitive to small floating-point differences in
-  # sparse row statistics. Recompute these standardized variances near
-  # the ranking cutoff with legacy (<= v5.5.1) mean/variance arithmetic,
-  # to preserve historical variable-feature rankings without giving up
-  # the faster sparse implementation for all rows
+  nthreads <- getThreads(verbose = FALSE)
+  # Standardized variances near the ranking cutoff determine feature selection.
+  # Recompute only that band with the < v5.6 mean/variance arithmetic used for
+  # variable-feature ordering.
   hvf.info <- as.data.frame(x = SparseRowMeanVarLegacy(
     x = object@x,
     i = object@i,
@@ -600,6 +600,8 @@ VST.IterableMatrix <- function(
   return(hvf.info)
 }
 
+# Choose a narrow band around the VST cutoff where small variance differences
+# can change which features are selected.
 .VSTLegacyRankCandidates <- function(
   scores,
   nselect,
@@ -1232,9 +1234,22 @@ SCTransform.StdAssay <- function(
   )
   names(x = input_list) <- layer_names
 
+  residual.type <- list(...)$residual_type %||% 'pearson'
+  defer.residuals <- (
+    is.null(x = vars.to.regress) && isTRUE(x = do.center) && !isTRUE(x = do.scale) &&
+    is.null(x = reference.SCT.model) && identical(x = residual.type, y = 'pearson') &&
+    !any(list(...)$min_variance %in% c('model_mean', 'model_median'))
+  )
+  # Process each layer's residuals before merging to keep the requested options
+  # for features selected in other layers
+  layer.only.var.genes <- return.only.var.genes
+  if (length(x = input_list) > 1L && !defer.residuals &&
+      is.null(x = reference.SCT.model) && !conserve.memory) {
+    layer.only.var.genes <- FALSE
+  }
+
   # Apply SCTransform to each set of counts in `input_list`.
-  # defer.residual.matrix is TRUE for all layers if vars.to.regress is NULL, so that
-  # the final residual matrix is computed exactly once after merging layers.
+  # Compute default residuals after merging layers
   output_list <- lapply(
     names(x = input_list),
     function(layer_name) {
@@ -1256,8 +1271,8 @@ SCTransform.StdAssay <- function(
         clip.range = clip.range,
         vst.flavor = vst.flavor,
         conserve.memory = conserve.memory,
-        return.only.var.genes = return.only.var.genes,
-        defer.residual.matrix = is.null(x = vars.to.regress),
+        return.only.var.genes = layer.only.var.genes,
+        defer.residual.matrix = defer.residuals,
         seed.use = seed.use,
         verbose = verbose,
         ...
@@ -1268,7 +1283,7 @@ SCTransform.StdAssay <- function(
 
 
   # Merge counts assays into one, or take the single result.
-  counts_list <- if (do.correct.umi) {
+  counts_list <- if (do.correct.umi && identical(x = residual.type, y = 'pearson')) {
     lapply(output_list, function(vst.out) {
       vst.out$umi_corrected
     })
@@ -1325,17 +1340,46 @@ SCTransform.StdAssay <- function(
       )
   }
 
+  if (length(x = input_list) > 1L && !defer.residuals && conserve.memory &&
+      is.null(x = reference.SCT.model)) {
+    # Process the selected feature union with each layer's fitted model
+    output_list <- lapply(X = names(x = output_list), FUN = function(layer_name) {
+      vst.out <- output_list[[layer_name]]
+      input <- input_list[[layer_name]]
+      features <- intersect(x = scale_data_features, y = rownames(x = vst.out$model_pars_fit))
+      residuals <- get_residuals(
+        vst_out = vst.out,
+        umi = input[features, , drop = FALSE],
+        residual_type = residual.type,
+        res_clip_range = vst.out$arguments$res_clip_range,
+        verbosity = as.numeric(x = verbose) * 2
+      )
+      residuals[residuals < clip.range[1]] <- clip.range[1]
+      residuals[residuals > clip.range[2]] <- clip.range[2]
+      vst.out$y <- ScaleData(
+        object = residuals,
+        vars.to.regress = vars.to.regress,
+        latent.data = latent.data,
+        do.scale = do.scale,
+        do.center = do.center,
+        scale.max = Inf,
+        block.size = 750,
+        min.cells.to.block = 3000,
+        verbose = verbose
+      )
+      vst.out
+    })
+    names(x = output_list) <- names(x = input_list)
+  }
+
   # Create output assay and put log1p transformed counts in data slot
   assay_out <- CreateAssayObject(counts = counts)
   LayerData(object = assay_out, layer = "data") <- log1p(x = counts)
   model.list <- lapply(
     X = output_list,
     FUN = function(vst.out) {
-      # Persist the SCT clip range in each model (as SCTransform.Assay
-      # does). Without this, v5/StdAssay-built models store no sct.clip.range,
-      # so when such a model is later used as a reference the projection clip
-      # (clip.range <- vst.out$arguments$sct.clip.range) is NULL and clipping
-      # silently becomes a no-op.
+      # Store the SCT clip range in each model so reference projection can reuse
+      # the same clipping bounds.
       vst.out$arguments$sct.clip.range <- clip.range
       PrepVSTResults(
         vst.res = vst.out,
@@ -1347,9 +1391,8 @@ SCTransform.StdAssay <- function(
   assay_out <- as(object = assay_out, Class = "SCTAssay")
   slot(object = assay_out, name = "SCTModel.list") <- model.list
 
-  # prefill scale.data if pearson residuals are already computed for all layers;
-  # residual matrices are deferred per layer so the final multi-layer
-  # residual matrix is computed exactly once
+  # Prefill scale.data when residuals are already computed for every layer.
+  # Deferred residuals are computed once after layers are merged.
   prefill.matrices <- lapply(output_list, function(vst.out) {
     vst.out$y
   })
@@ -1368,15 +1411,11 @@ SCTransform.StdAssay <- function(
     LayerData(assay_out, layer = "scale.data") <- scale.data.prefill
   }
 
-  # In reference mode the final call to FetchResiduals is called
-  # WITHOUT reference.SCT.model, instead reusing the per-layer
-  # reference residuals prefilled above. This is correct only while
-  # every scale.data feature is covered by the prefill: any feature
-  # not prefilled would be recomputed without reference centering
-  # (query-centered) and be silently wrong. That invariant provably
-  # holds today (scale_data_features is a subset of the shared reference
-  # model's features present in all layers), so guard it here to fail
-  # loudly if a future change ever breaks it.
+  # In reference mode, residuals are prefilled per layer and reused below.
+  # Every scale.data feature must be covered by the prefill; otherwise,
+  # missing features would be recomputed without reference centering.
+  # This holds when scale_data_features is a subset of the shared reference
+  # model features present in all layers.
   if (!is.null(x = reference.SCT.model)) {
     missing.prefill <- setdiff(x = scale_data_features, y = prefill.features)
     if (length(x = missing.prefill) > 0) {
@@ -1403,11 +1442,31 @@ SCTransform.StdAssay <- function(
   LayerData(assay_out, layer = "scale.data") <- residuals
 
   # Set the output's variable features based on consensus of all layers
-  VariableFeatures(assay_out) <- VariableFeatures(
-    assay_out, 
-    use.var.features = FALSE,
-    nfeatures = variable.features.n
-  )
+  if (is.null(x = variable.features.n)) {
+    # Keep threshold-selected features, ranking consensus by frequency and then
+    # median rank within the layers that selected each feature
+    vf.list <- lapply(X = output_list, FUN = function(x) x$variable_features)
+    if (length(x = vf.list) == 1L) {
+      VariableFeatures(assay_out) <- vf.list[[1L]]
+    } else {
+      frequency <- table(unlist(x = vf.list, use.names = FALSE))
+      median.rank <- vapply(
+        X = names(x = frequency),
+        FUN = function(feature) {
+          ranks <- vapply(X = vf.list, FUN = function(vf) match(x = feature, table = vf), FUN.VALUE = integer(1L))
+          median(x = ranks, na.rm = TRUE)
+        },
+        FUN.VALUE = numeric(1L)
+      )
+      VariableFeatures(assay_out) <- names(x = frequency)[order(-as.numeric(x = frequency), median.rank)]
+    }
+  } else {
+    VariableFeatures(assay_out) <- VariableFeatures(
+      assay_out,
+      use.var.features = FALSE,
+      nfeatures = variable.features.n
+    )
+  }
 
   return (assay_out)
 }
@@ -1760,8 +1819,19 @@ FetchResidualSCTModel <- function(
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
   counts <- LayerData(umi.object, layer = layer, cells = layer.cells)
+  residual.type <- vst.out$arguments$residual_type %||% 'pearson'
+  if (identical(x = residual.type, y = 'none')) {
+    residual.type <- 'pearson'
+  }
+  fast.sct.default <- (
+    is.null(x = reference.SCT.model) && identical(x = sct.method, y = "default") &&
+      identical(x = residual.type, y = 'pearson') &&
+      identical(x = colnames(x = vst.out$model_pars_fit),
+                y = c("theta", "(Intercept)", "log_umi")) &&
+      !any(vst.out$arguments$min_variance %in% c('model_mean', 'model_median'))
+  )
 
-  if (is.null(x = reference.SCT.model) && identical(x = sct.method, y = "default")) {
+  if (isTRUE(x = fast.sct.default)) {
     counts <- as.sparse(x = counts)
     model.pars <- vst.out$model_pars_fit
     genes <- rownames(x = model.pars)
@@ -1789,7 +1859,8 @@ FetchResidualSCTModel <- function(
       clip_min = clip.min,
       clip_max = clip.max,
       do_center = TRUE,
-      n_threads = getThreads()
+      n_threads = getThreads(verbose = FALSE),
+      display_progress = verbose
     )
     dimnames(x = new.residuals) <- list(compute.features, colnames(x = counts))
     if (
@@ -1870,7 +1941,7 @@ FetchResidualSCTModel <- function(
     residuals.list[[i]] <- as.matrix(x = get_residuals(
       vst_out = vst.out.tmp,
       umi = umi,
-      residual_type = "pearson",
+      residual_type = residual.type,
       min_variance = min.var,
       res_clip_range = c(clip.min, clip.max),
       verbosity = as.numeric(x = verbose) * 2

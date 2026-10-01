@@ -286,17 +286,41 @@ List FindAllMarkersSparseFoldChangeStats(
  Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export(rng = false)]]
-NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress = true){
-  Progress p(mat.cols(), display_progress);
-  NumericMatrix std_mat(mat.rows(), mat.cols());
-  for(int i=0; i < mat.cols(); ++i){
-    p.increment();
-    Eigen::ArrayXd r = mat.col(i).array();
-    double colMean = r.mean();
-    double colSdev = sqrt((r - colMean).square().sum() / (mat.rows() - 1));
-    NumericMatrix::Column new_col = std_mat(_, i);
-    for(int j=0; j < new_col.size(); j++) {
-      new_col[j] = (r[j] - colMean) / colSdev;
+NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress = true, int nthreads = 1){
+  const int nrows = mat.rows();
+  const int ncols = mat.cols();
+  NumericMatrix std_mat = no_init_matrix(nrows, ncols);
+  auto standardize_col = [&](int i) {
+    const auto col = mat.col(i);
+    const double colMean = col.mean();
+    double variance_sum = 0.0;
+    for (int j = 0; j < nrows; ++j) {
+      const double centered = col[j] - colMean;
+      variance_sum += centered * centered;
+    }
+    const double colSdev = std::sqrt(variance_sum / (nrows - 1));
+    double* out_col = REAL(std_mat) + static_cast<R_xlen_t>(i) * nrows;
+    for (int j = 0; j < nrows; ++j) {
+      out_col[j] = (col[j] - colMean) / colSdev;
+    }
+  };
+  if (nthreads <= 1) {
+    Progress p(ncols, display_progress);
+    for(int i=0; i < ncols; ++i){
+      p.increment();
+      standardize_col(i);
+    }
+  } else {
+    if (display_progress) {
+      RcppThread::ProgressBar bar(ncols, 1);
+      RcppThread::parallelFor(0, ncols, [&](int i) {
+        standardize_col(i);
+        bar++;
+      }, nthreads);
+    } else {
+      RcppThread::parallelFor(0, ncols, [&](int i) {
+        standardize_col(i);
+      }, nthreads);
     }
   }
   return std_mat;
@@ -331,8 +355,7 @@ static inline void scale_sparse_column(
   std::memcpy(col_ptr, zero_value, static_cast<size_t>(n_sel) * sizeof(double));
   for (int ptr = p[col]; ptr < p[col + 1]; ++ptr) {
     const int row = gmap[i[ptr]];
-    // row < 0 marks a feature that was not requested; valid == 0 marks a row
-    // with zero/NA sigma that must be left at zero (matches prior behaviour).
+    // row < 0 marks a feature that was not requested; valid == 0 leaves zero/NA sigma rows at zero.
     if (row >= 0 && valid[row]) {
       double value = (x[ptr] - mu[row]) * inv_sigma[row];
       if (clip) {
@@ -389,9 +412,7 @@ NumericMatrix FastSparseRowScale(NumericVector x,
   const bool all_rows = (features.size() == 0);
   const int n_sel = all_rows ? rows : static_cast<int>(features.size());
 
-  // Map each full-matrix row to its output row (-1 = not requested). Selecting
-  // features here lets the caller pass the full matrix and avoid an R-level
-  // sparse-matrix subset copy.
+  // Map each full-matrix row to its output row (-1 = not requested).
   std::vector<int> gmap(rows, -1);
   if (all_rows) {
     for (int r = 0; r < rows; ++r) {
@@ -417,7 +438,7 @@ NumericMatrix FastSparseRowScale(NumericVector x,
 
   // Per-feature mean, inverse standard deviation and the scaled value of a
   // structural zero. `valid` records the rows we actually scale; rows with a
-  // zero or NA sigma stay at zero, exactly as the original implementation did.
+  // zero or NA sigma stay at zero because no finite scaling factor is available.
   std::vector<double> mu(n_sel);
   std::vector<double> inv_sigma(n_sel, 0.0);
   std::vector<double> zero_value(n_sel, 0.0);
@@ -452,8 +473,7 @@ NumericMatrix FastSparseRowScale(NumericVector x,
   const double* xp = REAL(x);
 
   if (nthreads <= 1) {
-    // Serial path: show an RcppProgress bar (one tick per cell), matching the
-    // progress bar ScaleData has historically printed.
+    // Print one progress-bar tick per cell for the serial path
     Progress progress(cols, display_progress);
     for (int col = 0; col < cols; ++col) {
       if (Progress::check_abort()) {
@@ -1104,9 +1124,8 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
   return out;
 }
 
-/* Calculate row means and variances using the legacy sparse variance arithmetic.
-   This keeps the old floating-point behavior for VST ranking while avoiding a
-   separate R rowMeans pass. */
+/* Calculate sparse row means and variances for all rows using the VST ranking
+   arithmetic from < v5.6. */
 // [[Rcpp::export(rng = false)]]
 List SparseRowMeanVarLegacy(NumericVector x,
                             IntegerVector i,
@@ -1156,8 +1175,8 @@ List SparseRowMeanVarLegacy(NumericVector x,
   );
 }
 
-/* Recalculate standardized variances for selected rows using the legacy sparse
-   accumulation order. rows_use is zero-based. */
+/* Recalculate clipped standardized variances only for `rows_use`, using precomputed
+   means and standard deviations. Note that rows_use is zero-based. */
 // [[Rcpp::export(rng = false)]]
 NumericVector SparseRowVarStdLegacyRows(NumericVector x,
                                         IntegerVector i,

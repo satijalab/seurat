@@ -80,15 +80,8 @@ as.SingleCellExperiment <- function(x, ...) {
 #' Delaney (evolvedmicrobe@github) for the initial rewrite (v2.3.4) of the 
 #' Java modularity optimizer code in Rcpp!
 #'
-#' To run Leiden algorithm, you must first install the leidenalg python
-#' package (e.g. via pip install leidenalg), see Traag et al (2018).
-#'
-#' When running Louvain clustering with multiple threads and multiple random
-#' starts, results may differ from single-threaded runs because each random
-#' start uses an independent random number stream based on \code{random.seed}
-#' plus the restart index. Single-threaded runs use one random number stream
-#' across all starts. For a fixed \code{random.seed}, multi-threaded Louvain
-#' results are expected to be reproducible across thread counts.
+#' Leiden clustering can be run with either the \code{leidenbase} or
+#' \code{igraph} backend; see Traag et al (2018).
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
@@ -96,6 +89,14 @@ as.SingleCellExperiment <- function(x, ...) {
 #' @return Returns a Seurat object where the idents have been updated with new cluster info;
 #' latest clustering results will be stored in object metadata under 'seurat_clusters'.
 #' Note that 'seurat_clusters' will be overwritten everytime FindClusters is run
+#'
+#' @note When running Louvain clustering with multiple threads, results may differ
+#' from single-threaded runs only when \code{n.start > 1}, because each random
+#' start uses an independent random number stream based on \code{random.seed}
+#' plus the restart index. Single-threaded runs use one random number stream
+#' across all starts. With \code{n.start = 1}, all thread settings use the same
+#' serial path. For a fixed \code{random.seed}, multi-threaded Louvain
+#' results are expected to be reproducible across thread counts.
 #'
 #' @export
 #'
@@ -491,8 +492,6 @@ PseudobulkExpression <- function(object, ...) {
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
-#' For details about stored CCA calculation parameters, see
-#' \code{PrintCCAParams}.
 #' @param object1 First Seurat object
 #' @param object2 Second Seurat object.
 # @param ... Arguments passed to other methods
@@ -581,7 +580,7 @@ RunLDA <- function(object, ...) {
 #' parameters, see \code{PrintPCAParams}.
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods and IRLBA
+#' @param ... Arguments passed to other methods and PCA backends
 #'
 #' @return Returns Seurat object with the PCA calculation stored in the reductions slot
 #'

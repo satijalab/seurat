@@ -120,7 +120,7 @@ FindMultiModalNeighbors  <- function(
   if (verbose) {
     message("Constructing multimodal SNN graph")
   }
-  nthreads <- getThreads()
+  nthreads <- getThreads(verbose = FALSE)
   snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN, nthreads = nthreads)
   rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(x = object)
   snn.matrix <- as.Graph(x = snn.matrix )
@@ -578,7 +578,16 @@ FindNeighbors.default <- function(
   index = NULL,
   ...
 ) {
-  CheckDots(...)
+  dots <- list(...)
+  if (distance.matrix) {
+    CheckDots(...)
+  } else {
+    # Check dots against the nearest-neighbor backend used by NNHelper()
+    check.backend <- switch(EXPR = nn.method, "rann" = "nn2", "annoy" = "AnnoyNN", NULL)
+    if (!is.null(x = check.backend)) {
+      CheckDots(..., fxns = check.backend)
+    }
+  }
   if (is.null(x = dim(x = object))) {
     warning(
       "Object should have two dimensions, attempting to coerce to matrix",
@@ -604,6 +613,13 @@ FindNeighbors.default <- function(
   query <- query %||% object
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
+    if (!return.neighbor && identical(x = nn.method, y = "rann") && identical(x = dots$searchtype, y = "radius")) {
+      stop(
+        "RANN radius search can return fewer than k.param neighbors and is ",
+        "only supported when return.neighbor = TRUE.",
+        call. = FALSE
+      )
+    }
     if (verbose) {
       if (return.neighbor) {
         message("Computing nearest neighbors")
@@ -617,11 +633,11 @@ FindNeighbors.default <- function(
       k = k.param,
       method = nn.method,
       n.trees = n.trees,
-      searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric,
       cache.index = cache.index,
-      index = index
+      index = index,
+      ...
     )
     if (return.neighbor) {
       if (compute.SNN) {
@@ -654,7 +670,7 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing SNN")
     }
-    nthreads <- getThreads()
+    nthreads <- getThreads(verbose = FALSE)
     snn.matrix <- ComputeSNN(
       nn_ranked = nn.ranked,
       prune = prune.SNN,
@@ -689,7 +705,7 @@ FindNeighbors.Assay <- function(
   cache.index = FALSE,
   ...
 ) {
-  CheckDots(...)
+  CheckDots(..., fxns = c('AnnoyNN', 'nn2'))
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, layer = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
@@ -730,7 +746,6 @@ FindNeighbors.dist <- function(
   cache.index = FALSE,
   ...
 ) {
-  CheckDots(...)
   return(FindNeighbors(
     object = as.matrix(x = object),
     distance.matrix = TRUE,
@@ -792,7 +807,7 @@ FindNeighbors.Seurat <- function(
   cache.index = FALSE,
   ...
 ) {
-  CheckDots(...)
+  CheckDots(..., fxns = c('AnnoyNN', 'nn2'))
   if (!is.null(x = dims)) {
     assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
@@ -961,26 +976,167 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # nearest k elements in the index) and 'nn.dists' (the distances of the nearest
 # k elements)
 #
-#' @importFrom future plan
-#' @importFrom future.apply future_lapply
+AnnoySearch <- function(
+  index,
+  query,
+  k,
+  search.k = -1,
+  include.distance = TRUE
+) {
+  n <- nrow(x = query)
+  query.ndim <- ncol(x = query)
+  if (index$getNItems() > 0) {
+    index.ndim <- length(x = index$getItemsVector(0))
+    if (!identical(x = query.ndim, y = index.ndim)) {
+      stop(
+        "Annoy index dimensionality (", index.ndim,
+        ") does not match query dimensionality (", query.ndim, "). ",
+        "If using a cached index, regenerate it with data matching the query.",
+        call. = FALSE
+      )
+    }
+  }
+  # Use the parallel C++ search when available; otherwise use RcppAnnoy below
+  res <- AnnoySearchParallel(
+    index = index,
+    query = query,
+    k = k,
+    search.k = search.k,
+    include.distance = include.distance,
+    nthreads = getThreads(verbose = FALSE)
+  )
+  if (is.null(x = res)) {
+    return(AnnoySearchR(
+      index = index,
+      query = query,
+      k = k,
+      search.k = search.k,
+      include.distance = include.distance
+    ))
+  }
+  # Report query rows where Annoy returned fewer than k neighbors
+  found <- rowSums(x = !is.na(x = res$nn.idx))
+  if (any(found < k)) {
+    stop(
+      "Annoy found fewer than k = ", k, " neighbors for ", sum(found < k),
+      " of ", n, " queries (as few as ", min(found), "). Raise search.k, ",
+      "which defaults to n.trees * k.",
+      call. = FALSE
+    )
+  }
+  if (!include.distance) {
+    # Return an empty distance matrix when distances were not requested
+    res$nn.dists <- matrix(nrow = n, ncol = k)
+  }
+  return(res)
+}
+
+#' Search an annoy index in parallel
+#'
+#' Saves the RcppAnnoy index to a temporary Annoy file, then loads it in C++.
+#' Credit for file-backed parallel search idea: @jlmelville / uwot package
+#' 
+#' @keywords internal
+#' @noRd
+#'
+AnnoySearchParallel <- function(
+  index,
+  query,
+  k,
+  search.k = -1,
+  include.distance = TRUE,
+  nthreads = 1L
+) {
+  # With one thread, use the serial RcppAnnoy search
+  if (nthreads <= 1L) {
+    return(NULL)
+  }
+  # Choose the Annoy metric type used to load the saved index
+  metric <- if (methods::is(object = index, class2 = "Rcpp_AnnoyEuclidean")) {
+    "euclidean"
+  } else if (methods::is(object = index, class2 = "Rcpp_AnnoyAngular")) {
+    "cosine"
+  } else if (methods::is(object = index, class2 = "Rcpp_AnnoyManhattan")) {
+    "manhattan"
+  } else if (methods::is(object = index, class2 = "Rcpp_AnnoyHamming")) {
+    "hamming"
+  } else {
+    NULL
+  }
+  if (is.null(x = metric)) {
+    return(NULL)
+  }
+  query <- as.matrix(x = query)
+  if (!is.numeric(x = query) || !is_scalar_integerish(x = k) || k < 1L) {
+    return(NULL)
+  }
+  # Save the index in Annoy's native file format for C++ to load
+  index.path <- tempfile(pattern = "seurat_annoy_index_", fileext = ".ann")
+  on.exit(unlink(x = index.path, force = TRUE), add = TRUE)
+  saved <- tryCatch(
+    expr = {
+      index$save(index.path)
+      TRUE
+    },
+    error = function(...) FALSE
+  )
+  index.size <- tryCatch(
+    expr = file.info(index.path)$size,
+    error = function(...) NA_real_
+  )
+  if (!saved || is.na(x = index.size) || index.size <= 0) {
+    return(NULL)
+  }
+  tryCatch(
+    expr = AnnoySearchCpp(
+      index_path = index.path,
+      query = query,
+      k = as.integer(x = k),
+      search_k = as.integer(x = search.k),
+      include_distance = include.distance,
+      metric = metric,
+      nthreads = as.integer(x = nthreads)
+    ),
+      # Errors that are not interrupts fall back to the serial RcppAnnoy search
+    error = function(e) {
+      if (grepl(pattern = "interrupt", x = conditionMessage(e), ignore.case = TRUE)) {
+        stop(e)
+      }
+      NULL
+    }
+  )
+}
+
+# Search an Annoy index one query at a time from R
 #
-AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
+# Reference implementation for AnnoySearch(), querying one row at a time
+#
+AnnoySearchR <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
   convert <- methods::is(index, "Rcpp_AnnoyAngular")
-  if (!inherits(x = plan(), what = "multicore")) {
-    oplan <- plan(strategy = "sequential")
-    on.exit(plan(oplan), add = TRUE)
-  }
-  res <- future_lapply(X = 1:n, FUN = function(x) {
+  res <- lapply(X = 1:n, FUN = function(x) {
     res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance
     if (convert) {
-      res$dist <- 0.5 * (res$dist * res$dist)
+      res$distance <- 0.5 * (res$distance * res$distance)
     }
     list(res$item + 1, res$distance)
   })
+  found <- vapply(
+    X = res,
+    FUN = function(x) length(x = x[[1]]),
+    FUN.VALUE = integer(length = 1L)
+  )
+  if (any(found < k)) {
+    stop(
+      "Annoy found fewer than k = ", k, " neighbors for ", sum(found < k),
+      " of ", n, " queries (as few as ", min(found), "). Raise search.k, ",
+      "which defaults to n.trees * k.",
+      call. = FALSE
+    )
+  }
   for (i in 1:n) {
     idx[i, ] <- res[[i]][[1]]
     if (include.distance) {
@@ -1223,7 +1379,7 @@ FindModalityWeights  <- function(
     snn.graph.list <- lapply(
       X = sigma.nn.list,
       FUN = function(nn) {
-        nthreads <- getThreads()
+        nthreads <- getThreads(verbose = FALSE)
         snn.matrix <- ComputeSNN(
           nn_ranked = Indices(object = nn)[, 1:s.nn],
           prune = prune.SNN,
@@ -1757,8 +1913,8 @@ RunLeiden <- function(
     random.seed = 1,
     n.iter = 10
 ) {
-  # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
-  # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
+  # `leidenbase::leiden_find_partition` requires its `seed` parameter to be
+  # greater than 0 (or NULL), while the default value for `FindClusters` is 0.
   # If `random.seed` is 0 or less, throw a warning and reset the value to 1.
   if (!is.null(random.seed) && random.seed <= 0) {
     warning(
@@ -1770,11 +1926,8 @@ RunLeiden <- function(
     random.seed <- 1
   }
 
-  # The `method` parameter was deprecated after switching from the `leiden`
-  # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
-  # _requires_ an `igraph` input, so the parameter no longer makes sense. The
-  # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
-  # really matter.
+  # `method` is retained only for compatibility; Leiden graph preparation is
+  # controlled by `leiden_method`.
   if (is_present(method)) {
     deprecate_soft(
       when = "5.2.0",
@@ -1839,7 +1992,7 @@ RunLeiden <- function(
 # @param SNN SNN matrix to use as input for the clustering algorithms
 # @param modularity Modularity function to use in clustering (1 = standard; 2 = alternative)
 # @param resolution Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities
-# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python module.
+# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm; 4 = Leiden algorithm).
 # @param n.start Number of random starts
 # @param n.iter Maximal number of iterations per random start
 # @param random.seed Seed of the random number generator
@@ -1863,7 +2016,7 @@ RunModularityClustering <- function(
   temp.file.location = NULL,
   edge.file.name = NULL
 ) {
-  n.threads <- getThreads()
+  n.threads <- getThreads(verbose = FALSE)
   edge_file <- edge.file.name %||% ''
   clusters <- RunModularityClusteringCpp(
     SNN,
@@ -1892,7 +2045,7 @@ RunModularityClusteringMulti <- function(
   temp.file.location = NULL,
   edge.file.name = NULL
 ) {
-  n.threads <- getThreads()
+  n.threads <- getThreads(verbose = FALSE)
   edge_file <- edge.file.name %||% ''
   clusters <- RunModularityClusteringCpp_multi(
     SNN,

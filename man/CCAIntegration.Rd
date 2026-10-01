@@ -22,6 +22,7 @@ CCAIntegration(
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
+  svd.method = NULL,
   verbose = TRUE,
   ...
 )
@@ -88,6 +89,13 @@ If NULL, the sample tree will be computed automatically.}
 
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}
+
+\item{svd.method}{SVD backend to use when \code{reduction = "cca"}.
+If \code{NULL}, defaults to \code{"irlba"} except for pairs of dense CCA
+input matrices whose cell-by-cell cross-product matrix has at least
+1,000,000 entries, in which case it defaults to \code{"rspectra"}.
+\code{"irlba"} uses an explicit cross-product CCA path; \code{"rspectra"}
+uses an implicit operator to avoid forming the cross-product matrix.}
 
 \item{verbose}{Print progress}
 
