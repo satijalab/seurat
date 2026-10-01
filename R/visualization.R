@@ -9108,7 +9108,9 @@ SingleExIPlot <- function(
     data[, feature] <- data[, feature] + noise
   }
   axis.label <- 'Expression Level'
-  y.max <- y.max %||% max(data[, feature][is.finite(x = data[, feature])])
+  if (type != 'ridge') {
+    y.max <- y.max %||% max(data[, feature][is.finite(x = data[, feature])])
+  }
   if (type == 'violin' && !is.null(x = split)) {
     data$split <- split
     vln.geom <- geom_violin
@@ -9157,7 +9159,7 @@ SingleExIPlot <- function(
         }
       }
       log.scale <- function(x.min, x.max) {
-        scale_y_log10(limits = c(x.min, x.max))
+        scale_y_log10()
       }
       axis.scale <- ylim
     },
@@ -9173,10 +9175,11 @@ SingleExIPlot <- function(
       )
       jitter <- geom_jitter(width = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
       log.scale <- function(x.min, x.max) {
-        scale_x_log10(expand = c(0, 0), limits = c(x.min, x.max))
+        if (is.null(x.max)) { return(scale_x_log10())}
+        scale_x_log10(expand = c(0, 0), limits = c(NA, x.max))
       }
       axis.scale <- function(x.min, x.max) {
-        scale_x_continuous(expand = c(0, 0), limits = c(x.min, x.max))
+        scale_x_continuous(expand = c(0, 0), limits = if (is.null(x.max)) NULL else c(NA, x.max))
       }
     },
     stop("Unknown plot type: ", type)
