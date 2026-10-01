@@ -7,8 +7,7 @@ is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
 # --------------------------------------------------------------------------------
 context("FindMarkers")
 
-# tests focus on output shape and known marker recovery, rather than exact p-values or top-ranked rows
-# since they can vary across R versions, especially for Wilcoxon tests
+# Differential-expression checks use table shape, p-value bounds, and known markers.
 expect_de_table <- function(results, expected.cols = c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj")) {
   expect_equal(colnames(x = results), expected.cols)
   expect_true(nrow(x = results) > 0)
@@ -513,9 +512,7 @@ if (is_not_cran_submission) {
     results.pseudo <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 0.1)))
     results.gb <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_copy, pseudocount.use = 1, group.by = "RNA_snn_res.1")))
 
-    # FindAllMarkers aggregates per-cluster Wilcoxon results
-    # can be sensitive to changes in underlying Wilcoxon & RNG
-    # instead, check output table and that a known marker is present in the results
+    # Check table shape and known marker recovery across assay variants.
     expect_de_table(results, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
     expect_gt(nrow(x = results), 200)
     expect_true("HLA-DPB1" %in% results$gene)
@@ -538,6 +535,45 @@ if (is_not_cran_submission) {
     # Setting `group.by` the group by parameter is equivalent
     # to setting the object's `Idents` before running `FindAllMarkers`.
     expect_equal(results.gb, results)
+  })
+
+  test_that("FindAllMarkers presto path matches per-cluster wilcox path", {
+    skip_if_not_installed("presto")
+    expect_findallmarkers_fast_equal_loop <- function(object, ...) {
+      results.fast <- suppressWarnings(suppressMessages(FindAllMarkers(
+        object = object,
+        verbose = FALSE,
+        ...
+      )))
+      results.loop <- suppressWarnings(suppressMessages(FindAllMarkers(
+        object = object,
+        verbose = FALSE,
+        max.cells.per.ident = ncol(x = object),
+        ...
+      )))
+      expect_equal(results.fast, results.loop)
+    }
+    expect_findallmarkers_fast_equal_loop(pbmc_small, pseudocount.use = 1)
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      only.pos = TRUE,
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      fc.slot = "counts",
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      pbmc_small,
+      latent.vars = "groups",
+      pseudocount.use = 1
+    )
+    expect_findallmarkers_fast_equal_loop(
+      sct.obj,
+      pseudocount.use = 1,
+      vst.flavor = "v1"
+    )
   })
   test_that("BPCells FindAllMarkers gives same results", {
     skip_if_not_installed("BPCells")
@@ -591,6 +627,39 @@ if (is_not_cran_submission) {
     expect_equal(fam.results.col$cluster, fam.results.row$cluster)
   })
 }
+
+test_that("FindAllMarkers applies threshold edge cases consistently", {
+  markers <- suppressMessages(suppressWarnings(FindAllMarkers(
+    object = pbmc_small,
+    logfc.threshold = 0,
+    min.pct = 0,
+    min.diff.pct = 0,
+    only.pos = FALSE,
+    return.thresh = Inf,
+    pseudocount.use = 1,
+    verbose = FALSE
+  )))
+  filtered <- suppressMessages(suppressWarnings(FindAllMarkers(
+    object = pbmc_small,
+    logfc.threshold = 0.25,
+    min.pct = 0.5,
+    min.diff.pct = 0.25,
+    only.pos = TRUE,
+    return.thresh = Inf,
+    pseudocount.use = 1,
+    verbose = FALSE
+  )))
+  fc.column <- grep(pattern = "^avg_", x = colnames(x = filtered), value = TRUE)[1]
+
+  expect_de_table(markers, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_de_table(filtered, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_lte(nrow(x = filtered), nrow(x = markers))
+  expect_true(all(filtered[[fc.column]] >= 0.25))
+  expect_true(all(apply(filtered[, c("pct.1", "pct.2"), drop = FALSE], 1, max) >= 0.5))
+  expect_true(all(abs(filtered$pct.1 - filtered$pct.2) >= 0.25))
+  expect_false(anyNA(filtered$cluster))
+  expect_false(anyNA(filtered$gene))
+})
 
 # Tests for running FindMarkers post integration/transfer
 ref <- pbmc_small

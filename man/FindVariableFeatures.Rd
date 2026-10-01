@@ -20,6 +20,7 @@ FindVariableFeatures(object, ...)
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 )
@@ -110,11 +111,11 @@ methods are:
     along the x-axis)
 }}
 
-\item{verbose}{show progress bar for calculations}
-
 \item{nfeatures}{Number of features to select as top variable features;
 only used when \code{selection.method} is set to \code{'dispersion'} or
 \code{'vst'}}
+
+\item{verbose}{show progress bar for calculations}
 
 \item{mean.cutoff}{A two-length numeric vector with low- and high-cutoffs for
 feature means}

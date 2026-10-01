@@ -58,7 +58,7 @@ RunPCA(object, ...)
 \arguments{
 \item{object}{An object}
 
-\item{...}{Arguments passed to other methods and IRLBA}
+\item{...}{Arguments passed to other methods and PCA backends}
 
 \item{assay}{Name of Assay PCA is being run on}
 
@@ -70,8 +70,8 @@ to true will compute it on gene x cell matrix.}
 \item{weight.by.var}{Weight the cell embeddings by the variance of each PC
 (weights the gene loadings if rev.pca is TRUE)}
 
-\item{verbose}{Print the top genes associated with high/low loadings for
-the PCs}
+\item{verbose}{Print progress messages and the top genes associated with
+high/low loadings for the PCs}
 
 \item{ndims.print}{PCs to print genes for}
 
@@ -83,7 +83,7 @@ the number for the dimension names. PC by default}
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed.}
 
-\item{approx}{Use truncated singular value decomposition to approximate PCA}
+\item{approx}{Use an approximate PCA backend when available}
 
 \item{features}{Features to compute PCA on. If features=NULL, PCA will be run
 using the variable features for the Assay. Note that the features must be present
@@ -99,4 +99,14 @@ Returns Seurat object with the PCA calculation stored in the reductions slot
 Run a PCA dimensionality reduction. For details about stored PCA calculation
 parameters, see \code{PrintPCAParams}.
 }
+\section{PCA backends}{
+
+With default settings, dense-matrix PCA uses dense Gram + top-k
+eigendecomposition: it forms the feature-by-feature Gram matrix
+\eqn{XX^T} and computes its leading eigenpairs using Eigen/Spectra.
+To use \pkg{irlba} instead of the Gram-matrix backend for an in-memory matrix,
+pass an \pkg{irlba} argument to \code{RunPCA} through \code{\link[base]{...}},
+for example, \code{RunPCA(object, maxit = 1000)}.
+}
+
 \concept{dimensional_reduction}

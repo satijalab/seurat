@@ -131,14 +131,90 @@ test_that("EdgeWeights", {
   expect_equal(s2, exp)
 })
 
-# test_that("pbmc_small network", {
-#   observed <- as.numeric(FindClusters(
-#     object = pbmc_small,
-#     reduction.type = "pca",
-#     dims.use = 1:10,
-#     resolution = 1.1,
-#     save.SNN = TRUE,
-#     print.output = 0)@ident)
-#   expected = c(1,1,1,1,1,1,1,1,1,1,6,1,6,1,2,2,1,6,2,1,2,2,2,2,2,2,2,2,2,6,3,5,3,3,3,3,3,3,3,3,5,1,1,1,1,1,3,1,3,1,2,1,2,2,6,2,3,2,1,3,5,2,5,5,2,2,2,2,5,3,4,4,4,4,4,4,4,4,4,4)
-#   expect_equal(observed, expected)
-# })
+test_that("Modularity optimizer results are stable across thread counts", {
+  two.thread <- Seurat:::RunModularityClusteringCpp(
+    SNN = connections,
+    modularityFunction = 1,
+    resolution = 1.0,
+    algorithm = 1,
+    nRandomStarts = 10,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 2L
+  )
+  four.thread <- Seurat:::RunModularityClusteringCpp(
+    SNN = connections,
+    modularityFunction = 1,
+    resolution = 1.0,
+    algorithm = 1,
+    nRandomStarts = 10,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 4L
+  )
+
+  expect_equal(two.thread, four.thread)
+})
+
+test_that("Modularity optimizer uses serial result for a single random start", {
+  one.thread <- Seurat:::RunModularityClusteringCpp(
+    SNN = connections,
+    modularityFunction = 1,
+    resolution = 1.0,
+    algorithm = 1,
+    nRandomStarts = 1,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 1L
+  )
+  four.thread <- Seurat:::RunModularityClusteringCpp(
+    SNN = connections,
+    modularityFunction = 1,
+    resolution = 1.0,
+    algorithm = 1,
+    nRandomStarts = 1,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 4L
+  )
+
+  expect_equal(one.thread, four.thread)
+})
+
+test_that("Multi-resolution modularity optimizer results are stable across thread counts", {
+  resolutions <- c(0.4, 0.8, 1.2)
+  two.thread <- Seurat:::RunModularityClusteringCpp_multi(
+    SNN = connections,
+    modularityFunction = 1,
+    resolutions = resolutions,
+    algorithm = 1,
+    nRandomStarts = 10,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 2L
+  )
+  four.thread <- Seurat:::RunModularityClusteringCpp_multi(
+    SNN = connections,
+    modularityFunction = 1,
+    resolutions = resolutions,
+    algorithm = 1,
+    nRandomStarts = 10,
+    nIterations = 10,
+    randomSeed = 42,
+    printOutput = 0,
+    "",
+    nThreads = 4L
+  )
+
+  expect_equal(two.thread, four.thread)
+})

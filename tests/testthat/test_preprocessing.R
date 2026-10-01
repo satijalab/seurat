@@ -1,9 +1,10 @@
 # Tests for functions dependent on a seurat object
+source(test_path("../testdata/test-objects.R"), local = TRUE)
+
 set.seed(42)
 is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
 
-pbmc.file <- system.file('extdata', 'pbmc_raw.txt', package = 'Seurat')
-pbmc.test <- as.sparse(x = as.matrix(read.table(pbmc.file, sep = "\t", row.names = 1)))
+pbmc.test <- create_pbmc_counts()
 
 # Tests for object creation (via CreateSeuratObject)
 # --------------------------------------------------------------------------------
@@ -345,6 +346,72 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(hvf_info[VariableFeatures(object = object), grep("variance.standardized$", colnames(hvf_info))])))
 })
 
+test_that("VST variable feature ordering is stable with multiple layers", {
+  skip_if_not(class(object[['RNA']]) == "Assay5")
+
+  object.multilayer <- CreateSeuratObject(split(object[["RNA"]], f = rep(c("1", "4"), each = ncol(object) / 2)))
+  old.threads <- getThreads(verbose = FALSE)
+  on.exit(setThreads(old.threads, verbose = FALSE), add = TRUE)
+
+  setThreads(1, verbose = FALSE)
+  object.single.thread <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
+  setThreads(2, verbose = FALSE)
+  object.multi.thread <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
+  setThreads(4, verbose = FALSE)
+  object.multi.thread.4 <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
+  setThreads(old.threads, verbose = FALSE)
+
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
+  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread.4))
+  expect_identical(
+    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
+    VariableFeatures(object = object.multi.thread[["RNA"]], method = "vst", simplify = FALSE)
+  )
+
+  expect_identical(
+    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
+    VariableFeatures(object = object.multi.thread.4[["RNA"]], method = "vst", simplify = FALSE)
+  )
+
+  for (layer in Layers(object = object.single.thread[["RNA"]], search = "counts")) {
+    hvf.info <- HVFInfo(object = object.single.thread[["RNA"]], method = "vst", layer = layer, status = TRUE)
+    ranked.features <- rownames(x = hvf.info)[order(hvf.info$rank, na.last = NA)]
+    score.features <- head(
+      x = rownames(x = hvf.info)[order(hvf.info$variance.standardized, decreasing = TRUE)],
+      n = length(x = ranked.features)
+    )
+    expect_identical(ranked.features, score.features)
+  }
+})
+
+test_that("VST handles tied and constant features at the selection boundary", {
+  tied.counts <- as.matrix(pbmc.test)
+  tied.counts <- rbind(
+    "zero-a" = 0,
+    "zero-b" = 0,
+    "tie-a" = tied.counts[1, ],
+    "tie-b" = tied.counts[1, ],
+    tied.counts
+  )
+
+  tied.object <- CreateSeuratObject(counts = as.sparse(tied.counts))
+  tied.object <- NormalizeData(object = tied.object, verbose = FALSE)
+  tied.object <- FindVariableFeatures(
+    object = tied.object,
+    selection.method = "vst",
+    nfeatures = 6,
+    verbose = FALSE
+  )
+  hvf.info <- HVFInfo(object = tied.object[["RNA"]], method = "vst", status = TRUE)
+
+  expect_equal(length(x = VariableFeatures(object = tied.object)), 6)
+  expect_false(any(VariableFeatures(object = tied.object) %in% c("zero-a", "zero-b")))
+  expect_false(anyNA(VariableFeatures(object = tied.object)))
+  expect_equal(hvf.info["tie-a", "variance.standardized"], hvf.info["tie-b", "variance.standardized"])
+  expect_true(all(is.finite(hvf.info[VariableFeatures(object = tied.object), "variance.standardized"])))
+  expect_true(all(is.na(hvf.info$rank) | hvf.info$rank >= 1))
+})
+
 #object <- FindVariableFeatures(object, assay = "RNAbp")
 #this breaks currently
 
@@ -411,7 +478,6 @@ test_that("SCTransform ncells param works", {
   expect_equal(fa["MS4A1", "residual_mean"], 0.2362887, tolerance = 1e-3)
   expect_equal(fa["MS4A1", "residual_variance"], 2.875761, tolerance = 1e-3)
 })
-
 
 if (is_not_cran_submission) {
   suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
@@ -570,6 +636,83 @@ if (is_not_cran_submission) {
       )
     )
     expect_false(identical(left[["SCT"]]$scale.data, right[["SCT"]]$scale.data))
+  })
+
+  test_that("SCTransform conserve.memory path returns residuals", {
+    result <- suppressWarnings(SCTransform(
+      object = object,
+      verbose = FALSE,
+      conserve.memory = TRUE,
+      variable.features.n = 10,
+      vst.flavor = "v1"
+    ))
+    expect_true("SCT" %in% names(x = result))
+    expect_equal(length(x = VariableFeatures(object = result[["SCT"]])), 10)
+    expect_gt(nrow(x = GetAssayData(object = result[["SCT"]], layer = "scale.data")), 0)
+  })
+
+  test_that("SCTransform custom latent_var uses fallback residual path", {
+    test.data <- object
+    test.data$latent_test <- as.numeric(x = seq_len(length.out = ncol(x = test.data)))
+    result <- suppressWarnings(SCTransform(
+      object = test.data,
+      verbose = FALSE,
+      latent_var = "latent_test",
+      variable.features.n = 10,
+      vst.flavor = "v1"
+    ))
+    expect_true("SCT" %in% names(x = result))
+    expect_gt(nrow(x = GetAssayData(object = result[["SCT"]], layer = "scale.data")), 0)
+    sct.counts <- GetAssayData(object = result[["SCT"]], layer = "counts")
+    expect_false(is.null(x = rownames(x = sct.counts)))
+    expect_equal(colnames(x = sct.counts), colnames(x = test.data))
+  })
+
+  test_that("SCTransform custom latent_var_nonreg uses full model residuals", {
+    test.data <- object
+    test.data$latent_nonreg_test <- as.numeric(x = seq_len(length.out = ncol(x = test.data)))
+    result <- suppressWarnings(SCTransform(
+      object = test.data,
+      verbose = FALSE,
+      latent_var = c("log_umi", "latent_nonreg_test"),
+      latent_var_nonreg = "latent_nonreg_test",
+      variable.features.n = 10,
+      vst.flavor = "v1"
+    ))
+    scale.data <- GetAssayData(object = result[["SCT"]], layer = "scale.data")
+    counts <- GetAssayData(object = test.data[["RNA"]], layer = "counts")
+    feature <- rownames(x = scale.data)[1]
+    cell <- colnames(x = scale.data)[1]
+    expected.vst <- sctransform::vst(
+      umi = counts,
+      cell_attr = test.data[[]],
+      latent_var = c("log_umi", "latent_nonreg_test"),
+      latent_var_nonreg = "latent_nonreg_test",
+      vst.flavor = "v1",
+      return_cell_attr = TRUE,
+      return_gene_attr = TRUE,
+      return_corrected_umi = TRUE,
+      n_cells = min(5000, ncol(x = counts)),
+      verbosity = 0
+    )
+    expected <- expected.vst$y[feature, , drop = FALSE]
+    clip.range <- SCTResults(object = result[["SCT"]], slot = "clips")$sct
+    expected[expected < clip.range[1]] <- clip.range[1]
+    expected[expected > clip.range[2]] <- clip.range[2]
+    expected <- ScaleData(
+      expected,
+      features = NULL,
+      model.use = "linear",
+      use.umi = FALSE,
+      do.scale = FALSE,
+      do.center = TRUE,
+      scale.max = Inf,
+      block.size = 750,
+      min.cells.to.block = 3000,
+      verbose = FALSE
+    )
+    expect_true("latent_nonreg_test" %in% colnames(x = expected.vst$model_pars_fit))
+    expect_equal(scale.data[feature, cell], expected[feature, cell], tolerance = 1e-6)
   })
 
   fake.meta.data2 <- data.frame(rep(1:2, ncol(pbmc.test)/2))

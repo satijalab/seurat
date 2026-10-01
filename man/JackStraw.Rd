@@ -32,7 +32,7 @@ replicate}
 \item{verbose}{Print progress bar showing the number of replicates
 that have been processed.}
 
-\item{maxit}{maximum number of iterations to be performed by the irlba function of RunPCA}
+\item{maxit}{maximum number of iterations for RunPCA (w/ irlba backend)}
 }
 \value{
 Returns a Seurat object where JS(object = object[['pca']], slot = 'empirical')

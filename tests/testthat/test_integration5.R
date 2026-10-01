@@ -1,4 +1,6 @@
 # Tests for IntegrateLayers
+source(test_path("../testdata/test-objects.R"), local = TRUE)
+
 set.seed(42)
 is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
 
@@ -8,39 +10,56 @@ expect_abs_equal <- function(x, y, tolerance = 1.0e-04) {
   expect_equal(abs(x), abs(y), tolerance = tolerance)
 }
 
+expected_harmony_embeddings <- function(object, assay = NULL, orig.reduction = "pca", key = "harmony_") {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.object <- object[[assay]]
+  is.sct <- inherits(x = assay.object, what = "SCTAssay")
 
-# setup shared fixtures
-# update `pbmc_small` to use `Assay5` instances
-test.data <- pbmc_small
-suppressWarnings(
-  test.data[["RNA"]] <- CreateAssay5Object(
-    counts = LayerData(
-      test.data,
-      assay = "RNA",
-      layer = "counts"
-    )
+  # use the exact options & default parameters used in HarmonyIntegration
+  advanced_options <- harmony::harmony_options(
+    tau = 0,
+    block.size = 0.05,
+    max.iter.cluster = 20L,
+    epsilon.cluster = 1e-05,
+    epsilon.harmony = 0.01
   )
-)
-# split the assay into multiple layers
-test.data[["RNA"]] <- split(test.data[["RNA"]], f = test.data$groups)
+  embeddings <- harmony::RunHarmony(
+    data_mat = Embeddings(object = object[[orig.reduction]]),
+    meta_data = CreateIntegrationGroups(
+      object = assay.object,
+      layers = if (is.sct) "data" else Layers(object = object, assay = assay, search = "data"),
+      scale.layer = if (is.sct) "scale.data" else Layers(object = object, search = "scale.data")
+    ),
+    vars_use = 'group',
+    theta = NULL,
+    lambda = NULL,
+    sigma = 0.1,
+    nclust = NULL,
+    max_iter = 10L,
+    return_object = FALSE,
+    verbose = FALSE,
+    .options = advanced_options
+  )
+  rownames(x = embeddings) <- Cells(x = object[[orig.reduction]])
+  colnames(x = embeddings) <- paste0(key, seq_len(length.out = ncol(x = embeddings)))
+  return(embeddings)
+}
 
 
 context("IntegrateLayers")
 
 # setup fixtures for standard integration workflow
-test.data.std <- NormalizeData(test.data, verbose = FALSE)
-test.data.std <- FindVariableFeatures(test.data.std, verbose = FALSE)
-test.data.std <- ScaleData(test.data.std, verbose = FALSE)
-test.data.std <- suppressWarnings(
-  RunPCA(test.data.std, verbose = FALSE)
-)
+test.data <- create_multilayer_obj()
+test.data.std <- create_integration_obj(object = test.data)
 
 if (is_not_cran_submission) {
   test_that("IntegrateLayers works with HarmonyIntegration", {
     skip_if_not_installed("harmony")
 
-    version <- packageVersion("harmony")
+    set.seed(seed = 42)
+    expected <- expected_harmony_embeddings(test.data.std)
 
+    set.seed(seed = 42)
     integrated <- suppressWarnings(
       IntegrateLayers(
         test.data.std,
@@ -53,37 +72,17 @@ if (is_not_cran_submission) {
 
     # the integrated reduction should have the same dimensions as the original 
     expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
-
-    # spot-check a few of the integrated values - since the integrated 
-    # reductions sporadically flip sign only compare absolute values
-    # Harmony v2 is a redesigned / optimized version of Harmony v1, so results are expected to differ 
-    if (version < "2.0.0") {
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[5, 5],
-        0.3912
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[40, 25],
-        0.6668
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[75, 45],
-        0.7248
-      )
-    } else {
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[5, 5],
-        0.6228
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[40, 25],
-        0.5019
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[75, 45],
-        0.3661
-      )
-    }
+    # but should actually perform integration and produce different values than the original reduction
+    expect_false(isTRUE(all.equal(
+      Embeddings(object = integrated[["integrated"]]),
+      Embeddings(object = integrated[["pca"]])
+    )))
+    # check that the integrated reduction is the same as calling harmony::RunHarmony directly
+    expect_equal(
+      Embeddings(object = integrated[["integrated"]]),
+      expected,
+      tolerance = 1e-06
+    )
   })
 }
 
@@ -154,6 +153,43 @@ test_that("IntegrateLayers works with CCAIntegration", {
   # didn't specify `dims.to.integrate` (i.e. the same size as the initial
   # reduction)
   expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
+})
+
+test_that("IntegrateLayers works with CCAIntegration using RSpectra backend", {
+  set.seed(seed = 42)
+  integrated_irlba <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      k.weight = 10,
+      dims.to.integrate = 1:10,
+      svd.method = "irlba"
+    )
+  )
+
+  set.seed(seed = 42)
+  integrated_rspectra <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      k.weight = 10,
+      dims.to.integrate = 1:10,
+      svd.method = "rspectra"
+    )
+  )
+
+  rspectra_embeddings <- Embeddings(integrated_rspectra[["integrated"]])
+  irlba_embeddings <- Embeddings(integrated_irlba[["integrated"]])
+  expect_equal(dim(integrated_rspectra[["integrated"]]), c(ncol(test.data.std), 10))
+  expect_equal(rownames(rspectra_embeddings), Cells(test.data.std))
+  expect_true(all(is.finite(rspectra_embeddings)))
+  expect_equal(abs(rspectra_embeddings), abs(irlba_embeddings), tolerance = 1e-5)
 })
 
 test_that("IntegrateLayers works with RPCAIntegration", {
@@ -353,27 +389,15 @@ if (is_not_cran_submission) {
   context("IntegrateData with SCTransform")
 
   # setup fixtures for SCTransform workflow
-  test.data.sct <- suppressWarnings(
-    SCTransform(
-      test.data, 
-      # use v1 to avoid potentially different
-      # return values depending on if `glmGamPoi`
-      # is installed or not
-      vst.flavor="v1", 
-      # set seed for reproducibility
-      seed.use = 12345, 
-      verbose = FALSE
-    )
-  )
-  test.data.sct <- suppressWarnings(
-    RunPCA(test.data.sct, verbose = FALSE)
-  )
+  test.data.sct <- create_integration_obj(object = test.data, sct = TRUE)
 
   test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
     skip_if_not_installed("harmony")
 
-    version <- packageVersion("harmony")
+    set.seed(seed = 42)
+    expected <- expected_harmony_embeddings(test.data.sct)
 
+    set.seed(seed = 42)
     integrated <- suppressWarnings(
       IntegrateLayers(
         test.data.sct,
@@ -385,37 +409,17 @@ if (is_not_cran_submission) {
     )
     # the integrated reduction should have the same dimensions as the original 
     expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
-
-    # spot-check a few of the integrated values - since the integrated 
-    # reductions sporadically flip sign only compare absolute values
-    # Harmony v2 is a redesigned / optimized version of Harmony v1, so results are expected to differ
-    if (version < "2.0.0") {
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[5, 5],
-        1.1520
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[40, 25],
-        1.0302
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[75, 45],
-        0.1886
-      )
-    } else {
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[5, 5],
-        1.2928
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[40, 25],
-        0.9928
-      )
-      expect_abs_equal(
-        Embeddings(integrated[["integrated"]])[75, 45],
-        0.1917
-      )
-    }
+    # but should actually perform integration and produce different values than the original reduction
+    expect_false(isTRUE(all.equal(
+      Embeddings(object = integrated[["integrated"]]),
+      Embeddings(object = integrated[["pca"]])
+    )))
+    # check that the integrated reduction is the same as calling harmony::RunHarmony directly
+    expect_equal(
+      Embeddings(object = integrated[["integrated"]]),
+      expected,
+      tolerance = 1e-06
+    )
   })
   test_that("IntegrateLayers works with CCAIntegration & SCTransform", {
     integrated <- suppressWarnings(

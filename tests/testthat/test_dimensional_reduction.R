@@ -1,51 +1,9 @@
-#' Returns a random counts matrix.
-get_random_counts <- function() {
-  # Populate a 100 by 100 matrix with random integers from 1 to 50.
-  counts <- matrix(
-    data = sample(c(1:50), size = 1e4, replace = TRUE),
-    ncol = 100,
-    nrow = 100
-  )
-
-  # Assign column and row names to the matrix to label cells and genes.
-  colnames(counts) <- paste0("cell", seq(ncol(counts)))
-  row.names(counts) <- paste0("gene", seq(nrow(counts)))
-
-  # Convert `counts` to a `dgCMatrix`.
-  counts_sparse <- as.sparse(counts)
-
-  return(counts_sparse)
-}
-
-#' Returns a `Seurat` instance containing the specified `assay_version` and
-#' populated with `counts` which is also preprocessed (normalized + scaled).
-get_test_data <- function(
-  counts = get_random_counts(),
-  assay_version = getOption("Seurat.object.assay.version")
-) {
-  # Use the `assay_version` param to choose the correct assay builder.
-  create_assay <- switch(assay_version,
-    v3 = CreateAssayObject,
-    v5 = CreateAssay5Object,
-    stop("`assay_version` should be one of 'v3', 'v5'")
-  )
-  # And then instantiate the specified assay type.
-  assay <- create_assay(counts)
-
-  # Instantiate a `Seurat` instance using the default assay name.
-  test_data <- CreateSeuratObject(assay)
-
-  # Normalize, and then scale the input data.
-  test_data <- NormalizeData(test_data, verbose = FALSE)
-  test_data <- ScaleData(test_data, verbose = FALSE)
-
-  return(test_data)
-}
+source(test_path("../testdata/test-objects.R"), local = TRUE)
 
 #' Checks that the specified dimensional reduction `method` returns equivalent
 #' results for each test case in `inputs`.
 test_dimensional_reduction <- function(inputs, method, ...) {
-  # Avoid replying on default reduction names.
+  # Use explicit reduction names.
   reduction_name = "test_reduction"
 
   # Run `method` on each test case in `inputs`.
@@ -95,11 +53,143 @@ test_dimensional_reduction <- function(inputs, method, ...) {
   }
 }
 
+context("RunCCA")
+
+test_that("CCA C++ implicit multiply matches crossprod", {
+  set.seed(123)
+  left <- matrix(rnorm(40 * 25), nrow = 40)
+  right <- matrix(rnorm(40 * 30), nrow = 40)
+  x <- rnorm(ncol(right))
+  expected <- as.numeric(crossprod(x = left, y = right %*% x))
+
+  expect_equal(CcaCrossprodMultiply(left, right, x), expected, tolerance = 1e-12)
+})
+
+test_that("CCA C++ implicit multiply validates dimensions", {
+  expect_error(
+    CcaCrossprodMultiply(matrix(1, 3, 2), matrix(1, 4, 2), rep(1, 2)),
+    "same number of rows"
+  )
+  expect_error(
+    CcaCrossprodMultiply(matrix(1, 3, 2), matrix(1, 3, 2), rep(1, 3)),
+    "must match the number of columns"
+  )
+})
+
+test_that("RunCCA RSpectra backend matches explicit CCA within tolerance", {
+  set.seed(123)
+  object1 <- matrix(rnorm(80 * 35), nrow = 80)
+  object2 <- matrix(rnorm(80 * 32), nrow = 80)
+  colnames(object1) <- paste0("cell_a_", seq_len(ncol(object1)))
+  colnames(object2) <- paste0("cell_b_", seq_len(ncol(object2)))
+
+  cca.irlba <- RunCCA(
+    object1 = object1,
+    object2 = object2,
+    num.cc = 8,
+    svd.method = "irlba"
+  )
+  cca.rspectra <- RunCCA(
+    object1 = object1,
+    object2 = object2,
+    num.cc = 8,
+    svd.method = "rspectra"
+  )
+
+  expect_equal(cca.rspectra$d, cca.irlba$d, tolerance = 1e-5)
+  expect_equal(abs(cca.rspectra$ccv), abs(cca.irlba$ccv), tolerance = 1e-5)
+  expect_equal(dim(cca.rspectra$ccv), c(ncol(object1) + ncol(object2), 8))
+  expect_equal(rownames(cca.rspectra$ccv), c(colnames(object1), colnames(object2)))
+  expect_equal(colnames(cca.rspectra$ccv), paste0("CC", seq_len(8)))
+  expect_true(all(is.finite(cca.rspectra$d)))
+})
+
+test_that("RunCCA RSpectra backend matches explicit CCA without standardization", {
+  set.seed(123)
+  object1 <- matrix(rnorm(80 * 35), nrow = 80)
+  object2 <- matrix(rnorm(80 * 32), nrow = 80)
+  colnames(object1) <- paste0("cell_a_", seq_len(ncol(object1)))
+  colnames(object2) <- paste0("cell_b_", seq_len(ncol(object2)))
+
+  cca.irlba <- RunCCA(
+    object1 = object1,
+    object2 = object2,
+    standardize = FALSE,
+    num.cc = 8,
+    svd.method = "irlba"
+  )
+  cca.rspectra <- RunCCA(
+    object1 = object1,
+    object2 = object2,
+    standardize = FALSE,
+    num.cc = 8,
+    svd.method = "rspectra"
+  )
+
+  expect_equal(cca.rspectra$d, cca.irlba$d, tolerance = 1e-5)
+  expect_equal(abs(cca.rspectra$ccv), abs(cca.irlba$ccv), tolerance = 1e-5)
+  expect_equal(dim(cca.rspectra$ccv), c(ncol(object1) + ncol(object2), 8))
+  expect_equal(rownames(cca.rspectra$ccv), c(colnames(object1), colnames(object2)))
+  expect_equal(colnames(cca.rspectra$ccv), paste0("CC", seq_len(8)))
+  expect_true(all(is.finite(cca.rspectra$d)))
+})
+
+test_that("RunCCA RSpectra backend supports sparse inputs without standardization", {
+  set.seed(123)
+  object1 <- Matrix::rsparsematrix(80, 35, density = 0.2)
+  object2 <- Matrix::rsparsematrix(80, 32, density = 0.2)
+  colnames(object1) <- paste0("cell_a_", seq_len(ncol(object1)))
+  colnames(object2) <- paste0("cell_b_", seq_len(ncol(object2)))
+
+  cca.irlba <- RunCCA(
+    object1 = object1,
+    object2 = object2,
+    standardize = FALSE,
+    num.cc = 8,
+    svd.method = "irlba"
+  )
+  cca.rspectra <- RunCCA(
+    object1 = object1,
+    object2 = object2,
+    standardize = FALSE,
+    num.cc = 8,
+    svd.method = "rspectra"
+  )
+
+  expect_equal(cca.rspectra$d, cca.irlba$d, tolerance = 1e-5)
+  expect_equal(abs(cca.rspectra$ccv), abs(cca.irlba$ccv), tolerance = 1e-5)
+})
+
+test_that("RunCCA default backend switches only for large dense CCA inputs", {
+  set.seed(123)
+  small1 <- matrix(rnorm(20 * 35), nrow = 20)
+  small2 <- matrix(rnorm(20 * 32), nrow = 20)
+  large1 <- matrix(rnorm(20 * 1000), nrow = 20)
+  large2 <- matrix(rnorm(20 * 1000), nrow = 20)
+  run_cca <- function(x, y, svd.method = NULL) {
+    RunCCA(x, y, standardize = FALSE, num.cc = 3, svd.method = svd.method)
+  }
+  expect_equal(
+    expect_message(run_cca(small1, small2), NA),
+    run_cca(small1, small2, "irlba")
+  )
+  expect_equal(
+    expect_message(run_cca(large1, large2), regexp = "Using RSpectra for CCA"),
+    run_cca(large1, large2, "rspectra")
+  )
+})
+
 context("RunPCA")
 
 test_that("`RunPCA` returns total variance", {
   # For the motivation behind this test see https://github.com/satijalab/seurat/issues/982.
-  test_case <- get_test_data()
+  counts <- create_random_counts()
+  object <- create_seurat_obj(counts = counts)
+  test_case <- create_prep_obj(
+    object = object,
+    normalize = TRUE,
+    scale = TRUE
+  )
   counts_scaled <- LayerData(test_case, layer = "scale.data")
 
   # Calculate the expected total variance using `prcomp`
@@ -127,11 +217,16 @@ test_that("`RunPCA` returns total variance", {
 test_that("`RunPCA` does not drop features when there are zero-variance features outside the supplied set", {
   set.seed(123)
   
-  mat <- get_random_counts()
+  mat <- create_random_counts()
   # Set some features outside the supplied set to have zero variance
   mat[1:50, ] <- 0
 
-  test_case <- get_test_data(counts = mat, assay_version = "v5")
+  object <- create_seurat_obj(counts = mat, assay_version = "v5")
+  test_case <- create_prep_obj(
+    object = object,
+    normalize = TRUE,
+    scale = TRUE
+  )
   supplied_features <- rownames(mat)[51:80]
 
   result <- suppressWarnings(RunPCA(test_case, features = supplied_features, npcs = 10, verbose = FALSE))
@@ -144,13 +239,18 @@ test_that("`RunPCA` does not drop features when there are zero-variance features
 test_that("`RunPCA` drops zero-variance features only within the supplied feature set", {
   set.seed(123)
 
-  mat <- get_random_counts()
+  mat <- create_random_counts()
   # Set some features outside the supplied set to have zero variance
   mat[1:50, ] <- 0
   # Set some features within the supplied set to have zero variance
   mat[51:60, ] <- 0
 
-  test_case <- get_test_data(counts = mat, assay_version = "v5")
+  object <- create_seurat_obj(counts = mat, assay_version = "v5")
+  test_case <- create_prep_obj(
+    object = object,
+    normalize = TRUE,
+    scale = TRUE
+  )
 
   supplied_features <- rownames(mat)[51:100]
 
@@ -166,16 +266,31 @@ test_that("`RunPCA` drops zero-variance features only within the supplied featur
 context("RunICA")
 
 test_that("`RunPCA` works as expected", {
-  counts <- get_random_counts()
-  input_v3 <- get_test_data(counts, assay_version = "v3")
-  input_v5 <- get_test_data(counts, assay_version = "v5")
+  counts <- create_random_counts()
+  object_v3 <- create_seurat_obj(counts, assay_version = "v3")
+  input_v3 <- create_prep_obj(
+    object = object_v3,
+    normalize = TRUE,
+    scale = TRUE
+  )
+  object_v5 <- create_seurat_obj(counts, assay_version = "v5")
+  input_v5 <- create_prep_obj(
+    object = object_v5,
+    normalize = TRUE,
+    scale = TRUE
+  )
   inputs <- c(input_v3, input_v5)
 
   # If `BPCells` is installed, add `IterableMatrix` inputs to the set of 
   # equivalent inputs.
   if (requireNamespace("BPCells", quietly = TRUE)) {
     counts_bpcells <- t(as(t(counts), Class = "IterableMatrix"))
-    input_bpcells <- get_test_data(counts_bpcells, assay_version = "v5")
+    object_bpcells <- create_seurat_obj(counts_bpcells, assay_version = "v5")
+    input_bpcells <- create_prep_obj(
+      object = object_bpcells,
+      normalize = TRUE,
+      scale = TRUE
+    )
     inputs <- c(inputs, input_bpcells)
   }
 
@@ -183,8 +298,7 @@ test_that("`RunPCA` works as expected", {
   test_dimensional_reduction(
     inputs = inputs,
     method = RunPCA, 
-    # Reduce number of PCs from the default of 20 to avoid warning from 
-    # `irlba` caused by the small size of dataset being used.
+    # Use fewer PCs for the small fixture.
     npcs = 10
   )
 })

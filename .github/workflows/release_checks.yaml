@@ -60,6 +60,9 @@ jobs:
       - name: Install Dependencies
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          cache: always
+          cache-version: 1
+          lockfile-create-lib: '.libPaths()'
           extra-packages: 
             any::rcmdcheck
             any::pkgdown

@@ -172,6 +172,8 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #' Seurat-CCA Integration
 #'
 #' @inheritParams RPCAIntegration
+#' @inheritParams FindIntegrationAnchors
+#' @inheritParams RunCCA
 #' @export
 #' @concept integration
 #'
@@ -221,6 +223,7 @@ CCAIntegration <- function(
     sd.weight = 1,
     sample.tree = NULL,
     preserve.order = FALSE,
+    svd.method = NULL,
     verbose = TRUE,
     ...
 ) {
@@ -263,16 +266,26 @@ CCAIntegration <- function(
   }
   }
 
-  anchor <- FindIntegrationAnchors(object.list = object.list,
-                                   anchor.features = features,
-                                   scale = FALSE,
-                                   reduction = 'cca',
-                                   normalization.method = normalization.method,
-                                   dims = dims,
-                                   k.filter = k.filter,
-                                   reference = reference,
-                                   verbose = verbose,
-                                   ...
+  cca.message.shown <- FALSE
+  anchor <- withCallingHandlers(
+    FindIntegrationAnchors(object.list = object.list,
+                           anchor.features = features,
+                           scale = FALSE,
+                           reduction = 'cca',
+                           normalization.method = normalization.method,
+                           dims = dims,
+                           k.filter = k.filter,
+                           reference = reference,
+                           svd.method = svd.method,
+                           verbose = verbose,
+                          ...),
+    # Only warn about the auto backend choice once across all pairwise comparisons
+    seurat_cca_auto_rspectra = function(m) {
+      if (cca.message.shown) {
+        invokeRestart("muffleMessage")
+      }
+      cca.message.shown <<- TRUE
+    }
   )
   suppressWarnings({
     anchor@object.list <- lapply(anchor@object.list, function(x) {
@@ -387,10 +400,12 @@ RPCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object = object, search = 'data')
+  # Reuse the maximum requested dimension across validation and per-layer PCA.
+  ndims <- max(dims)
   #check that there enough cells present
   ncells <- sapply(X = layers, FUN = function(x) {ncell <-  dim(object[x])[2]
   return(ncell) })
-  if (min(ncells) < max(dims))  {
+  if (min(ncells) < ndims)  {
     abort(message = "At least one layer has fewer cells than dimensions specified, please lower 'dims' accordingly.")
   }
   if (normalization.method == 'SCT') {
@@ -401,20 +416,23 @@ RPCAIntegration <- function(
     object.list <- SplitObject(object = object.sct, split.by = 'split')
     object.list <- PrepSCTIntegration(object.list = object.list, anchor.features = features)
     object.list <- lapply(X = object.list, FUN = function(x) {
-      x <- RunPCA(object = x, features = features, verbose = FALSE, npcs = max(dims))
+      x <- RunPCA(object = x, features = features, verbose = FALSE, npcs = ndims)
       return(x)
     }
     )
   } else {
-    object.list <- list()
+    object.list <- vector(mode = "list", length = length(x = layers))
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- suppressMessages(suppressWarnings(
-        CreateSeuratObject(counts = NULL, data = object[layers[i]][features,])
-      ))
+      data.layer <- object[layers[i]][features, , drop = FALSE]
+      object.list[[i]] <- suppressMessages(CreateSeuratObject(counts = NULL, data = data.layer))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
-      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
       suppressWarnings(object.list[[i]][['RNA']]$counts <- NULL)
+      object.list[[i]] <- RunPCA(
+        object = object.list[[i]],
+        verbose = FALSE,
+        npcs = ndims
+      )
     }
   }
   anchor <- FindIntegrationAnchors(object.list = object.list,
@@ -568,9 +586,10 @@ attr(x = JointPCAIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @return \code{object} with integration data added to it
 #'
-#' @section Integration Method Functions:
-#' The following integration method functions are available:
-#' \Sexpr[stage=render,results=rd]{Seurat:::.rd_methods("integration")}
+#' @evalRd paste0("\\section{Integration Method Functions}{\n",
+#'   "The following integration method functions are available:\n",
+#'   Seurat:::.rd_methods("integration"),
+#'   "\n}")
 #'
 #' @export
 #'

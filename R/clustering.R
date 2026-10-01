@@ -120,7 +120,8 @@ FindMultiModalNeighbors  <- function(
   if (verbose) {
     message("Constructing multimodal SNN graph")
   }
-  snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN)
+  nthreads <- getThreads(verbose = FALSE)
+  snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN, nthreads = nthreads)
   rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(x = object)
   snn.matrix <- as.Graph(x = snn.matrix )
   slot(object = snn.matrix, name = "assay.used") <- first.assay
@@ -332,6 +333,12 @@ FindClusters.default <- function(
       what = "FindClusters(method)"
     )
   }
+  method.present <- is_present(method)
+  method.use <- if (method.present) {
+    method
+  } else {
+    NULL
+  }
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
@@ -343,82 +350,73 @@ FindClusters.default <- function(
   }
   leiden_method <- match.arg(leiden_method)
   leiden_objective_function <- match.arg(leiden_objective_function)
-
-  if (nbrOfWorkers() > 1) {
-    clustering.results <- future_lapply(
-      X = resolution,
-      FUN = function(r) {
-        if (algorithm %in% c(1:3)) {
-          ids <- RunModularityClustering(
-            SNN = object,
-            modularity = modularity.fxn,
-            resolution = r,
-            algorithm = algorithm,
-            n.start = n.start,
-            n.iter = n.iter,
-            random.seed = random.seed,
-            print.output = verbose,
-            temp.file.location = temp.file.location,
-            edge.file.name = edge.file.name
-          )
-        } else if (algorithm == 4) {
-          ids <- RunLeiden(
-            object = object,
-            leiden_method = leiden_method,
-            leiden_objective_function = leiden_objective_function,
-            partition.type = "RBConfigurationVertexPartition",
-            initial.membership = initial.membership,
-            node.sizes = node.sizes,
-            resolution.parameter = r,
-            random.seed = random.seed,
-            n.iter = n.iter
-          )
-        } else {
-          stop("algorithm not recognised, please specify as an integer or string")
-        }
-        names(x = ids) <- colnames(x = object)
-        ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
-        results <- list(factor(x = ids))
-        names(x = results) <- paste0('res.', r)
-        return(results)
-      }
+  leiden.graph <- if (algorithm == 4) BuildLeidenGraph(object, leiden_method) else NULL
+  if (algorithm %in% c(1:3) && length(x = resolution) > 1) {
+    ids.list <- RunModularityClusteringMulti(
+      SNN = object,
+      modularity = modularity.fxn,
+      resolution = resolution,
+      algorithm = algorithm,
+      n.start = n.start,
+      n.iter = n.iter,
+      random.seed = random.seed,
+      print.output = verbose,
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name
     )
-    clustering.results <- as.data.frame(x = clustering.results)
-  } else {
     clustering.results <- data.frame(row.names = colnames(x = object))
-    for (r in resolution) {
-      if (algorithm %in% c(1:3)) {
-        ids <- RunModularityClustering(
-          SNN = object,
-          modularity = modularity.fxn,
-          resolution = r,
-          algorithm = algorithm,
-          n.start = n.start,
-          n.iter = n.iter,
-          random.seed = random.seed,
-          print.output = verbose,
-          temp.file.location = temp.file.location,
-          edge.file.name = edge.file.name)
-      } else if (algorithm == 4) {
-        ids <- RunLeiden(
-          object = object,
-          leiden_method = leiden_method,
-          leiden_objective_function = leiden_objective_function,
-          method = method,
-          partition.type = "RBConfigurationVertexPartition",
-          initial.membership = initial.membership,
-          node.sizes = node.sizes,
-          resolution.parameter = r,
-          random.seed = random.seed,
-          n.iter = n.iter
-        )
-      } else {
-        stop("algorithm not recognised, please specify as an integer or string")
-      }
+    for (i in seq_along(along.with = resolution)) {
+      ids <- ids.list[[i]]
       names(x = ids) <- colnames(x = object)
       ids <- GroupSingletons(ids = ids, SNN = object, group.singletons = group.singletons, verbose = verbose)
-      clustering.results[, paste0("res.", r)] <- factor(x = ids)
+      clustering.results[, paste0("res.", resolution[[i]])] <- factor(x = ids)
     }
+    return(clustering.results)
+  }
+  cluster_one_resolution <- function(r) {
+    if (algorithm %in% c(1:3)) {
+      ids <- RunModularityClustering(
+        SNN = object, modularity = modularity.fxn, resolution = r,
+        algorithm = algorithm, n.start = n.start, n.iter = n.iter,
+        random.seed = random.seed, print.output = verbose,
+        temp.file.location = temp.file.location,
+        edge.file.name = edge.file.name
+      )
+    } else if (algorithm == 4 && method.present) {
+      ids <- RunLeiden(
+        object = leiden.graph,
+        leiden_method = leiden_method,
+        leiden_objective_function = leiden_objective_function,
+        method = method.use,
+        partition.type = "RBConfigurationVertexPartition",
+        initial.membership = initial.membership,
+        node.sizes = node.sizes,
+        resolution.parameter = r,
+        random.seed = random.seed,
+        n.iter = n.iter
+      )
+    } else if (algorithm == 4) {
+      ids <- RunLeiden(
+        object = leiden.graph,
+        leiden_method = leiden_method,
+        leiden_objective_function = leiden_objective_function,
+        partition.type = "RBConfigurationVertexPartition",
+        initial.membership = initial.membership,
+        node.sizes = node.sizes,
+        resolution.parameter = r,
+        random.seed = random.seed,
+        n.iter = n.iter
+      )
+    } else {
+      stop("algorithm not recognised, please specify as an integer or string")
+    }
+    names(x = ids) <- colnames(x = object)
+    ids <- GroupSingletons(ids = ids, SNN = object, group.singletons = group.singletons, verbose = verbose)
+    return(factor(x = ids))
+  }
+  clustering.results <- data.frame(row.names = colnames(x = object))
+  for (r in resolution) {
+    clustering.results[, paste0("res.", r)] <- cluster_one_resolution(r = r)
   }
   return(clustering.results)
 }
@@ -441,7 +439,6 @@ FindClusters.Seurat <- function(
     initial.membership = NULL,
     node.sizes = NULL,
     resolution = 0.8,
-    # ToDo: Update `LogSeuratCommand` to accommodate deprecated parameters.
     method = NULL,
     algorithm = 1,
     leiden_method = c("leidenbase", "igraph"),
@@ -496,8 +493,6 @@ FindClusters.Seurat <- function(
   cluster.name <- cluster.name %||% default.cluster.name
 
   names(x = clustering.results) <- cluster.name
-  # object <- AddMetaData(object = object, metadata = clustering.results)
-  # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
 
   # Sort all factor levels for clustering result columns
   for (col in names(clustering.results)) {
@@ -506,18 +501,8 @@ FindClusters.Seurat <- function(
 
     # Split factor levels by numeric vs non-numeric
     is_int <- grepl("^[0-9]+$", levels.col)
-
-    levels.sorted <- c(
-      # Sort numeric levels
-      levels.col[is_int][order(as.integer(levels.col[is_int]))],
-      # Sort remaining non-numeric levels
-      sort(levels.col[!is_int])
-    )
-    # Rebuild factor levels using sorted labels
-    clustering.results[[col]] <- factor(
-      x = as.character(clustering.results[[col]]),
-      levels = levels.sorted
-    )
+    levels.sorted <- c(levels.col[is_int][order(as.integer(levels.col[is_int]))], sort(levels.col[!is_int]))
+    clustering.results[[col]] <- factor(x = as.character(clustering.results[[col]]), levels = levels.sorted)
   }
 
   idents.use <- names(x = clustering.results)[ncol(x = clustering.results)]
@@ -526,12 +511,8 @@ FindClusters.Seurat <- function(
   levels <- levels(x = object)
   levels <- tryCatch(
     expr = as.numeric(x = levels),
-    warning = function(...) {
-      return(levels)
-    },
-    error = function(...) {
-      return(levels)
-    }
+    warning = function(...) levels,
+    error = function(...) levels
   )
   Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
   object[['seurat_clusters']] <- Idents(object = object)
@@ -597,7 +578,16 @@ FindNeighbors.default <- function(
   index = NULL,
   ...
 ) {
-  CheckDots(...)
+  dots <- list(...)
+  if (distance.matrix) {
+    CheckDots(...)
+  } else {
+    # Check dots against the nearest-neighbor backend used by NNHelper()
+    check.backend <- switch(EXPR = nn.method, "rann" = "nn2", "annoy" = "AnnoyNN", NULL)
+    if (!is.null(x = check.backend)) {
+      CheckDots(..., fxns = check.backend)
+    }
+  }
   if (is.null(x = dim(x = object))) {
     warning(
       "Object should have two dimensions, attempting to coerce to matrix",
@@ -623,6 +613,13 @@ FindNeighbors.default <- function(
   query <- query %||% object
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
+    if (!return.neighbor && identical(x = nn.method, y = "rann") && identical(x = dots$searchtype, y = "radius")) {
+      stop(
+        "RANN radius search can return fewer than k.param neighbors and is ",
+        "only supported when return.neighbor = TRUE.",
+        call. = FALSE
+      )
+    }
     if (verbose) {
       if (return.neighbor) {
         message("Computing nearest neighbors")
@@ -636,11 +633,11 @@ FindNeighbors.default <- function(
       k = k.param,
       method = nn.method,
       n.trees = n.trees,
-      searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric,
       cache.index = cache.index,
-      index = index
+      index = index,
+      ...
     )
     if (return.neighbor) {
       if (compute.SNN) {
@@ -653,7 +650,7 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
     }
-    knn.mat <- matrix(data = 0, ncol = k.param, nrow = n.cells)
+    knn.mat <- matrix(data = 0L, ncol = k.param, nrow = n.cells)
     knd.mat <- knn.mat
     for (i in 1:n.cells) {
       knn.mat[i, ] <- order(object[i, ])[1:k.param]
@@ -661,6 +658,7 @@ FindNeighbors.default <- function(
     }
     nn.ranked <- knn.mat[, 1:k.param]
   }
+  storage.mode(x = nn.ranked) <- "integer"
   # convert nn.ranked into a Graph
   j <- as.numeric(x = t(x = nn.ranked))
   i <- ((1:length(x = j)) - 1) %/% k.param + 1
@@ -672,9 +670,11 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing SNN")
     }
+    nthreads <- getThreads(verbose = FALSE)
     snn.matrix <- ComputeSNN(
       nn_ranked = nn.ranked,
-      prune = prune.SNN
+      prune = prune.SNN,
+      nthreads = nthreads
     )
     rownames(x = snn.matrix) <- rownames(x = object)
     colnames(x = snn.matrix) <- rownames(x = object)
@@ -705,7 +705,7 @@ FindNeighbors.Assay <- function(
   cache.index = FALSE,
   ...
 ) {
-  CheckDots(...)
+  CheckDots(..., fxns = c('AnnoyNN', 'nn2'))
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, layer = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
@@ -746,7 +746,6 @@ FindNeighbors.dist <- function(
   cache.index = FALSE,
   ...
 ) {
-  CheckDots(...)
   return(FindNeighbors(
     object = as.matrix(x = object),
     distance.matrix = TRUE,
@@ -808,7 +807,7 @@ FindNeighbors.Seurat <- function(
   cache.index = FALSE,
   ...
 ) {
-  CheckDots(...)
+  CheckDots(..., fxns = c('AnnoyNN', 'nn2'))
   if (!is.null(x = dims)) {
     assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
@@ -977,26 +976,167 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # nearest k elements in the index) and 'nn.dists' (the distances of the nearest
 # k elements)
 #
-#' @importFrom future plan
-#' @importFrom future.apply future_lapply
+AnnoySearch <- function(
+  index,
+  query,
+  k,
+  search.k = -1,
+  include.distance = TRUE
+) {
+  n <- nrow(x = query)
+  query.ndim <- ncol(x = query)
+  if (index$getNItems() > 0) {
+    index.ndim <- length(x = index$getItemsVector(0))
+    if (!identical(x = query.ndim, y = index.ndim)) {
+      stop(
+        "Annoy index dimensionality (", index.ndim,
+        ") does not match query dimensionality (", query.ndim, "). ",
+        "If using a cached index, regenerate it with data matching the query.",
+        call. = FALSE
+      )
+    }
+  }
+  # Use the parallel C++ search when available; otherwise use RcppAnnoy below
+  res <- AnnoySearchParallel(
+    index = index,
+    query = query,
+    k = k,
+    search.k = search.k,
+    include.distance = include.distance,
+    nthreads = getThreads(verbose = FALSE)
+  )
+  if (is.null(x = res)) {
+    return(AnnoySearchR(
+      index = index,
+      query = query,
+      k = k,
+      search.k = search.k,
+      include.distance = include.distance
+    ))
+  }
+  # Report query rows where Annoy returned fewer than k neighbors
+  found <- rowSums(x = !is.na(x = res$nn.idx))
+  if (any(found < k)) {
+    stop(
+      "Annoy found fewer than k = ", k, " neighbors for ", sum(found < k),
+      " of ", n, " queries (as few as ", min(found), "). Raise search.k, ",
+      "which defaults to n.trees * k.",
+      call. = FALSE
+    )
+  }
+  if (!include.distance) {
+    # Return an empty distance matrix when distances were not requested
+    res$nn.dists <- matrix(nrow = n, ncol = k)
+  }
+  return(res)
+}
+
+#' Search an annoy index in parallel
+#'
+#' Saves the RcppAnnoy index to a temporary Annoy file, then loads it in C++.
+#' Credit for file-backed parallel search idea: @jlmelville / uwot package
+#' 
+#' @keywords internal
+#' @noRd
+#'
+AnnoySearchParallel <- function(
+  index,
+  query,
+  k,
+  search.k = -1,
+  include.distance = TRUE,
+  nthreads = 1L
+) {
+  # With one thread, use the serial RcppAnnoy search
+  if (nthreads <= 1L) {
+    return(NULL)
+  }
+  # Choose the Annoy metric type used to load the saved index
+  metric <- if (methods::is(object = index, class2 = "Rcpp_AnnoyEuclidean")) {
+    "euclidean"
+  } else if (methods::is(object = index, class2 = "Rcpp_AnnoyAngular")) {
+    "cosine"
+  } else if (methods::is(object = index, class2 = "Rcpp_AnnoyManhattan")) {
+    "manhattan"
+  } else if (methods::is(object = index, class2 = "Rcpp_AnnoyHamming")) {
+    "hamming"
+  } else {
+    NULL
+  }
+  if (is.null(x = metric)) {
+    return(NULL)
+  }
+  query <- as.matrix(x = query)
+  if (!is.numeric(x = query) || !is_scalar_integerish(x = k) || k < 1L) {
+    return(NULL)
+  }
+  # Save the index in Annoy's native file format for C++ to load
+  index.path <- tempfile(pattern = "seurat_annoy_index_", fileext = ".ann")
+  on.exit(unlink(x = index.path, force = TRUE), add = TRUE)
+  saved <- tryCatch(
+    expr = {
+      index$save(index.path)
+      TRUE
+    },
+    error = function(...) FALSE
+  )
+  index.size <- tryCatch(
+    expr = file.info(index.path)$size,
+    error = function(...) NA_real_
+  )
+  if (!saved || is.na(x = index.size) || index.size <= 0) {
+    return(NULL)
+  }
+  tryCatch(
+    expr = AnnoySearchCpp(
+      index_path = index.path,
+      query = query,
+      k = as.integer(x = k),
+      search_k = as.integer(x = search.k),
+      include_distance = include.distance,
+      metric = metric,
+      nthreads = as.integer(x = nthreads)
+    ),
+      # Errors that are not interrupts fall back to the serial RcppAnnoy search
+    error = function(e) {
+      if (grepl(pattern = "interrupt", x = conditionMessage(e), ignore.case = TRUE)) {
+        stop(e)
+      }
+      NULL
+    }
+  )
+}
+
+# Search an Annoy index one query at a time from R
 #
-AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
+# Reference implementation for AnnoySearch(), querying one row at a time
+#
+AnnoySearchR <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
   convert <- methods::is(index, "Rcpp_AnnoyAngular")
-  if (!inherits(x = plan(), what = "multicore")) {
-    oplan <- plan(strategy = "sequential")
-    on.exit(plan(oplan), add = TRUE)
-  }
-  res <- future_lapply(X = 1:n, FUN = function(x) {
+  res <- lapply(X = 1:n, FUN = function(x) {
     res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance
     if (convert) {
-      res$dist <- 0.5 * (res$dist * res$dist)
+      res$distance <- 0.5 * (res$distance * res$distance)
     }
     list(res$item + 1, res$distance)
   })
+  found <- vapply(
+    X = res,
+    FUN = function(x) length(x = x[[1]]),
+    FUN.VALUE = integer(length = 1L)
+  )
+  if (any(found < k)) {
+    stop(
+      "Annoy found fewer than k = ", k, " neighbors for ", sum(found < k),
+      " of ", n, " queries (as few as ", min(found), "). Raise search.k, ",
+      "which defaults to n.trees * k.",
+      call. = FALSE
+    )
+  }
   for (i in 1:n) {
     idx[i, ] <- res[[i]][[1]]
     if (include.distance) {
@@ -1239,9 +1379,11 @@ FindModalityWeights  <- function(
     snn.graph.list <- lapply(
       X = sigma.nn.list,
       FUN = function(nn) {
+        nthreads <- getThreads(verbose = FALSE)
         snn.matrix <- ComputeSNN(
-          nn_ranked =  Indices(object = nn)[, 1:s.nn],
-          prune = prune.SNN
+          nn_ranked = Indices(object = nn)[, 1:s.nn],
+          prune = prune.SNN,
+          nthreads = nthreads
         )
         colnames(x = snn.matrix) <- rownames(x = snn.matrix) <- Cells(x = object)
         return (snn.matrix)
@@ -1689,6 +1831,32 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
   return(n.ob)
 }
 
+#' Helper function to build a graph object for Leiden clustering
+#'
+#' @noRd
+#'
+BuildLeidenGraph <- function(object, leiden_method = c("leidenbase", "igraph")) {
+  leiden_method <- match.arg(leiden_method)
+  if (inherits(object, what = "igraph")) {
+    return(object)
+  }
+  if (inherits(object, what = "list")) {
+    return(graph_from_adj_list(object))
+  }
+  if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
+    if (inherits(object, what = "Graph")) {
+      if (leiden_method == "leidenbase") {
+        object <- as.sparse(object)
+      }
+    }
+    if (leiden_method == "leidenbase") {
+      return(graph_from_adjacency_matrix(object, weighted = TRUE))
+    }
+    return(graph_from_adjacency_matrix(object, weighted = TRUE, diag = FALSE, mode = "lower"))
+  }
+  stop("Method for Leiden not found for class", class(object), call. = FALSE)
+}
+
 #' Run Leiden clustering algorithm
 #'
 #' Returns a vector of partition indices.
@@ -1745,8 +1913,8 @@ RunLeiden <- function(
     random.seed = 1,
     n.iter = 10
 ) {
-  # `leidenbase::leiden_find_partition` requires it's `seed` parameter to be
-  # greater than 0 (or NULL) but the default value for `FindClusters` is 0.
+  # `leidenbase::leiden_find_partition` requires its `seed` parameter to be
+  # greater than 0 (or NULL), while the default value for `FindClusters` is 0.
   # If `random.seed` is 0 or less, throw a warning and reset the value to 1.
   if (!is.null(random.seed) && random.seed <= 0) {
     warning(
@@ -1758,11 +1926,8 @@ RunLeiden <- function(
     random.seed <- 1
   }
 
-  # The `method` parameter was deprecated after switching from the `leiden`
-  # package to `leidenbase` to run the algorithm. Unlike `leiden`, `leidenbase`
-  # _requires_ an `igraph` input, so the parameter no longer makes sense. The
-  # good news is that `leidenbase` is much faster than `leiden` so it shouldn't
-  # really matter.
+  # `method` is retained only for compatibility; Leiden graph preparation is
+  # controlled by `leiden_method`.
   if (is_present(method)) {
     deprecate_soft(
       when = "5.2.0",
@@ -1775,56 +1940,17 @@ RunLeiden <- function(
 
   if (leiden_method == "igraph") {
     # adjust seed for igraph leiden
-    #Set seed without permanently changing seed state
+    # Set seed without permanently changing seed state
     prev_seed <- get_seed()
     on.exit(restore_seed(prev_seed), add = TRUE)
     set.seed(random.seed)
   }
-
-  # Convert `object` into an `igraph`.
-  # If `object` is already an `igraph` no conversion is necessary.
-  if (inherits(object, what = "igraph")) {
-    input <- object
-    # Otherwise, if `object` is a list, assume it is an adjacency list...
-  } else if (inherits(object, what = "list")) {
-    # And convert it to an `igraph` with the appropriate method.
-    input <- graph_from_adj_list(object)
-    # Or, if `object` is a matrix...
-  } else if (inherits(object, what = c("dgCMatrix", "matrix", "Matrix"))) {
-    # Make sure the matrix is sparse.
-    if (inherits(object, what = "Graph")) {
-      if (leiden_method == "leidenbase") {
-        object <- as.sparse(object)
-      }
-    }
-    # And then convert it to an graph.
-    if (leiden_method == "leidenbase") {
-      input <- graph_from_adjacency_matrix(object, weighted = TRUE)
-    }
-    if (leiden_method == "igraph") {
-      input <- graph_from_adjacency_matrix(
-        object,
-        weighted = TRUE,
-        diag = FALSE,
-        mode = "lower")
-    }
-
-    # Throw an error if `object` is of an unknown type.
-  } else {
-    stop(
-      "Method for Leiden not found for class", class(object),
-      call. = FALSE
-    )
-  }
-
-  # Run clustering with `leidenbase`.
+  input <- BuildLeidenGraph(object, leiden_method)
   if (leiden_method == "leidenbase") {
-    # Check if leidenbase is available
     if (!requireNamespace("leidenbase", quietly = TRUE)) {
-      stop("Package 'leidenbase' is required for leiden_method = 'leidenbase'. ",
-           "Please install it with: install.packages('leidenbase')")
+      stop("Package 'leidenbase' is required for leiden_method = 'leidenbase'. Please install it with: install.packages('leidenbase')")
     }
-    
+
     partition <- leidenbase::leiden_find_partition(
       input,
       partition_type = partition.type,
@@ -1866,7 +1992,7 @@ RunLeiden <- function(
 # @param SNN SNN matrix to use as input for the clustering algorithms
 # @param modularity Modularity function to use in clustering (1 = standard; 2 = alternative)
 # @param resolution Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities
-# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python module.
+# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm; 4 = Leiden algorithm).
 # @param n.start Number of random starts
 # @param n.iter Maximal number of iterations per random start
 # @param random.seed Seed of the random number generator
@@ -1890,6 +2016,7 @@ RunModularityClustering <- function(
   temp.file.location = NULL,
   edge.file.name = NULL
 ) {
+  n.threads <- getThreads(verbose = FALSE)
   edge_file <- edge.file.name %||% ''
   clusters <- RunModularityClusteringCpp(
     SNN,
@@ -1900,7 +2027,37 @@ RunModularityClustering <- function(
     n.iter,
     random.seed,
     print.output,
-    edge_file
+    edge_file,
+    n.threads
+  )
+  return(clusters)
+}
+
+RunModularityClusteringMulti <- function(
+  SNN = matrix(),
+  modularity = 1,
+  resolution = 0.8,
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  print.output = TRUE,
+  temp.file.location = NULL,
+  edge.file.name = NULL
+) {
+  n.threads <- getThreads(verbose = FALSE)
+  edge_file <- edge.file.name %||% ''
+  clusters <- RunModularityClusteringCpp_multi(
+    SNN,
+    modularity,
+    resolution,
+    algorithm,
+    n.start,
+    n.iter,
+    random.seed,
+    print.output,
+    edge_file,
+    n.threads
   )
   return(clusters)
 }
