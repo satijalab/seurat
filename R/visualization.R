@@ -651,6 +651,9 @@ VlnPlot <- function(
     )
     layer <- slot %||% layer
   }
+  if (missing(fill.by)) {
+    fill.by <- if (stack) 'feature' else 'ident'
+  }
   layer.set <- suppressWarnings(
     Layers(
       object = object,
