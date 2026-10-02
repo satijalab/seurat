@@ -263,6 +263,47 @@ test_that("`RunPCA` drops zero-variance features only within the supplied featur
   expect_false(any(rownames(mat)[51:60] %in% loadings_features))
 })
 
+test_that("RunPCA preserves RNG state and is reproducible with a seed", {
+  set.seed(1)
+  counts <- create_random_counts()
+  object <- create_seurat_obj(counts = counts, assay_version = "v5")
+  test_case <- create_prep_obj(object = object, normalize = TRUE, scale = TRUE)
+  features <- rownames(x = LayerData(object = test_case, layer = "scale.data"))[1:30]
+
+  before <- .Random.seed
+  pca1 <- {result <- suppressWarnings(RunPCA(test_case, features = features, npcs = 10, seed.use = 42, verbose = FALSE)); expect_identical(.Random.seed, before); result}
+  pca2 <- {result <- suppressWarnings(RunPCA(test_case, features = features, npcs = 10, seed.use = 42, verbose = FALSE)); expect_identical(.Random.seed, before); result}
+  expect_identical(.Random.seed, before)
+  expect_equal(abs(Embeddings(pca1[["pca"]])), abs(Embeddings(pca2[["pca"]])))
+})
+
+test_that("RunUMAP preserves RNG state and is reproducible with a seed", {
+  set.seed(1)
+  object <- create_seurat_obj(counts = create_random_counts(), assay_version = "v5")
+  object <- create_prep_obj(object = object, normalize = TRUE, scale = TRUE)
+  object <- suppressWarnings(RunPCA(object, npcs = 10, verbose = FALSE))
+
+  before <- .Random.seed
+  umap1 <- {result <- RunUMAP(object = object, dims = 1:10, seed.use = 42, n.epochs = 0L, verbose = FALSE); expect_identical(.Random.seed, before); result}
+  umap2 <- {result <- RunUMAP(object = object, dims = 1:10, seed.use = 42, n.epochs = 0L, verbose = FALSE); expect_identical(.Random.seed, before); result}
+  expect_identical(.Random.seed, before)
+  expect_equal(Embeddings(umap1[["umap"]]), Embeddings(umap2[["umap"]]))
+})
+
+test_that("RunTSNE preserves RNG state and is reproducible with a seed", {
+  set.seed(1)
+  object <- create_seurat_obj(counts = create_random_counts(), assay_version = "v5")
+  object <- create_prep_obj(object = object, normalize = TRUE, scale = TRUE)
+  object <- suppressWarnings(RunPCA(object, npcs = 10, verbose = FALSE))
+  pca <- object[["pca"]]
+
+  before <- .Random.seed
+  tsne1 <- {result <- RunTSNE(pca, dims = 1:5, seed.use = 42, dim.embed = 2, verbose = FALSE); expect_identical(.Random.seed, before); result}
+  tsne2 <- {result <- RunTSNE(pca, dims = 1:5, seed.use = 42, dim.embed = 2, verbose = FALSE); expect_identical(.Random.seed, before); result}
+  expect_identical(.Random.seed, before)
+  expect_equal(Embeddings(tsne1), Embeddings(tsne2))
+})
+
 context("RunICA")
 
 test_that("`RunPCA` works as expected", {
