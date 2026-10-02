@@ -252,11 +252,20 @@ test_that("`AnnoySearch` matches the RcppAnnoy query loop across metrics and thr
         expected$nn.idx,
         info = paste(metric, "indices", nthreads, "threads")
       )
-      expect_identical(
-        observed$nn.dists,
-        expected$nn.dists,
-        info = paste(metric, "distances", nthreads, "threads")
-      )
+      if (metric == "hamming") { # hamming metric uses exact integer distances
+        expect_identical(
+          observed$nn.dists,
+          expected$nn.dists,
+          info = paste(metric, "distances", nthreads, "threads")
+        )
+      } else { # others use float distances which may not be exactly identical
+        expect_equal(
+          observed$nn.dists,
+          expected$nn.dists,
+          tolerance = 1e-6,
+          info = paste(metric, "distances", nthreads, "threads")
+        )
+      }
     }
   }
 })

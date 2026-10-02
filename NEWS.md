@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 5.6.0
 
 ### Additions
 
@@ -34,10 +34,11 @@
 - Updated argument handling in `FindSpatiallyVariableFeatures()` by resolving `selection.method` with `match.arg()` and restoring the `FindSpatiallyVariableFeatures.Assay()` default `nfeatures` value to `2000` ([#10504](https://github.com/satijalab/seurat/pull/10504))
 - Fixed `RunMarkVario()` to return one named mark variogram result per feature for single-feature inputs and parallel execution chunks ([#10505](https://github.com/satijalab/seurat/pull/10505))
 - Updated `IntegrateLayers()` to throw an error message when less than two groups/layers are provided ([#10396](https://github.com/satijalab/seurat/pull/10396))
-- Fixed SCT recorrection after subsetting so `FindMarkers()` works on subsetted SCT assays with observed median UMI lower than the correction depth stored in every SCT model ([#10509](https://github.com/satijalab/seurat/pull/10509))
+- Fixed recorrection in `SCTransform` after subsetting so `FindMarkers()` works on subsetted SCT assays with observed median UMI lower than the correction depth stored in every SCT model ([#10509](https://github.com/satijalab/seurat/pull/10509))
 - Fixed `FindNeighbors` to correctly convert Annoy angular distances to cosine distances
 - Fixed `RunPCA` on v5 assays to exclude unavailable requested features and cap the number of PCs by the available features and cells
-- Fixed SCT residual retrieval to reuse cached features and respect an explicitly supplied `clip.range`
+- Fixed `SCTransform` residual retrieval to reuse cached features and respect an explicitly supplied `clip.range`
+- Fixed `SCTransform` on v5 assays to preserve features selected by `variable.features.rv.th` when `variable.features.n = NULL`, including across multiple layers
 - Fixed reference-based RPCA/CCA anchor finding to exclude query-query comparisons regardless of `verbose`
 
 # Seurat 5.5.1
