@@ -1229,6 +1229,9 @@ SCTransform.StdAssay <- function(
     layer_names,
     function(layer_name) {
       layer_counts <- LayerData(object, layer = layer_name)
+      if (inherits(x = layer_counts, what = 'IterableMatrix')) {
+        layer_counts <- as.sparse(x = layer_counts)
+      }
       return(layer_counts)
     }
   )

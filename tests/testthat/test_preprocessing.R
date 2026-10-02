@@ -771,4 +771,32 @@ if (is_not_cran_submission) {
                 as.matrix(LayerData(object = object[["SCTbp"]], layer = "data")),
                 tolerance = 1e-6)
   })
+
+  test_that("SCTransform preserves BPCells cells when sampling or disabling correction", {
+    skip_if_not_installed("glmGamPoi")
+    skip_if_not_installed("BPCells")
+
+    test.data <- object2
+    test.data[["RNA"]] <- CreateAssay5Object(counts = t(as(t(pbmc.test), "IterableMatrix")))
+    inputs <- list(test.data, split(test.data, f = test.data$Condition))
+    # exercise sampling and uncorrected counts
+    configurations <- list(
+      list(ncells = 20),
+      list(do.correct.umi = FALSE),
+      list(reference.SCT.model = object[["SCT"]]@SCTModel.list[[1]])
+    )
+
+    for (input in inputs) {
+      for (configuration in configurations) {
+        result <- suppressWarnings(do.call(SCTransform, c(
+          list(object = input, verbose = FALSE), configuration
+        )))
+        # all cells must have residuals
+        expect_setequal(colnames(result[["SCT"]]), colnames(input))
+        residuals <- LayerData(result[["SCT"]], layer = "scale.data")
+        expect_setequal(colnames(residuals), colnames(input))
+        expect_false(anyNA(residuals))
+      }
+    }
+  })
 }
