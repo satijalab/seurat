@@ -353,6 +353,8 @@ test_that("SpatialDimPlot works with multiple assays, layers, & images", {
 
 test_that("FindSpatiallyVariableFeatures uses FOV cell names for the requested assay", {
   skip_on_cran()
+  skip_if_not_installed("spatstat.explore")
+  skip_if_not_installed("spatstat.geom")
 
   set.seed(42)
   test.case <- merge(test.data.1, test.data.3)
@@ -443,6 +445,9 @@ build_svf_case <- function(n_features_vary = 0L) {
 
 test_that("FindSpatiallyVariableFeatures handles bad inputs", {
   skip_on_cran()
+  skip_if_not_installed("spatstat.explore")
+  skip_if_not_installed("spatstat.geom")
+  skip_if(!requireNamespace("Rfast2", quietly = TRUE) && !requireNamespace("ape", quietly = TRUE))
 
   set.seed(42)
   case <- build_svf_case(n_features_vary = 4L)
@@ -493,6 +498,8 @@ test_that("FindSpatiallyVariableFeatures handles bad inputs", {
 
 test_that("RunMarkVario returns one named entry per feature", {
   skip_on_cran()
+  skip_if_not_installed("spatstat.explore")
+  skip_if_not_installed("spatstat.geom")
 
   set.seed(42)
   n.cells <- 12L
