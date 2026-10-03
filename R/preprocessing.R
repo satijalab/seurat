@@ -2844,7 +2844,8 @@ ReadXenium <- function(
         col.use = c(
           x_location = letters[24+flip.xy],
           y_location = letters[25-flip.xy],
-          feature_name = 'gene'
+          feature_name = 'gene',
+          qv = 'qv'
         )
 
         for(option in Filter(function(x) x$req, list(
@@ -2877,6 +2878,7 @@ ReadXenium <- function(
         colnames(transcripts) <- col.use
 
         transcripts$gene <- binary_to_string(transcripts$gene)
+        transcripts <- transcripts[transcripts$qv >= mols.qv.threshold, c('x', 'y', 'gene')]
 
         pmicrons(type = 'finish')
 
