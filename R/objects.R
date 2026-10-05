@@ -1892,19 +1892,32 @@ RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
   old.names <- Cells(x = object)
   names(x = new.names) <- old.names
   cell.attributes <- SCTResults(object = object, slot = "cell.attributes")
+  # A model records the cells it was fit on, and that record is kept a subset of
+  # the assay's cells: `subset.SCTAssay` prunes it. An object that has lost that
+  # invariant -- one saved by an older version of Seurat, say -- names cells the
+  # assay does not have, and those have no new name to take. Prune them, as
+  # subsetting would have, rather than leaving the frame with `NA` row names
+  .RenameAttributes <- function(x) {
+    stale <- setdiff(x = rownames(x = x), y = old.names)
+    if (length(x = stale) > 0) {
+      warning(
+        "Dropping ", length(x = stale), " cell(s) recorded by an SCT model ",
+        "that the assay does not have: ",
+        paste(head(x = stale, n = 5L), collapse = ", "),
+        if (length(x = stale) > 5L) ", ...",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      x <- x[setdiff(x = rownames(x = x), y = stale), , drop = FALSE]
+    }
+    rownames(x = x) <- unname(obj = new.names[rownames(x = x)])
+    return(x)
+  }
   if (length(x = cell.attributes) > 0) {
     if (is.data.frame(x = cell.attributes)) {
-      old.names <- rownames(x = cell.attributes)
-      rownames(x = cell.attributes) <- unname(obj = new.names[old.names])
+      cell.attributes <- .RenameAttributes(x = cell.attributes)
     } else {
-      cell.attributes <- lapply(
-        X = cell.attributes,
-        FUN = function(x) {
-          old.names <- rownames(x = x)
-          rownames(x = x) <- unname(obj = new.names[old.names])
-          return(x)
-        }
-      )
+      cell.attributes <- lapply(X = cell.attributes, FUN = .RenameAttributes)
     }
     SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
   }

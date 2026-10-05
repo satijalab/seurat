@@ -22,6 +22,7 @@
 
 ### Fixes
 
+- Fixed `RenameCells` on an SCT assay failing with \dQuote{missing values in 'row.names' are not allowed} or \dQuote{duplicate 'row.names' are not allowed} when a model records cells the assay no longer has; such cells are now dropped with a warning, as subsetting would have ([#256](https://github.com/satijalab/seurat-object/issues/256))
 - Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
 - Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
