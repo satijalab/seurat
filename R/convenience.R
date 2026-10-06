@@ -282,6 +282,394 @@ LoadXenium <- function(
   return(xenium.obj)
 }
 
+#' @return \code{LoadAtera}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param data.dir Path to folder containing Atera outputs
+#' @param fov FOV name
+#' @param assay Assay name
+#' @param mols.qv.threshold Remove transcript molecules with a calibrated
+#' Q-score less than this threshold
+#' @param cell.centroids Whether or not to load cell centroids
+#' @param molecule.coordinates Whether or not to load transcript molecule
+#' coordinates
+#' @param segmentations Which segmentation boundary polygons to load, one
+#' of \dQuote{cell} or \dQuote{nucleus}, or \code{NULL} to load none
+#' @param genes Optional character vector of gene names to restrict the
+#' initial \code{molecule.coordinates} load to. When \code{molecule.coordinates
+#' = TRUE}, a lazy, on-disk handle onto the transcript table is always kept
+#' on the returned object (regardless of whether \code{genes} is set), so
+#' additional genes can be fetched later with \code{\link{LoadAteraMolecules}}
+#' without re-reading genes already fetched. See \code{\link{ReadAtera}}
+#' @param feature.types Optional character vector of feature types to
+#' restrict the counts matrix to (eg \dQuote{Gene Expression}); \code{NULL}
+#' (the default) loads all feature types, matching current behavior.
+#' \dQuote{Gene Expression} is always included, since it backs the object's
+#' primary assay. See \code{\link{ReadAtera}}
+#' @param bpcells.dir Path to a directory used to cache the counts matrix on
+#' disk via \code{BPCells}. \code{NULL} (the default) auto-selects a
+#' session-scoped cache directory so the returned object is BPCells-backed
+#' and lazy by default (even for small bundles) whenever \code{BPCells} is
+#' installed; pass \code{FALSE} to always get plain in-memory matrices
+#' instead. See \code{\link{ReadAtera}}
+#' @param morphology.image Whether to load a single channel plane of a
+#' \dQuote{morphology_2d} image (eg the DAPI stain), by default at the
+#' lowest-resolution pyramid level, for use as a background/overview image
+#' in plots. Requires the \code{RBioFormats} package. Defaults to
+#' \code{FALSE} since it is an optional dependency and not needed for
+#' downstream analysis. See \code{\link{ReadAtera}}
+#' @param morphology.channel Channel to load when \code{morphology.image =
+#' TRUE}: either a channel name (matched case-insensitively as a substring,
+#' eg \dQuote{dapi}) or a 0-based integer channel index. See
+#' \code{\link{ReadAtera}}
+#' @param morphology.resolution Pyramid resolution level to load when
+#' \code{morphology.image = TRUE}, where \code{1} is full resolution.
+#' Defaults to \code{NULL}, which loads the lowest-resolution (smallest,
+#' fastest) level available. See \code{\link{ReadAtera}}
+#' @param morphology.region Optional list with \code{x}/\code{y} elements
+#' (each a length-2 micron range) to crop the loaded morphology image to a
+#' rectangular window instead of reading the whole plane; recommended when
+#' using \code{morphology.resolution = 1} (full resolution) on real-world
+#' datasets, since these whole-slide images can be tens of thousands of
+#' pixels per side. Defaults to \code{NULL}, which reads the whole plane.
+#' See \code{\link{ReadAtera}}
+#'
+#' @importFrom SeuratObject Cells CreateCentroids CreateFOV CreateSegmentation
+#' CreateSeuratObject CreateAssay5Object CreateMolecules
+#'
+#' @export
+#'
+#' @rdname ReadAtera
+#'
+LoadAtera <- function(
+  data.dir,
+  fov = 'fov',
+  assay = 'Atera',
+  mols.qv.threshold = 20,
+  cell.centroids = TRUE,
+  molecule.coordinates = FALSE,
+  segmentations = NULL,
+  genes = NULL,
+  feature.types = NULL,
+  bpcells.dir = NULL,
+  morphology.image = FALSE,
+  morphology.channel = "dapi",
+  morphology.resolution = NULL,
+  morphology.region = NULL
+) {
+  if (!is.null(segmentations) && !(segmentations %in% c('nucleus', 'cell'))) {
+    stop('segmentations must be NULL or one of "nucleus", "cell"')
+  }
+
+  if (!cell.centroids && is.null(segmentations)) {
+    stop("Must load either centroids or cell/nucleus segmentations")
+  }
+
+  if (!is.null(feature.types)) {
+    feature.types <- union(feature.types, "Gene Expression")
+  }
+
+  data <- ReadAtera(
+    data.dir = data.dir,
+    outs = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "morphology")[
+      c(TRUE, cell.centroids, isTRUE(segmentations == 'cell'), isTRUE(segmentations == 'nucleus'), morphology.image)
+    ],
+    mols.qv.threshold = mols.qv.threshold,
+    feature.types = feature.types,
+    bpcells.dir = bpcells.dir,
+    morphology.channel = morphology.channel,
+    morphology.resolution = morphology.resolution,
+    morphology.region = morphology.region
+  )
+  mols.handle <- NULL
+  if (molecule.coordinates) {
+    .AteraCheckDeps()
+    mols.handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
+    if (!is.null(genes)) {
+      data$microns <- .AteraFetchMolecules(handle = mols.handle, genes = genes)
+    }
+  }
+
+  segmentations.key <- intersect(c("segmentations", "nucleus_segmentations"), names(data))
+
+  segmentations.data <- Filter(Negate(is.null), list(
+    centroids = if (is.null(data$centroids)) {
+      NULL
+    } else {
+      CreateCentroids(data$centroids)
+    },
+    segmentations = if (length(segmentations.key) > 0) {
+      CreateSegmentation(data[[segmentations.key]])
+    } else {
+      NULL
+    }
+  ))
+
+  coords <- CreateFOV(
+    segmentations.data,
+    assay = assay,
+    molecules = if (is.null(data$microns)) {
+      NULL
+    } else {
+      CreateMolecules(data$microns)
+    }
+  )
+
+  slot.map <- c(
+    `Deprecated Codeword` = 'DeprecatedCodeword',
+    `Unassigned Codeword` = 'BlankCodeword',
+    `Negative Control Codeword` = 'ControlCodeword',
+    `Negative Control Probe` = 'ControlProbe',
+    `Genomic Control` = 'GenomicControl'
+  )
+
+  atera.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+
+  if (!is.null(data$metadata)) {
+    Misc(atera.obj, 'run_metadata') <- data$metadata
+  }
+
+  extra.types <- intersect(names(slot.map), names(data$matrix))
+  single.feature.types <- Filter(function(name) nrow(data$matrix[[name]]) == 1L, extra.types)
+  for (name in setdiff(extra.types, single.feature.types)) {
+    atera.obj[[slot.map[name]]] <- CreateAssay5Object(counts = data$matrix[[name]])
+  }
+
+  atera.obj <- subset(atera.obj, cells = intersect(Cells(atera.obj), Cells(coords)))
+  coords <- subset(coords, cells = intersect(Cells(atera.obj), Cells(coords)))
+
+  atera.obj[[fov]] <- coords
+
+  for (name in single.feature.types) {
+    # CreateAssay5Object errors on single-feature layers ("Layers must be
+    # two-dimensional objects"), which would otherwise force falling back to
+    # the legacy v3 Assay (CreateAssayObject) here -- but that class's
+    # LayerData.Assay() validates its `cells` argument via
+    # rlang::arg_match(..., multiple = TRUE) every time per-assay stats are
+    # (re)computed (on creation, on every later subset(), etc.), and that
+    # call doesn't scale: it's effectively unusable past a few thousand
+    # cells, let alone the millions typical of a whole-tissue Atera run.
+    # A single-feature "assay" isn't useful for standard per-feature
+    # analysis anyway, so it's stashed as a plain matrix in Misc instead,
+    # subset to the cells actually retained above.
+    Misc(atera.obj, paste0('atera.', slot.map[name])) <- data$matrix[[name]][, Cells(atera.obj), drop = FALSE]
+  }
+
+  if (!is.null(mols.handle)) {
+    Misc(atera.obj, 'atera.molecules') <- list(handle = mols.handle, cache = data$microns, fov = fov)
+  }
+
+  if (!is.null(data$morphology)) {
+    Misc(atera.obj, 'atera.morphology') <- data$morphology
+  }
+
+  return(atera.obj)
+}
+
+#' Fetch additional Atera transcript molecules for genes not yet loaded
+#'
+#' Fetches transcript molecule coordinates for \code{genes} and adds them to
+#' the molecule layer of a Seurat object created by
+#' \code{\link{LoadAtera}(..., molecule.coordinates = TRUE)}, without
+#' re-reading genes that have already been fetched (by this call or by
+#' \code{genes} at load time). This is meant for interactive exploration,
+#' where different genes are plotted one at a time and reloading the full
+#' transcript table for each one would be wasteful.
+#'
+#' @param object A Seurat object created by \code{LoadAtera(..., molecule.coordinates = TRUE)}
+#' @param genes Character vector of gene names to fetch
+#'
+#' @return \code{object}, with \code{genes}' transcript coordinates added to
+#' its molecule layer (in addition to any genes fetched by a previous call)
+#'
+#' @importFrom SeuratObject CreateMolecules
+#'
+#' @export
+#'
+LoadAteraMolecules <- function(object, genes) {
+  handle.info <- Misc(object, slot = 'atera.molecules')
+  if (is.null(handle.info)) {
+    stop(
+      "'object' was not loaded with LoadAtera(..., molecule.coordinates = TRUE)",
+      call. = FALSE
+    )
+  }
+
+  cached.genes <- if (is.null(handle.info$cache)) character(0) else unique(handle.info$cache$gene)
+  missing.genes <- setdiff(genes, cached.genes)
+  if (length(missing.genes) > 0) {
+    new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes)
+    handle.info$cache <- if (is.null(handle.info$cache)) {
+      new.df
+    } else {
+      rbind(handle.info$cache, new.df)
+    }
+  }
+
+  object[[handle.info$fov]]@molecules <- list(
+    molecules = CreateMolecules(handle.info$cache, key = 'mols_')
+  )
+  Misc(object, 'atera.molecules') <- handle.info
+
+  return(object)
+}
+
+#' Add segmentation polygons to an Atera field of view, for only the cells
+#' currently present in it
+#'
+#' \code{LoadAtera(..., segmentations = "cell")} builds a \code{Polygons}
+#' object (via \code{sp::SpatialPolygons()}) for every cell up front, which
+#' doesn't scale to bundles with many hundreds of thousands of cells -- that
+#' machinery gets impractically slow, and can overflow R's protection stack,
+#' well before reaching cell counts typical of a whole-tissue Atera run. This
+#' function instead builds segmentation polygons only for the cells already
+#' present in \code{object[[fov]]}, so a bundle too large to load
+#' segmentations for up front (\code{LoadAtera(..., segmentations = NULL)})
+#' can still get polygons for a \code{\link[SeuratObject]{Crop}}ped
+#' region-of-interest FOV, which typically has orders of magnitude fewer
+#' cells.
+#'
+#' @param object A Seurat object created by \code{\link{LoadAtera}}
+#' @param data.dir The same \code{data.dir} passed to the original
+#' \code{\link{LoadAtera}} call (the Atera output bundle directory)
+#' @param fov Name of the FOV (typically already cropped via
+#' \code{\link[SeuratObject]{Crop}}) to add segmentation polygons to
+#' @param segmentations One of \code{"cell"} or \code{"nucleus"}
+#' @param max.cells Safety limit: errors rather than attempting to build
+#' polygons for more than this many cells, since \code{sp::SpatialPolygons()}
+#' becomes impractically slow/crash-prone well before this many
+#'
+#' @return \code{object}, with a \code{"segmentations"} boundary added to
+#' \code{object[[fov]]}, built only for the cells currently in that FOV
+#'
+#' @importFrom SeuratObject Cells CreateSegmentation
+#'
+#' @export
+#'
+LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell", max.cells = 50000) {
+  if (!isTRUE(segmentations %in% c("cell", "nucleus"))) {
+    stop("segmentations must be one of \"cell\", \"nucleus\"", call. = FALSE)
+  }
+  cell.ids <- Cells(object[[fov]])
+  if (length(cell.ids) > max.cells) {
+    stop(
+      "FOV '", fov, "' has ", length(cell.ids), " cells, over `max.cells` (", max.cells, "). ",
+      "Building per-cell segmentation polygons (via sp::SpatialPolygons()) doesn't scale this ",
+      "far and will be extremely slow or crash. Crop to a smaller region first, or raise ",
+      "`max.cells` if you're sure.",
+      call. = FALSE
+    )
+  }
+
+  zip.file <- file.path(data.dir, "cells.zarr.zip")
+  zidx <- .AteraZipIndex(zip.file)
+  con <- file(zip.file, "rb")
+  on.exit(close(con), add = TRUE)
+
+  all.cell.ids <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
+  set.idx <- if (segmentations == "cell") 1L else 0L
+  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids)
+  df <- df[df$cell %in% cell.ids, , drop = FALSE]
+
+  object[[fov]][["segmentations"]] <- CreateSegmentation(df)
+  return(object)
+}
+
+#' Load per-codeword transcript breakdowns for specific genes
+#'
+#' Atera's per-transcript \code{codeword_identity} (which specific barcode/
+#' codeword called each detection) is collapsed away by
+#' \code{\link{LoadAteraMolecules}}, which reports one combined position per
+#' gene. A gene can map to more than one distinct codeword (more than one
+#' probe/barcode design targeting the same gene); this instead returns one
+#' \code{"<gene>_codeword_<id>"} pseudo-feature per codeword, which is useful
+#' for a common QC question: whether different codewords for the same gene
+#' cluster differently in space (which would suggest a probe-specific
+#' artifact rather than true expression).
+#'
+#' @param object A Seurat object created by \code{\link{LoadAtera}}
+#' @param data.dir The same \code{data.dir} passed to the original
+#' \code{\link{LoadAtera}} call (the Atera output bundle directory)
+#' @param genes Character vector of one or more gene names to break down by
+#' codeword
+#' @param fov Name of the FOV to attach the resulting molecules to; defaults
+#' to the object's default FOV
+#'
+#' @return \code{object}, with one \code{"<gene>_codeword_<id>"} molecule
+#' entry per codeword mapping to each requested gene, merged into
+#' \code{object[[fov]]}'s existing molecule layer (regular genes loaded via
+#' \code{\link{LoadAteraMolecules}} are preserved, not overwritten; genes
+#' already broken down by a previous call are not re-fetched)
+#'
+#' @importFrom SeuratObject DefaultFOV Misc CreateMolecules
+#'
+#' @export
+#'
+LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
+  fov <- fov %||% DefaultFOV(object = object)
+
+  handle <- .AteraMoleculesHandle(data.dir = data.dir)
+  unknown <- setdiff(genes, handle$gene.names)
+  if (length(unknown) > 0) {
+    stop("Unknown Atera gene(s): ", paste(unknown, collapse = ", "), call. = FALSE)
+  }
+
+  handle.info <- Misc(object, slot = 'atera.molecules')
+  existing.cache <- if (is.null(handle.info)) NULL else handle.info$cache
+  cached.genes <- if (is.null(existing.cache)) character(0) else unique(existing.cache$gene)
+  already.loaded <- vapply(genes, function(g) {
+    any(grepl(paste0("^", g, "_codeword_"), cached.genes))
+  }, logical(1L))
+  missing.genes <- genes[!already.loaded]
+
+  if (length(missing.genes) > 0) {
+    zip.file <- file.path(data.dir, "transcripts.zarr.zip")
+    zidx <- .AteraZipIndex(zip.file)
+    nthreads <- .AteraThreads()
+
+    gene.dfs <- lapply(missing.genes, function(gene_name) {
+      gene.idx <- match(gene_name, handle$gene.names)
+      # A gene's rows are typically spread across most of the grid tiles (eg
+      # ~85-88 of 102 for genes checked on a real whole-transcriptome bundle);
+      # each tile's read is independent, so this is parallelized across
+      # tiles rather than reading them one at a time. Unlike .AteraReadArray's
+      # chunk-level parallelism (which shares one connection, reading
+      # sequentially before decoding in parallel), tile reads here are full,
+      # separate .AteraReadArray calls -- each forked worker opens its own
+      # connection, since a connection's file position can't safely be
+      # shared/seeked concurrently across forked processes.
+      read.tile <- function(tile) {
+        go <- tile$gene_offset
+        n <- go[gene.idx, 2] - go[gene.idx, 1]
+        if (n == 0) {
+          return(NULL)
+        }
+        rows <- c(go[gene.idx, 1] + 1L, go[gene.idx, 2])
+        con <- file(zip.file, "rb")
+        on.exit(close(con))
+        loc <- .AteraReadArray(con, zidx, paste0(tile$dir, "/location"), row.range = rows)
+        cw <- .AteraReadArray(con, zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows)
+        data.frame(x = loc[, 1], y = loc[, 2], gene = paste0(gene_name, "_codeword_", cw))
+      }
+      tile.dfs <- if (nthreads > 1L) {
+        parallel::mclapply(handle$tiles, read.tile, mc.cores = nthreads)
+      } else {
+        lapply(handle$tiles, read.tile)
+      }
+      do.call(rbind, tile.dfs)
+    })
+    new.df <- do.call(rbind, gene.dfs)
+    existing.cache <- if (is.null(existing.cache)) new.df else rbind(existing.cache, new.df)
+  }
+
+  object[[fov]]@molecules <- list(molecules = CreateMolecules(existing.cache, key = 'mols_'))
+  if (!is.null(handle.info)) {
+    handle.info$cache <- existing.cache
+    Misc(object, 'atera.molecules') <- handle.info
+  }
+
+  return(object)
+}
+
 #' @param ... Extra parameters passed to \code{DimHeatmap}
 #'
 #' @rdname DimHeatmap

@@ -2903,6 +2903,1445 @@ ReadXenium <- function(
   return(data)
 }
 
+#' Check that the packages required to read Atera outputs are installed
+#'
+#' @keywords internal
+#' @noRd
+.AteraCheckDeps <- function() {
+  pkgs <- c('blosc', 'jsonlite', 'data.table')
+  have <- vapply(X = pkgs, FUN = requireNamespace, FUN.VALUE = logical(1), quietly = TRUE)
+  if (!all(have)) {
+    stop(
+      "Reading Atera outputs requires the following package(s): ",
+      paste(pkgs[!have], collapse = ', '),
+      call. = FALSE
+    )
+  }
+}
+
+#' @keywords internal
+#' @noRd
+.AteraLeU16 <- function(raw, pos) {
+  as.integer(raw[pos]) + as.integer(raw[pos + 1L]) * 256L
+}
+
+#' Widen a little-endian 4-byte field to a double, avoiding 32-bit signed
+#' integer overflow (zip offsets/sizes routinely exceed 2^31)
+#'
+#' @keywords internal
+#' @noRd
+.AteraLeU32 <- function(raw, pos) {
+  b <- as.integer(raw[pos:(pos + 3L)])
+  b[1] + b[2] * 256 + b[3] * 65536 + b[4] * 16777216
+}
+
+#' @keywords internal
+#' @noRd
+.AteraLeU64 <- function(raw, pos) {
+  b <- as.integer(raw[pos:(pos + 7L)])
+  lo <- b[1] + b[2] * 256 + b[3] * 65536 + b[4] * 16777216
+  hi <- b[5] + b[6] * 256 + b[7] * 65536 + b[8] * 16777216
+  lo + hi * 4294967296
+}
+
+#' Locate the End Of Central Directory record of a zip file, following the
+#' Zip64 EOCD locator/record when the classic EOCD's entry count/size/offset
+#' fields are the \code{0xFFFF}/\code{0xFFFFFFFF} placeholder
+#'
+#' @keywords internal
+#' @noRd
+.AteraZipEOCD <- function(con, file.size) {
+  eocd.sig <- as.raw(c(0x50, 0x4b, 0x05, 0x06))
+  tail.size <- min(file.size, 22L + 65535L)
+  seek(con, where = file.size - tail.size, origin = "start")
+  tail.bytes <- readBin(con, what = "raw", n = tail.size)
+  n <- length(tail.bytes)
+  pos <- NA_integer_
+  for (i in (n - 21L):1L) {
+    if (i < 1L) break
+    if (tail.bytes[i] == eocd.sig[1] && tail.bytes[i + 1L] == eocd.sig[2] &&
+        tail.bytes[i + 2L] == eocd.sig[3] && tail.bytes[i + 3L] == eocd.sig[4]) {
+      pos <- i
+      break
+    }
+  }
+  if (is.na(pos)) {
+    stop("Could not locate End Of Central Directory record; not a valid zip file", call. = FALSE)
+  }
+  n.entries <- .AteraLeU16(tail.bytes, pos + 10L)
+  cd.size <- .AteraLeU32(tail.bytes, pos + 12L)
+  cd.offset <- .AteraLeU32(tail.bytes, pos + 16L)
+
+  is.zip64 <- n.entries == 0xFFFF || cd.size >= 0xFFFFFFFF || cd.offset >= 0xFFFFFFFF
+  if (is.zip64) {
+    # the Zip64 EOCD locator is the fixed-size (20 byte) record immediately
+    # preceding the EOCD record we just found; `pos` is a 1-based index into
+    # tail.bytes, so the 0-based absolute file offset of the signature is
+    # (file.size - tail.size) + pos - 1
+    locator.abs.pos <- (file.size - tail.size) + pos - 21L
+    seek(con, where = locator.abs.pos, origin = "start")
+    locator <- readBin(con, what = "raw", n = 20L)
+    zip64.eocd.offset <- .AteraLeU64(locator, 9L)
+    seek(con, where = zip64.eocd.offset, origin = "start")
+    zip64.eocd <- readBin(con, what = "raw", n = 56L)
+    n.entries <- .AteraLeU64(zip64.eocd, 33L)
+    cd.size <- .AteraLeU64(zip64.eocd, 41L)
+    cd.offset <- .AteraLeU64(zip64.eocd, 49L)
+  }
+  list(n.entries = n.entries, cd.size = cd.size, cd.offset = cd.offset)
+}
+
+#' Parse the central directory of a zip file into a name -> (local header
+#' offset, size) index, entirely in memory (no disk extraction). Atera
+#' zarr.zip archives always store entries uncompressed (zip method
+#' \dQuote{Stored}); the zarr/Blosc layer does all the compression, so this
+#' index is all that's needed to seek directly to any chunk's raw bytes.
+#'
+#' @keywords internal
+#' @noRd
+.AteraZipIndex <- function(zip.file) {
+  file.size <- file.info(zip.file)$size
+  con <- file(zip.file, "rb")
+  on.exit(close(con))
+  eocd <- .AteraZipEOCD(con, file.size)
+
+  seek(con, where = eocd$cd.offset, origin = "start")
+  cd <- readBin(con, what = "raw", n = eocd$cd.size)
+
+  cdfh.sig <- as.raw(c(0x50, 0x4b, 0x01, 0x02))
+  names.out <- character(eocd$n.entries)
+  offsets.out <- numeric(eocd$n.entries)
+  sizes.out <- numeric(eocd$n.entries)
+  methods.out <- integer(eocd$n.entries)
+
+  pos <- 1L
+  i <- 0L
+  cd.len <- length(cd)
+  while (pos <= cd.len - 45L) {
+    if (!(cd[pos] == cdfh.sig[1] && cd[pos + 1L] == cdfh.sig[2] &&
+          cd[pos + 2L] == cdfh.sig[3] && cd[pos + 3L] == cdfh.sig[4])) {
+      break
+    }
+    i <- i + 1L
+    method <- .AteraLeU16(cd, pos + 10L)
+    csize <- .AteraLeU32(cd, pos + 20L)
+    usize <- .AteraLeU32(cd, pos + 24L)
+    fname.len <- .AteraLeU16(cd, pos + 28L)
+    extra.len <- .AteraLeU16(cd, pos + 30L)
+    comment.len <- .AteraLeU16(cd, pos + 32L)
+    lho <- .AteraLeU32(cd, pos + 42L)
+
+    name.start <- pos + 46L
+    name <- rawToChar(cd[name.start:(name.start + fname.len - 1L)])
+
+    if (extra.len > 0L) {
+      extra.start <- name.start + fname.len
+      extra <- cd[extra.start:(extra.start + extra.len - 1L)]
+      # walk extra-field sub-records looking for the Zip64 tag (0x0001);
+      # per the zip spec, only fields that were placeholder-valued in the
+      # fixed header are present here, in order: usize, csize, offset
+      ep <- 1L
+      while (ep <= length(extra) - 3L) {
+        tag <- .AteraLeU16(extra, ep)
+        sz <- .AteraLeU16(extra, ep + 2L)
+        if (tag == 1L) {
+          dp <- ep + 4L
+          if (usize >= 0xFFFFFFFF) { usize <- .AteraLeU64(extra, dp); dp <- dp + 8L }
+          if (csize >= 0xFFFFFFFF) { csize <- .AteraLeU64(extra, dp); dp <- dp + 8L }
+          if (lho >= 0xFFFFFFFF)   { lho   <- .AteraLeU64(extra, dp); dp <- dp + 8L }
+          break
+        }
+        ep <- ep + 4L + sz
+      }
+    }
+
+    names.out[i] <- name
+    offsets.out[i] <- lho
+    sizes.out[i] <- csize
+    methods.out[i] <- method
+
+    pos <- name.start + fname.len + extra.len + comment.len
+  }
+
+  if (i != eocd$n.entries) {
+    names.out <- names.out[seq_len(i)]
+    offsets.out <- offsets.out[seq_len(i)]
+    sizes.out <- sizes.out[seq_len(i)]
+    methods.out <- methods.out[seq_len(i)]
+  }
+  if (any(methods.out != 0L)) {
+    stop("Atera zarr.zip entries are expected to be stored (uncompressed by zip); found a deflated entry", call. = FALSE)
+  }
+
+  list(
+    name = names.out,
+    offset = offsets.out,
+    size = sizes.out,
+    lookup = as.list(setNames(seq_along(names.out), names.out))
+  )
+}
+
+#' Given a local file header offset (from the central directory), compute
+#' the byte offset where the entry's raw data actually begins (skipping the
+#' fixed 30-byte local header plus its variable name/extra fields)
+#'
+#' @keywords internal
+#' @noRd
+.AteraLocalDataOffset <- function(con, local.header.offset) {
+  seek(con, where = local.header.offset, origin = "start")
+  hdr <- readBin(con, what = "raw", n = 30L)
+  fname.len <- .AteraLeU16(hdr, 27L)
+  extra.len <- .AteraLeU16(hdr, 29L)
+  local.header.offset + 30L + fname.len + extra.len
+}
+
+#' Read one zip entry's raw bytes directly into memory (no disk
+#' extraction). \code{zidx} is a \code{.AteraZipIndex()} result; \code{con}
+#' is an open \code{file(zip.file, "rb")} connection. Returns \code{NULL}
+#' if the entry isn't present (eg a missing/all-fill-value zarr chunk).
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadEntryRaw <- function(con, zidx, name) {
+  i <- zidx$lookup[[name]]
+  if (is.null(i)) {
+    return(NULL)
+  }
+  data.offset <- .AteraLocalDataOffset(con, zidx$offset[i])
+  seek(con, where = data.offset, origin = "start")
+  readBin(con, what = "raw", n = zidx$size[i])
+}
+
+#' @keywords internal
+#' @noRd
+.AteraReadJSON <- function(con, zidx, name) {
+  raw <- .AteraReadEntryRaw(con, zidx, name)
+  if (is.null(raw)) {
+    return(NULL)
+  }
+  jsonlite::fromJSON(rawToChar(raw), simplifyVector = TRUE)
+}
+
+#' R storage mode that a given zarr dtype string decodes to via
+#' \code{blosc::blosc_decompress}, used to pre-allocate output vectors
+#' without needing to decompress a chunk first. Note \code{<u4}/\code{<i8}/
+#' \code{<u8} all decode to \code{double}, since R has no native type wide
+#' enough to hold their full range losslessly.
+#'
+#' @keywords internal
+#' @noRd
+.AteraDtypeRType <- function(dtype) {
+  switch(
+    EXPR = dtype,
+    "|i1" = , "|u1" = , "<i2" = , "<u2" = , "<i4" = "integer",
+    "<u4" = , "<i8" = , "<u8" = , "<f2" = , "<f4" = , "<f8" = "double",
+    "|b1" = "logical",
+    stop("Unsupported zarr dtype: ", dtype, call. = FALSE)
+  )
+}
+
+#' Decode one already-Blosc-compressed chunk's raw bytes into a typed R
+#' vector, using the exact zarr dtype string from \code{.zarray} (eg
+#' \code{"<i4"}, \code{"<u4"}, \code{"<f4"}, \code{"|b1"}) so that
+#' \code{blosc}'s self-describing frame header drives decompression
+#'
+#' @keywords internal
+#' @noRd
+.AteraDecodeChunk <- function(raw, dtype, n) {
+  vals <- blosc::blosc_decompress(raw, dtype = dtype)
+  vals[seq_len(n)]
+}
+
+#' Number of worker processes to use for \code{.AteraReadArray}'s
+#' Blosc-decompression step, honoring the package-wide \code{getThreads()}/
+#' \code{setThreads()} option so it stays consistent with the rest of
+#' Seurat's multithreading rather than defaulting to its own value.
+#' \code{parallel::mclapply} is fork-based and unsupported on Windows, so
+#' threading is disabled there instead of being requested and silently
+#' downgraded.
+#'
+#' @keywords internal
+#' @noRd
+.AteraThreads <- function() {
+  if (.Platform$OS.type == "windows") {
+    return(1L)
+  }
+  min(getThreads(), parallel::detectCores(), na.rm = TRUE)
+}
+
+#' Read a zarr v2 array (1-D or 2-D), stored inside a zip archive, directly
+#' into memory with no disk extraction. \code{row.range} (1-based,
+#' inclusive \code{c(start, end)}) restricts which rows (first dimension)
+#' are decoded and returned; only chunks overlapping that range are
+#' read/decompressed, which is what makes gene-restricted transcript reads
+#' cheap. Missing chunks (sparse zarr arrays) are filled with the array's
+#' \code{fill_value}.
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadArray <- function(con, zidx, array.path, row.range = NULL) {
+  meta <- .AteraReadJSON(con, zidx, paste0(array.path, "/.zarray"))
+  shape <- meta$shape
+  # Coerced to double (chunk sizes parse as plain R integers, unlike `shape`,
+  # which jsonlite already widens to double once it exceeds 32-bit range):
+  # chunk-index * chunk-size products below can exceed 32-bit range for large
+  # arrays (eg a multi-billion-element sparse matrix's X/data), and R's
+  # native integer arithmetic silently overflows to NA rather than promoting
+  # to double, so at least one operand of every such product must be double
+  chunks <- as.double(meta$chunks)
+  dtype <- meta$dtype
+  order <- if (is.null(meta$order)) "C" else meta$order
+  sep <- if (is.null(meta$dimension_separator)) "." else meta$dimension_separator
+  fill.value <- if (is.null(meta$fill_value)) 0 else meta$fill_value
+  ndim <- length(shape)
+
+  if (ndim == 0L) {
+    raw.chunk <- .AteraReadEntryRaw(con, zidx, paste0(array.path, "/0"))
+    return(if (is.null(raw.chunk)) fill.value else .AteraDecodeChunk(raw.chunk, dtype, 1L))
+  }
+
+  # Chunk decoding is split into two phases so no I/O happens inside forked
+  # workers: `con` is a single connection shared across this whole call, and
+  # a `parallel::mclapply`/`mcmapply` fork inherits the *same* underlying
+  # open file description, so concurrent seek()/readBin() calls from forked
+  # children would race on that shared position and return corrupted bytes.
+  # Phase 1 (below, sequential) reads each chunk's raw bytes through `con`;
+  # phase 2 (`decode()`, possibly parallel) only touches those in-memory raw
+  # vectors, which is safe to fork over.
+  nthreads <- .AteraThreads()
+
+  if (ndim == 1L) {
+    n <- shape[1L]
+    csize <- chunks[1L]
+    if (is.null(row.range)) row.range <- c(1L, n)
+    start <- row.range[1L]; end <- row.range[2L]
+    c.first <- (start - 1L) %/% csize
+    c.last <- (end - 1L) %/% csize
+    chunk.idx <- c.first:c.last
+    raw.chunks <- lapply(chunk.idx, function(ci) {
+      .AteraReadEntryRaw(con, zidx, paste0(array.path, "/", ci))
+    })
+    actual.ns <- vapply(chunk.idx, function(ci) min(csize, n - ci * csize), numeric(1L))
+    decode <- function(raw.chunk, actual.n) {
+      if (is.null(raw.chunk)) rep(fill.value, actual.n) else .AteraDecodeChunk(raw.chunk, dtype, actual.n)
+    }
+    decoded <- if (length(raw.chunks) > 1L && nthreads > 1L) {
+      parallel::mcmapply(decode, raw.chunks, actual.ns, SIMPLIFY = FALSE, mc.cores = nthreads)
+    } else {
+      Map(decode, raw.chunks, actual.ns)
+    }
+    out <- vector(mode = .AteraDtypeRType(dtype), length = end - start + 1L)
+    for (k in seq_along(chunk.idx)) {
+      ci <- chunk.idx[k]
+      row0 <- ci * csize + 1L
+      actual.n <- actual.ns[k]
+      vals <- decoded[[k]]
+      lo <- max(start, row0)
+      hi <- min(end, row0 + actual.n - 1L)
+      if (lo > hi) next
+      out[(lo - start + 1L):(hi - start + 1L)] <- vals[(lo - row0 + 1L):(hi - row0 + 1L)]
+    }
+    return(out)
+  }
+
+  if (ndim == 2L) {
+    nrow <- shape[1L]; ncol <- shape[2L]
+    crow <- chunks[1L]; ccol <- chunks[2L]
+    if (is.null(row.range)) row.range <- c(1L, nrow)
+    start <- row.range[1L]; end <- row.range[2L]
+    n.chunk.cols <- ceiling(ncol / ccol)
+    c.first <- (start - 1L) %/% crow
+    c.last <- (end - 1L) %/% crow
+
+    jobs <- list()
+    for (ri in c.first:c.last) {
+      row0 <- ri * crow + 1L
+      actual.nrow <- min(crow, nrow - ri * crow)
+      lo <- max(start, row0)
+      hi <- min(end, row0 + actual.nrow - 1L)
+      if (lo > hi) next
+      for (ci in seq_len(n.chunk.cols) - 1L) {
+        col0 <- ci * ccol + 1L
+        actual.ncol <- min(ccol, ncol - ci * ccol)
+        key <- paste0(array.path, "/", ri, sep, ci)
+        raw.chunk <- .AteraReadEntryRaw(con, zidx, key)
+        jobs[[length(jobs) + 1L]] <- list(
+          raw = raw.chunk,
+          n = actual.nrow * actual.ncol,
+          nrow = actual.nrow,
+          ncol = actual.ncol,
+          row0 = row0, col0 = col0, lo = lo, hi = hi
+        )
+      }
+    }
+
+    decode <- function(job) {
+      if (is.null(job$raw)) rep(fill.value, job$n) else .AteraDecodeChunk(job$raw, dtype, job$n)
+    }
+    decoded <- if (length(jobs) > 1L && nthreads > 1L) {
+      parallel::mclapply(jobs, decode, mc.cores = nthreads)
+    } else {
+      lapply(jobs, decode)
+    }
+
+    out <- matrix(vector(mode = .AteraDtypeRType(dtype), length = 1L), nrow = end - start + 1L, ncol = ncol)
+    for (k in seq_along(jobs)) {
+      job <- jobs[[k]]
+      vals <- decoded[[k]]
+      chunk.mat <- if (identical(order, "F")) {
+        matrix(vals, nrow = job$nrow, ncol = job$ncol)
+      } else {
+        t(matrix(vals, nrow = job$ncol, ncol = job$nrow))
+      }
+      out[(job$lo - start + 1L):(job$hi - start + 1L), job$col0:(job$col0 + job$ncol - 1L)] <-
+        chunk.mat[(job$lo - job$row0 + 1L):(job$hi - job$row0 + 1L), , drop = FALSE]
+    }
+    return(out)
+  }
+
+  stop("Unsupported array rank: ", ndim, call. = FALSE)
+}
+
+#' Decode a numcodecs VLenUTF8-filtered, already-Blosc-decompressed byte
+#' buffer into a character vector: a \code{u32} count \code{N}, followed by
+#' \code{N} \code{(u32 len, len raw utf8 bytes)} records, with no padding
+#'
+#' @keywords internal
+#' @noRd
+.AteraDecodeVlenUtf8 <- function(raw.bytes) {
+  n <- as.integer(raw.bytes[1L]) + as.integer(raw.bytes[2L]) * 256L +
+    as.integer(raw.bytes[3L]) * 65536L + as.integer(raw.bytes[4L]) * 16777216L
+  strs <- character(n)
+  pos <- 5L
+  for (i in seq_len(n)) {
+    len <- as.integer(raw.bytes[pos]) + as.integer(raw.bytes[pos + 1L]) * 256L +
+      as.integer(raw.bytes[pos + 2L]) * 65536L + as.integer(raw.bytes[pos + 3L]) * 16777216L
+    pos <- pos + 4L
+    strs[i] <- rawToChar(raw.bytes[pos:(pos + len - 1L)])
+    pos <- pos + len
+  }
+  strs
+}
+
+#' Read a \code{|O} (vlen-utf8) 1-D string array, chunk by chunk
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadStringArray <- function(con, zidx, array.path) {
+  meta <- .AteraReadJSON(con, zidx, paste0(array.path, "/.zarray"))
+  n <- meta$shape[1L]
+  csize <- meta$chunks[1L]
+  n.chunks <- ceiling(n / csize)
+  parts <- vector("list", n.chunks)
+  for (ci in seq_len(n.chunks) - 1L) {
+    key <- paste0(array.path, "/", ci)
+    raw.chunk <- .AteraReadEntryRaw(con, zidx, key)
+    dec <- blosc::blosc_decompress(raw.chunk)
+    parts[[ci + 1L]] <- .AteraDecodeVlenUtf8(dec)
+  }
+  unlist(parts, use.names = FALSE)
+}
+
+#' Read an AnnData-style categorical column (a subgroup containing
+#' \code{categories} and \code{codes} arrays) into an R factor
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadCategorical <- function(con, zidx, group.path) {
+  cat.meta <- .AteraReadJSON(con, zidx, paste0(group.path, "/categories/.zarray"))
+  categories <- if (identical(cat.meta$dtype, "|O")) {
+    .AteraReadStringArray(con, zidx, paste0(group.path, "/categories"))
+  } else {
+    .AteraReadArray(con, zidx, paste0(group.path, "/categories"))
+  }
+  codes <- .AteraReadArray(con, zidx, paste0(group.path, "/codes"))
+  values <- rep_len(NA_character_, length(codes))
+  keep <- codes >= 0
+  values[keep] <- categories[codes[keep] + 1L]
+  factor(values, levels = categories)
+}
+
+#' Decode a two-column (low, high) packed-uint32 id array (a matrix, as
+#' returned by \code{.AteraReadArray}) into a single double id per row,
+#' mapping the "all bits set" sentinel to NA (unassigned). Ids that were
+#' stored as a plain (already-scalar) array are returned as-is.
+#'
+#' @keywords internal
+#' @noRd
+.AteraDecodePackedId <- function(ids) {
+  if (!is.matrix(x = ids)) {
+    return(ids)
+  }
+  sentinel <- 2^32 - 1
+  unassigned <- ids[, 1] == sentinel & ids[, 2] == sentinel
+  decoded <- ids[, 1] + ids[, 2] * 2^32
+  decoded[unassigned] <- NA
+  return(decoded)
+}
+
+#' Format a decoded numeric id as a string without falling back to
+#' scientific notation, so ids remain usable as matrix/data frame join keys
+#'
+#' @keywords internal
+#' @noRd
+.AteraFormatId <- function(ids) {
+  formatted <- sprintf(fmt = '%.0f', ids)
+  formatted[is.na(x = ids)] <- NA
+  return(formatted)
+}
+
+#' Enumerate the direct child entries (arrays or categorical subgroups) of
+#' a zarr group from an already-parsed zip index, without any additional
+#' I/O
+#'
+#' @keywords internal
+#' @noRd
+.AteraGroupEntries <- function(zidx, group.path) {
+  prefix <- paste0(group.path, "/")
+  matches <- zidx$name[startsWith(zidx$name, prefix)]
+  rest <- substring(matches, nchar(prefix) + 1L)
+  first.seg <- sub("/.*$", "", rest)
+  setdiff(unique(first.seg), c(".zgroup", ".zattrs", ".zarray"))
+}
+
+#' Read a flat AnnData-style zarr group (eg \code{obs}/\code{var}) into a
+#' data frame; plain columns are zarr arrays (string arrays use the
+#' vlen-utf8 filter), categorical columns are subgroups containing
+#' \code{categories} and \code{codes} arrays
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadFlatGroup <- function(con, zidx, group.path, columns = NULL) {
+  entries <- .AteraGroupEntries(zidx, group.path)
+  if (!is.null(x = columns)) {
+    entries <- intersect(x = entries, y = columns)
+  }
+  cols <- list()
+  for (e in entries) {
+    epath <- paste0(group.path, "/", e)
+    if (!is.null(zidx$lookup[[paste0(epath, "/.zarray")]])) {
+      meta <- .AteraReadJSON(con, zidx, paste0(epath, "/.zarray"))
+      cols[[e]] <- if (identical(meta$dtype, "|O")) {
+        .AteraReadStringArray(con, zidx, epath)
+      } else {
+        .AteraReadArray(con, zidx, epath)
+      }
+    } else if (!is.null(zidx$lookup[[paste0(epath, "/categories/.zarray")]])) {
+      cols[[e]] <- .AteraReadCategorical(con, zidx, epath)
+    }
+  }
+  return(as.data.frame(x = cols, stringsAsFactors = FALSE, check.names = FALSE))
+}
+
+#' Read one of Atera's flat (non-gridded) segmentation polygon sets
+#' (\code{polygon_sets/0} = nucleus, \code{polygon_sets/1} = cell) into a
+#' long-format data frame of \code{cell}/\code{x}/\code{y}, one row per
+#' polygon vertex, joined against \code{cell.id} (a formatted, decoded
+#' \code{cell_id} vector read from the same \code{cells.zarr.zip}) by
+#' 0-based row index -- not assumed to be in the same row order as any
+#' other file
+#'
+#' Every polygon's last stored vertex is a closing duplicate of its first
+#' vertex (\code{x} always matches exactly), and in the majority of polygons
+#' that duplicate's \code{y} is corrupted to exactly \code{0} in Atera's own
+#' \code{vertices} array. Since consumers (eg \code{geom_polygon}, \code{sf})
+#' already close rings back to the first vertex, that last vertex is dropped
+#' here rather than propagating the corrupted coordinate.
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id) {
+  base <- paste0("polygon_sets/", set.idx)
+  cell_index <- .AteraReadArray(con, zidx, paste0(base, "/cell_index"))
+  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices")) - 1L
+  vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"))
+
+  n <- nrow(vertices)
+  poly.idx <- rep(seq_len(n), num_vertices)
+  vert.idx <- sequence(num_vertices)
+  col.x <- (vert.idx - 1L) * 2L + 1L
+  col.y <- (vert.idx - 1L) * 2L + 2L
+
+  data.frame(
+    cell = cell.id[cell_index[poly.idx] + 1L],
+    x = vertices[cbind(poly.idx, col.x)],
+    y = vertices[cbind(poly.idx, col.y)]
+  )
+}
+
+#' Build a cheap, reusable handle onto a \code{transcripts.zarr.zip}: parses
+#' the zip's central directory and each grid tile's (tiny) \code{gene_offset}
+#' index up front, but reads no \code{location}/\code{quality_score} data.
+#' Used to defer the expensive part of transcript loading (decoding
+#' \code{location}/\code{quality_score} chunks) until specific genes are
+#' actually requested, so \code{molecule.coordinates = TRUE} doesn't have to
+#' materialize the full transcript table just to be usable later.
+#'
+#' @keywords internal
+#' @noRd
+.AteraMoleculesHandle <- function(data.dir, mols.qv.threshold = 20) {
+  zip.file <- file.path(data.dir, "transcripts.zarr.zip")
+  zidx <- .AteraZipIndex(zip.file)
+  con <- file(zip.file, "rb")
+  on.exit(close(con))
+
+  attrs <- .AteraReadJSON(con, zidx, ".zattrs")
+  gene.names <- unlist(attrs$gene_names)
+
+  grid.entries <- grep("^grid/[^/.]", zidx$name, value = TRUE)
+  tile.dirs <- unique(vapply(
+    strsplit(grid.entries, "/"),
+    function(p) paste(p[1:2], collapse = "/"),
+    character(1)
+  ))
+  tiles <- lapply(tile.dirs, function(tile.dir) {
+    list(dir = tile.dir, gene_offset = .AteraReadArray(con, zidx, paste0(tile.dir, "/gene_offset")))
+  })
+
+  structure(
+    list(
+      zip.file = zip.file,
+      zidx = zidx,
+      gene.names = gene.names,
+      tiles = tiles,
+      mols.qv.threshold = mols.qv.threshold
+    ),
+    class = "AteraMoleculesHandle"
+  )
+}
+
+#' Fetch transcript molecule coordinates from an \code{.AteraMoleculesHandle}
+#' for \code{genes} (or all genes, if \code{NULL}), reading only the
+#' (gene-sorted, contiguous) chunks needed for the requested genes out of
+#' each grid tile
+#'
+#' A gene's rows are typically spread across most of a bundle's grid tiles
+#' (eg ~85-88 of 102 for genes checked on a real whole-transcriptome bundle);
+#' each tile's read is independent, so this is parallelized across tiles
+#' rather than reading them one at a time. Each forked worker opens its own
+#' connection, since a connection's file position can't safely be shared/
+#' seeked concurrently across forked processes.
+#'
+#' @keywords internal
+#' @noRd
+.AteraFetchMolecules <- function(handle, genes = NULL) {
+  nthreads <- .AteraThreads()
+
+  read.tile <- function(tile) {
+    con <- file(handle$zip.file, "rb")
+    on.exit(close(con))
+    gene_offset <- tile$gene_offset
+    if (is.null(genes)) {
+      location <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"))
+      quality_score <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"))
+      gene.idx <- rep(seq_len(nrow(gene_offset)), gene_offset[, 2] - gene_offset[, 1])
+      return(data.frame(
+        x = location[, 1],
+        y = location[, 2],
+        gene = handle$gene.names[gene.idx],
+        qv = as.vector(quality_score)
+      ))
+    }
+    gene.rows <- match(genes, handle$gene.names)
+    gene.rows <- gene.rows[!is.na(gene.rows) & (gene_offset[gene.rows, 2] - gene_offset[gene.rows, 1]) > 0]
+    if (length(gene.rows) == 0) {
+      return(data.frame(x = numeric(0), y = numeric(0), gene = character(0), qv = numeric(0)))
+    }
+    gene.dfs <- lapply(gene.rows, function(g) {
+      rows <- c(gene_offset[g, 1] + 1L, gene_offset[g, 2])
+      loc <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), row.range = rows)
+      qv <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), row.range = rows)
+      data.frame(x = loc[, 1], y = loc[, 2], gene = handle$gene.names[g], qv = as.vector(qv))
+    })
+    data.table::rbindlist(gene.dfs)
+  }
+
+  tile.dfs <- if (nthreads > 1L) {
+    parallel::mclapply(handle$tiles, read.tile, mc.cores = nthreads)
+  } else {
+    lapply(handle$tiles, read.tile)
+  }
+
+  df <- as.data.frame(data.table::rbindlist(tile.dfs))
+  if (!is.null(handle$mols.qv.threshold)) {
+    df <- df[!is.na(df$gene) & df$qv >= handle$mols.qv.threshold, , drop = FALSE]
+  } else {
+    df <- df[!is.na(df$gene), , drop = FALSE]
+  }
+  df$qv <- NULL
+  df
+}
+
+#' Check that the \code{RBioFormats} package is installed; only called when
+#' a morphology image is actually requested. The morphology OME-TIFFs are
+#' pyramidal and JPEG2000-compressed, which the base \code{tiff} package
+#' cannot reliably decode (it reports an "unknown" compression type and
+#' cannot enumerate pyramid levels); \code{RBioFormats} wraps the Bio-Formats
+#' Java library, which handles them correctly.
+#'
+#' @keywords internal
+#' @noRd
+.AteraCheckMorphologyDeps <- function() {
+  if (!requireNamespace('RBioFormats', quietly = TRUE)) {
+    stop(
+      "Reading Atera morphology images requires the 'RBioFormats' package. ",
+      "Install it with BiocManager::install('RBioFormats')",
+      call. = FALSE
+    )
+  }
+}
+
+#' List the per-channel morphology OME-TIFF files in a
+#' \dQuote{morphology_2d}/\dQuote{morphology_3d} directory, excluding macOS
+#' resource-fork files (\code{._*})
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyFiles <- function(data.dir, three.d = FALSE) {
+  dir <- file.path(data.dir, if (isTRUE(three.d)) "morphology_3d" else "morphology_2d")
+  if (!dir.exists(dir)) {
+    stop("No ", basename(dir), " directory found at ", dir, call. = FALSE)
+  }
+  files <- list.files(dir, pattern = "\\.ome\\.tif+$", full.names = TRUE)
+  files <- files[!grepl("^\\._", basename(files))]
+  if (!length(files)) {
+    stop("No morphology OME-TIFF files found in ", dir, call. = FALSE)
+  }
+  files
+}
+
+#' Parse the 0-based channel index out of a \dQuote{chNNNN_<name>.ome.tif}
+#' morphology image filename. Each file is itself a multi-page OME-TIFF
+#' containing every channel of the panel, but only the page at this index
+#' holds that channel's real image data (the rest are placeholders) -- see
+#' \code{.AteraReadMorphologyImage}
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyChannelIndex <- function(filename) {
+  m <- regmatches(basename(filename), regexec("^ch(\\d+)_.+\\.ome\\.tif+$", basename(filename)))[[1]]
+  if (length(m) != 2) {
+    stop(
+      "Expected a morphology image filename of the form 'chNNNN_<name>.ome.tif', found ",
+      basename(filename),
+      call. = FALSE
+    )
+  }
+  as.integer(m[2])
+}
+
+#' Parse the channel name out of a \dQuote{chNNNN_<name>.ome.tif} morphology
+#' image filename
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyChannelName <- function(filename) {
+  m <- regmatches(basename(filename), regexec("^ch\\d+_(.+)\\.ome\\.tif+$", basename(filename)))[[1]]
+  if (length(m) != 2) {
+    stop(
+      "Expected a morphology image filename of the form 'chNNNN_<name>.ome.tif', found ",
+      basename(filename),
+      call. = FALSE
+    )
+  }
+  m[2]
+}
+
+#' Build a cheap, reusable handle onto a channel's Atera morphology
+#' OME-TIFF: resolves the matching file, its real-data channel index, and
+#' per-resolution-level pixel dimensions/pixel size up front, but reads no
+#' pixel data. Used to defer the expensive part (decoding image tiles) until
+#' a specific region is actually requested via
+#' \code{.AteraReadMorphologyRegion}, the same handle/fetch split already
+#' used for transcripts by \code{.AteraMoleculesHandle}/
+#' \code{.AteraFetchMolecules}.
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyHandle <- function(data.dir, channel = "dapi") {
+  .AteraCheckMorphologyDeps()
+
+  files <- .AteraMorphologyFiles(data.dir)
+  names(files) <- vapply(files, .AteraMorphologyChannelName, character(1L))
+
+  file <- if (is.numeric(channel)) {
+    indices <- vapply(files, .AteraMorphologyChannelIndex, integer(1L))
+    hits <- files[indices == as.integer(channel)]
+    if (!length(hits)) {
+      stop("No morphology image found for channel index ", channel, call. = FALSE)
+    }
+    hits[[1]]
+  } else {
+    hits <- names(files)[grepl(channel, names(files), ignore.case = TRUE)]
+    if (!length(hits)) {
+      stop(
+        "No morphology image found matching channel '", channel, "'; available channels: ",
+        paste(names(files), collapse = ", "),
+        call. = FALSE
+      )
+    }
+    files[[hits[1]]]
+  }
+
+  md <- RBioFormats::read.metadata(file)
+  n.levels <- RBioFormats::seriesCount(md)
+  cm <- RBioFormats::coreMetadata(md)
+  # RBioFormats::coreMetadata() unwraps its usual per-series list and returns
+  # a single series' metadata directly when there's only one series (eg a
+  # non-pyramidal image with no resolution levels), so it must be re-wrapped
+  # to keep the one-element-per-level shape `dims` below expects
+  if (n.levels == 1L) {
+    cm <- list(cm)
+  }
+  dims <- lapply(cm, function(x) c(x = x$sizeX, y = x$sizeY))
+
+  specs.file <- file.path(data.dir, "experiment.spatial")
+  pixel.size.full <- if (file.exists(specs.file) && requireNamespace('jsonlite', quietly = TRUE)) {
+    jsonlite::read_json(specs.file)$pixel_size
+  } else {
+    NA_real_
+  }
+
+  structure(
+    list(
+      file = file,
+      channel = .AteraMorphologyChannelName(file),
+      channel.index = .AteraMorphologyChannelIndex(file),
+      n.resolutions = n.levels,
+      dim = dims,
+      pixel.size.full = pixel.size.full
+    ),
+    class = "AteraMorphologyHandle"
+  )
+}
+
+#' Convert a \code{region} (a list with optional \code{x}/\code{y} elements,
+#' each a length-2 micron range) into 1-based pixel index ranges at a given
+#' \code{.AteraMorphologyHandle}'s resolution \code{level}, clamped to the
+#' plane's extent on that axis. A missing/\code{NULL} \code{region}, or a
+#' missing \code{x}/\code{y} element, reads the whole plane along that axis.
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyRegionToPixels <- function(handle, level, region, pixel.size) {
+  d <- handle$dim[[level]]
+  to.pixels <- function(um.range, size) {
+    if (is.null(um.range)) {
+      return(NULL)
+    }
+    if (is.na(pixel.size)) {
+      stop(
+        "Cannot convert 'morphology.region' from microns to pixels: pixel size unavailable ",
+        "(no 'experiment.spatial' file found)",
+        call. = FALSE
+      )
+    }
+    px <- round(um.range / pixel.size) + 1L
+    px <- pmax(1L, pmin(size, px))
+    px[1]:px[2]
+  }
+  list(
+    x = to.pixels(region$x, d["x"]),
+    y = to.pixels(region$y, d["y"])
+  )
+}
+
+#' Read a (optionally cropped) single channel plane from an
+#' \code{.AteraMorphologyHandle} at a given pyramid resolution level, by
+#' default the lowest-resolution (smallest) level, which is normally all
+#' that is needed for overview plots.
+#'
+#' \code{x.range}/\code{y.range} (1-based pixel indices at \code{resolution})
+#' restrict the read to a rectangular window via
+#' \code{RBioFormats::read.image}'s \code{subset} argument, which decodes
+#' only the on-disk tiles overlapping that window rather than materializing
+#' the whole plane -- needed because a full-resolution plane of these
+#' whole-slide images can be tens of thousands of pixels per side (large
+#' enough that reading it whole can exceed available Java heap memory).
+#' Resolution levels are exposed by \code{RBioFormats} as separate
+#' \dQuote{series} (\code{resolution} argument) of a single real image
+#' series (\code{series = 1}), not as true multi-series data.
+#'
+#' @return A list with elements \code{image} (a numeric matrix, indexed
+#' \verb{[x, y]} in the same top-left-origin pixel convention as the OME-TIFF
+#' and, after scaling by \code{pixel.size} and offsetting by \code{origin},
+#' the same convention as \code{ReadAtera}'s \code{centroids}/\code{microns}
+#' micron coordinates -- no axis flip is needed), \code{channel} (the
+#' matched channel name), \code{resolution} (the pyramid level read, 1 =
+#' full resolution), \code{n.resolutions} (the number of pyramid levels
+#' available), \code{pixel.size} (microns per pixel of \code{image}, i.e.
+#' already scaled for the resolution level read; \code{NA} if
+#' \code{experiment.spatial} could not be read), and \code{origin} (the
+#' micron coordinates, \code{c(x=, y=)}, of \code{image}'s \verb{[1, 1]}
+#' pixel -- \code{c(x=0, y=0)} unless \code{x.range}/\code{y.range} crop out
+#' the top-left corner of the full plane)
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadMorphologyRegion <- function(handle, resolution = NULL, x.range = NULL, y.range = NULL) {
+  level <- resolution %||% handle$n.resolutions
+  d <- handle$dim[[level]]
+  downsample <- 2 ^ (level - 1L)
+  pixel.size <- if (is.na(handle$pixel.size.full)) NA_real_ else handle$pixel.size.full * downsample
+
+  x.range <- x.range %||% seq_len(d["x"])
+  y.range <- y.range %||% seq_len(d["y"])
+
+  img <- RBioFormats::read.image(
+    handle$file, series = 1L, resolution = level, normalize = FALSE,
+    subset = list(x = x.range, y = y.range, c = handle$channel.index + 1L)
+  )
+  ## requesting a single channel via 'subset' already drops the channel
+  ## dimension (2D result); only index it away if it's still present (3D)
+  if (length(dim(img)) == 3L) {
+    img <- img[, , 1L]
+  }
+
+  list(
+    image = img,
+    channel = handle$channel,
+    resolution = level,
+    n.resolutions = handle$n.resolutions,
+    pixel.size = pixel.size,
+    origin = c(x = (x.range[1] - 1L), y = (y.range[1] - 1L)) * (if (is.na(pixel.size)) NA_real_ else pixel.size)
+  )
+}
+
+#' Read a single channel plane of an Atera morphology image, optionally
+#' cropped to \code{region} (a list with \code{x}/\code{y} elements, each a
+#' length-2 micron range; \code{NULL}, the default, reads the whole plane).
+#' A thin convenience wrapper around \code{.AteraMorphologyHandle} +
+#' \code{.AteraReadMorphologyRegion} for the common one-shot case (see those
+#' for details/return value).
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadMorphologyImage <- function(data.dir, channel = "dapi", resolution = NULL, region = NULL) {
+  handle <- .AteraMorphologyHandle(data.dir = data.dir, channel = channel)
+  level <- resolution %||% handle$n.resolutions
+  downsample <- 2 ^ (level - 1L)
+  pixel.size <- if (is.na(handle$pixel.size.full)) NA_real_ else handle$pixel.size.full * downsample
+
+  px.region <- .AteraMorphologyRegionToPixels(handle, level, region, pixel.size)
+  .AteraReadMorphologyRegion(handle, resolution = level, x.range = px.region$x, y.range = px.region$y)
+}
+
+#' Turn a feature type name (eg \dQuote{Negative Control Probe}) into a
+#' filesystem-safe directory name for use under \code{bpcells.dir}
+#'
+#' @keywords internal
+#' @noRd
+.AteraSanitizeName <- function(x) {
+  gsub("[^A-Za-z0-9]+", "_", x)
+}
+
+#' Check that the \code{BPCells} package is installed; only called when a
+#' \code{bpcells.dir} cache is actually requested
+#'
+#' @keywords internal
+#' @noRd
+.AteraCheckBPCellsDeps <- function() {
+  if (!requireNamespace('BPCells', quietly = TRUE)) {
+    stop("Reading/writing an Atera bpcells.dir cache requires the 'BPCells' package", call. = FALSE)
+  }
+}
+
+#' Default, session-scoped \code{bpcells.dir} used when the caller hasn't
+#' specified one: a subdirectory of \code{tempdir()} keyed off
+#' \code{data.dir}, so repeated \code{LoadAtera()}/\code{ReadAtera()} calls
+#' against the same bundle within a session reuse the same on-disk cache.
+#'
+#' @keywords internal
+#' @noRd
+.AteraDefaultBPCellsDir <- function(data.dir) {
+  file.path(tempdir(), "atera_bpcells", .AteraSanitizeName(normalizePath(data.dir, mustWork = FALSE)))
+}
+
+#' Resolve the effective \code{bpcells.dir} to use, applying the
+#' always-on-by-default policy: \code{NULL} (the parameter default) means
+#' "cache on disk via BPCells if it's installed", falling back to in-memory
+#' matrices with a one-time message if it isn't. Passing \code{FALSE}
+#' explicitly opts out of BPCells entirely (plain in-memory matrices, no
+#' dependency on the package). Any other value is used as-is, as an explicit
+#' cache directory (and requires \code{BPCells} to be installed).
+#'
+#' @keywords internal
+#' @noRd
+.AteraResolveBPCellsDir <- function(bpcells.dir, data.dir) {
+  if (isFALSE(bpcells.dir)) {
+    return(NULL)
+  }
+  if (is.null(bpcells.dir)) {
+    if (!requireNamespace('BPCells', quietly = TRUE)) {
+      .AteraWarnOnceNoBPCells()
+      return(NULL)
+    }
+    return(.AteraDefaultBPCellsDir(data.dir = data.dir))
+  }
+  return(bpcells.dir)
+}
+
+#' Emit a one-time (per session) message when falling back to in-memory
+#' matrices because BPCells isn't installed
+#'
+#' @keywords internal
+#' @noRd
+.AteraWarnOnceNoBPCells <- function() {
+  opt <- 'Seurat.atera.warned_no_bpcells'
+  if (!isTRUE(getOption(opt))) {
+    message(
+      "Package 'BPCells' is not installed; loading Atera counts matrices ",
+      "in-memory instead of on-disk. Install 'BPCells' for lazy, on-disk-",
+      "backed loading (recommended for large bundles), or pass ",
+      "`bpcells.dir = FALSE` to silence this message and always load in-",
+      "memory."
+    )
+    options(structure(list(TRUE), names = opt))
+  }
+}
+
+#' Split a contiguous feature row range \code{r1:r2} into smaller row
+#' sub-ranges, each covering no more than \code{nnz.budget} non-zero matrix
+#' entries (per the running element counts in \code{x.indptr}), so that
+#' \code{.AteraReadCountsMatrix} can decode/build one bounded-size matrix
+#' chunk at a time instead of materializing an entire (potentially
+#' multi-billion-entry) feature type's worth of \code{X/data}/\code{X/indices}
+#' in memory at once. A single row whose own nnz already exceeds
+#' \code{nnz.budget} still gets its own (over-budget) batch, since rows can't
+#' be split further.
+#'
+#' @return A list of length-2 integer vectors \code{c(start, end)}, each a
+#' 1-based, inclusive row sub-range of \code{r1:r2}
+#'
+#' @keywords internal
+#' @noRd
+.AteraNnzRowBatches <- function(x.indptr, r1, r2, nnz.budget) {
+  batches <- list()
+  batch.start <- r1
+  base <- x.indptr[r1]
+  for (i in r1:r2) {
+    if (x.indptr[i + 1L] - base >= nnz.budget) {
+      batches[[length(batches) + 1L]] <- c(batch.start, i)
+      batch.start <- i + 1L
+      base <- x.indptr[i + 1L]
+    }
+  }
+  if (batch.start <= r2) {
+    batches[[length(batches) + 1L]] <- c(batch.start, r2)
+  }
+  batches
+}
+
+#' Decode a single feature (\code{X} row) sub-range \code{sr1:sr2} of the
+#' counts matrix into an in-memory sparse matrix, named/dimensioned
+#' consistently with the full matrix (all cells as columns)
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadRowBlockMatrix <- function(con, zidx, x.indptr, sr1, sr2, var, cell.ids) {
+  nnz.start <- x.indptr[sr1] + 1L
+  nnz.end <- x.indptr[sr2 + 1L]
+  if (nnz.end >= nnz.start) {
+    d <- .AteraReadArray(con, zidx, "X/data", row.range = c(nnz.start, nnz.end))
+    i <- .AteraReadArray(con, zidx, "X/indices", row.range = c(nnz.start, nnz.end))
+  } else {
+    d <- numeric(0)
+    i <- numeric(0)
+  }
+  blk <- new(
+    Class = "dgRMatrix",
+    j = as.integer(i),
+    p = as.integer(x.indptr[sr1:(sr2 + 1L)] - x.indptr[sr1]),
+    x = as.double(d),
+    Dim = c(sr2 - sr1 + 1L, length(cell.ids))
+  )
+  blk <- as(blk, "CsparseMatrix")
+  rownames(blk) <- var$feature_name[sr1:sr2]
+  colnames(blk) <- cell.ids
+  blk
+}
+
+#' Build (and, when \code{bpcells.dir} is set, cache) one feature type's
+#' counts matrix, in bounded-memory row batches (see
+#' \code{.AteraNnzRowBatches}) rather than decoding the whole
+#' \code{r1:r2}/\code{X/data} range at once -- the latter needs tens of GB of
+#' RAM for a multi-billion-entry feature type (eg a whole-transcriptome
+#' panel's "Gene Expression" rows), which doesn't fit on commodity machines.
+#'
+#' Each batch is decoded, (when caching) converted to a \code{BPCells}
+#' \code{uint32_t} matrix and written to its own small temporary on-disk
+#' directory, and then discarded from memory; batches are only ever
+#' recombined (\code{rbind}) as cheap, lazy on-disk/\code{IterableMatrix}
+#' references, and that combined reference is written to \code{cache.path}
+#' (the real, permanent cache directory) \emph{before} the temporary
+#' per-batch directories are cleaned up -- \code{BPCells::write_matrix_dir}'s
+#' own chunked iteration streams through that final write without
+#' re-materializing everything at once. Without \code{bpcells.dir}, batches
+#' are instead recombined in-memory, so peak memory is still bounded by the
+#' full matrix's size (an in-memory result is, by definition, not scalable
+#' beyond available RAM).
+#'
+#' @return A \link[Matrix:dgCMatrix-class]{sparse matrix}, or (when
+#' \code{bpcells.dir} is set) a \code{BPCells} \code{IterableMatrix} opened
+#' from \code{cache.path}
+#'
+#' @keywords internal
+#' @noRd
+.AteraBuildFeatureTypeMatrix <- function(con, zidx, x.indptr, r1, r2, var, cell.ids, bpcells.dir, cache.path, nnz.budget) {
+  row.batches <- .AteraNnzRowBatches(x.indptr, r1, r2, nnz.budget)
+  use.bpcells <- !is.null(bpcells.dir)
+
+  if (!use.bpcells) {
+    parts <- lapply(row.batches, function(b) {
+      .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
+    })
+    return(if (length(parts) == 1L) parts[[1L]] else do.call(rbind, parts))
+  }
+
+  .AteraCheckBPCellsDeps()
+  staging.dir <- file.path(bpcells.dir, paste0(".tmp_", .AteraSanitizeName(basename(tempfile()))))
+  dir.create(staging.dir, recursive = TRUE)
+  on.exit(unlink(staging.dir, recursive = TRUE), add = TRUE)
+
+  tmp.dirs <- vapply(seq_along(row.batches), function(k) {
+    b <- row.batches[[k]]
+    blk <- .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
+    blk <- BPCells::convert_matrix_type(methods::as(blk, "IterableMatrix"), type = "uint32_t")
+    tmp.dir <- file.path(staging.dir, k)
+    BPCells::write_matrix_dir(mat = blk, dir = tmp.dir)
+    tmp.dir
+  }, character(1L))
+
+  part.mats <- lapply(tmp.dirs, BPCells::open_matrix_dir)
+  combined <- if (length(part.mats) == 1L) part.mats[[1L]] else do.call(rbind, part.mats)
+  BPCells::write_matrix_dir(mat = combined, dir = cache.path)
+  BPCells::open_matrix_dir(dir = cache.path)
+}
+
+#' Read the Atera counts matrix (\code{csc_cell_feature_matrix.zarr.zip}),
+#' optionally restricted to a subset of feature types and optionally backed
+#' by an on-disk \code{BPCells} cache.
+#'
+#' \code{var/feature_type} is row-contiguous in this file (each feature type
+#' occupies one contiguous run of rows), so each requested feature type is
+#' translated into a single contiguous row-range; that is in turn translated
+#' (via a full, but trivially small, read of \code{X/indptr}) into nnz
+#' element-ranges, and only those \code{X/data}/\code{X/indices} chunks are
+#' decoded via \code{.AteraReadArray}'s \code{row.range} chunk-skipping. Each
+#' feature type's row-range is further split into bounded-size row batches
+#' (\code{.AteraBuildFeatureTypeMatrix}) so that building/caching even a
+#' multi-billion-entry feature type stays within a few GB of peak memory.
+#'
+#' When \code{bpcells.dir} is set and every requested feature type already has
+#' a cache directory under it, the zarr file is not read at all beyond the
+#' (tiny) \code{var/feature_type} column needed to validate the requested
+#' feature type names.
+#'
+#' @return A named list of matrices (one per feature type), each either a
+#' \link[Matrix:dgCMatrix-class]{sparse matrix} or, when cached/written via
+#' \code{bpcells.dir}, a \code{BPCells} \code{IterableMatrix}.
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadCountsMatrix <- function(data.dir, feature.types = NULL, bpcells.dir = NULL, nnz.batch = 5e7) {
+  zip.file <- file.path(data.dir, "csc_cell_feature_matrix.zarr.zip")
+  zidx <- .AteraZipIndex(zip.file)
+  con <- file(zip.file, "rb")
+  on.exit(close(con), add = TRUE)
+
+  ft.factor <- .AteraReadCategorical(con, zidx, "var/feature_type")
+  ft.chr <- as.character(ft.factor)
+  rl <- rle(ft.chr)
+  ends <- cumsum(rl$lengths)
+  starts <- ends - rl$lengths + 1L
+
+  all.types <- rl$values
+  if (is.null(feature.types)) {
+    target.types <- all.types
+  } else {
+    unknown <- setdiff(feature.types, all.types)
+    if (length(unknown) > 0L) {
+      stop("Unknown Atera feature type(s): ", paste(unknown, collapse = ', '), call. = FALSE)
+    }
+    target.types <- feature.types
+  }
+
+  result <- vector(mode = 'list', length = length(target.types))
+  names(result) <- target.types
+  need.build <- character(0)
+  for (ft in target.types) {
+    cache.path <- if (!is.null(bpcells.dir)) file.path(bpcells.dir, .AteraSanitizeName(ft)) else NULL
+    if (!is.null(cache.path) && dir.exists(cache.path)) {
+      .AteraCheckBPCellsDeps()
+      result[[ft]] <- BPCells::open_matrix_dir(dir = cache.path)
+    } else {
+      need.build <- c(need.build, ft)
+    }
+  }
+  if (length(need.build) == 0L) {
+    return(result)
+  }
+
+  var <- .AteraReadFlatGroup(con, zidx, "var", columns = c("feature_name", "feature_type"))
+  obs <- .AteraReadFlatGroup(con, zidx, "obs", columns = "cell_id")
+  cell.ids <- .AteraFormatId(.AteraDecodePackedId(obs$cell_id))
+
+  x.indptr <- .AteraReadArray(con, zidx, "X/indptr")
+
+  if (!is.null(bpcells.dir)) {
+    dir.create(bpcells.dir, showWarnings = FALSE, recursive = TRUE)
+  }
+  for (ft in need.build) {
+    ft.i <- match(ft, rl$values)
+    cache.path <- if (!is.null(bpcells.dir)) file.path(bpcells.dir, .AteraSanitizeName(ft)) else NULL
+    result[[ft]] <- .AteraBuildFeatureTypeMatrix(
+      con = con, zidx = zidx, x.indptr = x.indptr,
+      r1 = starts[ft.i], r2 = ends[ft.i],
+      var = var, cell.ids = cell.ids,
+      bpcells.dir = bpcells.dir, cache.path = cache.path, nnz.budget = nnz.batch
+    )
+  }
+  return(result)
+}
+
+#' Load Atera spatial data
+#'
+#' Read the output of \href{https://www.10xgenomics.com}{10x Genomics} Atera,
+#' a next-generation in situ sequencing platform. All Atera outputs (aside
+#' from images) are stored in AnnData zarr (storage format v2) files, zipped
+#' with \code{Stored} (uncompressed) zip entries; reading them requires the
+#' \code{blosc} and \code{jsonlite} packages. Zarr chunks are read directly
+#' out of the zip archive by byte-range seeks with no disk extraction.
+#'
+#' @param data.dir Directory containing all Atera output files with default
+#' filenames
+#' @param outs Types of outputs to read; choose one or more of:
+#' \itemize{
+#'  \item \dQuote{matrix}: the counts matrix
+#'  \item \dQuote{centroids}: cell centroids in micron coordinate space
+#'  \item \dQuote{segmentations}: cell segmentation boundary polygons in
+#'  micron coordinate space
+#'  \item \dQuote{nucleus_segmentations}: nucleus segmentation boundary
+#'  polygons in micron coordinate space. Cells may have zero, one, or more
+#'  than one nucleus polygon
+#'  \item \dQuote{microns}: transcript molecule coordinates. This is
+#'  optional as transcripts files can be very large.
+#'  \item \dQuote{morphology}: a single channel plane of a
+#'  \dQuote{morphology_2d} image (eg the DAPI stain), by default at the
+#'  lowest-resolution pyramid level, for use as a background/overview image.
+#'  Requires the \code{RBioFormats} package, since these images are
+#'  pyramidal, JPEG2000-compressed OME-TIFFs that the base \code{tiff}
+#'  package cannot reliably decode.
+#' }
+#' @param mols.qv.threshold Remove transcript molecules with a calibrated
+#' Q-score less than this threshold when reading \dQuote{microns}. Set to
+#' \code{NULL} to disable filtering.
+#' @param morphology.channel Channel to read when \dQuote{morphology} is in
+#' \code{outs}: either a channel name (matched case-insensitively as a
+#' substring, eg \dQuote{dapi}) or a 0-based integer channel index (matching
+#' the \dQuote{chNNNN} prefix of the image filename).
+#' @param morphology.resolution Pyramid resolution level to read when
+#' \dQuote{morphology} is in \code{outs}, where \code{1} is full resolution
+#' and each subsequent level halves both dimensions. Defaults to \code{NULL},
+#' which reads the lowest-resolution (smallest, fastest) level available --
+#' normally all that's needed for an overview plot.
+#' @param morphology.region Optional list with \code{x}/\code{y} elements
+#' (each a length-2 micron range, in the same coordinate space as
+#' \dQuote{centroids}/\dQuote{microns}/segmentations), used to crop
+#' \dQuote{morphology} to a rectangular window instead of reading the whole
+#' plane. Only the on-disk tiles overlapping that window are decoded, so
+#' this is the recommended way to read a region at \code{morphology.resolution
+#' = 1} (full resolution): reading a full-resolution plane in its entirety
+#' can exceed available memory for these whole-slide images, since they can
+#' be tens of thousands of pixels per side. Defaults to \code{NULL}, which
+#' reads the whole plane.
+#' @param genes Optional character vector of gene names to restrict
+#' \dQuote{microns} to. When set, only the chunks spanning each requested
+#' gene's (gene-sorted, contiguous) row range are read/decompressed instead
+#' of the full transcript table; this avoids materializing all rows when
+#' only a handful of genes are needed. Ignored when \code{"microns"} is not
+#' in \code{outs}.
+#' @param feature.types Optional character vector of feature types (eg
+#' \dQuote{Gene Expression}) to restrict \dQuote{matrix} to. When set, only
+#' the (contiguous) rows for the requested feature type(s) are
+#' read/decompressed instead of the full counts matrix. Defaults to
+#' \code{NULL}, which reads all feature types (current/default behavior).
+#' Ignored when \code{"matrix"} is not in \code{outs}.
+#' @param bpcells.dir Path to a directory used to cache the counts matrix on
+#' disk, one subdirectory per feature type, via
+#' \link[BPCells:write_matrix_dir]{BPCells}. When set, a feature type already
+#' cached under this directory is opened directly with
+#' \link[BPCells:open_matrix_dir]{BPCells::open_matrix_dir} (no zarr read at
+#' all); a feature type not yet cached is read as usual and then written to
+#' this directory for reuse by later calls. Defaults to \code{NULL}, which
+#' auto-selects a session-scoped cache directory under \code{tempdir()} (so
+#' matrices are BPCells-backed, on-disk, and lazy by default, even for small
+#' bundles) if the \code{BPCells} package is installed, or falls back to
+#' in-memory sparse matrices (with a one-time message) if it isn't. Pass
+#' \code{FALSE} to explicitly opt out and always return in-memory sparse
+#' matrices, without requiring \code{BPCells} at all. Ignored when
+#' \code{"matrix"} is not in \code{outs}.
+#'
+#' @return \code{ReadAtera}: A list with some combination of the following
+#' values:
+#' \itemize{
+#'  \item \dQuote{\code{matrix}}: a named list of
+#'  \link[Matrix:dgCMatrix-class]{sparse matrices} with expression data, one
+#'  per feature type (eg \dQuote{Gene Expression}); cells are columns and
+#'  features are rows
+#'  \item \dQuote{\code{centroids}}: a data frame with cell centroid
+#'  coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{segmentations}}/\dQuote{\code{nucleus_segmentations}}:
+#'  a data frame with one row per polygon vertex, in three columns:
+#'  \dQuote{cell}, \dQuote{x}, and \dQuote{y}
+#'  \item \dQuote{\code{microns}}: a data frame with transcript coordinates
+#'  in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
+#'  \item \dQuote{\code{morphology}}: a list with elements \code{image} (a
+#'  numeric matrix, indexed \verb{[x, y]}, in the same top-left-origin pixel
+#'  convention as \dQuote{centroids}/\dQuote{microns}' micron coordinates --
+#'  no axis flip is needed), \code{channel}, \code{resolution},
+#'  \code{n.resolutions}, \code{pixel.size} (microns per pixel of
+#'  \code{image}), and \code{origin} (the micron coordinates,
+#'  \code{c(x=, y=)}, of \code{image}'s \verb{[1, 1]} pixel -- \code{c(x=0,
+#'  y=0)} unless \code{morphology.region} crops out the top-left corner of
+#'  the full plane); see
+#'  \code{morphology.channel}/\code{morphology.resolution}/\code{morphology.region}
+#' }
+#'
+#' @export
+#' @concept preprocessing
+#'
+ReadAtera <- function(
+  data.dir,
+  outs = c("matrix", "centroids"),
+  mols.qv.threshold = 20,
+  genes = NULL,
+  feature.types = NULL,
+  bpcells.dir = NULL,
+  morphology.channel = "dapi",
+  morphology.resolution = NULL,
+  morphology.region = NULL
+) {
+  outs <- match.arg(
+    arg = outs,
+    choices = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "microns", "morphology"),
+    several.ok = TRUE
+  )
+
+  .AteraCheckDeps()
+
+  data <- sapply(outs, function(otype) {
+    switch(
+      EXPR = otype,
+      'matrix' = {
+        pmtx <- progressor()
+        pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
+
+        bpcells.dir <- .AteraResolveBPCellsDir(bpcells.dir = bpcells.dir, data.dir = data.dir)
+        if (!is.null(bpcells.dir)) {
+          .AteraCheckBPCellsDeps()
+        }
+        result <- .AteraReadCountsMatrix(
+          data.dir = data.dir,
+          feature.types = feature.types,
+          bpcells.dir = bpcells.dir
+        )
+
+        pmtx(type = "finish")
+
+        result
+      },
+      'centroids' = {
+        pcents <- progressor()
+        pcents(message = 'Loading cell centroids', class = 'sticky', amount = 0)
+
+        zip.file <- file.path(data.dir, "cells.zarr.zip")
+        zidx <- .AteraZipIndex(zip.file)
+        con <- file(zip.file, "rb")
+        on.exit(close(con), add = TRUE)
+
+        cell_id <- .AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id"))
+        cell_summary <- .AteraReadArray(con, zidx, "cell_summary")
+
+        pcents(type = 'finish')
+
+        data.frame(
+          x = cell_summary[, 1],
+          y = cell_summary[, 2],
+          cell = .AteraFormatId(cell_id)
+        )
+      },
+      'segmentations' = ,
+      'nucleus_segmentations' = {
+        pseg <- progressor()
+        pseg(
+          message = if (otype == 'segmentations') 'Loading cell segmentations' else 'Loading nucleus segmentations',
+          class = 'sticky',
+          amount = 0
+        )
+
+        zip.file <- file.path(data.dir, "cells.zarr.zip")
+        zidx <- .AteraZipIndex(zip.file)
+        con <- file(zip.file, "rb")
+        on.exit(close(con), add = TRUE)
+
+        cell_id <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
+        set.idx <- if (otype == 'segmentations') 1L else 0L
+        df <- .AteraReadPolygonSet(con, zidx, set.idx, cell_id)
+
+        pseg(type = 'finish')
+
+        df
+      },
+      'microns' = {
+        pmicrons <- progressor()
+        pmicrons(message = "Loading transcript coordinates", class = 'sticky', amount = 0)
+
+        handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
+        df <- .AteraFetchMolecules(handle = handle, genes = genes)
+
+        pmicrons(type = 'finish')
+
+        df
+      },
+      'morphology' = {
+        pmorph <- progressor()
+        pmorph(message = 'Loading morphology image', class = 'sticky', amount = 0)
+
+        result <- .AteraReadMorphologyImage(
+          data.dir = data.dir,
+          channel = morphology.channel,
+          resolution = morphology.resolution,
+          region = morphology.region
+        )
+
+        pmorph(type = 'finish')
+
+        result
+      },
+      stop("Unknown Atera input type: ", otype)
+    )
+  }, simplify = FALSE, USE.NAMES = TRUE)
+
+  metadata <- file.path(data.dir, "experiment.spatial")
+  if (file.exists(metadata) && requireNamespace("jsonlite", quietly = TRUE)) {
+    meta <- jsonlite::read_json(metadata)
+    data$metadata <- meta[
+      intersect(
+        names(meta),
+        c(
+          'run_name', 'slide_name', 'region_name', 'chemistry_version',
+          'num_cells', 'num_transcripts'
+        )
+      )
+    ]
+    if (!is.null(meta$panel_a)) {
+      data$metadata$panel_name <- meta$panel_a$panel_name
+    }
+  }
+  return(data)
+}
+
 #' Load Slide-seq spatial data
 #'
 #' @param coord.file Path to csv file containing bead coordinate positions
