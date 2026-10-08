@@ -1181,6 +1181,27 @@ as.Seurat.SingleCellExperiment <- function(
       call. = FALSE
     )
   }
+  # `CreateAssayObject()` uniquifies duplicated dimnames on the first matrix
+  # alone, so the second one keeps the original names and no longer lines up
+  # with the assay: `SetAssayData()` then reindexes with names that are not
+  # there and fails with an opaque "subscript out of bounds". Uniquify once, up
+  # front, so every assay, `colData()` and reduction carries the same names.
+  if (anyDuplicated(x = rownames(x = x))) {
+    warning(
+      "Non-unique features (rownames) present in the SingleCellExperiment, making unique",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    rownames(x = x) <- make.unique(names = rownames(x = x))
+  }
+  if (anyDuplicated(x = colnames(x = x))) {
+    warning(
+      "Non-unique cell names (colnames) present in the SingleCellExperiment, making unique",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    colnames(x = x) <- make.unique(names = colnames(x = x))
+  }
   meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
   if (packageVersion(pkg = "SingleCellExperiment") >= "1.14.0") {
     orig.exp <- SingleCellExperiment::mainExpName(x = x) %||% "originalexp"
