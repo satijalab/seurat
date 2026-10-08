@@ -1,4 +1,12 @@
-# Seurat 5.6.0
+# Unreleased
+
+### Additions
+
+
+### Fixes
+
+
+# Seurat 5.6.0 (2026-10-03)
 
 ### Additions
 
@@ -41,7 +49,7 @@
 - Fixed `SCTransform` on v5 assays to preserve features selected by `variable.features.rv.th` when `variable.features.n = NULL`, including across multiple layers
 - Fixed reference-based RPCA/CCA anchor finding to exclude query-query comparisons regardless of `verbose`
 
-# Seurat 5.5.1
+# Seurat 5.5.1 (2026-06-26)
 
 ### Additions
 
@@ -55,7 +63,7 @@
 - Fixed bug in `PrepDR5` affecting `RunPCA` on v5 objects, where supplied features could be incorrectly dropped when non-supplied features had zero variance ([#10398](https://github.com/satijalab/seurat/pull/10398))
 - Updated `LabelClusters` to use `fill` argument for label background color in `geom_label*` when specified, instead of the default per-cluster color ([#10404](https://github.com/satijalab/seurat/pull/10404))
 
-# Seurat 5.5.0
+# Seurat 5.5.0 (2026-04-22)
 
 ### Additions
 
@@ -95,7 +103,7 @@
 - Updated coordinate systems used for plot display in `InteractiveSpatialPlot` ([#10254](https://github.com/satijalab/seurat/pull/10254))
 - Fixed coordinate ranges when spatial plots are generated with `crop = F` ([#10278](https://github.com/satijalab/seurat/pull/10278), [#10284](https://github.com/satijalab/seurat/pull/10284))
 
-# Seurat 5.4.0
+# Seurat 5.4.0 (2025-12-14)
 
 ### Additions
 - Added support for 10x Space Ranger 4.0 outputs (Visium data with segmentations)
@@ -111,7 +119,7 @@
 - Reverted [#10062](https://github.com/satijalab/seurat/pull/10062) in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData` as previously; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
 - Added color retrieval logic in `LabelClusters` for consistent cluster label coloring ([#10198](https://github.com/satijalab/seurat/pull/10198))
 
-# Seurat 5.3.1
+# Seurat 5.3.1 (2025-10-29)
 
 ## Changes
 
@@ -137,7 +145,7 @@
 - Updated visualization functions to avoid ggplot2 `guides`, `aes_string`, and `facet_grid` deprecation warnings ([#9409](https://github.com/satijalab/seurat/pull/9409), [#10116](https://github.com/satijalab/seurat/pull/10116))
 - Fixed `DimPlot` bug where metadata columns named 'PC_1', 'UMAP_1' etc override reduction embeddings ([#10062](https://github.com/satijalab/seurat/pull/10062))
 
-# Seurat 5.3.0
+# Seurat 5.3.0 (2025-04-24)
 
 ## Changes
 - Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))
