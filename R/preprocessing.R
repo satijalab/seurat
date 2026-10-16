@@ -3519,11 +3519,14 @@ ReadXenium <- function(
 #' seeked concurrently across forked processes.
 #' Array reads within a tile use their default single worker to avoid
 #' nested parallelism.
+#' With \code{codewords = TRUE}, read codeword identities for the requested
+#' genes instead of quality scores and label each codeword separately.
 #'
 #' @keywords internal
 #' @noRd
-.AteraFetchMolecules <- function(handle, genes = NULL, workers = 1L) {
+.AteraFetchMolecules <- function(handle, genes = NULL, workers = 1L, codewords = FALSE) {
   workers <- .AteraWorkers(workers)
+  if (codewords && is.null(genes)) genes <- handle$gene.names
 
   read.tile <- function(tile) {
     con <- file(handle$zip.file, "rb")
@@ -3543,11 +3546,15 @@ ReadXenium <- function(
     gene.rows <- match(genes, handle$gene.names)
     gene.rows <- gene.rows[!is.na(gene.rows) & (gene_offset[gene.rows, 2] - gene_offset[gene.rows, 1]) > 0]
     if (length(gene.rows) == 0) {
-      return(data.frame(x = numeric(0), y = numeric(0), gene = character(0), qv = numeric(0)))
+      return(NULL)
     }
     gene.dfs <- lapply(gene.rows, function(g) {
       rows <- c(gene_offset[g, 1] + 1L, gene_offset[g, 2])
       loc <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), row.range = rows)
+      if (codewords) {
+        cw <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows)
+        return(data.frame(x = loc[, 1], y = loc[, 2], gene = paste0(handle$gene.names[g], "_codeword_", cw)))
+      }
       qv <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), row.range = rows)
       data.frame(x = loc[, 1], y = loc[, 2], gene = handle$gene.names[g], qv = as.vector(qv))
     })
@@ -3561,11 +3568,14 @@ ReadXenium <- function(
   }
 
   df <- as.data.frame(data.table::rbindlist(tile.dfs))
-  if (!is.null(handle$mols.qv.threshold)) {
-    df <- df[!is.na(df$gene) & df$qv >= handle$mols.qv.threshold, , drop = FALSE]
-  } else {
-    df <- df[!is.na(df$gene), , drop = FALSE]
+  if (nrow(df) == 0L) {
+    return(data.frame(x = numeric(0), y = numeric(0), gene = character(0)))
   }
+  keep <- !is.na(df$gene)
+  if (!codewords && !is.null(handle$mols.qv.threshold)) {
+    keep <- keep & df$qv >= handle$mols.qv.threshold
+  }
+  df <- df[keep, , drop = FALSE]
   df$qv <- NULL
   df
 }
