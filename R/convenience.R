@@ -499,13 +499,14 @@ LoadAteraMolecules <- function(object, genes, workers = 1L) {
 
   cached.genes <- if (is.null(handle.info$cache)) character(0) else unique(handle.info$cache$gene)
   missing.genes <- setdiff(genes, cached.genes)
-  if (length(missing.genes) > 0) {
-    new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes, workers = workers)
-    handle.info$cache <- if (is.null(handle.info$cache)) {
-      new.df
-    } else {
-      rbind(handle.info$cache, new.df)
-    }
+  if (length(missing.genes) == 0L) {
+    return(object)
+  }
+  new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes, workers = workers)
+  handle.info$cache <- if (is.null(handle.info$cache)) {
+    new.df
+  } else {
+    rbind(handle.info$cache, new.df)
   }
 
   object[[handle.info$fov]]@molecules <- list(
