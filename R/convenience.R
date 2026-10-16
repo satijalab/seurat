@@ -538,9 +538,6 @@ LoadAteraMolecules <- function(object, genes, workers = 1L) {
 #' @param fov Name of the FOV (typically already cropped via
 #' \code{\link[SeuratObject]{Crop}}) to add segmentation polygons to
 #' @param segmentations One of \code{"cell"} or \code{"nucleus"}
-#' @param max.cells Safety limit: errors rather than attempting to build
-#' polygons for more than this many cells, since \code{sp::SpatialPolygons()}
-#' becomes impractically slow/crash-prone well before this many
 #' @inheritParams ReadAtera
 #'
 #' @return \code{object}, with a \code{"segmentations"} boundary added to
@@ -550,21 +547,12 @@ LoadAteraMolecules <- function(object, genes, workers = 1L) {
 #'
 #' @export
 #'
-LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell", max.cells = 50000, workers = 1L) {
+LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell", workers = 1L) {
   workers <- .AteraWorkers(workers)
   if (!isTRUE(segmentations %in% c("cell", "nucleus"))) {
     stop("segmentations must be one of \"cell\", \"nucleus\"", call. = FALSE)
   }
   cell.ids <- Cells(object[[fov]])
-  if (length(cell.ids) > max.cells) {
-    stop(
-      "FOV '", fov, "' has ", length(cell.ids), " cells, over `max.cells` (", max.cells, "). ",
-      "Building per-cell segmentation polygons (via sp::SpatialPolygons()) doesn't scale this ",
-      "far and will be extremely slow or crash. Crop to a smaller region first, or raise ",
-      "`max.cells` if you're sure.",
-      call. = FALSE
-    )
-  }
 
   zip.file <- file.path(data.dir, "cells.zarr.zip")
   zidx <- .AteraZipIndex(zip.file)
