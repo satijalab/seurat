@@ -572,8 +572,7 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
 
   all.cell.ids <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id", workers = workers)))
   set.idx <- if (segmentations == "cell") 1L else 0L
-  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids, workers = workers)
-  df <- df[df$cell %in% cell.ids, , drop = FALSE]
+  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids, workers = workers, cells = cell.ids)
 
   object[[fov]][["segmentations"]] <- CreateSegmentation(df)
   return(object)

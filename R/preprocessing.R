@@ -3443,14 +3443,34 @@ ReadXenium <- function(
 #' \code{vertices} array. Since consumers (eg \code{geom_polygon}, \code{sf})
 #' already close rings back to the first vertex, that last vertex is dropped
 #' here rather than propagating the corrupted coordinate.
+#' When \code{cells} is supplied, only vertex chunks containing polygons
+#' for those cell IDs are read, and only selected polygons are expanded.
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id, workers = 1L) {
+.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id, workers = 1L, cells = NULL) {
   base <- paste0("polygon_sets/", set.idx)
   cell_index <- .AteraReadArray(con, zidx, paste0(base, "/cell_index"), workers = workers)
-  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices"), workers = workers) - 1L
-  vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"), workers = workers)
+  rows <- if (is.null(cells)) seq_along(cell_index) else which(cell.id[cell_index + 1L] %in% cells)
+  if (length(rows) == 0L) {
+    return(data.frame(cell = character(0), x = numeric(0), y = numeric(0)))
+  }
+  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices"), workers = workers)[rows] - 1L
+  if (length(rows) == length(cell_index)) {
+    vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"), workers = workers)
+  } else {
+    meta <- .AteraReadJSON(con, zidx, paste0(base, "/vertices/.zarray"))
+    row.groups <- split(rows, (rows - 1L) %/% meta$chunks[1L])
+    vertices <- do.call(rbind, lapply(row.groups, function(idx) {
+      lo <- idx[1L]
+      block <- .AteraReadArray(
+        con, zidx, paste0(base, "/vertices"),
+        row.range = c(lo, idx[length(idx)]), workers = workers
+      )
+      block[idx - lo + 1L, , drop = FALSE]
+    }))
+  }
+  cell_index <- cell_index[rows]
 
   n <- nrow(vertices)
   poly.idx <- rep(seq_len(n), num_vertices)
