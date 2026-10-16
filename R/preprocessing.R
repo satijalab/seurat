@@ -3152,21 +3152,18 @@ ReadXenium <- function(
   vals[seq_len(n)]
 }
 
-#' Number of worker processes to use for \code{.AteraReadArray}'s
-#' Blosc-decompression step, honoring the package-wide \code{getThreads()}/
-#' \code{setThreads()} option so it stays consistent with the rest of
-#' Seurat's multithreading rather than defaulting to its own value.
-#' \code{parallel::mclapply} is fork-based and unsupported on Windows, so
-#' threading is disabled there instead of being requested and silently
-#' downgraded.
+#' Validate the number of Atera worker processes; fork-based parallelism
+#' is unavailable on Windows.
 #'
 #' @keywords internal
 #' @noRd
-.AteraThreads <- function() {
-  if (.Platform$OS.type == "windows") {
-    return(1L)
+.AteraWorkers <- function(workers) {
+  if (!is.numeric(workers) || is.complex(workers) || length(workers) != 1L ||
+      !is.finite(workers) || workers < 1 || workers > .Machine$integer.max ||
+      workers != floor(workers)) {
+    stop("'workers' must be a positive integer", call. = FALSE)
   }
-  min(getThreads(), parallel::detectCores(), na.rm = TRUE)
+  if (.Platform$OS.type == "windows") 1L else as.integer(workers)
 }
 
 #' Read a zarr v2 array (1-D or 2-D), stored inside a zip archive, directly
@@ -3179,7 +3176,8 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadArray <- function(con, zidx, array.path, row.range = NULL) {
+.AteraReadArray <- function(con, zidx, array.path, row.range = NULL, workers = 1L) {
+  workers <- .AteraWorkers(workers)
   meta <- .AteraReadJSON(con, zidx, paste0(array.path, "/.zarray"))
   shape <- meta$shape
   # Coerced to double (chunk sizes parse as plain R integers, unlike `shape`,
@@ -3208,8 +3206,6 @@ ReadXenium <- function(
   # Phase 1 (below, sequential) reads each chunk's raw bytes through `con`;
   # phase 2 (`decode()`, possibly parallel) only touches those in-memory raw
   # vectors, which is safe to fork over.
-  nthreads <- .AteraThreads()
-
   if (ndim == 1L) {
     n <- shape[1L]
     csize <- chunks[1L]
@@ -3225,8 +3221,8 @@ ReadXenium <- function(
     decode <- function(raw.chunk, actual.n) {
       if (is.null(raw.chunk)) rep(fill.value, actual.n) else .AteraDecodeChunk(raw.chunk, dtype, actual.n)
     }
-    decoded <- if (length(raw.chunks) > 1L && nthreads > 1L) {
-      parallel::mcmapply(decode, raw.chunks, actual.ns, SIMPLIFY = FALSE, mc.cores = nthreads)
+    decoded <- if (length(raw.chunks) > 1L && workers > 1L) {
+      parallel::mcmapply(decode, raw.chunks, actual.ns, SIMPLIFY = FALSE, mc.cores = workers)
     } else {
       Map(decode, raw.chunks, actual.ns)
     }
@@ -3278,8 +3274,8 @@ ReadXenium <- function(
     decode <- function(job) {
       if (is.null(job$raw)) rep(fill.value, job$n) else .AteraDecodeChunk(job$raw, dtype, job$n)
     }
-    decoded <- if (length(jobs) > 1L && nthreads > 1L) {
-      parallel::mclapply(jobs, decode, mc.cores = nthreads)
+    decoded <- if (length(jobs) > 1L && workers > 1L) {
+      parallel::mclapply(jobs, decode, mc.cores = workers)
     } else {
       lapply(jobs, decode)
     }
@@ -3450,11 +3446,11 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id) {
+.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id, workers = 1L) {
   base <- paste0("polygon_sets/", set.idx)
-  cell_index <- .AteraReadArray(con, zidx, paste0(base, "/cell_index"))
-  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices")) - 1L
-  vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"))
+  cell_index <- .AteraReadArray(con, zidx, paste0(base, "/cell_index"), workers = workers)
+  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices"), workers = workers) - 1L
+  vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"), workers = workers)
 
   n <- nrow(vertices)
   poly.idx <- rep(seq_len(n), num_vertices)
@@ -3521,11 +3517,13 @@ ReadXenium <- function(
 #' rather than reading them one at a time. Each forked worker opens its own
 #' connection, since a connection's file position can't safely be shared/
 #' seeked concurrently across forked processes.
+#' Array reads within a tile use their default single worker to avoid
+#' nested parallelism.
 #'
 #' @keywords internal
 #' @noRd
-.AteraFetchMolecules <- function(handle, genes = NULL) {
-  nthreads <- .AteraThreads()
+.AteraFetchMolecules <- function(handle, genes = NULL, workers = 1L) {
+  workers <- .AteraWorkers(workers)
 
   read.tile <- function(tile) {
     con <- file(handle$zip.file, "rb")
@@ -3556,8 +3554,8 @@ ReadXenium <- function(
     data.table::rbindlist(gene.dfs)
   }
 
-  tile.dfs <- if (nthreads > 1L) {
-    parallel::mclapply(handle$tiles, read.tile, mc.cores = nthreads)
+  tile.dfs <- if (workers > 1L) {
+    parallel::mclapply(handle$tiles, read.tile, mc.cores = workers)
   } else {
     lapply(handle$tiles, read.tile)
   }
@@ -3938,12 +3936,12 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadRowBlockMatrix <- function(con, zidx, x.indptr, sr1, sr2, var, cell.ids) {
+.AteraReadRowBlockMatrix <- function(con, zidx, x.indptr, sr1, sr2, var, cell.ids, workers = 1L) {
   nnz.start <- x.indptr[sr1] + 1L
   nnz.end <- x.indptr[sr2 + 1L]
   if (nnz.end >= nnz.start) {
-    d <- .AteraReadArray(con, zidx, "X/data", row.range = c(nnz.start, nnz.end))
-    i <- .AteraReadArray(con, zidx, "X/indices", row.range = c(nnz.start, nnz.end))
+    d <- .AteraReadArray(con, zidx, "X/data", row.range = c(nnz.start, nnz.end), workers = workers)
+    i <- .AteraReadArray(con, zidx, "X/indices", row.range = c(nnz.start, nnz.end), workers = workers)
   } else {
     d <- numeric(0)
     i <- numeric(0)
@@ -3987,13 +3985,13 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraBuildFeatureTypeMatrix <- function(con, zidx, x.indptr, r1, r2, var, cell.ids, bpcells.dir, cache.path, nnz.budget) {
+.AteraBuildFeatureTypeMatrix <- function(con, zidx, x.indptr, r1, r2, var, cell.ids, bpcells.dir, cache.path, nnz.budget, workers = 1L) {
   row.batches <- .AteraNnzRowBatches(x.indptr, r1, r2, nnz.budget)
   use.bpcells <- !is.null(bpcells.dir)
 
   if (!use.bpcells) {
     parts <- lapply(row.batches, function(b) {
-      .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
+      .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids, workers = workers)
     })
     return(if (length(parts) == 1L) parts[[1L]] else do.call(rbind, parts))
   }
@@ -4005,7 +4003,7 @@ ReadXenium <- function(
 
   tmp.dirs <- vapply(seq_along(row.batches), function(k) {
     b <- row.batches[[k]]
-    blk <- .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
+    blk <- .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids, workers = workers)
     blk <- BPCells::convert_matrix_type(methods::as(blk, "IterableMatrix"), type = "uint32_t")
     tmp.dir <- file.path(staging.dir, k)
     BPCells::write_matrix_dir(mat = blk, dir = tmp.dir)
@@ -4043,7 +4041,7 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadCountsMatrix <- function(data.dir, feature.types = NULL, bpcells.dir = NULL, nnz.batch = 5e7) {
+.AteraReadCountsMatrix <- function(data.dir, feature.types = NULL, bpcells.dir = NULL, nnz.batch = 5e7, workers = 1L) {
   zip.file <- file.path(data.dir, "csc_cell_feature_matrix.zarr.zip")
   zidx <- .AteraZipIndex(zip.file)
   con <- file(zip.file, "rb")
@@ -4098,7 +4096,8 @@ ReadXenium <- function(
       con = con, zidx = zidx, x.indptr = x.indptr,
       r1 = starts[ft.i], r2 = ends[ft.i],
       var = var, cell.ids = cell.ids,
-      bpcells.dir = bpcells.dir, cache.path = cache.path, nnz.budget = nnz.batch
+      bpcells.dir = bpcells.dir, cache.path = cache.path, nnz.budget = nnz.batch,
+      workers = workers
     )
   }
   return(result)
@@ -4181,6 +4180,11 @@ ReadXenium <- function(
 #' \code{FALSE} to explicitly opt out and always return in-memory sparse
 #' matrices, without requiring \code{BPCells} at all. Ignored when
 #' \code{"matrix"} is not in \code{outs}.
+#' @param workers Number of worker processes to use (a positive integer).
+#' Defaults to \code{1}. Molecule and codeword reads parallelize across
+#' tiles; other numeric array reads parallelize chunk decoding. Array reads
+#' inside tile workers stay sequential to avoid nested parallelism. This
+#' setting is independent of \code{setThreads()}; Windows uses one worker.
 #'
 #' @return \code{ReadAtera}: A list with some combination of the following
 #' values:
@@ -4220,7 +4224,8 @@ ReadAtera <- function(
   bpcells.dir = NULL,
   morphology.channel = "dapi",
   morphology.resolution = NULL,
-  morphology.region = NULL
+  morphology.region = NULL,
+  workers = 1L
 ) {
   outs <- match.arg(
     arg = outs,
@@ -4228,6 +4233,7 @@ ReadAtera <- function(
     several.ok = TRUE
   )
 
+  workers <- .AteraWorkers(workers)
   .AteraCheckDeps()
 
   data <- sapply(outs, function(otype) {
@@ -4244,7 +4250,8 @@ ReadAtera <- function(
         result <- .AteraReadCountsMatrix(
           data.dir = data.dir,
           feature.types = feature.types,
-          bpcells.dir = bpcells.dir
+          bpcells.dir = bpcells.dir,
+          workers = workers
         )
 
         pmtx(type = "finish")
@@ -4260,8 +4267,8 @@ ReadAtera <- function(
         con <- file(zip.file, "rb")
         on.exit(close(con), add = TRUE)
 
-        cell_id <- .AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id"))
-        cell_summary <- .AteraReadArray(con, zidx, "cell_summary")
+        cell_id <- .AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id", workers = workers))
+        cell_summary <- .AteraReadArray(con, zidx, "cell_summary", workers = workers)
 
         pcents(type = 'finish')
 
@@ -4285,9 +4292,9 @@ ReadAtera <- function(
         con <- file(zip.file, "rb")
         on.exit(close(con), add = TRUE)
 
-        cell_id <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
+        cell_id <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id", workers = workers)))
         set.idx <- if (otype == 'segmentations') 1L else 0L
-        df <- .AteraReadPolygonSet(con, zidx, set.idx, cell_id)
+        df <- .AteraReadPolygonSet(con, zidx, set.idx, cell_id, workers = workers)
 
         pseg(type = 'finish')
 
@@ -4298,7 +4305,7 @@ ReadAtera <- function(
         pmicrons(message = "Loading transcript coordinates", class = 'sticky', amount = 0)
 
         handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
-        df <- .AteraFetchMolecules(handle = handle, genes = genes)
+        df <- .AteraFetchMolecules(handle = handle, genes = genes, workers = workers)
 
         pmicrons(type = 'finish')
 

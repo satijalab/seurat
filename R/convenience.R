@@ -354,7 +354,8 @@ LoadAtera <- function(
   morphology.image = FALSE,
   morphology.channel = "dapi",
   morphology.resolution = NULL,
-  morphology.region = NULL
+  morphology.region = NULL,
+  workers = 1L
 ) {
   if (!is.null(segmentations) && !(segmentations %in% c('nucleus', 'cell'))) {
     stop('segmentations must be NULL or one of "nucleus", "cell"')
@@ -378,14 +379,15 @@ LoadAtera <- function(
     bpcells.dir = bpcells.dir,
     morphology.channel = morphology.channel,
     morphology.resolution = morphology.resolution,
-    morphology.region = morphology.region
+    morphology.region = morphology.region,
+    workers = workers
   )
   mols.handle <- NULL
   if (molecule.coordinates) {
     .AteraCheckDeps()
     mols.handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
     if (!is.null(genes)) {
-      data$microns <- .AteraFetchMolecules(handle = mols.handle, genes = genes)
+      data$microns <- .AteraFetchMolecules(handle = mols.handle, genes = genes, workers = workers)
     }
   }
 
@@ -477,6 +479,7 @@ LoadAtera <- function(
 #'
 #' @param object A Seurat object created by \code{LoadAtera(..., molecule.coordinates = TRUE)}
 #' @param genes Character vector of gene names to fetch
+#' @inheritParams ReadAtera
 #'
 #' @return \code{object}, with \code{genes}' transcript coordinates added to
 #' its molecule layer (in addition to any genes fetched by a previous call)
@@ -485,7 +488,8 @@ LoadAtera <- function(
 #'
 #' @export
 #'
-LoadAteraMolecules <- function(object, genes) {
+LoadAteraMolecules <- function(object, genes, workers = 1L) {
+  workers <- .AteraWorkers(workers)
   handle.info <- Misc(object, slot = 'atera.molecules')
   if (is.null(handle.info)) {
     stop(
@@ -497,7 +501,7 @@ LoadAteraMolecules <- function(object, genes) {
   cached.genes <- if (is.null(handle.info$cache)) character(0) else unique(handle.info$cache$gene)
   missing.genes <- setdiff(genes, cached.genes)
   if (length(missing.genes) > 0) {
-    new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes)
+    new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes, workers = workers)
     handle.info$cache <- if (is.null(handle.info$cache)) {
       new.df
     } else {
@@ -537,6 +541,7 @@ LoadAteraMolecules <- function(object, genes) {
 #' @param max.cells Safety limit: errors rather than attempting to build
 #' polygons for more than this many cells, since \code{sp::SpatialPolygons()}
 #' becomes impractically slow/crash-prone well before this many
+#' @inheritParams ReadAtera
 #'
 #' @return \code{object}, with a \code{"segmentations"} boundary added to
 #' \code{object[[fov]]}, built only for the cells currently in that FOV
@@ -545,7 +550,8 @@ LoadAteraMolecules <- function(object, genes) {
 #'
 #' @export
 #'
-LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell", max.cells = 50000) {
+LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell", max.cells = 50000, workers = 1L) {
+  workers <- .AteraWorkers(workers)
   if (!isTRUE(segmentations %in% c("cell", "nucleus"))) {
     stop("segmentations must be one of \"cell\", \"nucleus\"", call. = FALSE)
   }
@@ -565,9 +571,9 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
   con <- file(zip.file, "rb")
   on.exit(close(con), add = TRUE)
 
-  all.cell.ids <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
+  all.cell.ids <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id", workers = workers)))
   set.idx <- if (segmentations == "cell") 1L else 0L
-  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids)
+  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids, workers = workers)
   df <- df[df$cell %in% cell.ids, , drop = FALSE]
 
   object[[fov]][["segmentations"]] <- CreateSegmentation(df)
@@ -593,6 +599,7 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
 #' codeword
 #' @param fov Name of the FOV to attach the resulting molecules to; defaults
 #' to the object's default FOV
+#' @inheritParams ReadAtera
 #'
 #' @return \code{object}, with one \code{"<gene>_codeword_<id>"} molecule
 #' entry per codeword mapping to each requested gene, merged into
@@ -604,7 +611,8 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
 #'
 #' @export
 #'
-LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
+LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL, workers = 1L) {
+  workers <- .AteraWorkers(workers)
   fov <- fov %||% DefaultFOV(object = object)
 
   handle <- .AteraMoleculesHandle(data.dir = data.dir)
@@ -624,19 +632,11 @@ LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
   if (length(missing.genes) > 0) {
     zip.file <- file.path(data.dir, "transcripts.zarr.zip")
     zidx <- .AteraZipIndex(zip.file)
-    nthreads <- .AteraThreads()
 
     gene.dfs <- lapply(missing.genes, function(gene_name) {
       gene.idx <- match(gene_name, handle$gene.names)
-      # A gene's rows are typically spread across most of the grid tiles (eg
-      # ~85-88 of 102 for genes checked on a real whole-transcriptome bundle);
-      # each tile's read is independent, so this is parallelized across
-      # tiles rather than reading them one at a time. Unlike .AteraReadArray's
-      # chunk-level parallelism (which shares one connection, reading
-      # sequentially before decoding in parallel), tile reads here are full,
-      # separate .AteraReadArray calls -- each forked worker opens its own
-      # connection, since a connection's file position can't safely be
-      # shared/seeked concurrently across forked processes.
+      # Each tile worker opens its own connection. Array reads keep their
+      # default single worker to avoid nested chunk-level parallelism.
       read.tile <- function(tile) {
         go <- tile$gene_offset
         n <- go[gene.idx, 2] - go[gene.idx, 1]
@@ -650,8 +650,8 @@ LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
         cw <- .AteraReadArray(con, zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows)
         data.frame(x = loc[, 1], y = loc[, 2], gene = paste0(gene_name, "_codeword_", cw))
       }
-      tile.dfs <- if (nthreads > 1L) {
-        parallel::mclapply(handle$tiles, read.tile, mc.cores = nthreads)
+      tile.dfs <- if (workers > 1L) {
+        parallel::mclapply(handle$tiles, read.tile, mc.cores = workers)
       } else {
         lapply(handle$tiles, read.tile)
       }
