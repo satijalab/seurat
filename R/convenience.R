@@ -384,7 +384,6 @@ LoadAtera <- function(
   )
   mols.handle <- NULL
   if (molecule.coordinates) {
-    .AteraCheckDeps()
     mols.handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
     if (!is.null(genes)) {
       data$microns <- .AteraFetchMolecules(handle = mols.handle, genes = genes, workers = workers)
@@ -630,32 +629,8 @@ LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL, workers = 1L
   missing.genes <- genes[!already.loaded]
 
   if (length(missing.genes) > 0) {
-    zip.file <- file.path(data.dir, "transcripts.zarr.zip")
-    zidx <- .AteraZipIndex(zip.file)
-
     gene.dfs <- lapply(missing.genes, function(gene_name) {
-      gene.idx <- match(gene_name, handle$gene.names)
-      # Each tile worker opens its own connection. Array reads keep their
-      # default single worker to avoid nested chunk-level parallelism.
-      read.tile <- function(tile) {
-        go <- tile$gene_offset
-        n <- go[gene.idx, 2] - go[gene.idx, 1]
-        if (n == 0) {
-          return(NULL)
-        }
-        rows <- c(go[gene.idx, 1] + 1L, go[gene.idx, 2])
-        con <- file(zip.file, "rb")
-        on.exit(close(con))
-        loc <- .AteraReadArray(con, zidx, paste0(tile$dir, "/location"), row.range = rows)
-        cw <- .AteraReadArray(con, zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows)
-        data.frame(x = loc[, 1], y = loc[, 2], gene = paste0(gene_name, "_codeword_", cw))
-      }
-      tile.dfs <- if (workers > 1L) {
-        parallel::mclapply(handle$tiles, read.tile, mc.cores = workers)
-      } else {
-        lapply(handle$tiles, read.tile)
-      }
-      do.call(rbind, tile.dfs)
+      .AteraFetchMolecules(handle, genes = gene_name, workers = workers, codewords = TRUE)
     })
     new.df <- do.call(rbind, gene.dfs)
     existing.cache <- if (is.null(existing.cache)) new.df else rbind(existing.cache, new.df)
