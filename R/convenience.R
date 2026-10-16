@@ -614,13 +614,20 @@ LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL, workers = 1L
   workers <- .AteraWorkers(workers)
   fov <- fov %||% DefaultFOV(object = object)
 
-  handle <- .AteraMoleculesHandle(data.dir = data.dir)
+  handle.info <- Misc(object, slot = 'atera.molecules')
+  handle <- if (is.null(handle.info)) NULL else handle.info$handle
+  zip.file <- file.path(data.dir, "transcripts.zarr.zip")
+  if (is.null(handle) || !identical(
+    normalizePath(handle$zip.file, mustWork = FALSE),
+    normalizePath(zip.file, mustWork = FALSE)
+  )) {
+    handle <- .AteraMoleculesHandle(data.dir = data.dir)
+  }
   unknown <- setdiff(genes, handle$gene.names)
   if (length(unknown) > 0) {
     stop("Unknown Atera gene(s): ", paste(unknown, collapse = ", "), call. = FALSE)
   }
 
-  handle.info <- Misc(object, slot = 'atera.molecules')
   existing.cache <- if (is.null(handle.info)) NULL else handle.info$cache
   cached.genes <- if (is.null(existing.cache)) character(0) else unique(existing.cache$gene)
   already.loaded <- vapply(genes, function(g) {
