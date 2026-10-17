@@ -2856,11 +2856,11 @@ MixingMetric <- function(
   groups <- unique(x = group.info)
   mixing <- my.sapply(
     X = 1:ncol(x = object),
-    FUN = function(x) {
-      sapply(X = groups, FUN = function(y) {
-        which(x = group.info[nn$nn.idx[x, ]] == y)[k]
-      })
-    }
+    FUN = MixingHelper,
+    groups = groups,
+    group.info = group.info,
+    nn.idx = nn$nn.idx,
+    k = k
   )
   mixing[is.na(x = mixing)] <- max.k
   mixing <- apply(
@@ -2869,6 +2869,14 @@ MixingMetric <- function(
     FUN = median
   )
   return(mixing)
+}
+
+#internal
+#
+MixingHelper <- function(x, groups, group.info, nn.idx, k) {
+  return(sapply(X = groups, FUN = function(y) {
+    which(x = group.info[nn.idx[x, ]] == y)[k]
+  }))
 }
 
 #' Prepare an object list normalized with sctransform for integration.

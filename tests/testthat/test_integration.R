@@ -485,3 +485,19 @@ if (is_not_cran_submission) {
     }
   })
 }
+
+context("MixingMetric")
+
+test_that("`MixingMetric` works as expected", {
+  metric <- MixingMetric(
+    object = pbmc_small,
+    grouping.var = "groups",
+    dims = 1:2,
+    k = 2,
+    max.k = 10,
+    verbose = FALSE
+  )
+  expect_equal(length(metric), ncol(pbmc_small))
+  expect_true(is.numeric(metric))
+  expect_true(all(metric >= 1 & metric <= 10))
+})
