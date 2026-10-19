@@ -2,6 +2,7 @@
 // Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #include <RcppEigen.h>
+#include <RcppThread.h>
 #include <Rcpp.h>
 
 using namespace Rcpp;
@@ -12,12 +13,12 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // RunModularityClusteringCpp
-IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename);
-RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP) {
+IntegerVector RunModularityClusteringCpp(SEXP SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename, int nThreads);
+RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP, SEXP nThreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type SNN(SNNSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SNN(SNNSEXP);
     Rcpp::traits::input_parameter< int >::type modularityFunction(modularityFunctionSEXP);
     Rcpp::traits::input_parameter< double >::type resolution(resolutionSEXP);
     Rcpp::traits::input_parameter< int >::type algorithm(algorithmSEXP);
@@ -26,7 +27,44 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type randomSeed(randomSeedSEXP);
     Rcpp::traits::input_parameter< bool >::type printOutput(printOutputSEXP);
     Rcpp::traits::input_parameter< std::string >::type edgefilename(edgefilenameSEXP);
-    rcpp_result_gen = Rcpp::wrap(RunModularityClusteringCpp(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename));
+    Rcpp::traits::input_parameter< int >::type nThreads(nThreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(RunModularityClusteringCpp(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename, nThreads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// RunModularityClusteringCpp_multi
+List RunModularityClusteringCpp_multi(SEXP SNN, int modularityFunction, NumericVector resolutions, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename, int nThreads);
+RcppExport SEXP _Seurat_RunModularityClusteringCpp_multi(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionsSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP, SEXP nThreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type SNN(SNNSEXP);
+    Rcpp::traits::input_parameter< int >::type modularityFunction(modularityFunctionSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type resolutions(resolutionsSEXP);
+    Rcpp::traits::input_parameter< int >::type algorithm(algorithmSEXP);
+    Rcpp::traits::input_parameter< int >::type nRandomStarts(nRandomStartsSEXP);
+    Rcpp::traits::input_parameter< int >::type nIterations(nIterationsSEXP);
+    Rcpp::traits::input_parameter< int >::type randomSeed(randomSeedSEXP);
+    Rcpp::traits::input_parameter< bool >::type printOutput(printOutputSEXP);
+    Rcpp::traits::input_parameter< std::string >::type edgefilename(edgefilenameSEXP);
+    Rcpp::traits::input_parameter< int >::type nThreads(nThreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(RunModularityClusteringCpp_multi(SNN, modularityFunction, resolutions, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename, nThreads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// AnnoySearchCpp
+SEXP AnnoySearchCpp(std::string index_path, Rcpp::NumericMatrix query, int k, int search_k, bool include_distance, std::string metric, int nthreads);
+RcppExport SEXP _Seurat_AnnoySearchCpp(SEXP index_pathSEXP, SEXP querySEXP, SEXP kSEXP, SEXP search_kSEXP, SEXP include_distanceSEXP, SEXP metricSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< std::string >::type index_path(index_pathSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type query(querySEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type search_k(search_kSEXP);
+    Rcpp::traits::input_parameter< bool >::type include_distance(include_distanceSEXP);
+    Rcpp::traits::input_parameter< std::string >::type metric(metricSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(AnnoySearchCpp(index_path, query, k, search_k, include_distance, metric, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -73,39 +111,82 @@ BEGIN_RCPP
 END_RCPP
 }
 // LogNorm
-Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress);
-RcppExport SEXP _Seurat_LogNorm(SEXP dataSEXP, SEXP scale_factorSEXP, SEXP display_progressSEXP) {
+NumericVector LogNorm(NumericVector x, IntegerVector p, int scale_factor, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_LogNorm(SEXP xSEXP, SEXP pSEXP, SEXP scale_factorSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
     Rcpp::traits::input_parameter< int >::type scale_factor(scale_factorSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(LogNorm(data, scale_factor, display_progress));
+    rcpp_result_gen = Rcpp::wrap(LogNorm(x, p, scale_factor, nthreads, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FindAllMarkersSparseFoldChangeStats
+List FindAllMarkersSparseFoldChangeStats(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, IntegerVector groups, int n_groups, bool log_normalize, int nthreads);
+RcppExport SEXP _Seurat_FindAllMarkersSparseFoldChangeStats(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP groupsSEXP, SEXP n_groupsSEXP, SEXP log_normalizeSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_groups(n_groupsSEXP);
+    Rcpp::traits::input_parameter< bool >::type log_normalize(log_normalizeSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(FindAllMarkersSparseFoldChangeStats(x, i, p, rows, cols, groups, n_groups, log_normalize, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
 // Standardize
-NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
-RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
+NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress, int nthreads);
+RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(Standardize(mat, display_progress));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(Standardize(mat, display_progress, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
 // FastSparseRowScale
-Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, bool center, double scale_max, bool display_progress);
-RcppExport SEXP _Seurat_FastSparseRowScale(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
+NumericMatrix FastSparseRowScale(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, IntegerVector features, bool scale, bool center, double scale_max, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_FastSparseRowScale(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP featuresSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type features(featuresSEXP);
     Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(FastSparseRowScale(mat, scale, center, scale_max, display_progress));
+    rcpp_result_gen = Rcpp::wrap(FastSparseRowScale(x, i, p, rows, cols, features, scale, center, scale_max, nthreads, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastDenseRowScale
+NumericMatrix FastDenseRowScale(NumericMatrix mat, IntegerVector features, bool scale, bool center, double scale_max, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_FastDenseRowScale(SEXP matSEXP, SEXP featuresSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type features(featuresSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastDenseRowScale(mat, features, scale, center, scale_max, nthreads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -170,29 +251,38 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// SparseRowVar2
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, NumericVector mu, bool display_progress);
-RcppExport SEXP _Seurat_SparseRowVar2(SEXP matSEXP, SEXP muSEXP, SEXP display_progressSEXP) {
+// SparseRowMeanVar
+List SparseRowMeanVar(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowMeanVar(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(SparseRowVar2(mat, mu, display_progress));
+    rcpp_result_gen = Rcpp::wrap(SparseRowMeanVar(x, i, p, rows, cols, nthreads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // SparseRowVarStd
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sd, double vmax, bool display_progress);
-RcppExport SEXP _Seurat_SparseRowVarStd(SEXP matSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP display_progressSEXP) {
+NumericVector SparseRowVarStd(NumericVector x, IntegerVector i, IntegerVector p, NumericVector mu, NumericVector sd, int rows, int cols, double vmax, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowVarStd(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP vmaxSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type sd(sdSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
     Rcpp::traits::input_parameter< double >::type vmax(vmaxSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(SparseRowVarStd(mat, mu, sd, vmax, display_progress));
+    rcpp_result_gen = Rcpp::wrap(SparseRowVarStd(x, i, p, mu, sd, rows, cols, vmax, nthreads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -214,6 +304,41 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type x(xSEXP);
     rcpp_result_gen = Rcpp::wrap(RowVar(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SparseRowMeanVarLegacy
+List SparseRowMeanVarLegacy(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowMeanVarLegacy(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowMeanVarLegacy(x, i, p, rows, cols, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SparseRowVarStdLegacyRows
+NumericVector SparseRowVarStdLegacyRows(NumericVector x, IntegerVector i, IntegerVector p, NumericVector mu, NumericVector sd, double vmax, int rows, int cols, IntegerVector rows_use, int nthreads, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowVarStdLegacyRows(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP rows_useSEXP, SEXP nthreadsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type sd(sdSEXP);
+    Rcpp::traits::input_parameter< double >::type vmax(vmaxSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type rows_use(rows_useSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowVarStdLegacyRows(x, i, p, mu, sd, vmax, rows, cols, rows_use, nthreads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -263,9 +388,39 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// CcaCrossprodMultiply
+NumericVector CcaCrossprodMultiply(const Eigen::Map<Eigen::MatrixXd> left, const Eigen::Map<Eigen::MatrixXd> right, const Eigen::Map<Eigen::VectorXd> x);
+RcppExport SEXP _Seurat_CcaCrossprodMultiply(SEXP leftSEXP, SEXP rightSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type left(leftSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type right(rightSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(CcaCrossprodMultiply(left, right, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// CountAnchorSharedNeighbors
+IntegerVector CountAnchorSharedNeighbors(IntegerMatrix indices_aa, IntegerMatrix indices_ab, IntegerMatrix indices_ba, IntegerMatrix indices_bb, IntegerVector anchor_cell1, IntegerVector anchor_cell2, int offset, int k_score, int nthreads);
+RcppExport SEXP _Seurat_CountAnchorSharedNeighbors(SEXP indices_aaSEXP, SEXP indices_abSEXP, SEXP indices_baSEXP, SEXP indices_bbSEXP, SEXP anchor_cell1SEXP, SEXP anchor_cell2SEXP, SEXP offsetSEXP, SEXP k_scoreSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_aa(indices_aaSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_ab(indices_abSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_ba(indices_baSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type indices_bb(indices_bbSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type anchor_cell1(anchor_cell1SEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type anchor_cell2(anchor_cell2SEXP);
+    Rcpp::traits::input_parameter< int >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< int >::type k_score(k_scoreSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(CountAnchorSharedNeighbors(indices_aa, indices_ab, indices_ba, indices_bb, anchor_cell1, anchor_cell2, offset, k_score, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // FindWeightsC
-Eigen::SparseMatrix<double> FindWeightsC(NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress);
-RcppExport SEXP _Seurat_FindWeightsC(SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
+Eigen::SparseMatrix<double> FindWeightsC(NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress, int nthreads);
+RcppExport SEXP _Seurat_FindWeightsC(SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type cells2(cells2SEXP);
@@ -277,7 +432,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type min_dist(min_distSEXP);
     Rcpp::traits::input_parameter< double >::type sd(sdSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(FindWeightsC(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(FindWeightsC(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -294,8 +450,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // ScoreHelper
-std::vector<double> ScoreHelper(Eigen::SparseMatrix<double> snn, Eigen::MatrixXd query_pca, Eigen::MatrixXd query_dists, Eigen::MatrixXd corrected_nns, int k_snn, bool subtract_first_nn, bool display_progress);
-RcppExport SEXP _Seurat_ScoreHelper(SEXP snnSEXP, SEXP query_pcaSEXP, SEXP query_distsSEXP, SEXP corrected_nnsSEXP, SEXP k_snnSEXP, SEXP subtract_first_nnSEXP, SEXP display_progressSEXP) {
+std::vector<double> ScoreHelper(Eigen::SparseMatrix<double> snn, Eigen::MatrixXd query_pca, Eigen::MatrixXd query_dists, Eigen::MatrixXd corrected_nns, int k_snn, bool subtract_first_nn, bool display_progress, int nthreads);
+RcppExport SEXP _Seurat_ScoreHelper(SEXP snnSEXP, SEXP query_pcaSEXP, SEXP query_distsSEXP, SEXP corrected_nnsSEXP, SEXP k_snnSEXP, SEXP subtract_first_nnSEXP, SEXP display_progressSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -306,42 +462,82 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type k_snn(k_snnSEXP);
     Rcpp::traits::input_parameter< bool >::type subtract_first_nn(subtract_first_nnSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(ScoreHelper(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(ScoreHelper(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// EigenGramPCA
+List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object, int npcs, bool weight_by_var, int nthreads);
+RcppExport SEXP _Seurat_EigenGramPCA(SEXP objectSEXP, SEXP npcsSEXP, SEXP weight_by_varSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type object(objectSEXP);
+    Rcpp::traits::input_parameter< int >::type npcs(npcsSEXP);
+    Rcpp::traits::input_parameter< bool >::type weight_by_var(weight_by_varSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(EigenGramPCA(object, npcs, weight_by_var, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SCTResidualStatsAndCorrected
+List SCTResidualStatsAndCorrected(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, double target_log_umi, double min_var, double residual_clip_min, double residual_clip_max, int n_threads, bool compute_corrected);
+RcppExport SEXP _Seurat_SCTResidualStatsAndCorrected(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP target_log_umiSEXP, SEXP min_varSEXP, SEXP residual_clip_minSEXP, SEXP residual_clip_maxSEXP, SEXP n_threadsSEXP, SEXP compute_correctedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type intercept(interceptSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type slope(slopeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type log_umi(log_umiSEXP);
+    Rcpp::traits::input_parameter< double >::type target_log_umi(target_log_umiSEXP);
+    Rcpp::traits::input_parameter< double >::type min_var(min_varSEXP);
+    Rcpp::traits::input_parameter< double >::type residual_clip_min(residual_clip_minSEXP);
+    Rcpp::traits::input_parameter< double >::type residual_clip_max(residual_clip_maxSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type compute_corrected(compute_correctedSEXP);
+    rcpp_result_gen = Rcpp::wrap(SCTResidualStatsAndCorrected(x, i, p, rows, cols, theta, intercept, slope, log_umi, target_log_umi, min_var, residual_clip_min, residual_clip_max, n_threads, compute_corrected));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SCTPearsonResidualMatrix
+NumericMatrix SCTPearsonResidualMatrix(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, IntegerVector feature_index, NumericVector min_var, double clip_min, double clip_max, bool do_center, int n_threads, bool display_progress);
+RcppExport SEXP _Seurat_SCTPearsonResidualMatrix(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP feature_indexSEXP, SEXP min_varSEXP, SEXP clip_minSEXP, SEXP clip_maxSEXP, SEXP do_centerSEXP, SEXP n_threadsSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type i(iSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type intercept(interceptSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type slope(slopeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type log_umi(log_umiSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type feature_index(feature_indexSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type min_var(min_varSEXP);
+    Rcpp::traits::input_parameter< double >::type clip_min(clip_minSEXP);
+    Rcpp::traits::input_parameter< double >::type clip_max(clip_maxSEXP);
+    Rcpp::traits::input_parameter< bool >::type do_center(do_centerSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SCTPearsonResidualMatrix(x, i, p, rows, cols, theta, intercept, slope, log_umi, feature_index, min_var, clip_min, clip_max, do_center, n_threads, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // ComputeSNN
-Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
-RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
+S4 ComputeSNN(IntegerMatrix nn_ranked, double prune, int nthreads);
+RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type nn_ranked(nn_rankedSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type nn_ranked(nn_rankedSEXP);
     Rcpp::traits::input_parameter< double >::type prune(pruneSEXP);
-    rcpp_result_gen = Rcpp::wrap(ComputeSNN(nn_ranked, prune));
-    return rcpp_result_gen;
-END_RCPP
-}
-// WriteEdgeFile
-void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool display_progress);
-RcppExport SEXP _Seurat_WriteEdgeFile(SEXP snnSEXP, SEXP filenameSEXP, SEXP display_progressSEXP) {
-BEGIN_RCPP
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type snn(snnSEXP);
-    Rcpp::traits::input_parameter< String >::type filename(filenameSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    WriteEdgeFile(snn, filename, display_progress);
-    return R_NilValue;
-END_RCPP
-}
-// DirectSNNToFile
-Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked, double prune, bool display_progress, String filename);
-RcppExport SEXP _Seurat_DirectSNNToFile(SEXP nn_rankedSEXP, SEXP pruneSEXP, SEXP display_progressSEXP, SEXP filenameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type nn_ranked(nn_rankedSEXP);
-    Rcpp::traits::input_parameter< double >::type prune(pruneSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    Rcpp::traits::input_parameter< String >::type filename(filenameSEXP);
-    rcpp_result_gen = Rcpp::wrap(DirectSNNToFile(nn_ranked, prune, display_progress, filename));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(ComputeSNN(nn_ranked, prune, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -405,32 +601,41 @@ END_RCPP
 RcppExport SEXP isnull(SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
+    {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 10},
+    {"_Seurat_RunModularityClusteringCpp_multi", (DL_FUNC) &_Seurat_RunModularityClusteringCpp_multi, 10},
+    {"_Seurat_AnnoySearchCpp", (DL_FUNC) &_Seurat_AnnoySearchCpp, 7},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
-    {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 3},
-    {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
-    {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 5},
+    {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 5},
+    {"_Seurat_FindAllMarkersSparseFoldChangeStats", (DL_FUNC) &_Seurat_FindAllMarkersSparseFoldChangeStats, 9},
+    {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 3},
+    {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 11},
+    {"_Seurat_FastDenseRowScale", (DL_FUNC) &_Seurat_FastDenseRowScale, 7},
     {"_Seurat_FastSparseRowScaleWithKnownStats", (DL_FUNC) &_Seurat_FastSparseRowScaleWithKnownStats, 7},
     {"_Seurat_FastCov", (DL_FUNC) &_Seurat_FastCov, 2},
     {"_Seurat_FastCovMats", (DL_FUNC) &_Seurat_FastCovMats, 3},
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
     {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 2},
-    {"_Seurat_SparseRowVar2", (DL_FUNC) &_Seurat_SparseRowVar2, 3},
-    {"_Seurat_SparseRowVarStd", (DL_FUNC) &_Seurat_SparseRowVarStd, 5},
+    {"_Seurat_SparseRowMeanVar", (DL_FUNC) &_Seurat_SparseRowMeanVar, 7},
+    {"_Seurat_SparseRowVarStd", (DL_FUNC) &_Seurat_SparseRowVarStd, 10},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
+    {"_Seurat_SparseRowMeanVarLegacy", (DL_FUNC) &_Seurat_SparseRowMeanVarLegacy, 6},
+    {"_Seurat_SparseRowVarStdLegacyRows", (DL_FUNC) &_Seurat_SparseRowVarStdLegacyRows, 11},
     {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
     {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
     {"_Seurat_GraphToNeighborHelper", (DL_FUNC) &_Seurat_GraphToNeighborHelper, 1},
     {"_Seurat_fast_dist", (DL_FUNC) &_Seurat_fast_dist, 3},
-    {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 9},
+    {"_Seurat_CcaCrossprodMultiply", (DL_FUNC) &_Seurat_CcaCrossprodMultiply, 3},
+    {"_Seurat_CountAnchorSharedNeighbors", (DL_FUNC) &_Seurat_CountAnchorSharedNeighbors, 9},
+    {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
-    {"_Seurat_ScoreHelper", (DL_FUNC) &_Seurat_ScoreHelper, 7},
-    {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
-    {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
-    {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
+    {"_Seurat_ScoreHelper", (DL_FUNC) &_Seurat_ScoreHelper, 8},
+    {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 4},
+    {"_Seurat_SCTResidualStatsAndCorrected", (DL_FUNC) &_Seurat_SCTResidualStatsAndCorrected, 15},
+    {"_Seurat_SCTPearsonResidualMatrix", (DL_FUNC) &_Seurat_SCTPearsonResidualMatrix, 16},
+    {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 3},
     {"_Seurat_SNN_SmallestNonzero_Dist", (DL_FUNC) &_Seurat_SNN_SmallestNonzero_Dist, 4},
     {"_Seurat_row_sum_dgcmatrix", (DL_FUNC) &_Seurat_row_sum_dgcmatrix, 4},
     {"_Seurat_row_mean_dgcmatrix", (DL_FUNC) &_Seurat_row_mean_dgcmatrix, 4},

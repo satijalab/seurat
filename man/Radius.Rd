@@ -13,7 +13,7 @@
 
 \method{Radius}{VisiumV1}(object, scale = "lowres", ...)
 
-\method{Radius}{VisiumV1}(object, scale = "lowres", ...)
+\method{Radius}{VisiumV2}(object, scale = "lowres", ...)
 }
 \arguments{
 \item{object}{An image object}

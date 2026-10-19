@@ -28,6 +28,7 @@ SCTransform(object, ...)
   vst.flavor = "v2",
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
+  defer.residual.matrix = FALSE,
   seed.use = 1448145,
   verbose = TRUE,
   ...
@@ -153,6 +154,12 @@ default: FALSE).}
 
 \item{return.only.var.genes}{Logical; if TRUE (default), \code{scale.data}
 is subset to variable features only.}
+
+\item{defer.residual.matrix}{Logical; if TRUE, skip materializing the
+Pearson residual matrix in this call. (For internal use by the
+v5 multi-layer \code{SCTransform} workflow, which computes the final
+merged \code{scale.data} matrix after processing all layers. Not used for
+the standard v3/single-matrix workflow.)}
 
 \item{seed.use}{Integer; random seed for reproducibility (default: 1448145).
 Set to NULL to skip setting a seed.}

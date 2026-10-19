@@ -88,6 +88,12 @@ NULL
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
 #' @param eps Error bound on the neighbor finding algorithm (from RANN/Annoy)
+#' @param svd.method SVD backend to use when \code{reduction = "cca"}.
+#' If \code{NULL}, defaults to \code{"irlba"} except for pairs of dense CCA
+#' input matrices whose cell-by-cell cross-product matrix has at least
+#' 1,000,000 entries, in which case it defaults to \code{"rspectra"}.
+#' \code{"irlba"} uses an explicit cross-product CCA path; \code{"rspectra"}
+#' uses an implicit operator to avoid forming the cross-product matrix.
 #' @param verbose Print progress bars and output
 #'
 #' @return Returns an \code{\link{AnchorSet}} object that can be used as input to
@@ -147,6 +153,7 @@ FindIntegrationAnchors <- function(
   nn.method = "annoy",
   n.trees = 50,
   eps = 0,
+  svd.method = NULL,
   verbose = TRUE
 ) {
   normalization.method <- match.arg(arg = normalization.method)
@@ -163,11 +170,13 @@ FindIntegrationAnchors <- function(
     scale <- FALSE
     k.filter <- NA
   }
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
+  # If nthreads is 1, future workers will be used if configured
+  use.future <- getThreads(verbose = FALSE) <= 1L
+  my.lapply <- if (!use.future) {
+    if (verbose) pblapply else lapply
+  } else {
+    if (verbose && nbrOfWorkers() == 1) pblapply else future_lapply
+  }
   object.ncells <- sapply(X = object.list, FUN = function(x) dim(x = x)[2])
   if (any(object.ncells <= max(dims))) {
     bad.obs <- which(x = object.ncells <= max(dims))
@@ -302,12 +311,12 @@ FindIntegrationAnchors <- function(
       stop('Error: requested reference object ', max(reference), " but only ",
            length(x = object.list), " objects provided")
     }
-    # modify the combinations matrix to retain only R-R and R-Q comparisons
+    # Always drop query-query pairs in reference mode
     if (verbose) {
       message("Finding anchors between all query and reference datasets")
-      ok.rows <- (combinations$Var1 %in% reference) | (combinations$Var2 %in% reference)
-      combinations <- combinations[ok.rows, ]
     }
+    ok.rows <- (combinations$Var1 %in% reference) | (combinations$Var2 %in% reference)
+    combinations <- combinations[ok.rows, ]
   }
   # determine all anchors
   anchoring.fxn <- function(row) {
@@ -354,6 +363,8 @@ FindIntegrationAnchors <- function(
           num.cc = max(dims),
           renormalize = FALSE,
           rescale = FALSE,
+          compute.gene.loadings = !is.na(x = k.filter),
+          svd.method = svd.method,
           verbose = verbose
         )
         if (l2.norm){
@@ -453,7 +464,12 @@ FindIntegrationAnchors <- function(
     anchors[, 2] <- anchors[, 2] + offsets[j]
     return(anchors)
   }
-  if (nbrOfWorkers() == 1) {
+  if (!use.future) {
+    all.anchors <- my.lapply(
+      X = 1:nrow(x = combinations),
+      FUN = anchoring.fxn
+    )
+  } else if (nbrOfWorkers() == 1) {
     all.anchors <- pblapply(
       X = 1:nrow(x = combinations),
       FUN = anchoring.fxn
@@ -2611,35 +2627,35 @@ MappingScore.default <- function(
     message("    Finding neighbors of transformed query cells")
   }
   ## Compute new neighborhood of query cells after projections
-  if (nn.method == "annoy") {
-    if (is.null(x = Index(object = query.neighbors))) {
-      corrected.neighbors <- NNHelper(
-        data = query.cells.pca,
-        query = query.cells.back.corrected,
-        k = max(ksmooth, ksnn),
-        method = nn.method,
-        n.treees = n.trees,
-        cache.index = TRUE
-      )
-    } else {
-      corrected.neighbors <- AnnoySearch(
-        index = Index(object = query.neighbors),
-        query = query.cells.back.corrected,
-        k = max(ksmooth, ksnn)
-      )
-      corrected.neighbors <- new(
-        Class = 'Neighbor',
-        nn.idx = corrected.neighbors$nn.idx,
-        nn.dist = corrected.neighbors$nn.dists
-      )
-    }
+  if (nn.method == "annoy" && !is.null(x = Index(object = query.neighbors))) {
+    corrected.neighbors <- AnnoySearch(
+      index = Index(object = query.neighbors),
+      query = query.cells.back.corrected,
+      k = max(ksmooth, ksnn)
+    )
+    corrected.neighbors <- new(
+      Class = 'Neighbor',
+      nn.idx = corrected.neighbors$nn.idx,
+      nn.dist = corrected.neighbors$nn.dists
+    )
+  } else {
+    corrected.neighbors <- NNHelper(
+      data = query.cells.pca,
+      query = query.cells.back.corrected,
+      k = max(ksmooth, ksnn),
+      method = nn.method,
+      n.trees = n.trees,
+      cache.index = TRUE
+    )
   }
   if (verbose) {
     message("    Computing query SNN")
   }
+  nthreads <- getThreads(verbose = FALSE)
   snn <- ComputeSNN(
     nn_ranked = Indices(query.neighbors)[, 1:ksnn],
-    prune = snn.prune
+    prune = snn.prune,
+    nthreads = nthreads
   )
   query.cells.pca <- t(x = query.cells.pca)
   if (verbose) {
@@ -2652,7 +2668,8 @@ MappingScore.default <- function(
     corrected_nns = Indices(object = corrected.neighbors),
     k_snn = ksnn,
     subtract_first_nn = subtract.first.nn,
-    display_progress = verbose
+    display_progress = verbose,
+    nthreads = nthreads
   )
   scores[scores > 1] <- 1
   names(x = scores) <- query.cells
@@ -2934,11 +2951,11 @@ PrepSCTIntegration <- function(
   sct.clip.range = NULL,
   verbose = TRUE
 ) {
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
+  my.lapply <- if (getThreads(verbose = FALSE) > 1L) {
+    if (verbose) pblapply else lapply
+  } else {
+    if (verbose && nbrOfWorkers() == 1) pblapply else future_lapply
+  }
   assay <- assay %||% sapply(X = object.list, FUN = DefaultAssay)
   assay <- rep_len(x = assay, length.out = length(x = object.list))
   objects.names <- names(x = object.list)
@@ -4624,7 +4641,6 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = "integration.matrix"
   )
-
   weights <- FindWeightsC(
     cells2 = 0:(length(x = nn.cells2) - 1),
     distances = as.matrix(x = distances),
@@ -4634,7 +4650,8 @@ FindWeights <- function(
     anchor_score = anchors[, "score"],
     min_dist = 0,
     sd = sd.weight,
-    display_progress = verbose
+    display_progress = verbose,
+    nthreads = getThreads(verbose = FALSE)
   )
   object <- SetIntegrationData(
     object = object,
@@ -4667,7 +4684,8 @@ FindWeightsNN <- function(
     anchor_score = rep(1, length(reference.cells)),
     min_dist = 0,
     sd = 1,
-    display_progress = verbose
+    display_progress = verbose,
+    nthreads = getThreads(verbose = FALSE)
   )
   colnames(weights) <- query.cells
   return(weights)
@@ -4685,15 +4703,15 @@ FindWeightsNN <- function(
 # @return Returns a list of offsets
 #
 GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
-  cell.id <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    cellnames.list[[anchors[, dataset+3][x]]][anchors[, cell][x]]
-  })
-  cell.offset <- sapply(
-    X = 1:length(x = cell.id),
-    FUN = function(x) {
-      return(which(x = cellnames == cell.id[x]))
-    }
+  dataset.idx <- anchors[, dataset + 3]
+  cell.idx <- anchors[, cell]
+  cell.id <- mapply(
+    FUN = function(d, c) cellnames.list[[d]][c],
+    dataset.idx,
+    cell.idx
   )
+  cell.offset <- match(x = cell.id, table = cellnames)
+
   return(cell.offset)
 }
 
@@ -4761,11 +4779,11 @@ MapQueryData <- function(
   } else {
     query.datasets <- setdiff(x = seq_along(along.with = object.list), y = reference.datasets)
   }
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
+  my.lapply <- if (getThreads(verbose = FALSE) > 1L) {
+    if (verbose) pblapply else lapply
+  } else {
+    if (verbose && nbrOfWorkers() == 1) pblapply else future_lapply
+  }
   query.corrected <- my.lapply(
     X = query.datasets,
     FUN = function(dataset1) {
@@ -5815,17 +5833,20 @@ ScoreAnchors <- function(
   indices.bb <- Indices(object = neighbors$nnbb)
   indices.ab <- Indices(object = neighbors$nnab)
   indices.ba <- Indices(object = neighbors$nnba)
-  nbrsetA <- function(x) c(indices.aa[x, 1:k.score], indices.ab[x, 1:k.score] + offset)
-  nbrsetB <- function(x) c(indices.ba[x, 1:k.score], indices.bb[x, 1:k.score] + offset)
   # score = number of shared neighbors
   anchor.new <- data.frame(
     'cell1' = anchor.df[, 1],
     'cell2' = anchor.df[, 2],
-    'score' = mapply(
-      FUN = function(x, y) {
-        length(x = intersect(x = nbrsetA(x = x), nbrsetB(x = y)))},
-      anchor.df[, 1],
-      anchor.df[, 2]
+    'score' = CountAnchorSharedNeighbors(
+      indices_aa = indices.aa,
+      indices_ab = indices.ab,
+      indices_ba = indices.ba,
+      indices_bb = indices.bb,
+      anchor_cell1 = anchor.df[, 1],
+      anchor_cell2 = anchor.df[, 2],
+      offset = offset,
+      k_score = k.score,
+      nthreads = getThreads(verbose = FALSE)
     )
   )
   # normalize the score

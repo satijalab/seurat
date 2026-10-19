@@ -1877,7 +1877,7 @@ Radius.VisiumV1 <- function(object, scale = "lowres", ...) {
 #' @rdname Radius
 #' @concept objects
 #' @concept spatial
-#' @method Radius VisiumV1
+#' @method Radius VisiumV2
 #' @export
 #'
 Radius.VisiumV2 <- Radius.VisiumV1
@@ -3053,9 +3053,11 @@ PrepVSTResults <- function(vst.res, cell.names) {
     'vst' = vst.res$arguments$res_clip_range,
     'sct' = vst.res$arguments$sct.clip.range
   )
-  median_umi <- NA
+  median_umi <- NA_real_
   # check if a custom scale_factor was provided to vst()
-  if ("scale_factor" %in% names(vst.res$arguments)){
+  if ("scale_factor" %in% names(vst.res$arguments) &&
+      is.numeric(x = vst.res$arguments$scale_factor) &&
+      length(x = vst.res$arguments$scale_factor) == 1L) {
     median_umi <- vst.res$arguments$scale_factor
   }
   if (is.na(median_umi)) {

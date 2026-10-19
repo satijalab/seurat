@@ -101,7 +101,7 @@ if (is_not_cran_submission) {
     expect_equal(length(VariableFeatures(int3)), 169)
     expect_equal(GetAssayData(int3[["integrated"]], layer = "counts"), new("dgCMatrix"))
     expect_equal(GetAssayData(int3[['integrated']], layer = "scale.data"), matrix())
-    expect_equal(sum(GetAssayData(int3[["integrated"]], layer = "data")[1, ]), 372.829, tolerance = 1e-6)
+    expect_equal(sum(GetAssayData(int3[["integrated"]], layer = "data")[1, ]), 372.7789, tolerance = 1e-6)
     expect_equal(sum(GetAssayData(int3[["integrated"]], layer = "data")[, 1]), 482.5009, tolerance = 1e-6)
     expect_equal(Tool(object = int3, slot = "Integration")@sample.tree, matrix(c(-2, -3, 1, -1), nrow  = 2, byrow = TRUE))
   })

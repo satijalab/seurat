@@ -13,7 +13,7 @@ NULL
 #' All analyzed features are binned based on averaged expression, and the
 #' control features are randomly selected from each bin.
 #'
-#' @param object An object 
+#' @param object An object
 #' @param ... Arguments passed to other methods
 #'
 #' @return Returns a Seurat object with module scores added to object meta data;
@@ -77,11 +77,11 @@ as.SingleCellExperiment <- function(x, ...) {
 #' and construct the SNN graph. Then optimize the modularity function to
 #' determine clusters. For a full description of the algorithms, see Waltman and
 #' van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
-#' Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
-#' optimizer code in Rcpp!
+#' Delaney (evolvedmicrobe@github) for the initial rewrite (v2.3.4) of the 
+#' Java modularity optimizer code in Rcpp!
 #'
-#' To run Leiden algorithm, you must first install the leidenalg python
-#' package (e.g. via pip install leidenalg), see Traag et al (2018).
+#' Leiden clustering can be run with either the \code{leidenbase} or
+#' \code{igraph} backend; see Traag et al (2018).
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
@@ -89,6 +89,14 @@ as.SingleCellExperiment <- function(x, ...) {
 #' @return Returns a Seurat object where the idents have been updated with new cluster info;
 #' latest clustering results will be stored in object metadata under 'seurat_clusters'.
 #' Note that 'seurat_clusters' will be overwritten everytime FindClusters is run
+#'
+#' @note When running Louvain clustering with multiple threads, results may differ
+#' from single-threaded runs only when \code{n.start > 1}, because each random
+#' start uses an independent random number stream based on \code{random.seed}
+#' plus the restart index. Single-threaded runs use one random number stream
+#' across all starts. With \code{n.start = 1}, all thread settings use the same
+#' serial path. For a fixed \code{random.seed}, multi-threaded Louvain
+#' results are expected to be reproducible across thread counts.
 #'
 #' @export
 #'
@@ -101,7 +109,7 @@ FindClusters <- function(object, ...) {
 
 #' Gene expression markers of identity classes
 #'
-#' Finds markers (differentially expressed genes) for identity classes
+#' Finds markers (differentially expressed genes) for each of the identity classes in a dataset. Note that differential expression between groups (e.g. treatment conditions) should account for biological variation across samples, e.g. by using pseudobulk expression profiles.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods and to specific DE methods
@@ -135,6 +143,8 @@ FindClusters <- function(object, ...) {
 #' fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 #' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 #'
+#' @note See the DE vignette for more details and examples
+#'
 #' @export
 #'
 #' @examples
@@ -144,8 +154,8 @@ FindClusters <- function(object, ...) {
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 #' head(x = markers)
 #'
-#' # Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata
-#' # variable 'group')
+#' # Within cluster 2, find markers for cells in the 'g1' group compared with
+#' # other cells, using the 'groups' metadata variable.
 #' markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
 #' head(x = markers)
 #'
@@ -157,12 +167,11 @@ FindClusters <- function(object, ...) {
 #'   head(x = markers)
 #' }
 #' }
-#' 
+#'
 #' @rdname FindMarkers
 #' @export FindMarkers
 #'
 #' @aliases FindMarkersNode
-#' @seealso \code{FoldChange}
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
@@ -258,7 +267,7 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' data("pbmc_small")
 #' FoldChange(pbmc_small, ident.1 = 1)
 #' }
-#' 
+#'
 #' @param object A Seurat object
 #' @param ... Arguments passed to other methods
 #' @rdname FoldChange
@@ -331,12 +340,12 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 #' Leverage Score Calculation
 #'
 #' This function computes the leverage scores for a given object
-#' It uses the concept of sketching and random projections. The function provides an approximation 
+#' It uses the concept of sketching and random projections. The function provides an approximation
 #' to the leverage scores using a scalable method suitable for large matrices.
 #'
 #' @param object A matrix-like object
 #' @param ... Arguments passed to other methods
-#' 
+#'
 #' @references Clarkson, K. L. & Woodruff, D. P.
 #' Low-rank approximation and regression in input sparsity time.
 #' JACM 63, 1–45 (2017). \doi{10.1145/3019134};
@@ -484,8 +493,6 @@ PseudobulkExpression <- function(object, ...) {
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
-#' For details about stored CCA calculation parameters, see
-#' \code{PrintCCAParams}.
 #' @param object1 First Seurat object
 #' @param object2 Second Seurat object.
 # @param ... Arguments passed to other methods
@@ -507,7 +514,7 @@ PseudobulkExpression <- function(object, ...) {
 #' # Print results
 #' print(x = pbmc_cca[["cca"]])
 #' }
-#' 
+#'
 #' @rdname RunCCA
 #' @export RunCCA
 #'
@@ -574,7 +581,7 @@ RunLDA <- function(object, ...) {
 #' parameters, see \code{PrintPCAParams}.
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods and IRLBA
+#' @param ... Arguments passed to other methods and PCA backends
 #'
 #' @return Returns Seurat object with the PCA calculation stored in the reductions slot
 #'
@@ -777,7 +784,7 @@ SCTResults <- function(object, ...) {
 }
 
 #' Get the Pearson residuals from an sctransform-normalized dataset.
-#' 
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods (not used)
 #'

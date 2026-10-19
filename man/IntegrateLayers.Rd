@@ -38,13 +38,16 @@ IntegrateLayers(
 \description{
 Integrate Layers
 }
-\section{Integration Method Functions}{
-
-The following integration method functions are available:
-\Sexpr[stage=render,results=rd]{Seurat:::.rd_methods("integration")}
-}
-
 \seealso{
 \link[Seurat:writing-integration]{Writing integration method functions}
 }
 \concept{integration}
+\section{Integration Method Functions}{
+The following integration method functions are available:
+\itemize{
+ \item \code{\link{CCAIntegration}}
+ \item \code{\link{HarmonyIntegration}}
+ \item \code{\link{JointPCAIntegration}}
+ \item \code{\link{RPCAIntegration}}
+}
+}

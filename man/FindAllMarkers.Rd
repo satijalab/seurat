@@ -38,7 +38,7 @@ FindAllMarkers(
 
 \item{features}{Genes to test. Default is to use all genes}
 
-\item{group.by}{Regroup cells into a different identity class prior to 
+\item{group.by}{Regroup cells into a different identity class prior to
 performing differential expression (see example); \code{"ident"} to use Idents}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
@@ -140,7 +140,7 @@ slot "avg_diff".}
 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
-\item{densify}{Convert the sparse matrix to a dense form before running the 
+\item{densify}{Convert the sparse matrix to a dense form before running the
 DE test. This can provide speedups but might require higher memory; default is FALSE}
 
 \item{...}{Arguments passed to other methods and to specific DE methods}

@@ -2,16 +2,55 @@
 
 ### Additions
 
+
 ### Fixes
 
-- Fixed `LeverageScore`, and so `SketchData`, failing on any object with fewer than 50 features or cells: the number of components was computed from the object's size and then not used, so `irlba` was always asked for 50 and stopped with \dQuote{max(nu, nv) must be strictly less than min(nrow(A), ncol(A))}
+- Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
 
-- Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix
+# Seurat 5.6.0 (2026-10-03)
+
+### Additions
+
+- Added `setThreads` and `getThreads` to control threading in supported C++ kernels and `uwot` UMAP backends
+- Updated `NormalizeData` to use threaded sparse log-normalization and reduce matrix-copying overhead
+- Updated `FindVariableFeatures` to share a sparse VST implementation across assay versions with threaded standardized-variance calculations
+- Updated `ScaleData` to center, scale, and clip default inputs in a single threaded C++ call
+- Updated `SCTransform` to use threaded C++ calculations for supported Pearson residuals and corrected counts
+- Updated the v5 `SCTransform` workflow to avoid intermediate assay objects and defer default residual calculation until feature selection is complete
+- Updated `RunPCA` to use a threaded dense Gram-matrix backend by default and reuse feature variances
+- Updated `FindNeighbors` to use threaded C++ Annoy searches and SNN graph construction
+- Updated `FindClusters` to reuse graph preparation across resolutions and parallelize modularity-optimization random starts 
+- Updated `RunUMAP` to use the Seurat thread setting for `uwot`, `uwot2`, and model projection
+- Updated `FindMarkers` to reuse matrix subsets for fold-change calculations and process sparse inputs efficiently
+- Updated `FindAllMarkers` to test supported Wilcoxon comparisons across all identities in one `presto` call, and compute fold changes and detection percentages in bulk
+- Updated `IntegrateLayers` with `RPCAIntegration` to reduce per-layer setup overhead and use threaded integration calculations
+- Updated `IntegrateLayers` with `CCAIntegration` to use threaded anchor scoring and integration-weight calculations
+- Added `svd.method` parameter to `CCAIntegration` for use through `IntegrateLayers`
+- Updated large dense CCA comparisons to use an implicit RSpectra backend (`svd.method = "rspectra"`) and avoid materializing the cell-by-cell cross-product matrix
+- Updated `CCAIntegration` to skip gene loadings when anchor filtering is disabled
+
+### Fixes
+
+- Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
+- Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
 - Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
 - Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
-- Fixed bugs in behavior of `RidgePlot` parameters `fill.by`, `y.max`, and `same.y.lims` ([#10424](https://github.com/satijalab/seurat/pull/10424))
+- Fixed bugs in behavior of `RidgePlot` parameters `fill.by`, `y.max`, and `same.y.lims` ([#10424](https://github.com/satijalab/seurat/pull/10424), [#10517](https://github.com/satijalab/seurat/pull/10517))
+- Fixed naming of combined p-value column in output of `FindConservedMarkers` when a non-default `meta.method` is specified ([#10429](https://github.com/satijalab/seurat/pull/10429))
+- Updated minimum required `uwot` version to `0.2.1` ([#10447](https://github.com/satijalab/seurat/pull/10447))
+- Registered `Radius.VisiumV2` as an S3 method to fix `Radius` returning `NULL` for `VisiumV2` images ([#10454](https://github.com/satijalab/seurat/pull/10454))
+- Fixed `FindSpatiallyVariableFeatures()` to correctly match FOV coordinates to cells in the requested assay and handle various edge cases, including fewer than two matched cells, a single varying feature, or no varying requested features ([#10504](https://github.com/satijalab/seurat/pull/10504))
+- Updated argument handling in `FindSpatiallyVariableFeatures()` by resolving `selection.method` with `match.arg()` and restoring the `FindSpatiallyVariableFeatures.Assay()` default `nfeatures` value to `2000` ([#10504](https://github.com/satijalab/seurat/pull/10504))
+- Fixed `RunMarkVario()` to return one named mark variogram result per feature for single-feature inputs and parallel execution chunks ([#10505](https://github.com/satijalab/seurat/pull/10505))
+- Updated `IntegrateLayers()` to throw an error message when less than two groups/layers are provided ([#10396](https://github.com/satijalab/seurat/pull/10396))
+- Fixed recorrection in `SCTransform` after subsetting so `FindMarkers()` works on subsetted SCT assays with observed median UMI lower than the correction depth stored in every SCT model ([#10509](https://github.com/satijalab/seurat/pull/10509))
+- Fixed `FindNeighbors` to correctly convert Annoy angular distances to cosine distances
+- Fixed `RunPCA` on v5 assays to exclude unavailable requested features and cap the number of PCs by the available features and cells
+- Fixed `SCTransform` residual retrieval to reuse cached features and respect an explicitly supplied `clip.range`
+- Fixed `SCTransform` on v5 assays to preserve features selected by `variable.features.rv.th` when `variable.features.n = NULL`, including across multiple layers
+- Fixed reference-based RPCA/CCA anchor finding to exclude query-query comparisons regardless of `verbose`
 
-# Seurat 5.5.1
+# Seurat 5.5.1 (2026-06-26)
 
 ### Additions
 
@@ -25,7 +64,7 @@
 - Fixed bug in `PrepDR5` affecting `RunPCA` on v5 objects, where supplied features could be incorrectly dropped when non-supplied features had zero variance ([#10398](https://github.com/satijalab/seurat/pull/10398))
 - Updated `LabelClusters` to use `fill` argument for label background color in `geom_label*` when specified, instead of the default per-cluster color ([#10404](https://github.com/satijalab/seurat/pull/10404))
 
-# Seurat 5.5.0
+# Seurat 5.5.0 (2026-04-22)
 
 ### Additions
 
@@ -65,7 +104,7 @@
 - Updated coordinate systems used for plot display in `InteractiveSpatialPlot` ([#10254](https://github.com/satijalab/seurat/pull/10254))
 - Fixed coordinate ranges when spatial plots are generated with `crop = F` ([#10278](https://github.com/satijalab/seurat/pull/10278), [#10284](https://github.com/satijalab/seurat/pull/10284))
 
-# Seurat 5.4.0
+# Seurat 5.4.0 (2025-12-14)
 
 ### Additions
 - Added support for 10x Space Ranger 4.0 outputs (Visium data with segmentations)
@@ -81,7 +120,7 @@
 - Reverted [#10062](https://github.com/satijalab/seurat/pull/10062) in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData` as previously; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
 - Added color retrieval logic in `LabelClusters` for consistent cluster label coloring ([#10198](https://github.com/satijalab/seurat/pull/10198))
 
-# Seurat 5.3.1
+# Seurat 5.3.1 (2025-10-29)
 
 ## Changes
 
@@ -107,7 +146,7 @@
 - Updated visualization functions to avoid ggplot2 `guides`, `aes_string`, and `facet_grid` deprecation warnings ([#9409](https://github.com/satijalab/seurat/pull/9409), [#10116](https://github.com/satijalab/seurat/pull/10116))
 - Fixed `DimPlot` bug where metadata columns named 'PC_1', 'UMAP_1' etc override reduction embeddings ([#10062](https://github.com/satijalab/seurat/pull/10062))
 
-# Seurat 5.3.0
+# Seurat 5.3.0 (2025-04-24)
 
 ## Changes
 - Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))

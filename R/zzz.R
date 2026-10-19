@@ -60,7 +60,7 @@ NULL
 
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
-  Seurat.warn.umap.uwot = TRUE,
+  Seurat.nthreads = 1L,
   Seurat.checkdots = "warn",
   Seurat.presto.wilcox.msg = TRUE, #CHANGE
   Seurat.Rfast2.msg = TRUE,
@@ -94,6 +94,9 @@ AttachDeps <- function(deps) {
 #'
 .onAttach <- function(libname, pkgname) {
   AttachDeps(deps = c('SeuratObject'))
+  packageStartupMessage(
+    "v5.6 adds significant improvements in speed and efficiency, particularly for large datasets.\nFor more information, see https://satijalab.org/seurat/articles/announcements.\n"
+  )
   return(invisible(x = NULL))
 }
 
