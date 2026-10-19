@@ -5,6 +5,7 @@
 
 ### Fixes
 
+- Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
 
 # Seurat 5.6.0 (2026-10-03)
 

@@ -404,11 +404,20 @@ LeverageScore.default <- function(
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
   if (ncells < nsketch * 1.5) {
-    nv <- ifelse(nrow(x = object) < 50, nrow(x = object) - 1, 50)
+    # irlba needs nv below both dimensions, and nv was computed here but then
+    # not used, so anything smaller than 50 in either direction failed with
+    # "max(nu, nv) must be strictly less than min(nrow(A), ncol(A))"
+    nv <- min(50L, nrow(x = object) - 1L, ncells - 1L)
+    if (nv < 1L) {
+      abort(message = paste0(
+        "Cannot compute leverage scores from ", nrow(x = object),
+        " features and ", ncells, " cells: at least two of each are needed"
+      ))
+    }
     if (inherits(x = object, what = 'IterableMatrix')) {
       object <- as.sparse(x = object)
     }
-    Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
+    Z <- irlba(A = object, nv = nv, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
   if (nrow(x = object) > 5000L) {
