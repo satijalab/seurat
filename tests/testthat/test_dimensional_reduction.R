@@ -302,3 +302,15 @@ test_that("`RunPCA` works as expected", {
     npcs = 10
   )
 })
+
+context("JackStraw")
+
+test_that("`JackStraw` runs and computes empirical p-values", {
+  data("pbmc_small")
+  res <- suppressWarnings(JackStraw(pbmc_small, dims = 2, num.replicate = 5, verbose = FALSE))
+  pvals <- JS(object = res[["pca"]], slot = "empirical")
+  expect_true(is.matrix(pvals))
+  expect_equal(ncol(pvals), 2)
+  expect_true(all(pvals >= 0 & pvals <= 1))
+})
+

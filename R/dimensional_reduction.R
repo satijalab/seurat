@@ -121,13 +121,9 @@ JackStraw <- function(
   jackStraw.empP <- as.matrix(
     my.sapply(
       X = 1:dims,
-      FUN = function(x) {
-        return(unlist(x = lapply(
-          X = abs(loadings[, x]),
-          FUN = EmpiricalP,
-          nullval = abs(fake.vals[,x])
-        )))
-      }
+      FUN = JackStrawP,
+      loadings = loadings,
+      fake.vals = fake.vals
     )
   )
   colnames(x = jackStraw.empP) <- paste0("PC", 1:ncol(x = jackStraw.empP))
@@ -2242,6 +2238,16 @@ CheckFeatures <- function(
 #internal
 EmpiricalP <- function(x, nullval) {
   return(sum(nullval > x) / length(x = nullval))
+}
+
+#internal
+#
+JackStrawP <- function(x, loadings, fake.vals) {
+  return(unlist(x = lapply(
+    X = abs(loadings[, x]),
+    FUN = EmpiricalP,
+    nullval = abs(fake.vals[, x])
+  )))
 }
 
 # FIt-SNE helper function for calling fast_tsne from R
