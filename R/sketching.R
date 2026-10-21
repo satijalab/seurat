@@ -404,11 +404,16 @@ LeverageScore.default <- function(
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
   if (ncells < nsketch * 1.5) {
-    # nv is capped below 50 for small matrices (irlba requires nv strictly less
-    # than min(nrow(A), ncol(A))) -- both dimensions can be the limiting one (eg a
-    # small cell count with many genes), not just the feature count, so both need
-    # to be checked, and it must actually be used below, not just computed
-    nv <- min(50, nrow(x = object) - 1, ncol(x = object) - 1)
+    # irlba needs nv below both dimensions, and nv was computed here but then
+    # not used, so anything smaller than 50 in either direction failed with
+    # "max(nu, nv) must be strictly less than min(nrow(A), ncol(A))"
+    nv <- min(50L, nrow(x = object) - 1L, ncells - 1L)
+    if (nv < 1L) {
+      abort(message = paste0(
+        "Cannot compute leverage scores from ", nrow(x = object),
+        " features and ", ncells, " cells: at least two of each are needed"
+      ))
+    }
     if (inherits(x = object, what = 'IterableMatrix')) {
       object <- as.sparse(x = object)
     }
