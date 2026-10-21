@@ -3175,11 +3175,13 @@ ReadXenium <- function(
 #' are decoded and returned; only chunks overlapping that range are
 #' read/decompressed, which is what makes gene-restricted transcript reads
 #' cheap. Missing chunks (sparse zarr arrays) are filled with the array's
-#' \code{fill_value}.
+#' \code{fill_value}. \code{nthreads} is the number of workers for the
+#' chunk-decoding step; callers that are themselves already running inside a
+#' parallel worker pass \code{1L} so forks aren't nested.
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadArray <- function(con, zidx, array.path, row.range = NULL) {
+.AteraReadArray <- function(con, zidx, array.path, row.range = NULL, nthreads = .AteraThreads()) {
   meta <- .AteraReadJSON(con, zidx, paste0(array.path, "/.zarray"))
   shape <- meta$shape
   # Coerced to double (chunk sizes parse as plain R integers, unlike `shape`,
@@ -3208,7 +3210,6 @@ ReadXenium <- function(
   # Phase 1 (below, sequential) reads each chunk's raw bytes through `con`;
   # phase 2 (`decode()`, possibly parallel) only touches those in-memory raw
   # vectors, which is safe to fork over.
-  nthreads <- .AteraThreads()
 
   if (ndim == 1L) {
     n <- shape[1L]
@@ -3532,8 +3533,8 @@ ReadXenium <- function(
     on.exit(close(con))
     gene_offset <- tile$gene_offset
     if (is.null(genes)) {
-      location <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"))
-      quality_score <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"))
+      location <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), nthreads = 1L)
+      quality_score <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), nthreads = 1L)
       gene.idx <- rep(seq_len(nrow(gene_offset)), gene_offset[, 2] - gene_offset[, 1])
       return(data.frame(
         x = location[, 1],
@@ -3549,8 +3550,8 @@ ReadXenium <- function(
     }
     gene.dfs <- lapply(gene.rows, function(g) {
       rows <- c(gene_offset[g, 1] + 1L, gene_offset[g, 2])
-      loc <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), row.range = rows)
-      qv <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), row.range = rows)
+      loc <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), row.range = rows, nthreads = 1L)
+      qv <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), row.range = rows, nthreads = 1L)
       data.frame(x = loc[, 1], y = loc[, 2], gene = handle$gene.names[g], qv = as.vector(qv))
     })
     data.table::rbindlist(gene.dfs)

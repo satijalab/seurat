@@ -646,8 +646,8 @@ LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
         rows <- c(go[gene.idx, 1] + 1L, go[gene.idx, 2])
         con <- file(zip.file, "rb")
         on.exit(close(con))
-        loc <- .AteraReadArray(con, zidx, paste0(tile$dir, "/location"), row.range = rows)
-        cw <- .AteraReadArray(con, zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows)
+        loc <- .AteraReadArray(con, zidx, paste0(tile$dir, "/location"), row.range = rows, nthreads = 1L)
+        cw <- .AteraReadArray(con, zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows, nthreads = 1L)
         data.frame(x = loc[, 1], y = loc[, 2], gene = paste0(gene_name, "_codeword_", cw))
       }
       tile.dfs <- if (nthreads > 1L) {
