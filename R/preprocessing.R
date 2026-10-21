@@ -3208,7 +3208,7 @@ ReadXenium <- function(
   # open file description, so concurrent seek()/readBin() calls from forked
   # children would race on that shared position and return corrupted bytes.
   # Phase 1 (below, sequential) reads each chunk's raw bytes through `con`;
-  # phase 2 (`decode()`, possibly parallel) only touches those in-memory raw
+  # phase 2 (`decode.chunk()`/`decode.job()`, possibly parallel) only touches those in-memory raw
   # vectors, which is safe to fork over.
 
   if (ndim == 1L) {
@@ -3223,13 +3223,13 @@ ReadXenium <- function(
       .AteraReadEntryRaw(con, zidx, paste0(array.path, "/", ci))
     })
     actual.ns <- vapply(chunk.idx, function(ci) min(csize, n - ci * csize), numeric(1L))
-    decode <- function(raw.chunk, actual.n) {
+    decode.chunk <- function(raw.chunk, actual.n) {
       if (is.null(raw.chunk)) rep(fill.value, actual.n) else .AteraDecodeChunk(raw.chunk, dtype, actual.n)
     }
     decoded <- if (length(raw.chunks) > 1L && nthreads > 1L) {
-      parallel::mcmapply(decode, raw.chunks, actual.ns, SIMPLIFY = FALSE, mc.cores = nthreads)
+      parallel::mcmapply(decode.chunk, raw.chunks, actual.ns, SIMPLIFY = FALSE, mc.cores = nthreads)
     } else {
-      Map(decode, raw.chunks, actual.ns)
+      Map(decode.chunk, raw.chunks, actual.ns)
     }
     out <- vector(mode = .AteraDtypeRType(dtype), length = end - start + 1L)
     for (k in seq_along(chunk.idx)) {
@@ -3276,13 +3276,13 @@ ReadXenium <- function(
       }
     }
 
-    decode <- function(job) {
+    decode.job <- function(job) {
       if (is.null(job$raw)) rep(fill.value, job$n) else .AteraDecodeChunk(job$raw, dtype, job$n)
     }
     decoded <- if (length(jobs) > 1L && nthreads > 1L) {
-      parallel::mclapply(jobs, decode, mc.cores = nthreads)
+      parallel::mclapply(jobs, decode.job, mc.cores = nthreads)
     } else {
-      lapply(jobs, decode)
+      lapply(jobs, decode.job)
     }
 
     out <- matrix(vector(mode = .AteraDtypeRType(dtype), length = 1L), nrow = end - start + 1L, ncol = ncol)

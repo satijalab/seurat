@@ -16,3 +16,4 @@ CODE_OF_CONDUCT.md
 Rplots.pdf
 revdep/
 Seurat.Rcheck/
+^notebooks$
