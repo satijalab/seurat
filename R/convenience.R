@@ -354,8 +354,7 @@ LoadAtera <- function(
   morphology.image = FALSE,
   morphology.channel = "dapi",
   morphology.resolution = NULL,
-  morphology.region = NULL,
-  workers = 1L
+  morphology.region = NULL
 ) {
   if (!is.null(segmentations) && !(segmentations %in% c('nucleus', 'cell'))) {
     stop('segmentations must be NULL or one of "nucleus", "cell"')
@@ -379,14 +378,13 @@ LoadAtera <- function(
     bpcells.dir = bpcells.dir,
     morphology.channel = morphology.channel,
     morphology.resolution = morphology.resolution,
-    morphology.region = morphology.region,
-    workers = workers
+    morphology.region = morphology.region
   )
   mols.handle <- NULL
   if (molecule.coordinates) {
     mols.handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
     if (!is.null(genes)) {
-      data$microns <- .AteraFetchMolecules(handle = mols.handle, genes = genes, workers = workers)
+      data$microns <- .AteraFetchMolecules(handle = mols.handle, genes = genes)
     }
   }
 
@@ -487,8 +485,7 @@ LoadAtera <- function(
 #'
 #' @export
 #'
-LoadAteraMolecules <- function(object, genes, workers = 1L) {
-  workers <- .AteraWorkers(workers)
+LoadAteraMolecules <- function(object, genes) {
   handle.info <- Misc(object, slot = 'atera.molecules')
   if (is.null(handle.info)) {
     stop(
@@ -502,7 +499,7 @@ LoadAteraMolecules <- function(object, genes, workers = 1L) {
   if (length(missing.genes) == 0L) {
     return(object)
   }
-  new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes, workers = workers)
+  new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes)
   handle.info$cache <- if (is.null(handle.info$cache)) {
     new.df
   } else {
@@ -547,8 +544,7 @@ LoadAteraMolecules <- function(object, genes, workers = 1L) {
 #'
 #' @export
 #'
-LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell", workers = 1L) {
-  workers <- .AteraWorkers(workers)
+LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell") {
   if (!isTRUE(segmentations %in% c("cell", "nucleus"))) {
     stop("segmentations must be one of \"cell\", \"nucleus\"", call. = FALSE)
   }
@@ -559,9 +555,9 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
   con <- file(zip.file, "rb")
   on.exit(close(con), add = TRUE)
 
-  all.cell.ids <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id", workers = workers)))
+  all.cell.ids <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
   set.idx <- if (segmentations == "cell") 1L else 0L
-  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids, workers = workers, cells = cell.ids)
+  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids, cells = cell.ids)
 
   object[[fov]][["segmentations"]] <- CreateSegmentation(df)
   return(object)
@@ -598,8 +594,7 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
 #'
 #' @export
 #'
-LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL, workers = 1L) {
-  workers <- .AteraWorkers(workers)
+LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
   fov <- fov %||% DefaultFOV(object = object)
 
   handle.info <- Misc(object, slot = 'atera.molecules')
@@ -625,7 +620,7 @@ LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL, workers = 1L
 
   if (length(missing.genes) > 0) {
     gene.dfs <- lapply(missing.genes, function(gene_name) {
-      .AteraFetchMolecules(handle, genes = gene_name, workers = workers, codewords = TRUE)
+      .AteraFetchMolecules(handle, genes = gene_name, codewords = TRUE)
     })
     new.df <- do.call(rbind, gene.dfs)
     existing.cache <- if (is.null(existing.cache)) new.df else rbind(existing.cache, new.df)

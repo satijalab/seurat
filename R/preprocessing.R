@@ -3147,23 +3147,10 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraDecodeChunk <- function(raw, dtype, n) {
+.AteraDecodeChunk <- function(raw, dtype, n, fill.value = 0) {
+  if (is.null(raw)) return(rep(fill.value, n))
   vals <- blosc::blosc_decompress(raw, dtype = dtype)
   vals[seq_len(n)]
-}
-
-#' Validate the number of Atera worker processes; fork-based parallelism
-#' is unavailable on Windows.
-#'
-#' @keywords internal
-#' @noRd
-.AteraWorkers <- function(workers) {
-  if (!is.numeric(workers) || is.complex(workers) || length(workers) != 1L ||
-      !is.finite(workers) || workers < 1 || workers > .Machine$integer.max ||
-      workers != floor(workers)) {
-    stop("'workers' must be a positive integer", call. = FALSE)
-  }
-  if (.Platform$OS.type == "windows") 1L else as.integer(workers)
 }
 
 #' Read a zarr v2 array (1-D or 2-D), stored inside a zip archive, directly
@@ -3172,12 +3159,14 @@ ReadXenium <- function(
 #' are decoded and returned; only chunks overlapping that range are
 #' read/decompressed, which is what makes gene-restricted transcript reads
 #' cheap. Missing chunks (sparse zarr arrays) are filled with the array's
-#' \code{fill_value}.
+#' \code{fill_value}. Set \code{parallel = FALSE} inside tile workers to
+#' decode chunks sequentially without launching nested futures.
 #'
+#' @importFrom future.apply future_lapply
 #' @keywords internal
 #' @noRd
-.AteraReadArray <- function(con, zidx, array.path, row.range = NULL, workers = 1L) {
-  workers <- .AteraWorkers(workers)
+.AteraReadArray <- function(con, zidx, array.path, row.range = NULL, parallel = TRUE) {
+  apply.chunks <- if (parallel) future_lapply else lapply
   meta <- .AteraReadJSON(con, zidx, paste0(array.path, "/.zarray"))
   shape <- meta$shape
   # Coerced to double (chunk sizes parse as plain R integers, unlike `shape`,
@@ -3195,17 +3184,12 @@ ReadXenium <- function(
 
   if (ndim == 0L) {
     raw.chunk <- .AteraReadEntryRaw(con, zidx, paste0(array.path, "/0"))
-    return(if (is.null(raw.chunk)) fill.value else .AteraDecodeChunk(raw.chunk, dtype, 1L))
+    return(.AteraDecodeChunk(raw.chunk, dtype, 1L, fill.value))
   }
 
-  # Chunk decoding is split into two phases so no I/O happens inside forked
-  # workers: `con` is a single connection shared across this whole call, and
-  # a `parallel::mclapply`/`mcmapply` fork inherits the *same* underlying
-  # open file description, so concurrent seek()/readBin() calls from forked
-  # children would race on that shared position and return corrupted bytes.
-  # Phase 1 (below, sequential) reads each chunk's raw bytes through `con`;
-  # phase 2 (`decode()`, possibly parallel) only touches those in-memory raw
-  # vectors, which is safe to fork over.
+  # Read chunk bytes sequentially through `con` so workers never share or
+  # serialize an open connection. Parallel decoding only touches the
+  # in-memory raw vectors.
   if (ndim == 1L) {
     n <- shape[1L]
     csize <- chunks[1L]
@@ -3218,14 +3202,9 @@ ReadXenium <- function(
       .AteraReadEntryRaw(con, zidx, paste0(array.path, "/", ci))
     })
     actual.ns <- vapply(chunk.idx, function(ci) min(csize, n - ci * csize), numeric(1L))
-    decode <- function(raw.chunk, actual.n) {
-      if (is.null(raw.chunk)) rep(fill.value, actual.n) else .AteraDecodeChunk(raw.chunk, dtype, actual.n)
-    }
-    decoded <- if (length(raw.chunks) > 1L && workers > 1L) {
-      parallel::mcmapply(decode, raw.chunks, actual.ns, SIMPLIFY = FALSE, mc.cores = workers)
-    } else {
-      Map(decode, raw.chunks, actual.ns)
-    }
+    decoded <- apply.chunks(seq_along(raw.chunks), function(k) {
+      .AteraDecodeChunk(raw.chunks[[k]], dtype, actual.ns[k], fill.value)
+    })
     out <- vector(mode = .AteraDtypeRType(dtype), length = end - start + 1L)
     for (k in seq_along(chunk.idx)) {
       ci <- chunk.idx[k]
@@ -3271,14 +3250,9 @@ ReadXenium <- function(
       }
     }
 
-    decode <- function(job) {
-      if (is.null(job$raw)) rep(fill.value, job$n) else .AteraDecodeChunk(job$raw, dtype, job$n)
-    }
-    decoded <- if (length(jobs) > 1L && workers > 1L) {
-      parallel::mclapply(jobs, decode, mc.cores = workers)
-    } else {
-      lapply(jobs, decode)
-    }
+    decoded <- apply.chunks(jobs, function(job) {
+      .AteraDecodeChunk(job$raw, dtype, job$n, fill.value)
+    })
 
     out <- matrix(vector(mode = .AteraDtypeRType(dtype), length = 1L), nrow = end - start + 1L, ncol = ncol)
     for (k in seq_along(jobs)) {
@@ -3448,16 +3422,16 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id, workers = 1L, cells = NULL) {
+.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id, cells = NULL) {
   base <- paste0("polygon_sets/", set.idx)
-  cell_index <- .AteraReadArray(con, zidx, paste0(base, "/cell_index"), workers = workers)
+  cell_index <- .AteraReadArray(con, zidx, paste0(base, "/cell_index"))
   rows <- if (is.null(cells)) seq_along(cell_index) else which(cell.id[cell_index + 1L] %in% cells)
   if (length(rows) == 0L) {
     return(data.frame(cell = character(0), x = numeric(0), y = numeric(0)))
   }
-  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices"), workers = workers)[rows] - 1L
+  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices"))[rows] - 1L
   if (length(rows) == length(cell_index)) {
-    vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"), workers = workers)
+    vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"))
   } else {
     meta <- .AteraReadJSON(con, zidx, paste0(base, "/vertices/.zarray"))
     row.groups <- split(rows, (rows - 1L) %/% meta$chunks[1L])
@@ -3465,7 +3439,7 @@ ReadXenium <- function(
       lo <- idx[1L]
       block <- .AteraReadArray(
         con, zidx, paste0(base, "/vertices"),
-        row.range = c(lo, idx[length(idx)]), workers = workers
+        row.range = c(lo, idx[length(idx)])
       )
       block[idx - lo + 1L, , drop = FALSE]
     }))
@@ -3534,18 +3508,17 @@ ReadXenium <- function(
 #' A gene's rows are typically spread across most of a bundle's grid tiles
 #' (eg ~85-88 of 102 for genes checked on a real whole-transcriptome bundle);
 #' each tile's read is independent, so this is parallelized across tiles
-#' rather than reading them one at a time. Each forked worker opens its own
-#' connection, since a connection's file position can't safely be shared/
-#' seeked concurrently across forked processes.
-#' Array reads within a tile use their default single worker to avoid
-#' nested parallelism.
+#' rather than reading them one at a time according to the active future plan.
+#' Each worker opens its own connection so file positions remain independent
+#' across processes.
+#' Array reads within a tile run sequentially to avoid nested parallelism.
 #' With \code{codewords = TRUE}, read codeword identities for the requested
 #' genes instead of quality scores and label each codeword separately.
 #'
+#' @importFrom future.apply future_lapply
 #' @keywords internal
 #' @noRd
-.AteraFetchMolecules <- function(handle, genes = NULL, workers = 1L, codewords = FALSE) {
-  workers <- .AteraWorkers(workers)
+.AteraFetchMolecules <- function(handle, genes = NULL, codewords = FALSE) {
   if (codewords && is.null(genes)) genes <- handle$gene.names
 
   read.tile <- function(tile) {
@@ -3553,8 +3526,8 @@ ReadXenium <- function(
     on.exit(close(con))
     gene_offset <- tile$gene_offset
     if (is.null(genes)) {
-      location <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"))
-      quality_score <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"))
+      location <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), parallel = FALSE)
+      quality_score <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), parallel = FALSE)
       gene.idx <- rep(seq_len(nrow(gene_offset)), gene_offset[, 2] - gene_offset[, 1])
       return(data.frame(
         x = location[, 1],
@@ -3570,22 +3543,18 @@ ReadXenium <- function(
     }
     gene.dfs <- lapply(gene.rows, function(g) {
       rows <- c(gene_offset[g, 1] + 1L, gene_offset[g, 2])
-      loc <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), row.range = rows)
+      loc <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), row.range = rows, parallel = FALSE)
       if (codewords) {
-        cw <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows)
+        cw <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows, parallel = FALSE)
         return(data.frame(x = loc[, 1], y = loc[, 2], gene = paste0(handle$gene.names[g], "_codeword_", cw)))
       }
-      qv <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), row.range = rows)
+      qv <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), row.range = rows, parallel = FALSE)
       data.frame(x = loc[, 1], y = loc[, 2], gene = handle$gene.names[g], qv = as.vector(qv))
     })
     data.table::rbindlist(gene.dfs)
   }
 
-  tile.dfs <- if (workers > 1L) {
-    parallel::mclapply(handle$tiles, read.tile, mc.cores = workers)
-  } else {
-    lapply(handle$tiles, read.tile)
-  }
+  tile.dfs <- future_lapply(handle$tiles, read.tile)
 
   df <- as.data.frame(data.table::rbindlist(tile.dfs))
   if (nrow(df) == 0L) {
@@ -3966,12 +3935,12 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadRowBlockMatrix <- function(con, zidx, x.indptr, sr1, sr2, var, cell.ids, workers = 1L) {
+.AteraReadRowBlockMatrix <- function(con, zidx, x.indptr, sr1, sr2, var, cell.ids) {
   nnz.start <- x.indptr[sr1] + 1L
   nnz.end <- x.indptr[sr2 + 1L]
   if (nnz.end >= nnz.start) {
-    d <- .AteraReadArray(con, zidx, "X/data", row.range = c(nnz.start, nnz.end), workers = workers)
-    i <- .AteraReadArray(con, zidx, "X/indices", row.range = c(nnz.start, nnz.end), workers = workers)
+    d <- .AteraReadArray(con, zidx, "X/data", row.range = c(nnz.start, nnz.end))
+    i <- .AteraReadArray(con, zidx, "X/indices", row.range = c(nnz.start, nnz.end))
   } else {
     d <- numeric(0)
     i <- numeric(0)
@@ -4015,13 +3984,13 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraBuildFeatureTypeMatrix <- function(con, zidx, x.indptr, r1, r2, var, cell.ids, bpcells.dir, cache.path, nnz.budget, workers = 1L) {
+.AteraBuildFeatureTypeMatrix <- function(con, zidx, x.indptr, r1, r2, var, cell.ids, bpcells.dir, cache.path, nnz.budget) {
   row.batches <- .AteraNnzRowBatches(x.indptr, r1, r2, nnz.budget)
   use.bpcells <- !is.null(bpcells.dir)
 
   if (!use.bpcells) {
     parts <- lapply(row.batches, function(b) {
-      .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids, workers = workers)
+      .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
     })
     return(if (length(parts) == 1L) parts[[1L]] else do.call(rbind, parts))
   }
@@ -4033,7 +4002,7 @@ ReadXenium <- function(
 
   tmp.dirs <- vapply(seq_along(row.batches), function(k) {
     b <- row.batches[[k]]
-    blk <- .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids, workers = workers)
+    blk <- .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
     blk <- BPCells::convert_matrix_type(methods::as(blk, "IterableMatrix"), type = "uint32_t")
     tmp.dir <- file.path(staging.dir, k)
     BPCells::write_matrix_dir(mat = blk, dir = tmp.dir)
@@ -4071,7 +4040,7 @@ ReadXenium <- function(
 #'
 #' @keywords internal
 #' @noRd
-.AteraReadCountsMatrix <- function(data.dir, feature.types = NULL, bpcells.dir = NULL, nnz.batch = 5e7, workers = 1L) {
+.AteraReadCountsMatrix <- function(data.dir, feature.types = NULL, bpcells.dir = NULL, nnz.batch = 5e7) {
   zip.file <- file.path(data.dir, "csc_cell_feature_matrix.zarr.zip")
   zidx <- .AteraZipIndex(zip.file)
   con <- file(zip.file, "rb")
@@ -4126,8 +4095,7 @@ ReadXenium <- function(
       con = con, zidx = zidx, x.indptr = x.indptr,
       r1 = starts[ft.i], r2 = ends[ft.i],
       var = var, cell.ids = cell.ids,
-      bpcells.dir = bpcells.dir, cache.path = cache.path, nnz.budget = nnz.batch,
-      workers = workers
+      bpcells.dir = bpcells.dir, cache.path = cache.path, nnz.budget = nnz.batch
     )
   }
   return(result)
@@ -4210,11 +4178,13 @@ ReadXenium <- function(
 #' \code{FALSE} to explicitly opt out and always return in-memory sparse
 #' matrices, without requiring \code{BPCells} at all. Ignored when
 #' \code{"matrix"} is not in \code{outs}.
-#' @param workers Number of worker processes to use (a positive integer).
-#' Defaults to \code{1}. Molecule and codeword reads parallelize across
-#' tiles; other numeric array reads parallelize chunk decoding. Array reads
-#' inside tile workers stay sequential to avoid nested parallelism. This
-#' setting is independent of \code{setThreads()}; Windows uses one worker.
+#' @details Parallel processing uses the active \code{future::plan()}.
+#' Molecule and codeword reads parallelize across tiles; numeric array reads
+#' parallelize chunk decoding. Array reads inside tile workers stay sequential
+#' to avoid nested parallelism. Configure the strategy and worker count with
+#' \code{future::plan(future::multisession, workers = 4)}, or use
+#' \code{future::plan(future::sequential)} for sequential processing.
+#' This setting is independent of \code{setThreads()}.
 #'
 #' @return \code{ReadAtera}: A list with some combination of the following
 #' values:
@@ -4254,8 +4224,7 @@ ReadAtera <- function(
   bpcells.dir = NULL,
   morphology.channel = "dapi",
   morphology.resolution = NULL,
-  morphology.region = NULL,
-  workers = 1L
+  morphology.region = NULL
 ) {
   outs <- match.arg(
     arg = outs,
@@ -4263,7 +4232,6 @@ ReadAtera <- function(
     several.ok = TRUE
   )
 
-  workers <- .AteraWorkers(workers)
   .AteraCheckDeps()
 
   data <- sapply(outs, function(otype) {
@@ -4280,8 +4248,7 @@ ReadAtera <- function(
         result <- .AteraReadCountsMatrix(
           data.dir = data.dir,
           feature.types = feature.types,
-          bpcells.dir = bpcells.dir,
-          workers = workers
+          bpcells.dir = bpcells.dir
         )
 
         pmtx(type = "finish")
@@ -4297,8 +4264,8 @@ ReadAtera <- function(
         con <- file(zip.file, "rb")
         on.exit(close(con), add = TRUE)
 
-        cell_id <- .AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id", workers = workers))
-        cell_summary <- .AteraReadArray(con, zidx, "cell_summary", workers = workers)
+        cell_id <- .AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id"))
+        cell_summary <- .AteraReadArray(con, zidx, "cell_summary")
 
         pcents(type = 'finish')
 
@@ -4322,9 +4289,9 @@ ReadAtera <- function(
         con <- file(zip.file, "rb")
         on.exit(close(con), add = TRUE)
 
-        cell_id <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id", workers = workers)))
+        cell_id <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
         set.idx <- if (otype == 'segmentations') 1L else 0L
-        df <- .AteraReadPolygonSet(con, zidx, set.idx, cell_id, workers = workers)
+        df <- .AteraReadPolygonSet(con, zidx, set.idx, cell_id)
 
         pseg(type = 'finish')
 
@@ -4335,7 +4302,7 @@ ReadAtera <- function(
         pmicrons(message = "Loading transcript coordinates", class = 'sticky', amount = 0)
 
         handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
-        df <- .AteraFetchMolecules(handle = handle, genes = genes, workers = workers)
+        df <- .AteraFetchMolecules(handle = handle, genes = genes)
 
         pmicrons(type = 'finish')
 
