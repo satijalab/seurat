@@ -4675,6 +4675,8 @@ LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
     stop("Unknown Atera gene(s): ", paste(unknown, collapse = ", "), call. = FALSE)
   }
 
+  # Initialize handle so codewords cached across successive LoadAteraCodewords calls
+  handle.info <- handle.info %||% list(handle = handle, fov = fov)
   existing.cache <- if (is.null(handle.info)) NULL else handle.info$cache
   cached.genes <- if (is.null(existing.cache)) character(0) else unique(existing.cache$gene)
   already.loaded <- vapply(genes, function(g) {
