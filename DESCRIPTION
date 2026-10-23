@@ -1,5 +1,5 @@
 Package: Seurat
-Version: 5.6.0.9000
+Version: 5.6.0.9001
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 Authors@R: c(
@@ -26,7 +26,7 @@ Authors@R: c(
   person(given = "Avi", family = "Srivastava", email = "asrivastava@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-9798-2079")),
   person(given = "Tim", family = "Stuart", email = "tstuart@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-3044-0897")),
   person(given = "Kristof", family = "Torkenczy", email = "", role = "ctb", comment = c(ORCID = "0000-0002-4869-7957")),
-  person(given = "Brian", family = "Zhang", email = "brianzhang@nygenome.org", role = "ctb"),
+  person(given = "Brian", family = "Zhang", email = "brianzhang@nygenome.org", role = "ctb", comment = c(ORCID = "0009-0008-1011-5983")),
   person(given = "Shiwei", family = "Zheng", email = "szheng@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6682-6743")),
   person("Satija Lab and Collaborators", role = "fnd")
   )
@@ -96,6 +96,7 @@ Suggests:
     base64enc,
     Biobase,
     BiocGenerics,
+    blosc,
     BPCells,
     data.table,
     DESeq2,
@@ -118,6 +119,7 @@ Suggests:
     presto,
     rsvd,
     R.utils,
+    RBioFormats,
     Rfast2,
     rtracklayer,
     S4Vectors,

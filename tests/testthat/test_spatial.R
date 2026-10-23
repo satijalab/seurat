@@ -520,3 +520,38 @@ test_that("RunMarkVario returns one named entry per feature", {
     expect_true(all(vapply(mv, inherits, logical(1L), what = "fv")))
   }
 })
+
+context("LoadAtera")
+
+test_that("LoadAtera assembles counts, controls, metadata and aligned spatial cells", {
+  counts <- as.sparse(rbind(GeneA = c(1, 0, 3), GeneB = c(0, 2, 4)))
+  colnames(counts) <- c("101", "102", "103")
+  blank <- counts[1, , drop = FALSE]
+  rownames(blank) <- "Blank"
+  centroids <- data.frame(x = c(30, 10), y = c(3, 1), cell = c("103", "101"))
+  # mock data read
+  local_mocked_bindings(
+    ReadAtera = function(...) list(
+      matrix = list(`Gene Expression` = counts, `Unassigned Codeword` = blank),
+      centroids = centroids, metadata = list(run_name = "test run")
+    ),
+    .package = "Seurat"
+  )
+
+  # LoadAtera uses the mocked data to build the example Seurat object
+  test.case <- LoadAtera(data.dir = "not/used", bpcells.dir = FALSE)
+  cells <- c("101", "103")
+
+  # make sure the loaded object contains the expected cells, counts, and metadata
+  expect_identical(Cells(test.case), cells)
+  expect_equal(LayerData(test.case, assay = "Atera", layer = "counts"), counts[, cells])
+  expect_equal(Misc(test.case, "atera.BlankCodeword"), blank[, cells, drop = FALSE])
+  expect_equal(Misc(test.case, "run_metadata"), list(run_name = "test run"))
+  expect_s4_class(test.case[["fov"]], "FOV")
+
+  # check that the tissue coordinates match the expected cell positions
+  coords <- GetTissueCoordinates(test.case[["fov"]][["centroids"]], full = FALSE)
+  expect_setequal(coords$cell, cells)
+  expect_equal(coords$x[match(cells, coords$cell)], c(10, 30))
+  expect_equal(coords$y[match(cells, coords$cell)], c(1, 3))
+})
