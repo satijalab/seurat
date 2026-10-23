@@ -26,7 +26,7 @@ Authors@R: c(
   person(given = "Avi", family = "Srivastava", email = "asrivastava@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-9798-2079")),
   person(given = "Tim", family = "Stuart", email = "tstuart@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-3044-0897")),
   person(given = "Kristof", family = "Torkenczy", email = "", role = "ctb", comment = c(ORCID = "0000-0002-4869-7957")),
-  person(given = "Brian", family = "Zhang", email = "brianzhang@nygenome.org", role = "ctb"),
+  person(given = "Brian", family = "Zhang", email = "brianzhang@nygenome.org", role = "ctb", comment = c(ORCID = "0009-0008-1011-5983")),
   person(given = "Shiwei", family = "Zheng", email = "szheng@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6682-6743")),
   person("Satija Lab and Collaborators", role = "fnd")
   )

@@ -4540,7 +4540,6 @@ LoadAtera <- function(
 #'
 #' @param object A Seurat object created by \code{LoadAtera(..., molecule.coordinates = TRUE)}
 #' @param genes Character vector of gene names to fetch
-#' @inheritParams ReadAtera
 #'
 #' @return \code{object}, with \code{genes}' transcript coordinates added to
 #' its molecule layer (in addition to any genes fetched by a previous call)
@@ -4599,7 +4598,6 @@ LoadAteraMolecules <- function(object, genes) {
 #' @param fov Name of the FOV (typically already cropped via
 #' \code{\link[SeuratObject]{Crop}}) to add segmentation polygons to
 #' @param segmentations One of \code{"cell"} or \code{"nucleus"}
-#' @inheritParams ReadAtera
 #'
 #' @return \code{object}, with a \code{"segmentations"} boundary added to
 #' \code{object[[fov]]}, built only for the cells currently in that FOV
@@ -4646,7 +4644,6 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
 #' codeword
 #' @param fov Name of the FOV to attach the resulting molecules to; defaults
 #' to the object's default FOV
-#' @inheritParams ReadAtera
 #'
 #' @return \code{object}, with one \code{"<gene>_codeword_<id>"} molecule
 #' entry per codeword mapping to each requested gene, merged into
