@@ -8,6 +8,7 @@
 
 ### Fixes
 
+- Fixed `Read10X_Coordinates` (and so `Read10X_Image` and `Load10X_Spatial`) to detect a header row in tissue positions CSVs from the file contents instead of the file name, so renamed files (e.g. a headed `tissue_positions_list.csv` from GEO) no longer produce character coordinates and a "cannot derive coordinates from non-numeric matrix" error
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
 
 # Seurat 5.6.0 (2026-10-03)
