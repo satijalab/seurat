@@ -350,3 +350,208 @@ test_that("SpatialDimPlot works with multiple assays, layers, & images", {
   expect_true(equivalent_plots(plots[[1]], plot.2))
   expect_true(equivalent_plots(plots[[2]], plot.1))
 })
+
+test_that("FindSpatiallyVariableFeatures uses FOV cell names for the requested assay", {
+  skip_on_cran()
+  skip_if_not_installed("spatstat.explore")
+  skip_if_not_installed("spatstat.geom")
+
+  set.seed(42)
+  test.case <- merge(test.data.1, test.data.3)
+  segment.cells <- colnames(x = test.case[["Spatial.A"]])
+  bin.cells <- colnames(x = test.case[["Spatial.B"]])
+  features <- rownames(x = test.case[["Spatial.B"]])[1:6]
+
+  test.case[["slice1.A"]] <- NULL
+  test.case[["slice2.B"]] <- NULL
+  test.case[["segmentation"]] <- CreateFOV(
+    CreateSegmentation(data.frame(
+      x = rep(c(0, 1, 1, 0), 2L) + rep(1:2, each = 4L),
+      y = rep(c(0, 0, 1, 1), 2L),
+      cell = rep(segment.cells[1:2], each = 4L)
+    )),
+    assay = "Spatial.A"
+  )
+  test.case[["bins"]] <- CreateFOV(
+    CreateCentroids(data.frame(
+      x = runif(length(x = bin.cells)) * 100,
+      y = runif(length(x = bin.cells)) * 100,
+      cell = bin.cells
+    )),
+    type = "centroids",
+    assay = "Spatial.B"
+  )
+  DefaultAssay(test.case) <- "Spatial.A"
+  test.case <- suppressWarnings(NormalizeData(test.case, assay = "Spatial.B", verbose = FALSE))
+
+  result <- suppressWarnings(FindSpatiallyVariableFeatures(
+    test.case,
+    assay = "Spatial.B",
+    layer = "data",
+    features = features,
+    selection.method = "markvariogram",
+    verbose = FALSE
+  ))
+  expect_length(SpatiallyVariableFeatures(result[["Spatial.B"]], method = "markvariogram"), 6L)
+
+  coords <- GetTissueCoordinates(test.case[["bins"]])[, c("x", "y")]
+  rownames(coords) <- seq_len(nrow(coords))
+  expect_error(
+    FindSpatiallyVariableFeatures(
+      test.case[["Spatial.B"]],
+      layer = "data",
+      features = features,
+      spatial.location = coords,
+      selection.method = "markvariogram",
+      nfeatures = length(x = features),
+      verbose = FALSE
+    ),
+    "row names in 'spatial.location' do not match cells"
+  )
+
+  expect_error(
+    suppressWarnings(FindSpatiallyVariableFeatures(
+      test.case,
+      assay = "Spatial.A",
+      layer = "counts",
+      image = "segmentation",
+      features = features,
+      selection.method = "markvariogram",
+      verbose = FALSE
+    )),
+    "centroid-based boundary"
+  )
+})
+
+#' Returns a small assay plus matching coordinates for the tests below.
+build_svf_case <- function(n_features_vary = 0L) {
+  cells <- paste0("cell", seq_len(12L))
+  counts <- matrix(3L, nrow = 4L, ncol = length(x = cells))
+  dimnames(x = counts) <- list(paste0("gene", 1:4), cells)
+  for (i in seq_len(n_features_vary)) {
+    counts[i, ] <- sample(x = seq_along(cells))
+  }
+  object <- suppressWarnings(CreateSeuratObject(counts = as.sparse(counts)))
+  object <- suppressWarnings(NormalizeData(object, verbose = FALSE))
+  list(
+    assay = object[["RNA"]],
+    coordinates = data.frame(
+      x = seq_len(length(x = cells)),
+      y = rev(seq_len(length(x = cells))),
+      row.names = cells
+    )
+  )
+}
+
+test_that("FindSpatiallyVariableFeatures handles bad inputs", {
+  skip_on_cran()
+  skip_if_not_installed("spatstat.explore")
+  skip_if_not_installed("spatstat.geom")
+  skip_if(!requireNamespace("Rfast2", quietly = TRUE) && !requireNamespace("ape", quietly = TRUE))
+
+  set.seed(42)
+  case <- build_svf_case(n_features_vary = 4L)
+  # error when there are too few cells passed to spatial.location
+  expect_error(
+    FindSpatiallyVariableFeatures(
+      case$assay,
+      layer = "counts",
+      features = rownames(x = case$assay),
+      spatial.location = case$coordinates[1, , drop = FALSE],
+      selection.method = "moransi",
+      verbose = FALSE
+    ),
+    "at least two"
+  )
+
+  # test that no errors are thrown when identifying a single varying feature
+  for (method in c("moransi", "markvariogram")) {
+    set.seed(42)
+    case <- build_svf_case(n_features_vary = 1L)
+    result <- suppressWarnings(FindSpatiallyVariableFeatures(
+      case$assay,
+      layer = "counts",
+      features = rownames(x = case$assay),
+      spatial.location = case$coordinates,
+      selection.method = method,
+      nfeatures = 4L,
+      verbose = FALSE
+    ))
+    expect_equal(SpatiallyVariableFeatures(result, method = method), "gene1")
+  }
+
+  # warn when no features vary
+  case <- build_svf_case(n_features_vary = 0L)
+  expect_warning(
+    result <- FindSpatiallyVariableFeatures(
+      case$assay,
+      layer = "counts",
+      features = rownames(x = case$assay),
+      spatial.location = case$coordinates,
+      selection.method = "markvariogram",
+      verbose = FALSE
+    ),
+    "None of the requested features vary"
+  )
+  expect_identical(result, case$assay)
+})
+
+test_that("RunMarkVario returns one named entry per feature", {
+  skip_on_cran()
+  skip_if_not_installed("spatstat.explore")
+  skip_if_not_installed("spatstat.geom")
+
+  set.seed(42)
+  n.cells <- 12L
+  positions <- data.frame(x = seq_len(n.cells), y = rev(seq_len(n.cells)))
+  # markvario() hands back a bare 'fv' for a single mark and a named list of
+  # them for several; the caller relies on always getting the list.
+  for (n.features in c(1L, 3L)) {
+    marks <- matrix(
+      data = rnorm(n = n.features * n.cells),
+      nrow = n.features,
+      dimnames = list(
+        paste0("gene", seq_len(n.features)),
+        paste0("cell", seq_len(n.cells))
+      )
+    )
+    mv <- RunMarkVario(spatial.location = positions, data = marks)
+    expect_named(mv, rownames(x = marks))
+    expect_true(all(vapply(mv, inherits, logical(1L), what = "fv")))
+  }
+})
+
+context("LoadAtera")
+
+test_that("LoadAtera assembles counts, controls, metadata and aligned spatial cells", {
+  counts <- as.sparse(rbind(GeneA = c(1, 0, 3), GeneB = c(0, 2, 4)))
+  colnames(counts) <- c("101", "102", "103")
+  blank <- counts[1, , drop = FALSE]
+  rownames(blank) <- "Blank"
+  centroids <- data.frame(x = c(30, 10), y = c(3, 1), cell = c("103", "101"))
+  # mock data read
+  local_mocked_bindings(
+    ReadAtera = function(...) list(
+      matrix = list(`Gene Expression` = counts, `Unassigned Codeword` = blank),
+      centroids = centroids, metadata = list(run_name = "test run")
+    ),
+    .package = "Seurat"
+  )
+
+  # LoadAtera uses the mocked data to build the example Seurat object
+  test.case <- LoadAtera(data.dir = "not/used", bpcells.dir = FALSE)
+  cells <- c("101", "103")
+
+  # make sure the loaded object contains the expected cells, counts, and metadata
+  expect_identical(Cells(test.case), cells)
+  expect_equal(LayerData(test.case, assay = "Atera", layer = "counts"), counts[, cells])
+  expect_equal(Misc(test.case, "atera.BlankCodeword"), blank[, cells, drop = FALSE])
+  expect_equal(Misc(test.case, "run_metadata"), list(run_name = "test run"))
+  expect_s4_class(test.case[["fov"]], "FOV")
+
+  # check that the tissue coordinates match the expected cell positions
+  coords <- GetTissueCoordinates(test.case[["fov"]][["centroids"]], full = FALSE)
+  expect_setequal(coords$cell, cells)
+  expect_equal(coords$x[match(cells, coords$cell)], c(10, 30))
+  expect_equal(coords$y[match(cells, coords$cell)], c(1, 3))
+})

@@ -4,6 +4,7 @@
 \alias{RunICA}
 \alias{RunICA.default}
 \alias{RunICA.Assay}
+\alias{RunICA.StdAssay}
 \alias{RunICA.Seurat}
 \title{Run Independent Component Analysis on gene expression}
 \usage{
@@ -28,6 +29,23 @@ RunICA(object, ...)
   object,
   assay = NULL,
   features = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "ica_",
+  seed.use = 42,
+  ...
+)
+
+\method{RunICA}{StdAssay}(
+  object,
+  assay = NULL,
+  features = NULL,
+  layer = "scale.data",
   nics = 50,
   rev.ica = FALSE,
   ica.function = "icafast",
@@ -87,6 +105,9 @@ the number for the dimension names.}
 \item{seed.use}{Set a random seed.  Setting NULL will not set a seed.}
 
 \item{features}{Features to compute ICA on}
+
+\item{layer}{The layer in `assay` to use when running independant component
+analysis.}
 }
 \description{
 Run fastica algorithm from the ica package for ICA dimensionality reduction.

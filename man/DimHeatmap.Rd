@@ -20,7 +20,8 @@ DimHeatmap(
   raster = TRUE,
   slot = "scale.data",
   assays = NULL,
-  combine = TRUE
+  combine = TRUE,
+  legend.position = "right"
 )
 
 PCHeatmap(object, ...)
@@ -47,7 +48,8 @@ if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{ncol}{Number of columns to plot}
 
-\item{fast}{If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable}
+\item{fast}{If true, use \code{image} to generate plots; faster than using ggplot2, 
+but not customizable and excludes figure legend in output}
 
 \item{raster}{If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
@@ -57,8 +59,11 @@ if you are encountering that issue (note that plots may take longer to produce/r
 
 \item{assays}{A vector of assays to pull data from}
 
-\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-ggplot object. If \code{FALSE}, return a list of ggplot objects}
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed} ggplot object with 
+single shared figure legend when \code{fast=FALSE}. If \code{FALSE}, return a list of ggplot objects}
+
+\item{legend.position}{When \code{combine=TRUE}, allows legend position to be adjusted
+for \code{\link[patchwork]{patchwork}ed} output (default "right"). See \link[ggplot2]{theme}}
 
 \item{...}{Extra parameters passed to \code{DimHeatmap}}
 }

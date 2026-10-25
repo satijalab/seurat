@@ -18,6 +18,7 @@ FeaturePlot(
  },
   pt.size = NULL,
   alpha = 1,
+  stroke.size = NULL,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -26,6 +27,7 @@ FeaturePlot(
   keep.scale = "feature",
   shape.by = NULL,
   slot = "data",
+  assay = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -72,6 +74,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 
 \item{alpha}{Alpha value for plotting (default is 1)}
 
+\item{stroke.size}{Adjust stroke (outline) size of points}
+
 \item{order}{Boolean determining whether to plot cells in order of expression. Can be useful if
 cells expressing given feature are getting buried.}
 
@@ -103,6 +107,8 @@ different colors and different shapes on cells.  Only applicable if \code{raster
 
 \item{slot}{Which slot to pull expression data from?}
 
+\item{assay}{Primary assay to pull feature data from}
+
 \item{blend}{Scale and blend expression values to visualize coexpression of two features}
 
 \item{blend.threshold}{The color cutoff from weak signal to strong signal; ranges from 0 to 1.}
@@ -132,8 +138,7 @@ ggplot object. If \code{FALSE}, return a list of ggplot objects}
 \item{raster}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
 
-\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
-Default is c(512, 512).}
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore(). Default is c(512, 512).}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

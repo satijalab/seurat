@@ -18,6 +18,7 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  singular.action = c("uniform", "error"),
   ...
 )
 
@@ -69,6 +70,8 @@ LeverageScore(object, ...)
 \arguments{
 \item{object}{A matrix-like object}
 
+\item{singular.action}{For an exactly singular QR factor, uniform emits a warning and returns equal weights; error stops.}
+
 \item{...}{Arguments passed to other methods}
 
 \item{nsketch}{A positive integer. The number of sketches to be used in the approximation.
@@ -107,6 +110,6 @@ to the leverage scores using a scalable method suitable for large matrices.
 \references{
 Clarkson, K. L. & Woodruff, D. P.
 Low-rank approximation and regression in input sparsity time.
-JACM 63, 1–45 (2017). \url{https://dl.acm.org/doi/10.1145/3019134};
+JACM 63, 1–45 (2017). \doi{10.1145/3019134};
 }
 \concept{sketching}

@@ -16,6 +16,8 @@ FindClusters(object, ...)
   resolution = 0.8,
   method = deprecated(),
   algorithm = 1,
+  leiden_method = c("leidenbase", "igraph"),
+  leiden_objective_function = c("modularity", "CPM"),
   n.start = 10,
   n.iter = 10,
   random.seed = 0,
@@ -36,6 +38,8 @@ FindClusters(object, ...)
   resolution = 0.8,
   method = NULL,
   algorithm = 1,
+  leiden_method = c("leidenbase", "igraph"),
+  leiden_objective_function = c("modularity", "CPM"),
   n.start = 10,
   n.iter = 10,
   random.seed = 0,
@@ -68,6 +72,13 @@ of `leidenbase::leiden_find_partition`.}
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 algorithm; 4 = Leiden algorithm).}
 
+\item{leiden_method}{Choose from the leidenbase ("leidenbase") or igraph ("igraph") packages for running leiden.
+Default is "leidenbase"}
+
+\item{leiden_objective_function}{objective function to use if `leiden_method = "igraph"`.
+See \code{\link[igraph]{cluster_leiden}} for more information.
+Default is "modularity".}
+
 \item{n.start}{Number of random starts.}
 
 \item{n.iter}{Maximal number of iterations per random start.}
@@ -99,11 +110,20 @@ optimization based clustering algorithm. First calculate k-nearest neighbors
 and construct the SNN graph. Then optimize the modularity function to
 determine clusters. For a full description of the algorithms, see Waltman and
 van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
-Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
-optimizer code in Rcpp!
+Delaney (evolvedmicrobe@github) for the initial rewrite (v2.3.4) of the 
+Java modularity optimizer code in Rcpp!
 }
 \details{
-To run Leiden algorithm, you must first install the leidenalg python
-package (e.g. via pip install leidenalg), see Traag et al (2018).
+Leiden clustering can be run with either the \code{leidenbase} or
+\code{igraph} backend; see Traag et al (2018).
+}
+\note{
+When running Louvain clustering with multiple threads, results may differ
+from single-threaded runs only when \code{n.start > 1}, because each random
+start uses an independent random number stream based on \code{random.seed}
+plus the restart index. Single-threaded runs use one random number stream
+across all starts. With \code{n.start = 1}, all thread settings use the same
+serial path. For a fixed \code{random.seed}, multi-threaded Louvain
+results are expected to be reproducible across thread counts.
 }
 \concept{clustering}

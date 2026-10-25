@@ -13,6 +13,9 @@ Load10X_Spatial(
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
+  image.name = "tissue_lowres_image.png",
+  segmentation.type = NULL,
+  compact = TRUE,
   ...
 )
 }
@@ -26,7 +29,7 @@ and the image data in a subdirectory called \code{spatial}}
 
 \item{slice}{Name for the stored image of the tissue slice}
 
-\item{bin.size}{Specifies the bin sizes to read in - defaults to c(16, 8)}
+\item{bin.size}{Specifies the bin sizes to read in, can include "polygons" to load segmentations. Defaults to c(16, 8)}
 
 \item{filter.matrix}{Only keep spots that have been determined to be over
 tissue}
@@ -36,6 +39,15 @@ analyses require comparisons between human and mouse gene names for example.}
 
 \item{image}{\code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is
 passed in it should be co-indexed with \code{`bin.size`}}
+
+\item{image.name}{Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png}
+
+\item{segmentation.type}{Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
+Defaults to "cell".}
+
+\item{compact}{Whether to store segmentations in \emph{only} the \code{sf.data} slot
+in the corresponding Segmentation object (default TRUE) to save memory and processing time.
+If FALSE, segmentations are also stored in \code{\link[sp]{sp}} format in addition to the \code{sf.data} slot.}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }

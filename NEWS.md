@@ -1,3 +1,174 @@
+# Unreleased
+
+### Additions
+
+- Added `ReadAtera` and `LoadAtera` to read 10x Genomics Atera spatial data, including expression and control counts, cell centroids, cell/nucleus segmentations, transcript coordinates, and morphology images
+  - Added support for selective gene and feature-type reads, BPCells-backed counts caching, and parallel Atera reads using the active `future::plan()`
+- Added `LoadAteraMolecules`, `LoadAteraSegmentations`, and `LoadAteraCodewords` to load additional transcript coordinates, segmentation polygons, and per-codeword coordinates into existing Atera objects
+
+### Fixes
+
+- Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
+
+# Seurat 5.6.0 (2026-10-03)
+
+### Additions
+
+- Added `setThreads` and `getThreads` to control threading in supported C++ kernels and `uwot` UMAP backends
+- Updated `NormalizeData` to use threaded sparse log-normalization and reduce matrix-copying overhead
+- Updated `FindVariableFeatures` to share a sparse VST implementation across assay versions with threaded standardized-variance calculations
+- Updated `ScaleData` to center, scale, and clip default inputs in a single threaded C++ call
+- Updated `SCTransform` to use threaded C++ calculations for supported Pearson residuals and corrected counts
+- Updated the v5 `SCTransform` workflow to avoid intermediate assay objects and defer default residual calculation until feature selection is complete
+- Updated `RunPCA` to use a threaded dense Gram-matrix backend by default and reuse feature variances
+- Updated `FindNeighbors` to use threaded C++ Annoy searches and SNN graph construction
+- Updated `FindClusters` to reuse graph preparation across resolutions and parallelize modularity-optimization random starts 
+- Updated `RunUMAP` to use the Seurat thread setting for `uwot`, `uwot2`, and model projection
+- Updated `FindMarkers` to reuse matrix subsets for fold-change calculations and process sparse inputs efficiently
+- Updated `FindAllMarkers` to test supported Wilcoxon comparisons across all identities in one `presto` call, and compute fold changes and detection percentages in bulk
+- Updated `IntegrateLayers` with `RPCAIntegration` to reduce per-layer setup overhead and use threaded integration calculations
+- Updated `IntegrateLayers` with `CCAIntegration` to use threaded anchor scoring and integration-weight calculations
+- Added `svd.method` parameter to `CCAIntegration` for use through `IntegrateLayers`
+- Updated large dense CCA comparisons to use an implicit RSpectra backend (`svd.method = "rspectra"`) and avoid materializing the cell-by-cell cross-product matrix
+- Updated `CCAIntegration` to skip gene loadings when anchor filtering is disabled
+
+### Fixes
+
+- Fixed `AddModuleScore` (and `CellCycleScoring`) on v5 objects with on-disk (e.g. BPCells) assays, where each layer was fully densified to an in-memory `dgCMatrix` before scoring; scoring now operates directly on the on-disk matrix ([#10448](https://github.com/satijalab/seurat/pull/10448))
+- Fixed `GetResidual()` to correctly handle multi-model SCT assays with partial feature overlap ([#10541](https://github.com/satijalab/seurat/pull/10451))
+- Fixed bug in `PercentageFeatureSet` where layer data was incorrectly retrieved prior to finding features with requested pattern ([#10438](https://github.com/satijalab/seurat/pull/10438))
+- Updated `as.SingleCellExperiment` to address conversion case where an object has both original and sketched assay / reductions (differing numbers of cells) ([#10419](https://github.com/satijalab/seurat/pull/10419))
+- Fixed bugs in behavior of `RidgePlot` parameters `fill.by`, `y.max`, and `same.y.lims` ([#10424](https://github.com/satijalab/seurat/pull/10424), [#10517](https://github.com/satijalab/seurat/pull/10517))
+- Fixed naming of combined p-value column in output of `FindConservedMarkers` when a non-default `meta.method` is specified ([#10429](https://github.com/satijalab/seurat/pull/10429))
+- Updated minimum required `uwot` version to `0.2.1` ([#10447](https://github.com/satijalab/seurat/pull/10447))
+- Registered `Radius.VisiumV2` as an S3 method to fix `Radius` returning `NULL` for `VisiumV2` images ([#10454](https://github.com/satijalab/seurat/pull/10454))
+- Fixed `FindSpatiallyVariableFeatures()` to correctly match FOV coordinates to cells in the requested assay and handle various edge cases, including fewer than two matched cells, a single varying feature, or no varying requested features ([#10504](https://github.com/satijalab/seurat/pull/10504))
+- Updated argument handling in `FindSpatiallyVariableFeatures()` by resolving `selection.method` with `match.arg()` and restoring the `FindSpatiallyVariableFeatures.Assay()` default `nfeatures` value to `2000` ([#10504](https://github.com/satijalab/seurat/pull/10504))
+- Fixed `RunMarkVario()` to return one named mark variogram result per feature for single-feature inputs and parallel execution chunks ([#10505](https://github.com/satijalab/seurat/pull/10505))
+- Updated `IntegrateLayers()` to throw an error message when less than two groups/layers are provided ([#10396](https://github.com/satijalab/seurat/pull/10396))
+- Fixed recorrection in `SCTransform` after subsetting so `FindMarkers()` works on subsetted SCT assays with observed median UMI lower than the correction depth stored in every SCT model ([#10509](https://github.com/satijalab/seurat/pull/10509))
+- Fixed `FindNeighbors` to correctly convert Annoy angular distances to cosine distances
+- Fixed `RunPCA` on v5 assays to exclude unavailable requested features and cap the number of PCs by the available features and cells
+- Fixed `SCTransform` residual retrieval to reuse cached features and respect an explicitly supplied `clip.range`
+- Fixed `SCTransform` on v5 assays to preserve features selected by `variable.features.rv.th` when `variable.features.n = NULL`, including across multiple layers
+- Fixed reference-based RPCA/CCA anchor finding to exclude query-query comparisons regardless of `verbose`
+
+# Seurat 5.5.1 (2026-06-26)
+
+### Additions
+
+- Added `uwot.init` parameter to `RunUMAP` to optionally customize method of UMAP initialization ([#10386](https://github.com/satijalab/seurat/pull/10386))
+
+### Fixes
+
+- Fixed bug in `PrepSCTFindMarkers` in the multi-model case that produced zero counts for some valid genes due to an incorrect filter for theta ([#10410](https://github.com/satijalab/seurat/pull/10410))
+- Fixed issue with `FindClusters` not setting metadata properly when a vector of resolutions is passed to `resolution` and a custom cluster name is specified ([#10385](https://github.com/satijalab/seurat/pull/10385))
+- Updated logic in `Parenting` to extract function names from the call stack efficiently, avoiding slowdowns when functions are run with `do.call` ([#10161](https://github.com/satijalab/seurat/pull/10161))
+- Fixed bug in `PrepDR5` affecting `RunPCA` on v5 objects, where supplied features could be incorrectly dropped when non-supplied features had zero variance ([#10398](https://github.com/satijalab/seurat/pull/10398))
+- Updated `LabelClusters` to use `fill` argument for label background color in `geom_label*` when specified, instead of the default per-cluster color ([#10404](https://github.com/satijalab/seurat/pull/10404))
+
+# Seurat 5.5.0 (2026-04-22)
+
+### Additions
+
+- Added support for `vars.to.regress` and `latent.data` in `ScaleData.IterableMatrix` (BPCells) ([#10300](https://github.com/satijalab/seurat/pull/10300))
+- Added warning to `SCTransform` to notify that `do.correct.umi` is hard set to `F` when a reference SCT model is specified ([#10329](https://github.com/satijalab/seurat/pull/10329), [#10366](https://github.com/satijalab/seurat/pull/10366))
+- Added warning to `FindMarkers`/`FindAllMarkers` when running on an `IterableMatrix` (BPCells) with column-major storage order ([#10365](https://github.com/satijalab/seurat/pull/10365))
+- Added `plot_type` parameter to `ElbowPlot` to switch between default (PCs x standard deviation) and two new options:
+  - PCs x % variance explained ([#8929](https://github.com/satijalab/seurat/pull/8929))
+  - PCs x cumulative % variance explained ([#10369](https://github.com/satijalab/seurat/pull/10369))
+- Added `legend.position` parameter `DimHeatmap` to allow repositioning of legend when `combine = T` ([#9813](https://github.com/satijalab/seurat/pull/9813))
+- Added "selected cells" indicator in `InteractiveSpatialPlot` ([#10254](https://github.com/satijalab/seurat/pull/10254))
+- Added `stroke.alpha` parameter to `SpatialPlot` to be able to control transparency for fill and stroke separately ([#10345](https://github.com/satijalab/seurat/pull/10345))
+- Added support for unnamed `cols` vectors in `SpatialPlot` ([#10298](https://github.com/satijalab/seurat/pull/10298))
+- Added `assay` parameter to `FeaturePlot` to specify assay to pull features from ([#10349](https://github.com/satijalab/seurat/pull/10349))
+
+### Fixes
+
+- Fixed issue with UMAP version parsing in `RunUMAP` ([#10246](https://github.com/satijalab/seurat/pull/10246))
+- Updated `HTODemux` to handle HTO assays containing a subset of cells ([#10362](https://github.com/satijalab/seurat/pull/10362))
+- Updated `Rcpp` error handling ([#10317](https://github.com/satijalab/seurat/pull/10317), [#10353](https://github.com/satijalab/seurat/pull/10353))
+- Fixed issue with `NaN` values being propagated in `PrepSCTFindMarkers` ([#10361](https://github.com/satijalab/seurat/pull/10361))
+- Fixed `umi.assay` labeling for model list in `SCTransform` to match the assay specified ([#10330](https://github.com/satijalab/seurat/pull/10330))
+- Fixed factor-level ordering for metadata columns resulting from `FindClusters` ([#10253](https://github.com/satijalab/seurat/pull/10253))
+- Fixed error in `FindSpatiallyVariableFeatures` from use of `slot` in function cascade ([#10285](https://github.com/satijalab/seurat/pull/10285))
+- Fixed classification of gRNA with less than 5 cells in `RunMixscape` for proper label as "NP" ([#10299](https://github.com/satijalab/seurat/pull/10299))
+- Fixed issue with checking object scope in `as.Seurat.SingleCellExperiment` ([#10339](https://github.com/satijalab/seurat/pull/10339))
+- Fixed `SketchData` to pass the provided argument for `verbose` to `LeverageScore` ([#10145](https://github.com/satijalab/seurat/pull/10145))
+- Fixed `FindConservedMarkers` to pass the provided argument for `min.cells.group` to `FindMarkers` ([#8910](https://github.com/satijalab/seurat/pull/8910))
+- Updated `IntegrateEmbeddings` to respect `dims.to.integrate` when `reference` is specified ([#10172](https://github.com/satijalab/seurat/pull/10172))
+- Fixed list structure of neighbors in `FindNeighbors` when SNN is not computed ([#10364](https://github.com/satijalab/seurat/pull/10364))
+- Updated `DimHeatmap` to add PC labels as individual titles ([#9813](https://github.com/satijalab/seurat/pull/9813))
+- Updated layer-building logic in `Single`/`MultiExIPlot` for ggplot2 v4+ compatibility ([#10333](https://github.com/satijalab/seurat/pull/10333))
+- Fixed `order = T` in rasterized `Dim`/`FeaturePlot`s via `ggrastr`-based rasterization ([#10307](https://github.com/satijalab/seurat/pull/10307), [#10344](https://github.com/satijalab/seurat/pull/10344))
+- Updated `SpatialPlot` coordinate system check when plotting `VisiumV1` images ([#10267](https://github.com/satijalab/seurat/pull/10267))
+- Updated `SpatialPlot` for Visium data to speed up plot construction ([#10345](https://github.com/satijalab/seurat/pull/10345))
+- Fixed interactive functionality of `LinkedDim`/`LinkedFeaturePlot` and interactive mode in `SpatialPlot` ([#10368](https://github.com/satijalab/seurat/pull/10368))
+- Updated coordinate systems used for plot display in `InteractiveSpatialPlot` ([#10254](https://github.com/satijalab/seurat/pull/10254))
+- Fixed coordinate ranges when spatial plots are generated with `crop = F` ([#10278](https://github.com/satijalab/seurat/pull/10278), [#10284](https://github.com/satijalab/seurat/pull/10284))
+
+# Seurat 5.4.0 (2025-12-14)
+
+### Additions
+- Added support for 10x Space Ranger 4.0 outputs (Visium data with segmentations)
+  - Updated data loading functions `Load10X_Spatial`, `Read10X_Image`, 
+  - Updated `GetTissueCoordinates.VisiumV2`
+  - Updated spatial visualization functions `SpatialPlot`, `SingleSpatialPlot`, `SpatialDimPlot`, `SpatialFeaturePlot`
+  - Added helper functions `Read10X_Segmentations`, `Read10X_HD_GeoJson`, `Format10X_GeoJson_CellID`
+- Added function `InteractiveSpatialPlot` to allow users to interactively lasso-select cells from a spatial Seurat object (Visium, SlideSeq, or Vizgen data)
+
+### Fixes
+- Updated loading & visualization functions (see above for list) for Visium objects -- see [#10125](https://github.com/satijalab/seurat/pull/10215) for details
+  - For binned Visium data, `x` now correctly corresponds to `imagecol` from tissue positions; `y` now correctly corresponds to `imagerow` from tissue positions; these are now consistent with 10X's coordinate system (with the origin being the top left).
+- Reverted [#10062](https://github.com/satijalab/seurat/pull/10062) in favor of fetching both grouping variables and dimensionality reduction embeddings with `FetchData` as previously; added warning to alert users when column names of metadata and dimensionality reduction embeddings conflict
+- Added color retrieval logic in `LabelClusters` for consistent cluster label coloring ([#10198](https://github.com/satijalab/seurat/pull/10198))
+
+# Seurat 5.3.1 (2025-10-29)
+
+## Changes
+
+### Additions
+- Added option to use `cluster_leiden` from `igraph` when running Leiden clustering ([#9931](https://github.com/satijalab/seurat/pull/9931))
+- Added option to use `umap2` from `uwot` when running UMAP ([#9918](https://github.com/satijalab/seurat/pull/9918))
+- Added option to use `approx_pow` parameter from `uwot` when running UMAP ([#9449](https://github.com/satijalab/seurat/pull/9449))
+- Updated `LoadXenium` to add support for Xenium protein data ([#10024](https://github.com/satijalab/seurat/pull/10024))
+- Added option to specify stroke size in `FeaturePlot` ([#10053](https://github.com/satijalab/seurat/pull/10053))
+- Added `label.size.cutoff` parameter to `DimPlot` to allow users to label only clusters above a certain size ([#10092](https://github.com/satijalab/seurat/pull/10092))
+
+### Fixes
+
+- Fixed deprecated calls to Seurat functions `GetAssayData` and `PackageCheck` ([#9924](https://github.com/satijalab/seurat/pull/9924)), ([#10102](https://github.com/satijalab/seurat/pull/10102))
+- Fixed errors in `RunAzimuth` relating to `FindTransferAnchors` ([#9924](https://github.com/satijalab/seurat/pull/9924))
+- Fixed errors in `LeverageScore` relating to handling of (variable) features ([#9924](https://github.com/satijalab/seurat/pull/9924))
+- Updated `PseudobulkExpression` to acccount for the case that a category passed to `group.by` has only one value ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `VlnPlot` to use assay passed to the function if specified ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `FeatureScatter` to allow gene names with parentheses to be plotted ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `SingleRasterMap` to store object metadata correctly ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `FindClusters` to order cluster factor levels correctly when assigning a custom cluster name ([#10092](https://github.com/satijalab/seurat/pull/10092))
+- Updated `FindConservedMarkers` to remove NA values ([#9917](https://github.com/satijalab/seurat/pull/9917))
+- Updated visualization functions to avoid ggplot2 `guides`, `aes_string`, and `facet_grid` deprecation warnings ([#9409](https://github.com/satijalab/seurat/pull/9409), [#10116](https://github.com/satijalab/seurat/pull/10116))
+- Fixed `DimPlot` bug where metadata columns named 'PC_1', 'UMAP_1' etc override reduction embeddings ([#10062](https://github.com/satijalab/seurat/pull/10062))
+
+# Seurat 5.3.0 (2025-04-24)
+
+## Changes
+- Fixed `PseudobulkExpression` to forward relevant arguments to `NormalizeData` ([#9840](https://github.com/satijalab/seurat/pull/9840))
+- Fixed bugs in `FindSpatiallyVariableFeatures`; deprecated the `slot` parameter in favor of `layer` ([#9836](https://github.com/satijalab/seurat/pull/9836))
+- Extended `FindTransferAnchors`'s `reference` argument to accept SCT inputs containing more than one SCT model; in this case, the reference model that was fit against the largest number of cells is used ([#9833](https://github.com/satijalab/seurat/pull/9833))
+- Extended `FindTransferAnchors`'s `query` argument to accept multi-layer inputs; updated `MappingScore` to support multi-layer query inputs ([#9832](https://github.com/satijalab/seurat/pull/9832))
+- Updated `LeverageScore.default` to convert `BPCells::IterableMatrix` inputs with less than 7500 cells into a sparse matrix before performing the calculation ([#9831](https://github.com/satijalab/seurat/pull/9831))
+- Dropped `VariableFeatures` setter from `SketchData` ([#9830](https://github.com/satijalab/seurat/pull/9830))
+- Extended `Cells.SCTAssay`'s `layer` argument accept slot names: `"counts"`, `"data"`, `"scale.data"`; enabled compatibility with `SketchData`/`LeverageScore`([#9830](https://github.com/satijalab/seurat/pull/9830))
+- Updated `SCTransform.StdAssay` to simplify and speed up the method ([#9828](https://github.com/satijalab/seurat/pull/9828))
+- Updated `AddModuleScore` to support multi-layer inputs ([#9826](https://github.com/satijalab/seurat/pull/9826))
+- Fixed `PseudobulkExpression` to work with `Seurat` inputs containing more than one assay ([9824](https://github.com/satijalab/seurat/pull/9824))
+- Added `RunICA.StdAssay` ([#9825](https://github.com/satijalab/seurat/pull/9825))
+- Updated `HarmonyIntegration` to call `harmony::RunHarmony` in favor of the deprecated `harmony::HarmonyMatrix` ([#9789](https://github.com/satijalab/seurat/pull/9789)) 
+- Added `raster.dpi` parameter to `VlnPlot` ([#9665](https://github.com/satijalab/seurat/pull/9665))
+- Fixed `SpatialDimPlot(..., interactive = TRUE)` to support `SlideSeq` and `STARmap` input types; added `ScaleFactors.SlideSeq` & `ScaleFactors.STARmap` generics ([#9691](https://github.com/satijalab/seurat/pull/9691))
+- Fixed `PercentageFeatureSet` so that the `assay` parameter is always respected; fixed `PercentageFeatureSet` to raise a warning if any `features` are absent in the specified `assay` instead of throwing an error ([#9686](https://github.com/satijalab/seurat/pull/9686))
+- Fixed `GroupCorrelation` and `GroupCorrelationPlot` to be compatible with `SeuratObject` >= 5.0.0 ([#9625](https://github.com/satijalab/seurat/pull/9625))
+
 # Seurat 5.2.1 (2025-01-23)
 
 ## Changes

@@ -22,7 +22,7 @@ NULL
 #' replicate
 #' @param verbose Print progress bar showing the number of replicates
 #' that have been processed.
-#' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
+#' @param maxit maximum number of iterations for RunPCA (w/ irlba backend)
 #'
 #' @return Returns a Seurat object where JS(object = object[['pca']], slot = 'empirical')
 #' represents p-values for each gene in the PCA analysis. If ProjectPCA is
@@ -92,7 +92,7 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
+  data.use <- GetAssayData(object = object, assay = assay, layer = "scale.data")[reduc.features, ]
   rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
   weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
   fake.vals.raw <- my.lapply(
@@ -121,13 +121,9 @@ JackStraw <- function(
   jackStraw.empP <- as.matrix(
     my.sapply(
       X = 1:dims,
-      FUN = function(x) {
-        return(unlist(x = lapply(
-          X = abs(loadings[, x]),
-          FUN = EmpiricalP,
-          nullval = abs(fake.vals[,x])
-        )))
-      }
+      FUN = JackStrawP,
+      loadings = loadings,
+      fake.vals = fake.vals
     )
   )
   colnames(x = jackStraw.empP) <- paste0("PC", 1:ncol(x = jackStraw.empP))
@@ -293,7 +289,7 @@ ProjectDim <- function(
   assay <- assay %||% DefaultAssay(object = redeuc)
   data.use <- GetAssayData(
     object = object[[assay]],
-    slot = "scale.data"
+    layer = "scale.data"
   )
   if (do.center) {
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
@@ -496,8 +492,15 @@ ProjectUMAP.Seurat <- function(
 #' @param num.cc Number of canonical vectors to calculate
 #' @param seed.use Random seed to set. If NULL, does not set a seed
 #' @param verbose Show progress messages
+#' @param svd.method SVD backend for CCA.
+#' If \code{NULL}, defaults to \code{"irlba"} except for pairs of dense CCA
+#' input matrices whose cell-by-cell cross-product matrix has at least
+#' 1,000,000 entries, in which case it defaults to \code{"rspectra"}.
+#' \code{"irlba"} uses an explicit cross-product CCA path; \code{"rspectra"}
+#' uses an implicit operator to avoid forming the cross-product matrix.
 #'
 #' @importFrom irlba irlba
+#' @importFrom RSpectra svds
 #'
 #' @rdname RunCCA
 #' @concept dimensional_reduction
@@ -509,33 +512,68 @@ RunCCA.default <- function(
   standardize = TRUE,
   num.cc = 20,
   seed.use = 42,
+  svd.method = NULL,
   verbose = FALSE,
   ...
 ) {
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
+  auto.rspectra <- is.null(x = svd.method) && inherits(x = object1, what = "matrix") && inherits(x = object2, what = "matrix") &&
+    (as.double(x = ncol(x = object1)) * as.double(x = ncol(x = object2))) >= 1e6
+  svd.method <- svd.method %||% "irlba"
+  svd.method <- match.arg(arg = svd.method, choices = c("irlba", "rspectra"))
   cells1 <- colnames(x = object1)
   cells2 <- colnames(x = object2)
+  use.rspectra <- svd.method == "rspectra" || auto.rspectra
+
   if (standardize) {
-    object1 <- Standardize(mat = object1, display_progress = FALSE)
-    object2 <- Standardize(mat = object2, display_progress = FALSE)
+    nthreads <- getThreads(verbose = FALSE)
+    object1 <- Standardize(mat = object1, display_progress = FALSE, nthreads = nthreads)
+    object2 <- Standardize(mat = object2, display_progress = FALSE, nthreads = nthreads)
   }
-  mat3 <- crossprod(x = object1, y = object2)
-  cca.svd <- irlba(A = mat3, nv = num.cc)
+  if (use.rspectra) {
+    if (auto.rspectra) {
+      inform(message = paste0(
+              "Using RSpectra for CCA since the cell-by-cell cross-product matrix has at least 1,000,000 entries.",
+              "\nTo use irlba, set `svd.method = \"irlba\"`"),
+            class = "seurat_cca_auto_rspectra")
+    }
+    if (inherits(x = object1, what = "sparseMatrix") || inherits(x = object2, what = "sparseMatrix")) {
+      multiply <- function(x, args) {
+        return(as.numeric(x = crossprod(x = args$object1, y = args$object2 %*% x)))
+      }
+      transpose.multiply <- function(x, args) {
+        return(as.numeric(x = crossprod(x = args$object2, y = args$object1 %*% x)))
+      }
+    } else {
+      multiply <- function(x, args) {
+        return(CcaCrossprodMultiply(left = args$object1, right = args$object2, x = x))
+      }
+      transpose.multiply <- function(x, args) {
+        return(CcaCrossprodMultiply(left = args$object2, right = args$object1, x = x))
+      }
+    }
+    cca.svd <- svds(
+      A = multiply,
+      k = num.cc,
+      nu = num.cc,
+      nv = num.cc,
+      Atrans = transpose.multiply,
+      dim = c(ncol(x = object1), ncol(x = object2)),
+      args = list(object1 = object1, object2 = object2),
+      opts = list(tol = 1e-10, maxitr = 1000) # defaults from RSpectra::svds
+    )
+  } else {
+    mat3 <- crossprod(x = object1, y = object2)
+    cca.svd <- irlba(A = mat3, nv = num.cc)
+  }
   cca.data <- rbind(cca.svd$u, cca.svd$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
   rownames(cca.data) <- c(cells1, cells2)
-  cca.data <- apply(
-    X = cca.data,
-    MARGIN = 2,
-    FUN = function(x) {
-      if (sign(x[1]) == -1) {
-        x <- x * -1
-      }
-      return(x)
-    }
-  )
+  # use vectorized sign flipping
+  negative <- sign(cca.data[1, ]) == -1
+  cca.data[, negative] <- cca.data[, negative, drop = FALSE] * -1
   return(list(ccv = cca.data, d = cca.svd$d))
 }
 
@@ -569,6 +607,7 @@ RunCCA.Seurat <- function(
   compute.gene.loadings = TRUE,
   add.cell.id1 = NULL,
   add.cell.id2 = NULL,
+  svd.method = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -593,16 +632,16 @@ RunCCA.Seurat <- function(
   }
   nfeatures <- length(x = features)
   if (!(rescale)) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "scale.data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "scale.data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "scale.data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "scale.data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features, ]
     data2 <- data.use2[features, ]
   }
   if (rescale) {
-    data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "data")
-    data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "data")
+    data.use1 <- GetAssayData(object = object1, assay = assay1, layer = "data")
+    data.use2 <- GetAssayData(object = object2, assay = assay2, layer = "data")
     features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1", verbose = FALSE)
     features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2", verbose = FALSE)
     data1 <- data.use1[features,]
@@ -627,7 +666,8 @@ RunCCA.Seurat <- function(
     object2 = data2,
     standardize = TRUE,
     num.cc = num.cc,
-    verbose = verbose,
+    svd.method = svd.method,
+    verbose = verbose
   )
   if (verbose) {
     message("Merging objects")
@@ -651,7 +691,7 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object, new.data = combined.scale, layer = "scale.data")
   ## combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
@@ -780,6 +820,53 @@ RunICA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param layer The layer in `assay` to use when running independant component
+#' analysis.
+#'
+#' @rdname RunICA
+#' @concept dimensional_reduction
+#' @export
+#' @method RunICA StdAssay
+#'
+RunICA.StdAssay <- function(
+    object,
+    assay = NULL,
+    features = NULL,
+    layer = 'scale.data',
+    nics = 50,
+    rev.ica = FALSE,
+    ica.function = "icafast",
+    verbose = TRUE,
+    ndims.print = 1:5,
+    nfeatures.print = 30,
+    reduction.name = "ica",
+    reduction.key = "ica_",
+    seed.use = 42,
+    ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  reduction.data <- RunICA(
+    object = data.use,
+    assay = assay,
+    nics = nics,
+    rev.ica = rev.ica,
+    ica.function = ica.function,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+
+  )
+  return(reduction.data)
+}
+
 #' @param reduction.name dimensional reduction name
 #'
 #' @rdname RunICA
@@ -828,15 +915,23 @@ RunICA.Seurat <- function(
 #' to true will compute it on gene x cell matrix.
 #' @param weight.by.var Weight the cell embeddings by the variance of each PC
 #' (weights the gene loadings if rev.pca is TRUE)
-#' @param verbose Print the top genes associated with high/low loadings for
-#' the PCs
+#' @param verbose Print progress messages and the top genes associated with
+#' high/low loadings for the PCs
 #' @param ndims.print PCs to print genes for
 #' @param nfeatures.print Number of genes to print for each PC
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. PC by default
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
-#' @param approx Use truncated singular value decomposition to approximate PCA
+#' @param approx Use an approximate PCA backend when available
+#'
+#' @section PCA backends:
+#' With default settings, dense-matrix PCA uses dense Gram + top-k
+#' eigendecomposition: it forms the feature-by-feature Gram matrix
+#' \eqn{XX^T} and computes its leading eigenpairs using Eigen/Spectra.
+#' To use \pkg{irlba} instead of the Gram-matrix backend for an in-memory matrix,
+#' pass an \pkg{irlba} argument to \code{RunPCA} through \code{\link[base]{...}},
+#' for example, \code{RunPCA(object, maxit = 1000)}.
 #'
 #' @importFrom irlba irlba
 #' @importFrom stats prcomp
@@ -863,54 +958,89 @@ RunPCA.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
- if (inherits(x = object, what = 'matrix')) {
-   RowVar.function <- RowVar
-   svd.function <- irlba
- } else if (inherits(x = object, what = 'dgCMatrix')) {
-   RowVar.function <- RowVarSparse
-   svd.function <- irlba
- } else if (inherits(x = object, what = 'IterableMatrix')) {
-   RowVar.function <- function(x) {
-     return(BPCells::matrix_stats(
-       matrix = x,
-       row_stats = 'variance'
-     )$row_stats['variance',])
-    }
-    svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
- }
+  nthreads <- getThreads(verbose = FALSE)
+  # Per-feature variances are precomputed during data prep (PrepDR/PrepDR5)
+  feature.var <- attr(x = object, which = 'feature.var')
+  if (inherits(x = object, what = 'matrix')) {
+    RowVar.function <- RowVar
+    svd.function <- irlba
+  } else if (inherits(x = object, what = 'dgCMatrix')) {
+    RowVar.function <- RowVarSparse
+    svd.function <- irlba
+  } else if (inherits(x = object, what = 'IterableMatrix')) {
+    RowVar.function <- function(x) {
+      return(BPCells::matrix_stats(
+        matrix = x,
+        row_stats = 'variance'
+      )$row_stats['variance',])
+      }
+      svd.function <- function(A, nv, ...) BPCells::svds(A=A, k = nv)
+  }
   if (rev.pca) {
-    npcs <- min(npcs, ncol(x = object) - 1)
+    npcs <- min(npcs, nrow(x = object) - 1, ncol(x = object) - 1)
     pca.results <- svd.function(A = object, nv = npcs, ...)
-    total.variance <- sum(RowVar.function(x = t(x = object)))
+    total.variance <- sum(RowVar.function(t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
-      feature.loadings <- pca.results$u %*% diag(pca.results$d)
+      feature.loadings <- sweep(x = pca.results$u, MARGIN = 2, STATS = pca.results$d, FUN = '*')
     } else{
       feature.loadings <- pca.results$u
     }
     cell.embeddings <- pca.results$v
   }
   else {
-    total.variance <- sum(RowVar.function(x = object))
+    # Reuse the precomputed per-feature variances for total.variance
+    total.variance <- if (is.null(x = feature.var)) {
+      sum(RowVar.function(object))
+    } else {
+      sum(feature.var)
+    }
     if (approx) {
-      npcs <- min(npcs, nrow(x = object) - 1)
-      pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
-      feature.loadings <- pca.results$v
-      sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
-      if (weight.by.var) {
-        cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+      npcs <- min(npcs, nrow(x = object) - 1, ncol(x = object) - 1)
+      # Use Gram backend for default options and component counts below both dimensions
+      gram.results <- NULL
+      if (
+        inherits(x = object, what = 'matrix') && length(x = list(...)) == 0L &&
+        npcs > 0 && npcs < ncol(x = object)
+      ) {
+        gram.results <- tryCatch(
+          expr = EigenGramPCA(
+            object = object,
+            npcs = npcs,
+            weight_by_var = weight.by.var,
+            nthreads = nthreads
+          ),
+          error = function(e) NULL
+        )
+      }
+      if (!is.null(x = gram.results)) {
+        feature.loadings <- gram.results$loadings
+        cell.embeddings <- gram.results$embeddings
+        sdev <- as.numeric(x = gram.results$sdev)
       } else {
-        cell.embeddings <- pca.results$u
+        pca.results <- svd.function(A = t(x = object), nv = npcs, ...)
+        feature.loadings <- pca.results$v
+        sdev <- pca.results$d / sqrt(max(1, ncol(x = object) - 1))
+        if (weight.by.var) {
+          cell.embeddings <- sweep(x = pca.results$u, MARGIN = 2, STATS = pca.results$d, FUN = '*')
+        } else {
+          cell.embeddings <- pca.results$u
+        }
       }
     } else {
-      npcs <- min(npcs, nrow(x = object))
+      npcs <- min(npcs, nrow(x = object), ncol(x = object))
       pca.results <- prcomp(x = t(object), rank. = npcs, ...)
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
       if (weight.by.var) {
         cell.embeddings <- pca.results$x
       } else {
-        cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
+        cell.embeddings <- sweep(
+          x = pca.results$x,
+          MARGIN = 2,
+          STATS = pca.results$sdev[seq_len(length.out = npcs)] * sqrt(x = ncol(x = object) - 1),
+          FUN = '/'
+        )
       }
     }
   }
@@ -1277,7 +1407,7 @@ RunTSNE.Seurat <- function(
 }
 
 #' @importFrom reticulate py_module_available py_set_seed import
-#' @importFrom uwot umap umap_transform
+#' @importFrom uwot umap umap2 umap_transform
 #' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
@@ -1306,6 +1436,8 @@ RunUMAP.default <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1319,16 +1451,6 @@ RunUMAP.default <- function(
   CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
-  }
-  if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
-    warning(
-      "The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric",
-      "\nTo use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'",
-      "\nThis message will be shown once per session",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-    options(Seurat.warn.umap.uwot = FALSE)
   }
   if (umap.method == 'uwot-learn') {
     warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
@@ -1355,6 +1477,7 @@ RunUMAP.default <- function(
     }
     umap.method <- "uwot-predict"
   }
+  nthreads <- getThreads(verbose = FALSE)
   umap.output <- switch(
     EXPR = umap.method,
     'umap-learn' = {
@@ -1397,8 +1520,12 @@ RunUMAP.default <- function(
         angular_rp_forest = angular.rp.forest,
         verbose = verbose
       )
-      if (numeric_version(x = umap_import$`__version__`) >=
-          numeric_version(x = "0.5.0")) {
+      # Parse umap version to first 3 version numbers
+      # This avoids utils parsing issues when version contains text ie:(0.5.0.release)
+      umap_ver <- umap_import$`__version__`
+      umap_ver_clean <- paste(regmatches(umap_ver, gregexpr("[0-9]+", umap_ver))[[1]][1:3], collapse = ".")
+
+      if (numeric_version(x = umap_ver_clean) >= numeric_version(x = "0.5.0")) {
         umap.args <- c(umap.args, list(
           densmap = densmap,
           dens_lambda = dens.lambda,
@@ -1415,7 +1542,7 @@ RunUMAP.default <- function(
         umap(
           X = NULL,
           nn_method = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_components = as.integer(x = n.components),
           metric = metric,
           n_epochs = n.epochs,
@@ -1428,14 +1555,16 @@ RunUMAP.default <- function(
           negative_sample_rate = negative.sample.rate,
           a = a,
           b = b,
+          init = uwot.init,
           fast_sgd = uwot.sgd,
+          approx_pow = uwot.approx_pow,
           verbose = verbose,
           ret_model = return.model
         )
       } else {
         umap(
           X = object,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_neighbors = as.integer(x = n.neighbors),
           n_components = as.integer(x = n.components),
           metric = metric,
@@ -1449,6 +1578,55 @@ RunUMAP.default <- function(
           negative_sample_rate = negative.sample.rate,
           a = a,
           b = b,
+          init = uwot.init,
+          fast_sgd = uwot.sgd,
+          approx_pow = uwot.approx_pow,
+          verbose = verbose,
+          ret_model = return.model
+        )
+      }
+    },
+    'uwot2' = {
+      if (is.list(x = object)) {
+        umap2(
+          X = NULL,
+          nn_method = object,
+          n_threads = nthreads,
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          init = uwot.init,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
+        )
+      } else {
+        umap2(
+          X = object,
+          n_threads = nthreads,
+          n_neighbors = as.integer(x = n.neighbors),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          init = uwot.init,
           fast_sgd = uwot.sgd,
           verbose = verbose,
           ret_model = return.model
@@ -1456,14 +1634,6 @@ RunUMAP.default <- function(
       }
     },
     'uwot-predict' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
-      }
       if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
         stop(
           "If running projection UMAP, please pass a DimReduc object with the model stored to reduction.model.",
@@ -1497,7 +1667,7 @@ RunUMAP.default <- function(
           X = NULL,
           nn_method = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_epochs = n.epochs,
           verbose = verbose
         )
@@ -1505,7 +1675,7 @@ RunUMAP.default <- function(
         umap_transform(
           X = object,
           model = model,
-          n_threads = nbrOfWorkers(),
+          n_threads = nthreads,
           n_epochs = n.epochs,
           verbose = verbose
         )
@@ -1560,6 +1730,8 @@ RunUMAP.Graph <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42L,
   metric.kwds = NULL,
   densmap = FALSE,
@@ -1611,7 +1783,8 @@ RunUMAP.Graph <- function(
     negative_sample_rate = negative.sample.rate,
     n_epochs = as.integer(x = n.epochs),
     random_state = random.state,
-    init = "spectral",
+    approx_pow = uwot.approx_pow,
+    init = uwot.init,
     metric = metric,
     metric_kwds = metric.kwds,
     verbose = verbose
@@ -1676,8 +1849,8 @@ RunUMAP.Neighbor <- function(
 #' @param slot The slot used to pull data for when using \code{features}. data slot is by default.
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
-#'   \item{\code{uwot}:}{Runs umap via the uwot R package}
-#'   \item{\code{uwot-learn}:}{Runs umap via the uwot R package and return the learned umap model}
+#'   \item{\code{uwot}:}{Runs umap via the uwot R package \code{\link[uwot]{umap}}}
+#'   \item{\code{uwot2}:}{Runs umap2 via the uwot R package \code{\link[uwot]{umap2}}}
 #'   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 #' }
 #' @param n.neighbors This determines the number of neighboring points used in
@@ -1719,6 +1892,11 @@ RunUMAP.Neighbor <- function(
 #' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 #' right adjoint functor.
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
+#' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
+#' \code{\link[uwot]{umap}} for more details.
+#' @param uwot.init Set the initialization method to use for \code{\link[uwot]{umap}} or 
+#' \code{\link[uwot]{umap2}}, which is passed to the \code{init} parameter of these functions.
+#' See these functions for available options. Default is \code{"spectral"}.
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
 #' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
@@ -1784,6 +1962,8 @@ RunUMAP.Seurat <- function(
   a = NULL,
   b = NULL,
   uwot.sgd = FALSE,
+  uwot.approx_pow = FALSE,
+  uwot.init = "spectral",
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1807,7 +1987,7 @@ RunUMAP.Seurat <- function(
   }
 
   if (!is.null(x = features)) {
-    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, layer = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
@@ -1876,6 +2056,8 @@ RunUMAP.Seurat <- function(
     a = a,
     b = b,
     uwot.sgd = uwot.sgd,
+    uwot.approx_pow = uwot.approx_pow,
+    uwot.init = uwot.init,
     seed.use = seed.use,
     metric.kwds = metric.kwds,
     angular.rp.forest = angular.rp.forest,
@@ -2056,6 +2238,16 @@ CheckFeatures <- function(
 #internal
 EmpiricalP <- function(x, nullval) {
   return(sum(nullval > x) / length(x = nullval))
+}
+
+#internal
+#
+JackStrawP <- function(x, loadings, fake.vals) {
+  return(unlist(x = lapply(
+    X = abs(loadings[, x]),
+    FUN = EmpiricalP,
+    nullval = abs(fake.vals[, x])
+  )))
 }
 
 # FIt-SNE helper function for calling fast_tsne from R
@@ -2390,7 +2582,7 @@ PrepDR <- function(
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
   }
-  data.use <- GetAssayData(object = object, slot = slot)
+  data.use <- GetAssayData(object = object, layer = slot)
   if (nrow(x = data.use ) == 0 && slot == "scale.data") {
     stop("Data has not been scaled. Please run ScaleData and retry")
   }
@@ -2410,6 +2602,7 @@ PrepDR <- function(
   else {
     features.var <- RowVar(x = data.use[features, ])
   }
+  names(x = features.var) <- features
   features.keep <- features[features.var > 0]
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
@@ -2420,6 +2613,8 @@ PrepDR <- function(
   features <- features.keep
   features <- features[!is.na(x = features)]
   data.use <- data.use[features, ]
+  # carry the kept-feature variances for reuse
+  attr(x = data.use, which = 'feature.var') <- features.var[features]
   return(data.use)
 }
 
@@ -2430,21 +2625,34 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
   if (is.null(layer)) {
     abort(paste0("No layer matching pattern '", olayer, "' not found. Please run ScaleData and retry"))
   }
-  data.use <- LayerData(object = object, layer = layer)
   features <- features %||% VariableFeatures(object = object)
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
+  features.use <- features[features %in% Features(x = object, layer = layer)]
+  if (!isTRUE(x = all.equal(features, features.use))) {
+    missing_features <- setdiff(x = features, y = features.use)
+    if (length(x = missing_features) > 0) {
+      warning(paste("The following features were not available: ",
+                    paste(missing_features, collapse = ", "), ".", sep = ""),
+              immediate. = TRUE)
+    }
+  }
+  data.use <- LayerData(object = object, layer = layer, features = features.use)
   if (is(data.use, "IterableMatrix")) {
     features.var <- BPCells::matrix_stats(matrix=data.use, row_stats="variance")$row_stats["variance",]
+  } else if (inherits(x = data.use, what = 'dgCMatrix')) {
+    features.var <- RowVarSparse(mat = data.use)
   } else {
-    features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+    features.var <- RowVar(x = data.use)
   }
-  features.keep <- features[features.var > 0]
+  names(x = features.var) <- rownames(x = data.use)
+  features.var <- features.var[features.use]
+  features.keep <- features.use[features.var > 0]
   if (!length(x = features.keep)) {
     stop("None of the requested features have any variance", call. = FALSE)
-  } else if (length(x = features.keep) < length(x = features)) {
-    exclude <- setdiff(x = features, y = features.keep)
+  } else if (length(x = features.keep) < length(x = features.use)) {
+    exclude <- setdiff(x = features.use, y = features.keep)
     if (isTRUE(x = verbose)) {
       warning(
         "The following ",
@@ -2456,19 +2664,10 @@ PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRU
       )
     }
   }
-  features <- features.keep
-  features <- features[!is.na(x = features)]
-  features.use <- features[features %in% rownames(data.use)]
-  if(!isTRUE(all.equal(features, features.use))) {
-    missing_features <- setdiff(features, features.use)
-    if(length(missing_features) > 0) {
-    warning_message <- paste("The following features were not available: ",
-                             paste(missing_features, collapse = ", "),
-                             ".", sep = "")
-    warning(warning_message, immediate. = TRUE)
-    }
+  if (!identical(x = rownames(x = data.use), y = features.keep)) {
+    data.use <- data.use[features.keep, , drop = FALSE]
   }
-  data.use <- data.use[features.use, ]
+  attr(x = data.use, which = 'feature.var') <- features.var[features.keep]
   return(data.use)
 }
 

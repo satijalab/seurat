@@ -30,9 +30,12 @@ ScaleData(object, ...)
 \method{ScaleData}{IterableMatrix}(
   object,
   features = NULL,
+  vars.to.regress = NULL,
+  latent.data = NULL,
   do.scale = TRUE,
   do.center = TRUE,
   scale.max = 10,
+  verbose = TRUE,
   ...
 )
 

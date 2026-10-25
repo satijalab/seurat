@@ -1,81 +1,197 @@
 #include <RcppEigen.h>
-#include "data_manipulation.h"
-#include <progress.hpp>
-#include <cmath>
-#include <unordered_map>
-#include <fstream>
-#include <string>
-#include <iomanip>
+#include <RcppThread.h>
+#include <algorithm>
+#include <limits>
+#include <numeric>
+#include <thread>
+#include <utility>
 
 using namespace Rcpp;
+
 // [[Rcpp::depends(RcppEigen)]]
-// [[Rcpp::depends(RcppProgress)]]
+// [[Rcpp::depends(RcppThread)]]
 
 typedef Eigen::Triplet<double> T;
-// [[Rcpp::export(rng = false)]]
-Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune) {
-  std::vector<T> tripletList;
-  int k = nn_ranked.cols();
-  tripletList.reserve(nn_ranked.rows() * nn_ranked.cols());
-  for(int j=0; j<nn_ranked.cols(); ++j){
-    for(int i=0; i<nn_ranked.rows(); ++i) {
-      tripletList.push_back(T(i, nn_ranked(i, j) - 1, 1));
+
+struct SNNOverlapWorker {
+  const std::vector<int>& nn_buf;
+  const std::vector<int>& offsets;
+  const std::vector<int>& postings;
+  const int n;
+  const int k;
+  const double k_d;
+  const double prune;
+  std::vector<int> overlap;
+  std::vector<int> touched;
+  std::vector<T> triplets;
+
+  SNNOverlapWorker(
+    const std::vector<int>& nn_buf,
+    const std::vector<int>& offsets,
+    const std::vector<int>& postings,
+    const int n,
+    const int k,
+    const double prune
+  ) : nn_buf(nn_buf), offsets(offsets), postings(postings), n(n), k(k), k_d(static_cast<double>(k)), prune(prune), overlap(n, 0) {
+    touched.reserve(static_cast<size_t>(k) * k);
+    triplets.reserve(static_cast<size_t>(k) * 64);
+  }
+
+  void operator()(std::size_t begin, std::size_t end) {
+    for (std::size_t row = begin; row < end; ++row) {
+      for (int col = 0; col < k; ++col) {
+        const int neighbor = nn_buf[row + static_cast<std::size_t>(col) * n];
+
+        for (int idx = offsets[neighbor]; idx < offsets[neighbor + 1]; ++idx) {
+          const int other = postings[idx];
+
+          // Remember the candidate the first time it is touched so it can be reset cheaply.
+          if (overlap[other] == 0) {
+            touched.push_back(other);
+          }
+
+          ++overlap[other];
+        }
+      }
+
+      for (const int other : touched) {
+        const double shared = static_cast<double>(overlap[other]);
+        const double value = shared / (k_d + (k_d - shared));
+
+        if (value >= prune) {
+          triplets.emplace_back(static_cast<int>(row), other, value);
+        }
+
+        // Reset only the candidates touched for this row instead of clearing overlap[0:n].
+        overlap[other] = 0;
+      }
+
+      touched.clear();
     }
   }
-  Eigen::SparseMatrix<double> SNN(nn_ranked.rows(), nn_ranked.rows());
-  SNN.setFromTriplets(tripletList.begin(), tripletList.end());
-  SNN = SNN * (SNN.transpose());
-  for (int i=0; i < SNN.outerSize(); ++i){
-    for (Eigen::SparseMatrix<double>::InnerIterator it(SNN, i); it; ++it){
-      it.valueRef() = it.value()/(k + (k - it.value()));
-      if(it.value() < prune){
-        it.valueRef() = 0;
+
+  void join(const SNNOverlapWorker& other) {
+    triplets.insert(triplets.end(), other.triplets.begin(), other.triplets.end());
+  }
+};
+
+// Compute a Jaccard-style SNN graph from a 1-based nearest-neighbor rank matrix.
+// [[Rcpp::export(rng = false)]]
+S4 ComputeSNN(IntegerMatrix nn_ranked, double prune, int nthreads) {
+  const int n = nn_ranked.nrow();
+  const int k = nn_ranked.ncol();
+
+  // Allocate a plain C++ buffer so parallel workers never touch R's SEXP memory.
+  std::vector<int> nn_buf(static_cast<size_t>(n) * k);
+
+  // Copy the matrix to native memory and convert R's 1-based indices to 0-based.
+  const int* src = INTEGER(nn_ranked);
+  for (size_t i = 0; i < nn_buf.size(); ++i) {
+    nn_buf[i] = src[i] - 1;
+  }
+
+  // Validate neighbor indices before entering parallel code so Rcpp::stop() is safe.
+  for (size_t i = 0; i < nn_buf.size(); ++i) {
+    if (nn_buf[i] < 0 || nn_buf[i] >= n) {
+      stop("nn_ranked contains an index outside the valid cell range");
+    }
+  }
+
+  // Build an inverted index from neighbor id to rows containing that neighbor.
+  std::vector<int> offsets(n + 1, 0);
+  for (int col = 0; col < k; ++col) {
+    for (int row = 0; row < n; ++row) {
+      ++offsets[nn_buf[row + static_cast<size_t>(col) * n] + 1];
+    }
+  }
+  for (int cell = 0; cell < n; ++cell) {
+    offsets[cell + 1] += offsets[cell];
+  }
+  std::vector<int> postings(static_cast<size_t>(n) * k);
+  {
+    std::vector<int> cursor(offsets.begin(), offsets.end());
+    for (int col = 0; col < k; ++col) {
+      for (int row = 0; row < n; ++row) {
+        const int neighbor = nn_buf[row + static_cast<size_t>(col) * n];
+        postings[cursor[neighbor]++] = row;
       }
     }
   }
-  SNN.prune(0.0); // actually remove pruned values
-  return SNN;
-}
 
-// [[Rcpp::export(rng = false)]]
-void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool display_progress){
-  if (display_progress == true) {
-    Rcpp::Rcerr << "Writing SNN as edge file" << std::endl;
-  }
-  // Write out lower triangle
-  std::ofstream output;
-  output.open(filename);
-  Progress p(snn.outerSize(), display_progress);
-  for (int k=0; k < snn.outerSize(); ++k){
-    p.increment();
-    for (Eigen::SparseMatrix<double>::InnerIterator it(snn, k); it; ++it){
-      if(it.col() >= it.row()){
-        continue;
-      }
-      output << std::setprecision(15) << it.col() << "\t" << it.row() << "\t" << it.value() << "\n";
+  std::vector<T> triplets;
+
+  // Generate overlap triplets, using chunked workers only for multi-threading.
+  if (nthreads == 1) {
+    SNNOverlapWorker worker(nn_buf, offsets, postings, n, k, prune);
+    worker(0, n);
+    if (worker.triplets.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+      stop("SNN graph has too many non-zero entries for a dgCMatrix");
+    }
+    triplets = std::move(worker.triplets);
+  } else {
+    const int chunks = std::max(1, std::min(n, nthreads * 8));
+    std::vector<SNNOverlapWorker> workers;
+    workers.reserve(chunks);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      workers.emplace_back(nn_buf, offsets, postings, n, k, prune);
+    }
+
+    RcppThread::parallelFor(0, chunks, [&](int chunk) {
+      const int begin = (n * chunk) / chunks;
+      const int end = (n * (chunk + 1)) / chunks;
+      workers[chunk](begin, end);
+    }, nthreads);
+
+    size_t triplet_count = 0;
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      triplet_count += workers[chunk].triplets.size();
+    }
+    if (triplet_count > static_cast<size_t>(std::numeric_limits<int>::max())) {
+      stop("SNN graph has too many non-zero entries for a dgCMatrix");
+    }
+    triplets.reserve(triplet_count);
+    for (int chunk = 0; chunk < chunks; ++chunk) {
+      triplets.insert(triplets.end(), workers[chunk].triplets.begin(), workers[chunk].triplets.end());
     }
   }
-  output.close();
-}
 
-// Wrapper function so that we don't have to go back into R before writing to file
-// [[Rcpp::export(rng = false)]]
-Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked,
-                                            double prune, bool display_progress,
-                                            String filename) {
-  Eigen::SparseMatrix<double> SNN = ComputeSNN(nn_ranked, prune);
-  WriteEdgeFile(SNN, filename, display_progress);
+  // Sort triplets before building the sparse matrix slots
+  std::sort(
+    triplets.begin(),
+    triplets.end(),
+    [](const T& lhs, const T& rhs) {
+      return lhs.col() == rhs.col() ? lhs.row() < rhs.row() : lhs.col() < rhs.col();
+    }
+  );
+
+  const int nnz = static_cast<int>(triplets.size());
+  IntegerVector i(nnz);
+  IntegerVector p(n + 1);
+  NumericVector x(nnz);
+
+  for (const T& entry : triplets) {
+    ++p[entry.col() + 1];
+  }
+  for (int col = 0; col < n; ++col) {
+    p[col + 1] += p[col];
+  }
+
+  std::vector<int> cursor(p.begin(), p.end());
+  for (const T& entry : triplets) {
+    const int offset = cursor[entry.col()]++;
+    i[offset] = entry.row();
+    x[offset] = entry.value();
+  }
+
+  S4 SNN("dgCMatrix");
+  SNN.slot("i") = i;
+  SNN.slot("p") = p;
+  SNN.slot("Dim") = IntegerVector::create(n, n);
+  SNN.slot("Dimnames") = List::create(R_NilValue, R_NilValue);
+  SNN.slot("x") = x;
+  SNN.slot("factors") = List::create();
+
   return SNN;
-}
-
-template <typename S>
-std::vector<size_t> sort_indexes(const std::vector<S> &v) {
-  // initialize original index locations
-  std::vector<size_t> idx(v.size());
-  std::iota(idx.begin(), idx.end(), 0);
-  std::stable_sort(idx.begin(), idx.end(),
-                   [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
-  return idx;
 }
 
 // [[Rcpp::export]]
@@ -86,23 +202,30 @@ std::vector<double> SNN_SmallestNonzero_Dist(
     std::vector<double> nearest_dist
 ) {
   std::vector<double> results;
+  results.reserve(snn.outerSize());
+  std::vector<std::pair<double, size_t>> nonzero;
+  std::vector<double> dists;
   for (int i=0; i < snn.outerSize(); ++i){
-    // create vectors to store the nonzero snn elements and their indices
-    std::vector<double> nonzero;
-    std::vector<size_t> nonzero_idx;
+    // Store nonzero SNN edge weights with their row indices.
+    nonzero.clear();
     for (Eigen::SparseMatrix<double>::InnerIterator it(snn, i); it; ++it) {
-      nonzero.push_back(it.value());
-      nonzero_idx.push_back(it.row());
+      nonzero.emplace_back(it.value(), it.row());
     }
-    std::vector<size_t> nonzero_order = sort_indexes(nonzero);
     int n_i = n;
-    if (n_i > nonzero_order.size()) n_i = nonzero_order.size();
-    std::vector<double> dists;
-    for (int j = 0; j < nonzero_order.size(); ++j) {
+    if (n_i > nonzero.size()) n_i = nonzero.size();
+    std::stable_sort(
+      nonzero.begin(),
+      nonzero.end(),
+      [](const std::pair<double, size_t>& lhs, const std::pair<double, size_t>& rhs) {
+        return lhs.first < rhs.first;
+      }
+    );
+    dists.clear();
+    for (size_t j = 0; j < nonzero.size(); ++j) {
       // compute euclidean distances to cells with small edge weights
       // if multiple entries have same value as nth element, calc dist to all
-      size_t cell = nonzero_idx[nonzero_order[j]];
-      if(dists.size() < n_i  || nonzero[nonzero_order[j]] == nonzero[nonzero_order[n_i-1]]) {
+      size_t cell = nonzero[j].second;
+      if(dists.size() < n_i  || nonzero[j].first == nonzero[n_i-1].first) {
         double res = (mat.row(cell) - mat.row(i)).norm();
         if (nearest_dist[i] > 0) {
           res = res - nearest_dist[i];

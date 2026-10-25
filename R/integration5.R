@@ -74,7 +74,7 @@ NULL
 #'
 #' @concept integration
 #'
-#' @seealso \code{\link[harmony:HarmonyMatrix]{harmony::HarmonyMatrix}()}
+#' @seealso \code{\link[harmony]{RunHarmony}}
 #'
 HarmonyIntegration <- function(
   object,
@@ -83,7 +83,7 @@ HarmonyIntegration <- function(
   scale.layer = 'scale.data',
   new.reduction = 'harmony',
   layers = NULL,
-  npcs = 50L,
+  npcs = NULL,
   key = 'harmony_',
   theta = NULL,
   lambda = NULL,
@@ -94,10 +94,27 @@ HarmonyIntegration <- function(
   max.iter.harmony = 10L,
   max.iter.cluster = 20L,
   epsilon.cluster = 1e-05,
-  epsilon.harmony = 1e-04,
+  epsilon.harmony = 0.01,
   verbose = TRUE,
   ...
-) {
+) {  
+
+  # If the `features` param has been set, inform the user that is ignored.
+  if (!is.null(features)) {
+    inform(
+      "The `features` argument is ignored by `HarmonyIntegration`.",
+      .frequency = "once",
+      .frequency_id = "HarmonyIntegration@features"
+    )
+  }
+  # If the `npcs` param has been set, inform the user that is ignored.
+  if (!is.null(npcs)) {
+    inform(
+      "The `npcs` argument is ignored by `HarmonyIntegration`.",
+      .frequency = "once",
+      .frequency_id = "HarmonyIntegration@npcs"
+    )
+  }
   check_installed(
     pkg = "harmony",
     reason = "for running integration with Harmony"
@@ -107,44 +124,42 @@ HarmonyIntegration <- function(
   } else if (!inherits(x = orig, what = 'DimReduc')) {
     abort(message = "'orig' must be a dimensional reduction")
   }
-  # # Run joint PCA
-  # features <- features %||% Features(x = object, layer = scale.layer)
-  # pca <- RunPCA(
-  #   object = object,
-  #   assay = assay,
-  #   features = features,
-  #   layer = scale.layer,
-  #   npcs = npcs,
-  #   verbose = verbose
-  # )
+
   #create grouping variables
-  groups <- CreateIntegrationGroups(object, layers = layers, scale.layer = scale.layer)
+  groups <- CreateIntegrationGroups(
+    object, 
+    layers = layers, 
+    scale.layer = scale.layer
+  )
+
+  # Set up advanced Harmony options.
+  advanced_options <- harmony::harmony_options(
+    tau = tau,
+    block.size = block.size,
+    max.iter.cluster = max.iter.cluster,
+    epsilon.cluster = epsilon.cluster,
+    epsilon.harmony = epsilon.harmony
+  )
+
   # Run Harmony
-  harmony.embed <- harmony::HarmonyMatrix(
+  harmony.embed <- harmony::RunHarmony(
     data_mat = Embeddings(object = orig),
     meta_data = groups,
     vars_use = 'group',
-    do_pca = FALSE,
-    npcs = 0L,
     theta = theta,
     lambda = lambda,
     sigma = sigma,
     nclust = nclust,
-    tau = tau,
-    block.size = block.size,
-    max.iter.harmony = max.iter.harmony,
-    max.iter.cluster = max.iter.cluster,
-    epsilon.cluster = epsilon.cluster,
-    epsilon.harmony = epsilon.harmony,
+    max_iter = max.iter.harmony,
     return_object = FALSE,
-    verbose = verbose
+    verbose = verbose,
+    .options = advanced_options
   )
-  rownames(x = harmony.embed) <- Cells(x = orig)
+  rownames(harmony.embed) <- Cells(orig)
   # TODO add feature loadings from PCA
   dr <- suppressWarnings(expr = CreateDimReducObject(
     embeddings = harmony.embed,
     key = key,
-    # assay = assay
     assay = DefaultAssay(object = orig)
   ))
   output.list <- list(dr)
@@ -157,6 +172,8 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #' Seurat-CCA Integration
 #'
 #' @inheritParams RPCAIntegration
+#' @inheritParams FindIntegrationAnchors
+#' @inheritParams RunCCA
 #' @export
 #' @concept integration
 #'
@@ -206,6 +223,7 @@ CCAIntegration <- function(
     sd.weight = 1,
     sample.tree = NULL,
     preserve.order = FALSE,
+    svd.method = NULL,
     verbose = TRUE,
     ...
 ) {
@@ -248,16 +266,26 @@ CCAIntegration <- function(
   }
   }
 
-  anchor <- FindIntegrationAnchors(object.list = object.list,
-                                   anchor.features = features,
-                                   scale = FALSE,
-                                   reduction = 'cca',
-                                   normalization.method = normalization.method,
-                                   dims = dims,
-                                   k.filter = k.filter,
-                                   reference = reference,
-                                   verbose = verbose,
-                                   ...
+  cca.message.shown <- FALSE
+  anchor <- withCallingHandlers(
+    FindIntegrationAnchors(object.list = object.list,
+                           anchor.features = features,
+                           scale = FALSE,
+                           reduction = 'cca',
+                           normalization.method = normalization.method,
+                           dims = dims,
+                           k.filter = k.filter,
+                           reference = reference,
+                           svd.method = svd.method,
+                           verbose = verbose,
+                          ...),
+    # Only warn about the auto backend choice once across all pairwise comparisons
+    seurat_cca_auto_rspectra = function(m) {
+      if (cca.message.shown) {
+        invokeRestart("muffleMessage")
+      }
+      cca.message.shown <<- TRUE
+    }
   )
   suppressWarnings({
     anchor@object.list <- lapply(anchor@object.list, function(x) {
@@ -372,10 +400,12 @@ RPCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object = object, search = 'data')
+  # Reuse the maximum requested dimension across validation and per-layer PCA.
+  ndims <- max(dims)
   #check that there enough cells present
   ncells <- sapply(X = layers, FUN = function(x) {ncell <-  dim(object[x])[2]
   return(ncell) })
-  if (min(ncells) < max(dims))  {
+  if (min(ncells) < ndims)  {
     abort(message = "At least one layer has fewer cells than dimensions specified, please lower 'dims' accordingly.")
   }
   if (normalization.method == 'SCT') {
@@ -386,20 +416,23 @@ RPCAIntegration <- function(
     object.list <- SplitObject(object = object.sct, split.by = 'split')
     object.list <- PrepSCTIntegration(object.list = object.list, anchor.features = features)
     object.list <- lapply(X = object.list, FUN = function(x) {
-      x <- RunPCA(object = x, features = features, verbose = FALSE, npcs = max(dims))
+      x <- RunPCA(object = x, features = features, verbose = FALSE, npcs = ndims)
       return(x)
     }
     )
   } else {
-    object.list <- list()
+    object.list <- vector(mode = "list", length = length(x = layers))
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- suppressMessages(suppressWarnings(
-        CreateSeuratObject(counts = NULL, data = object[layers[i]][features,])
-      ))
+      data.layer <- object[layers[i]][features, , drop = FALSE]
+      object.list[[i]] <- suppressMessages(CreateSeuratObject(counts = NULL, data = data.layer))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
-      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
       suppressWarnings(object.list[[i]][['RNA']]$counts <- NULL)
+      object.list[[i]] <- RunPCA(
+        object = object.list[[i]],
+        verbose = FALSE,
+        npcs = ndims
+      )
     }
   }
   anchor <- FindIntegrationAnchors(object.list = object.list,
@@ -553,9 +586,10 @@ attr(x = JointPCAIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @return \code{object} with integration data added to it
 #'
-#' @section Integration Method Functions:
-#' The following integration method functions are available:
-#' \Sexpr[stage=render,results=rd]{Seurat:::.rd_methods("integration")}
+#' @evalRd paste0("\\section{Integration Method Functions}{\n",
+#'   "The following integration method functions are available:\n",
+#'   Seurat:::.rd_methods("integration"),
+#'   "\n}")
 #'
 #' @export
 #'
@@ -595,6 +629,16 @@ IntegrateLayers <- function(
       object = object,
       assay = assay
     )
+    # cells in an SCT assay are grouped by model, and a model that no longer
+    # has any cells contributes no group - see `CreateIntegrationGroups`
+    sct.assay <- object[[assay]]
+    n.groups <- sum(vapply(
+      X = levels(x = sct.assay),
+      FUN = function(model) {
+        length(x = Cells(x = sct.assay, layer = model)) > 0L
+      },
+      FUN.VALUE = logical(length = 1L)
+    ))
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
     layers <- Layers(object = object, assay = assay, search = layers %||% 'data')
     scale.layer <- Layers(object = object, search = scale.layer)
@@ -603,8 +647,20 @@ IntegrateLayers <- function(
       assay = assay,
       nfeatures = 2000L
     )
+    # cells in a v5 assay are grouped by layer - see `CreateIntegrationGroups`
+    n.groups <- length(x = layers)
   } else {
     abort(message = "'assay' must be a v5 or SCT assay")
+  }
+  # `CreateIntegrationGroups` silently returns `NULL` when it cannot split the
+  # cells into more than one group, which surfaces as an unhelpful error from
+  # whichever method was passed in - bail out here instead
+  if (n.groups < 2L) {
+    abort(message = paste0(
+      "The ", sQuote(x = assay), " assay has ", n.groups,
+      ifelse(n.groups == 1L, yes = " group", no = " groups"),
+      " of cells, but 'IntegrateLayers' requires at least two"
+    ))
   }
   if (!is.null(scale.layer)) {
     features <- intersect(

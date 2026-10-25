@@ -1,0 +1,88 @@
+name: Pre-Merge Checks
+
+on:
+  # Trigger the workflow when a PR is opened/updated against the default or
+  # any stable release branch.
+  pull_request:
+    branches:
+    - main
+    - '*-stable'
+  # Trigger the workflow when commits are pushed to a stable release branch. 
+  # Because they are protected branches this workflow is effectively triggered 
+  # by three events:
+  # 1. When a stable release branch is initially created/pushed.
+  # 2. When a PR against the default or any stable release branch is opened/updated.
+  # 3. When a PR against the default or any stable release branch is merged.
+  push:
+    branches:
+    - main
+    - '*-stable'
+  # Allow the workflow to be triggered manually.
+  workflow_dispatch:
+
+jobs:
+  check-package:
+    # Override the default job name to differentiate it from similar jobs in 
+    # other workflows.
+    name: "check-package (r2u)"
+
+    # Use the `satijalab/seurat-ci` Docker image as the runner environment. 
+    # This image is pre-configured with everything required for running
+    # integration checks, for more details, see
+    # https://hub.docker.com/repository/docker/satijalab/seurat-ci/general.
+    runs-on: ubuntu-latest
+    container:
+      image: satijalab/seurat-ci:latest
+    env:
+      R_LIBS: /tmp/R-lib
+      R_LIBS_USER: /tmp/R-lib
+
+    steps:
+      # Pull the latest changes from the repository down to the runner.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Specify a package library for dependencies (cacheable).
+      - name: Prepare R Package Library
+        run: mkdir -p "$R_LIBS_USER"
+      
+      # Install all dependencies for checks.
+      # The setup-r-dependencies action uses pak, 
+      # and we enable caching to speed up repeated runs of this workflow.
+      - name: Install Dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            deps::.
+            any::rcmdcheck
+            any::testthat
+          dependencies: '"all"'
+          cache: always
+          cache-version: 1
+          install-pandoc: false
+          install-quarto: false
+          lockfile-create-lib: '.libPaths()' # Use the same library path as the runner environment / image.
+        
+      # Install SeuratObject from CRAN
+      # This helps check updates to SeuratObject and Seurat in rapid succession
+      - name: Install SeuratObject from CRAN (source)
+        run: Rscript -e "install.packages('SeuratObject', type = 'source', repos = 'https://cloud.r-project.org')"
+
+      # Run CRAN checks, if any ERRORs or WARNINGs are raised the check fails.
+      # Certain tests are skipped when running as CRAN—skip all tests so they
+      # can be run together in a subsequent step.
+      - name: Run CRAN Checks (no tests)
+        run: |
+          rcmdcheck::rcmdcheck(
+            args = c("--as-cran", "--no-tests", "--no-manual"), 
+            repos = c(CRAN = "https://cloud.r-project.org"),
+            error_on="warning"
+          )
+        shell: Rscript {0}
+
+      # Because tests weren't included in CRAN checks, run them here.
+      - name: Run Tests
+        # Run this step even if the previous one failed.
+        if: always()
+        run: testthat::test_local()
+        shell: Rscript {0}

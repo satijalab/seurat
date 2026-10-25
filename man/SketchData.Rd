@@ -16,6 +16,9 @@ SketchData(
   cast = "dgCMatrix",
   verbose = TRUE,
   features = NULL,
+  cell.ratio = NULL,
+  min.cells = 2500L,
+  leverage.already.calculated = FALSE,
   ...
 )
 }
@@ -45,6 +48,12 @@ Default is 'LeverageScore'.}
 
 \item{features}{A character vector of feature names to include in the
 sketched assay.}
+
+\item{cell.ratio}{Optional per-layer fraction in (0,1]. Cannot be supplied together with ncells.}
+
+\item{min.cells}{Minimum target in fraction mode, capped at each layer size.}
+
+\item{leverage.already.calculated}{Reuse var.name if TRUE and over.write is FALSE; caller must ensure score provenance matches.}
 
 \item{...}{Arguments passed to other methods}
 }

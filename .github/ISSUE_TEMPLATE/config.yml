@@ -1,0 +1,6 @@
+contact_links:
+  - name: Analysis Question
+    url: https://github.com/satijalab/seurat/discussions
+    about: Ask the community a question about Seurat or single-cell analysis
+
+blank_issues_enabled: true

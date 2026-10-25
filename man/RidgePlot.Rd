@@ -20,7 +20,7 @@ RidgePlot(
   layer = "data",
   stack = FALSE,
   combine = TRUE,
-  fill.by = "feature"
+  fill.by = NULL
 )
 }
 \arguments{

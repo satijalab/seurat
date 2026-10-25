@@ -15,11 +15,12 @@ SingleSpatialPlot(
   pt.size.factor = NULL,
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   col.by = NULL,
   alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c("#DE2D26", "grey50"),
-  geom = c("spatial", "interactive", "poly"),
+  geom = c("spatial", "interactive", "poly", "poly_starmap"),
   na.value = "grey50"
 )
 }
@@ -52,6 +53,9 @@ to show entire background image.}
 The default is 21, which plots cirlces - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
+
+\item{stroke.alpha}{Control the opacity of spot borders (when stroke is specified). 
+Set to \code{NA} to use the same alpha as the fill.}
 
 \item{col.by}{Mapping variable for the point color}
 

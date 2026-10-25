@@ -14,6 +14,7 @@ RunCCA(object1, object2, ...)
   standardize = TRUE,
   num.cc = 20,
   seed.use = 42,
+  svd.method = NULL,
   verbose = FALSE,
   ...
 )
@@ -30,6 +31,7 @@ RunCCA(object1, object2, ...)
   compute.gene.loadings = TRUE,
   add.cell.id1 = NULL,
   add.cell.id2 = NULL,
+  svd.method = NULL,
   verbose = TRUE,
   ...
 )
@@ -49,6 +51,13 @@ and mean 0}
 \item{num.cc}{Number of canonical vectors to calculate}
 
 \item{seed.use}{Random seed to set. If NULL, does not set a seed}
+
+\item{svd.method}{SVD backend for CCA.
+If \code{NULL}, defaults to \code{"irlba"} except for pairs of dense CCA
+input matrices whose cell-by-cell cross-product matrix has at least
+1,000,000 entries, in which case it defaults to \code{"rspectra"}.
+\code{"irlba"} uses an explicit cross-product CCA path; \code{"rspectra"}
+uses an implicit operator to avoid forming the cross-product matrix.}
 
 \item{verbose}{Show progress messages}
 
@@ -72,8 +81,6 @@ Returns a combined Seurat object with the CCA results stored.
 }
 \description{
 Runs a canonical correlation analysis using a diagonal implementation of CCA.
-For details about stored CCA calculation parameters, see
-\code{PrintCCAParams}.
 }
 \examples{
 \dontrun{

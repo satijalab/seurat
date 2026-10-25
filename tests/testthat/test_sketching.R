@@ -2,7 +2,7 @@
 path_to_counts <- system.file("extdata", "pbmc_raw.txt", package = "Seurat")
 
 
-build_test_data <- function(multi_layer = FALSE) {
+build_test_data <- function(multi_layer = FALSE, preprocess = TRUE) {
   counts <- read.table(path_to_counts, sep = "\t", row.names = 1)
   counts <- as.sparse(as.matrix(counts))
 
@@ -26,8 +26,10 @@ build_test_data <- function(multi_layer = FALSE) {
     test_data <- CreateSeuratObject(counts)
   }
 
-  test_data <- NormalizeData(test_data, verbose = FALSE)
-  test_data <- FindVariableFeatures(test_data, verbose = FALSE)
+  if (preprocess) {
+    test_data <- NormalizeData(test_data, verbose = FALSE)
+    test_data <- FindVariableFeatures(test_data, verbose = FALSE)
+  }
 
   return (test_data)
 }
@@ -78,7 +80,7 @@ test_that("SketchData defaults work", {
   expect_equal(
     as.numeric(result_2$leverage.score[1]), 
     as.numeric(result$leverage.score[1]), 
-    tolerance = 1e-6
+    tolerance = 1e-5
   )
   expect_equal(
     colnames(result_2[["sketch"]])[1], 

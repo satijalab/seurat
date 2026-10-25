@@ -20,17 +20,25 @@ NULL
 #'
 #' @param object A Seurat object.
 #' @param assay Assay name. Default is NULL, in which case the default assay of the object is used.
-#' @param cell.ratio Proportion of cells to sample from each layer.
-#' @min.cells Minimum cells a layer must have in order to be subsampled.
+#' @param ncells A positive integer or a named vector/list specifying the 
+#' number of cells to sample per layer. If a single integer is provided, the 
+#' same number of cells will be sampled from each layer. Default is 5000.
+#' @param cell.ratio Optional per-layer fraction in (0,1]. When supplied, replaces
+#'   the default ncells with min(layer size, max(round(layer size * fraction), min.cells)).
+#'   Do not also supply ncells. Named legacy calls are supported.
+#' @param min.cells Minimum per-layer target in fraction mode, capped at layer size.
+#' @param leverage.already.calculated Reuse var.name when TRUE and over.write is FALSE.
+#'   Caller must ensure scores match current assay, cells and features.
 #' @param sketched.assay Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.
 #' @param method  Sketching method to use. Can be 'LeverageScore' or 'Uniform'.
 #'               Default is 'LeverageScore'.
 #' @param var.name A metadata column name to store the leverage scores. Default is 'leverage.score'.
 #' @param over.write whether to overwrite existing column in the metadata. Default is FALSE.
-#' @leverage.already.calculated whether leverage scores have already been calculated.
 #' @param seed A positive integer for the seed of the random number generator. Default is 123.
 #' @param cast The type to cast the resulting assay to. Default is 'dgCMatrix'.
 #' @param verbose Print progress and diagnostic messages
+#' @param features A character vector of feature names to include in the
+#' sketched assay.
 #' @param ... Arguments passed to other methods
 #'
 #' @return A Seurat object with the sketched data added as a new assay.
@@ -43,88 +51,131 @@ NULL
 SketchData <- function(
   object,
   assay = NULL,
-  cell.ratio = 0.25,
-  min.cells = 2500,
+  ncells = 5000L,
   sketched.assay = 'sketch',
   method = c('LeverageScore', 'Uniform'),
   var.name = "leverage.score",
-  over.write = F,
-  leverage.already.calculated = F,
+  over.write = FALSE,
   seed = 123L,
   cast = 'dgCMatrix',
-  verbose = T,
+  verbose = TRUE,
+  features = NULL,
+  cell.ratio = NULL,
+  min.cells = 2500L,
+  leverage.already.calculated = FALSE,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
-  assay <- match.arg(arg = assay, choices = SeuratObject::Assays(object = object))
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
   method <- match.arg(arg = method)
-  if (sketched.assay == assay) {
-    rlang::abort(message = "Cannot overwrite existing assays")
+  if (!is.logical(leverage.already.calculated) || length(leverage.already.calculated) != 1L ||
+      is.na(leverage.already.calculated)) stop("leverage.already.calculated must be TRUE/FALSE")
+  if (!is.logical(over.write) || length(over.write) != 1L || is.na(over.write))
+    stop("over.write must be TRUE/FALSE")
+  reuse.scores <- isTRUE(leverage.already.calculated) && !isTRUE(over.write)
+  if (reuse.scores && method != 'LeverageScore') stop("Cached leverage scores require method='LeverageScore'")
+  if (!is.null(cell.ratio)) {
+    if (!missing(ncells)) stop("Specify either ncells or cell.ratio, not both")
+    if (!is.numeric(cell.ratio) || length(cell.ratio) != 1L || !is.finite(cell.ratio) ||
+        cell.ratio <= 0 || cell.ratio > 1) stop("cell.ratio must be in (0, 1]")
+    if (!is.numeric(min.cells) || length(min.cells) != 1L || !is.finite(min.cells) ||
+        min.cells < 1 || min.cells != floor(min.cells)) stop("min.cells must be a positive integer")
   }
-  if (sketched.assay %in% SeuratObject::Assays(object = object)) {
+  if (sketched.assay == assay) {
+    abort(message = "Cannot overwrite existing assays")
+  }
+  if (sketched.assay %in% Assays(object = object)) {
     if (sketched.assay == DefaultAssay(object = object)) {
       DefaultAssay(object = object) <- assay
     }
     object[[sketched.assay]] <- NULL
   }
-  
-  if (over.write == T | leverage.already.calculated == F) {
-    if (method == 'LeverageScore') {
-      if (verbose) {
-        message("Calcuating Leverage Score")
-      }
-      object <- LeverageScore(
-        object = object,
-        assay = assay,
-        var.name = var.name,
-        over.write = over.write,
-        seed = seed,
-        verbose = verbose,
-        ...
-      )
-    } else if (method == 'Uniform') {
-      if (verbose) {
-        message("Uniformly sampling")
-      }
-      object[[var.name]] <- 1
+  if (!over.write && !reuse.scores) {
+    var.name <- CheckMetaVarName(object = object, var.name = var.name)
+  }
+
+  if (reuse.scores) {
+    if (!var.name %in% colnames(object[[]])) stop("Requested cached leverage-score column is missing: ", var.name)
+    if (verbose) message("Reusing leverage scores in ", var.name,
+                         "; caller is responsible for matching assay, features and cells")
+  } else if (method == 'LeverageScore') {
+    if (verbose) {
+      message("Calcuating Leverage Score")
     }
+    object <- LeverageScore(
+      object = object,
+      assay = assay,
+      var.name = var.name,
+      over.write = over.write,
+      seed = seed,
+      verbose = verbose,
+      features = features,
+      ...
+    )
+  } else if (method == 'Uniform') {
+    if (verbose) {
+      message("Uniformly sampling")
+    }
+    object[[var.name]] <- 1
   }
   leverage.score <- object[[var.name]]
-  layers.data <- Layers(object = object[[assay]], search = 'data')
-  cells <- lapply(
-    X = seq_along(along.with = layers.data),
-    FUN = function(i, seed) {
-      set.seed(seed = seed)
-      lcells <- Cells(x = object[[assay]], layer = layers.data[i])
-      if (length(lcells) < min.cells) {
-        ncells_per_sample = length(lcells)
-      } else {
-        ncells_per_sample = max(round(length(lcells)*cell.ratio), min.cells)
+  layer.names <- Layers(object = object[[assay]], search = 'data')
+  if (!length(layer.names)) stop("No normalized data layers; run NormalizeData first")
+  if (!is.null(cell.ratio)) {
+    layer.sizes <- vapply(layer.names, function(l) length(Cells(object[[assay]], layer = l)), integer(1))
+    ncells <- pmin(layer.sizes, pmax(round(layer.sizes * cell.ratio), min.cells))
+    names(ncells) <- layer.names
+  }
+  ncells <- unlist(ncells)
+  if (!is.numeric(ncells) || !length(ncells) || anyNA(ncells) || any(!is.finite(ncells)) ||
+      any(ncells < 1 | ncells != floor(ncells))) stop("ncells must contain positive integers")
+  if (length(ncells) == 1) {
+    ncells <- rep(unname(ncells), length(layer.names))
+  }
+  if (is.null(names(ncells))) {
+    if (length(ncells) != length(layer.names)) stop("ncells length must match the number of data layers")
+    names(ncells) <- layer.names
+  }
+  if (anyDuplicated(names(ncells)) || !all(layer.names %in% names(ncells)))
+    stop("Named ncells must specify each data layer exactly once")
+  # align index of `ncells` with `layer.names`
+  ncells <- ncells[layer.names]
+  cells <- mapply(
+    function(
+    layer.name,
+    ncells.layer
+    ) {
+      if (!is.null(seed)) {
+        set.seed(seed)
       }
-      return(sample(
-        x = lcells,
-        size = ncells_per_sample,
-        prob = leverage.score[lcells,]
-      ))
+      cells.layer <- Cells(object[[assay]], layer = layer.name)
+      weights.layer <- leverage.score[cells.layer, 1]
+      if (anyNA(weights.layer) || any(!is.finite(weights.layer)) || any(weights.layer < 0))
+        stop("Invalid leverage weights in layer ", layer.name)
+      if (length(cells.layer) <= ncells.layer) {
+        cells.to.keep <- cells.layer
+      } else {
+        if (sum(weights.layer > 0) < ncells.layer) stop("Insufficient positive weights in layer ", layer.name)
+        cells.to.keep <- sample(
+          x = cells.layer,
+          size = ncells.layer,
+          prob = weights.layer
+        )
+      }
+      return (cells.to.keep)
     },
-    seed = seed
+    layer.names,
+    ncells
   )
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
     cells = unlist(cells),
     layers = Layers(object = object[[assay]], search = c('counts', 'data'))
   ))
-  for (lyr in layers.data) {
-    try(
-      expr = VariableFeatures(object = sketched, method = "sketch", layer = lyr) <-
-        VariableFeatures(object = object[[assay]], layer = lyr),
-      silent = F
-    )
-  }
   if (!is.null(x = cast) && inherits(x = sketched, what = 'Assay5')) {
     sketched <- CastAssay(object = sketched, to = cast, ...)
   }
-  Key(object = sketched) <- Key(object = sketched.assay, quiet = F)
+  Key(object = sketched) <- Key(object = sketched.assay, quiet = TRUE)
   object[[sketched.assay]] <- sketched
   DefaultAssay(object = object) <- sketched.assay
   return(object)
@@ -377,6 +428,8 @@ TransferSketchLabels <- function(
 #' @importFrom irlba irlba
 #'
 #' @rdname LeverageScore
+#' @param singular.action Policy for an exactly singular QR factor: 'uniform' retains
+#'   the fork's warning-emitting equal-weight fallback; 'error' stops instead.
 #' @method LeverageScore default
 #'
 #' @export
@@ -390,13 +443,27 @@ LeverageScore.default <- function(
   eps = 0.5,
   seed = 123L,
   verbose = TRUE,
+  singular.action = c('uniform', 'error'),
   ...
 ) {
+  singular.action <- match.arg(singular.action)
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
   if (ncells < nsketch * 1.5) {
-    nv <- ifelse(nrow(x = object) < 50, nrow(x = object) - 1, 50)
-    Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
+    # irlba needs nv below both dimensions, and nv was computed here but then
+    # not used, so anything smaller than 50 in either direction failed with
+    # "max(nu, nv) must be strictly less than min(nrow(A), ncol(A))"
+    nv <- min(50L, nrow(x = object) - 1L, ncells - 1L)
+    if (nv < 1L) {
+      abort(message = paste0(
+        "Cannot compute leverage scores from ", nrow(x = object),
+        " features and ", ncells, " cells: at least two of each are needed"
+      ))
+    }
+    if (inherits(x = object, what = 'IterableMatrix')) {
+      object <- as.sparse(x = object)
+    }
+    Z <- irlba(A = object, nv = nv, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
   if (nrow(x = object) > 5000L) {
@@ -453,30 +520,39 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
-  A <- diag(x = R)
-  if (any(A == 0)) {
-    bad_elem <- which(A == 0)
-    message(paste0("Found 0 in diagonal of input matrix at ", bad_elem, ". Assigning all cells leverage score of 1"))
-    Z.score <- rep(1, nrow(x = object))
-  } else {
-    R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
-    if (isTRUE(x = verbose)) {
-      message("Performing random projection")
-    }
-    JL <- as.sparse(x = JLEmbed(
-      nrow = ncol(x = R.inv),
-      ncol = ndims,
-      eps = eps,
-      seed = seed
-    ))
-    Z <- object %*% (R.inv %*% JL)
-    if (inherits(x = Z, what = 'IterableMatrix')) {
-      Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
-                              )$row_stats['mean',]*ncol(x = Z)
-      } else {
-      Z.score <- rowSums(x = Z ^ 2)
-      }
-    }
+
+  # Check if matrix is square prior to QR decomposition
+  if (nrow(R) < ncol(R)) {
+    stop("QR decomposition failed: R is not square (", 
+        nrow(R), " x ", ncol(R), "). ",
+        "This usually means there are too few features compared to cells. ",
+        "Consider increasing the number of input features or adjusting dimensionality parameters.")
+  }
+
+  if (any(diag(R) == 0)) {
+    if (singular.action == 'error')
+      stop("Singular QR decomposition; strict leverage sampling forbids equal-weight fallback")
+    warning("Singular QR decomposition: falling back to equal weights (uniform sampling). ",
+            "Use singular.action='error' to forbid this fallback.", call. = FALSE)
+    return(rep(1, nrow(x = object)))
+  }
+  R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
+  if (isTRUE(x = verbose)) {
+    message("Performing random projection")
+  }
+  JL <- as.sparse(x = JLEmbed(
+    nrow = ncol(x = R.inv),
+    ncol = ndims,
+    eps = eps,
+    seed = seed
+  ))
+  Z <- object %*% (R.inv %*% JL)
+  if (inherits(x = Z, what = 'IterableMatrix')) {
+    Z.score <- BPCells::matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
+                            )$row_stats['mean',]*ncol(x = Z)
+    } else {
+    Z.score <- rowSums(x = Z ^ 2)
+  }
   return(Z.score)
 }
 
@@ -527,31 +603,82 @@ LeverageScore.StdAssay <- function(
     if (isTRUE(x = verbose)) {
       message("Running LeverageScore for layer ", l)
     }
-    features.use <- features %||% tryCatch({
-      VariableFeatures(
-        object = object,
-        method = vf.method,
-        layer = l
+    
+    # If user-defined features are provided, use them
+    features.use <- if (!is.null(features)) {
+      features
+    } else {
+      # Otherwise, try to get VariableFeatures from the same data layer
+      vf <- tryCatch({
+        VariableFeatures(object = object, method = vf.method, layer = l)
+      }, error = function(e) NULL)
+      
+      # Otherwise, if user-defined features and data-layer features are both NULL
+      # use counts-layer variable features instead
+      if (!is.null(vf) && length(vf) > 0) {
+        vf
+      } else {
+        # Try Variable Features from Counts layer
+        counts_layer <- sub("^data", "counts", l)
+        if (isTRUE(x = verbose)) {
+          message("No variable features were found in ",l,". Falling back to variable features from ", counts_layer)
+        }
+        tryCatch({
+          VariableFeatures(object = object, method = vf.method, layer = counts_layer)
+        }, error = function(e) {
+          stop("Unable to get variable features from data layer `", l,
+               "` or fallback layer `", counts_layer, "`. Consider providing `features` explicitly.")
+        })
+      }
+    }
+    # Extract gene expression matrix from single layer 
+    mat <- LayerData(
+      object = object,
+      layer = l,
+      features = features.use,
+      fast = TRUE
+    )
+
+    # Try LeverageScore directly on gene expression matrix
+    score_try <- tryCatch({
+      LeverageScore(
+        object = mat,
+        nsketch = nsketch,
+        ndims = ndims %||% ncol(x = object),
+        method = method,
+        eps = eps,
+        seed = seed,
+        verbose = verbose,
+        ...
       )
     }, error = function(e) {
-      stop("Unable to get variable features from layer `", l, "`. Try providing `features` argument instead.")
+      # Rerun LeverageScore with zero-variance rows removed
+      nonzero_var <- which(apply(mat, 1, function(x) var(x) > 0))
+      zero_var_features <- setdiff(rownames(mat), rownames(mat)[nonzero_var])
+
+      # Warn user if any zero-variance features encountered
+      # Display the first 5 such problematic features
+      if (length(zero_var_features) > 0) {
+        message("LeverageScore failed on full matrix due to presence of features with zero-variance in matrix. Removed ", length(zero_var_features),
+                " zero-variance features from layer ", l, ". First few problematic features: ",
+                paste(head(zero_var_features, 5), collapse = ", "), " ...")
+      } else {
+        message("LeverageScore failed on full matrix, retrying with same data (no zero-variance features found).")
+      }
+
+      LeverageScore(
+        object = mat[nonzero_var, , drop = FALSE],
+        nsketch = nsketch,
+        ndims = ndims %||% ncol(x = object),
+        method = method,
+        eps = eps,
+        seed = seed,
+        verbose = verbose,
+        ...
+      )
     })
-    
-    scores[Cells(x = object, layer = l), 1] <- LeverageScore(
-      object = LayerData(
-        object = object,
-        layer = l,
-        features = features.use,
-        fast = TRUE
-      ),
-      nsketch = nsketch,
-      ndims = ndims %||% ncol(x = object),
-      method = method,
-      eps = eps,
-      seed = seed,
-      verbose = verbose,
-      ...
-    )
+
+    scores[Cells(x = object, layer = l), 1] <- score_try
   }
   return(scores)
 }
@@ -647,8 +774,7 @@ LeverageScore.Seurat <- function(
 #' @references Clarkson, KL. & Woodruff, DP.
 #' Low-rank approximation and regression in input sparsity time.
 #' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45.
-#' \url{https://dl.acm.org/doi/abs/10.1145/3019134};
-
+#' \doi{10.1145/3019134};
 CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
   if (!is.na(x = seed)) {
     set.seed(seed = seed)

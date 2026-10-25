@@ -1,5 +1,8 @@
 # Tests for IntegrateLayers
+source(test_path("../testdata/test-objects.R"), local = TRUE)
+
 set.seed(42)
+is_not_cran_submission <- isTRUE(as.logical(Sys.getenv("NOT_CRAN")))
 
 
 # checks that the absolute value of `x` and `y` are within `tolerance`
@@ -7,63 +10,81 @@ expect_abs_equal <- function(x, y, tolerance = 1.0e-04) {
   expect_equal(abs(x), abs(y), tolerance = tolerance)
 }
 
+expected_harmony_embeddings <- function(object, assay = NULL, orig.reduction = "pca", key = "harmony_") {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.object <- object[[assay]]
+  is.sct <- inherits(x = assay.object, what = "SCTAssay")
 
-# setup shared fixtures
-# update `pbmc_small` to use `Assay5` instances
-test.data <- pbmc_small
-suppressWarnings(
-  test.data[["RNA"]] <- CreateAssay5Object(
-    counts = LayerData(
-      test.data,
-      assay = "RNA",
-      layer = "counts"
-    )
+  # use the exact options & default parameters used in HarmonyIntegration
+  advanced_options <- harmony::harmony_options(
+    tau = 0,
+    block.size = 0.05,
+    max.iter.cluster = 20L,
+    epsilon.cluster = 1e-05,
+    epsilon.harmony = 0.01
   )
-)
-# split the assay into multiple layers
-test.data[["RNA"]] <- split(test.data[["RNA"]], f = test.data$groups)
+  embeddings <- harmony::RunHarmony(
+    data_mat = Embeddings(object = object[[orig.reduction]]),
+    meta_data = CreateIntegrationGroups(
+      object = assay.object,
+      layers = if (is.sct) "data" else Layers(object = object, assay = assay, search = "data"),
+      scale.layer = if (is.sct) "scale.data" else Layers(object = object, search = "scale.data")
+    ),
+    vars_use = 'group',
+    theta = NULL,
+    lambda = NULL,
+    sigma = 0.1,
+    nclust = NULL,
+    max_iter = 10L,
+    return_object = FALSE,
+    verbose = FALSE,
+    .options = advanced_options
+  )
+  rownames(x = embeddings) <- Cells(x = object[[orig.reduction]])
+  colnames(x = embeddings) <- paste0(key, seq_len(length.out = ncol(x = embeddings)))
+  return(embeddings)
+}
 
 
 context("IntegrateLayers")
 
 # setup fixtures for standard integration workflow
-test.data.std <- NormalizeData(test.data, verbose = FALSE)
-test.data.std <- FindVariableFeatures(test.data.std, verbose = FALSE)
-test.data.std <- ScaleData(test.data.std, verbose = FALSE)
-test.data.std <- suppressWarnings(
-  RunPCA(test.data.std, verbose = FALSE)
-)
+test.data <- create_multilayer_obj()
+test.data.std <- create_integration_obj(object = test.data)
 
-test_that("IntegrateLayers works with HarmonyIntegration", {
-  skip_on_cran()
-  skip_if_not_installed("harmony")
+if (is_not_cran_submission) {
+  test_that("IntegrateLayers works with HarmonyIntegration", {
+    skip_if_not_installed("harmony")
 
-  integrated <- suppressWarnings(
-    IntegrateLayers(
-      test.data.std,
-      method = HarmonyIntegration,
-      orig.reduction = "pca",
-      new.reduction = "integrated",
-      verbose = FALSE
+    set.seed(seed = 42)
+    expected <- expected_harmony_embeddings(test.data.std)
+
+    set.seed(seed = 42)
+    integrated <- suppressWarnings(
+      IntegrateLayers(
+        test.data.std,
+        method = HarmonyIntegration,
+        orig.reduction = "pca",
+        new.reduction = "integrated",
+        verbose = FALSE
+      )
     )
-  )
-  # the integrated reduction should have the same dimensions as the original 
-  expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
-  # spot-check a few of the integrated values - since the integrated 
-  # reductions sporadically flip sign only compare absolute values
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[5, 5],
-    0.3912
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[40, 25],
-    0.6668
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[75, 45],
-    0.7248
-  )
-})
+
+    # the integrated reduction should have the same dimensions as the original 
+    expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+    # but should actually perform integration and produce different values than the original reduction
+    expect_false(isTRUE(all.equal(
+      Embeddings(object = integrated[["integrated"]]),
+      Embeddings(object = integrated[["pca"]])
+    )))
+    # check that the integrated reduction is the same as calling harmony::RunHarmony directly
+    expect_equal(
+      Embeddings(object = integrated[["integrated"]]),
+      expected,
+      tolerance = 1e-06
+    )
+  })
+}
 
 test_that("IntegrateLayers works with CCAIntegration", {
   integrated <- suppressWarnings(
@@ -132,6 +153,43 @@ test_that("IntegrateLayers works with CCAIntegration", {
   # didn't specify `dims.to.integrate` (i.e. the same size as the initial
   # reduction)
   expect_equal(Embeddings(integrated_overflow), Embeddings(integrated))
+})
+
+test_that("IntegrateLayers works with CCAIntegration using RSpectra backend", {
+  set.seed(seed = 42)
+  integrated_irlba <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      k.weight = 10,
+      dims.to.integrate = 1:10,
+      svd.method = "irlba"
+    )
+  )
+
+  set.seed(seed = 42)
+  integrated_rspectra <- suppressWarnings(
+    IntegrateLayers(
+      test.data.std,
+      method = CCAIntegration,
+      orig.reduction = "pca",
+      new.reduction = "integrated",
+      verbose = FALSE,
+      k.weight = 10,
+      dims.to.integrate = 1:10,
+      svd.method = "rspectra"
+    )
+  )
+
+  rspectra_embeddings <- Embeddings(integrated_rspectra[["integrated"]])
+  irlba_embeddings <- Embeddings(integrated_irlba[["integrated"]])
+  expect_equal(dim(integrated_rspectra[["integrated"]]), c(ncol(test.data.std), 10))
+  expect_equal(rownames(rspectra_embeddings), Cells(test.data.std))
+  expect_true(all(is.finite(rspectra_embeddings)))
+  expect_equal(abs(rspectra_embeddings), abs(irlba_embeddings), tolerance = 1e-5)
 })
 
 test_that("IntegrateLayers works with RPCAIntegration", {
@@ -305,157 +363,186 @@ test_that("IntegrateLayers fails when expected", {
       new.reduction = "integrated"
     )
   )
-})
 
-
-context("IntegrateData with SCTransform")
-
-# setup fixtures for SCTransform workflow
-test.data.sct <- suppressWarnings(
-  SCTransform(
-    test.data, 
-    # use v1 to avoid potentially different
-    # return values depending on if `glmGamPoi`
-    # is installed or not
-    vst.flavor="v1", 
-    # set seed for reproducibility
-    seed.use = 12345, 
-    verbose = FALSE
+  # an error should be raised if there is only one layer to integrate - for the
+  # motivation behind this check see
+  # https://github.com/satijalab/seurat/issues/9381
+  test.data.one <- test.data.std
+  test.data.one[["RNA"]] <- JoinLayers(test.data.one[["RNA"]])
+  test.data.one[["RNA"]] <- split(
+    test.data.one[["RNA"]],
+    f = rep("single", ncol(test.data.one))
   )
-)
-test.data.sct <- suppressWarnings(
-  RunPCA(test.data.sct, verbose = FALSE)
-)
-
-test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
-  skip_on_cran()
-  skip_if_not_installed("harmony")
-
-  integrated <- suppressWarnings(
+  expect_error(
     IntegrateLayers(
-      test.data.sct,
-      method = HarmonyIntegration,
-      orig.reduction = "pca",
-      new.reduction = "integrated",
-      verbose = FALSE
-    )
-  )
-  # the integrated reduction should have the same dimensions as the original 
-  expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
-  # spot-check a few of the integrated values - since the integrated 
-  # reductions sporadically flip sign only compare absolute values
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[5, 5],
-    1.1520
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[40, 25],
-    1.0302
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[75, 45],
-    0.1886
-  )
-})
-
-test_that("IntegrateLayers works with CCAIntegration & SCTransform", {
-  integrated <- suppressWarnings(
-    IntegrateLayers(
-      test.data.sct,
+      test.data.one,
       method = CCAIntegration,
       orig.reduction = "pca",
-      new.reduction = "integrated",
-      verbose = FALSE,
-      # since `k.weight` must be less than the number of samples in the
-      # smallest layer being integrated, it must be set to accommodate the
-      # small dataset used for testing
-      k.weight = 10,
-      # `CCAIntegration` needs to know how the data was normalized
-      normalization.method = "SCT"
-    )
-  )
-  # the integrated reduction should have the same dimensions as the original 
-  expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
-  # spot-check a few of the integrated values - since the integrated 
-  # reductions sporadically flip sign only compare absolute values
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[5, 5],
-    1.6113
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[40, 25],
-    0.6927
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[75, 45],
-    0.0855
+      new.reduction = "integrated"
+    ),
+    regexp = "requires at least two"
   )
 })
 
-test_that("IntegrateLayers works with RPCAIntegration & SCTransform", {
-  integrated <- suppressWarnings(
-    IntegrateLayers(
-      test.data.sct,
-      method = RPCAIntegration,
-      orig.reduction = "pca",
-      new.reduction = "integrated",
-      verbose = FALSE,
-      # since `k.weight` must be less than the number of samples in the
-      # smallest layer being integrated, it must be set to accommodate the
-      # small dataset used for testing
-      k.weight = 10,
-      # `RPCAIntegration` needs to know how the data was normalized
-      normalization.method = "SCT"
-    )
-  )
-  # the integrated reduction should have the same dimensions as the original 
-  expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
-  # spot-check a few of the integrated values - since the integrated 
-  # reductions sporadically flip sign only compare absolute values
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[5, 5],
-    1.6492
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[40, 25],
-    0.7343
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[75, 45],
-    0.0855
-  )
-})
 
-test_that("IntegrateLayers works with JointPCAIntegration & SCTransform", {
-  integrated <- suppressWarnings(
-    IntegrateLayers(
-      test.data.sct,
-      method = JointPCAIntegration,
-      orig.reduction = "pca",
-      new.reduction = "integrated",
-      verbose = FALSE,
-      # since `k.weight` must be less than the number of samples in the
-      # smallest layer being integrated, it must be set to accommodate the
-      # small dataset used for testing
-      k.weight = 10,
-      # `JointPCAIntegration` needs to know how the data was normalized
-      normalization.method = "SCT"
+if (is_not_cran_submission) {
+  context("IntegrateData with SCTransform")
+
+  # setup fixtures for SCTransform workflow
+  test.data.sct <- create_integration_obj(object = test.data, sct = TRUE)
+
+  test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
+    skip_if_not_installed("harmony")
+
+    set.seed(seed = 42)
+    expected <- expected_harmony_embeddings(test.data.sct)
+
+    set.seed(seed = 42)
+    integrated <- suppressWarnings(
+      IntegrateLayers(
+        test.data.sct,
+        method = HarmonyIntegration,
+        orig.reduction = "pca",
+        new.reduction = "integrated",
+        verbose = FALSE
+      )
     )
-  )
-  # the integrated reduction should have the same dimensions as the original 
-  expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
-  # spot-check a few of the integrated values - since the integrated 
-  # reductions sporadically flip sign only compare absolute values
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[5, 5],
-    0.3427
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[40, 25],
-    0.1015
-  )
-  expect_abs_equal(
-    Embeddings(integrated[["integrated"]])[75, 45],
-    0.0855
-  )
-})
+    # the integrated reduction should have the same dimensions as the original 
+    expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+    # but should actually perform integration and produce different values than the original reduction
+    expect_false(isTRUE(all.equal(
+      Embeddings(object = integrated[["integrated"]]),
+      Embeddings(object = integrated[["pca"]])
+    )))
+    # check that the integrated reduction is the same as calling harmony::RunHarmony directly
+    expect_equal(
+      Embeddings(object = integrated[["integrated"]]),
+      expected,
+      tolerance = 1e-06
+    )
+  })
+  test_that("IntegrateLayers works with CCAIntegration & SCTransform", {
+    integrated <- suppressWarnings(
+      IntegrateLayers(
+        test.data.sct,
+        method = CCAIntegration,
+        orig.reduction = "pca",
+        new.reduction = "integrated",
+        verbose = FALSE,
+        # since `k.weight` must be less than the number of samples in the
+        # smallest layer being integrated, it must be set to accommodate the
+        # small dataset used for testing
+        k.weight = 10,
+        # `CCAIntegration` needs to know how the data was normalized
+        normalization.method = "SCT"
+      )
+    )
+    # the integrated reduction should have the same dimensions as the original 
+    expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+    # spot-check a few of the integrated values - since the integrated 
+    # reductions sporadically flip sign only compare absolute values
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[5, 5],
+      1.6113
+    )
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[40, 25],
+      0.6927
+    )
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[75, 45],
+      0.0855
+    )
+  })
+
+  test_that("IntegrateLayers works with RPCAIntegration & SCTransform", {
+    integrated <- suppressWarnings(
+      IntegrateLayers(
+        test.data.sct,
+        method = RPCAIntegration,
+        orig.reduction = "pca",
+        new.reduction = "integrated",
+        verbose = FALSE,
+        # since `k.weight` must be less than the number of samples in the
+        # smallest layer being integrated, it must be set to accommodate the
+        # small dataset used for testing
+        k.weight = 10,
+        # `RPCAIntegration` needs to know how the data was normalized
+        normalization.method = "SCT"
+      )
+    )
+    # the integrated reduction should have the same dimensions as the original 
+    expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+    # spot-check a few of the integrated values - since the integrated 
+    # reductions sporadically flip sign only compare absolute values
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[5, 5],
+      1.6492
+    )
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[40, 25],
+      0.7343
+    )
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[75, 45],
+      0.0855
+    )
+  })
+
+  test_that("IntegrateLayers works with JointPCAIntegration & SCTransform", {
+    integrated <- suppressWarnings(
+      IntegrateLayers(
+        test.data.sct,
+        method = JointPCAIntegration,
+        orig.reduction = "pca",
+        new.reduction = "integrated",
+        verbose = FALSE,
+        # since `k.weight` must be less than the number of samples in the
+        # smallest layer being integrated, it must be set to accommodate the
+        # small dataset used for testing
+        k.weight = 10,
+        # `JointPCAIntegration` needs to know how the data was normalized
+        normalization.method = "SCT"
+      )
+    )
+    # the integrated reduction should have the same dimensions as the original 
+    expect_equal(dim(integrated[["integrated"]]), dim(integrated[["pca"]]))
+    # spot-check a few of the integrated values - since the integrated 
+    # reductions sporadically flip sign only compare absolute values
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[5, 5],
+      0.3427
+    )
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[40, 25],
+      0.1015
+    )
+    expect_abs_equal(
+      Embeddings(integrated[["integrated"]])[75, 45],
+      0.0855
+    )
+  })
+
+  test_that("IntegrateLayers fails when only one SCT model is represented", {
+    # subsetting a multi-model SCT assay can leave behind cells from a single
+    # model, in which case there is nothing to integrate - for the motivation
+    # behind this check see https://github.com/satijalab/seurat/issues/9381
+    model <- levels(test.data.sct[["SCT"]])[1]
+    test.data.sct.one.model <- subset(
+      test.data.sct,
+      cells = Cells(test.data.sct[["SCT"]], layer = model)
+    )
+    expect_error(
+      IntegrateLayers(
+        test.data.sct.one.model,
+        method = CCAIntegration,
+        assay = "SCT",
+        orig.reduction = "pca",
+        new.reduction = "integrated"
+      ),
+      regexp = "requires at least two"
+    )
+  })
+}
+
+

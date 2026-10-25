@@ -24,14 +24,15 @@ FindSpatiallyVariableFeatures(object, ...)
 
 \method{FindSpatiallyVariableFeatures}{Assay}(
   object,
-  slot = "scale.data",
+  layer = "scale.data",
+  slot = deprecated(),
   spatial.location,
   selection.method = c("markvariogram", "moransi"),
   features = NULL,
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
-  nfeatures = nfeatures,
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 )
@@ -39,7 +40,8 @@ FindSpatiallyVariableFeatures(object, ...)
 \method{FindSpatiallyVariableFeatures}{Seurat}(
   object,
   assay = NULL,
-  slot = "scale.data",
+  layer = "scale.data",
+  slot = NULL,
   features = NULL,
   image = NULL,
   selection.method = c("markvariogram", "moransi"),
@@ -54,13 +56,14 @@ FindSpatiallyVariableFeatures(object, ...)
 \method{FindSpatiallyVariableFeatures}{StdAssay}(
   object,
   layer = "scale.data",
+  slot = deprecated(),
   spatial.location,
   selection.method = c("markvariogram", "moransi"),
   features = NULL,
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
-  nfeatures = nfeatures,
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 )
@@ -89,7 +92,9 @@ the grid over which binning is performed}
 
 \item{verbose}{Print messages and progress}
 
-\item{slot}{Slot in the Assay to pull data from}
+\item{layer}{The layer in the specified assay to pull data from.}
+
+\item{slot}{Deprecated, use `layer`.}
 
 \item{features}{If provided, only compute on given features. Otherwise,
 compute for all features.}
@@ -99,8 +104,6 @@ compute for all features.}
 \item{assay}{Assay to pull the features (marks) from}
 
 \item{image}{Name of image to pull the coordinates from}
-
-\item{layer}{Layer in the Assay5 to pull data from}
 }
 \description{
 Identify features whose variability in expression can be explained to some

@@ -62,7 +62,7 @@ CalcPerturbSig <- function(
   }
   features <- features %||% VariableFeatures(object = object[[assay]])
   if (length(x = features) == 0) {
-    features <- rownames(x = GetAssayData(object = object[[assay]], slot = slot))
+    features <- rownames(x = GetAssayData(object = object[[assay]], layer= slot))
   }
   if (! is.null(x = split.by)) {
     Idents(object = object) <-  split.by
@@ -128,7 +128,7 @@ CalcPerturbSig <- function(
 #' positive DE genes.If false, only positive DE gene will be displayed.
 #' @param max.genes Maximum number of genes to use as input to enrichR.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param p.val.cutoff Cutoff to select DE genes.
 #' @param cols A list of colors to use for barplots.
@@ -162,8 +162,8 @@ DEenrichRPlot <- function(
   return.gene.list = FALSE,
   ...
 ) {
-  enrichr.installed <- PackageCheck("enrichR", error = FALSE)
-  if (!enrichr.installed[1]) {
+  enrichr.installed <- requireNamespace('enrichR', quietly = TRUE)
+  if (isFALSE(x = enrichr.installed)) {
     stop(
       "Please install the enrichR package to use DEenrichRPlot",
       "\nThis can be accomplished with the following command: ",
@@ -247,14 +247,14 @@ DEenrichRPlot <- function(
 
     if (isTRUE(x = balanced)) {
 
-      p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
+      p2 <- ggplot(data = neg.er, aes(x = .data[["term"]], y = .data[["log10pval"]])) +
         geom_bar(stat = "identity", fill = "indianred2") +
         coord_flip() + xlab("Pathway") +
         scale_fill_manual(values = cols, drop = FALSE) +
         ylab("-log10(pval)") +
         ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
         theme_classic() +
-        geom_text(aes_string(label = "term", y = 0),
+        geom_text(aes(label = .data[["term"]], y = 0),
                   size = 5,
                   color = "black",
                   position = position_dodge(1),
@@ -271,14 +271,14 @@ DEenrichRPlot <- function(
   }
 
   else {
-  p <- ggplot(data = pos.er, aes_string(x = "term", y = "log10pval")) +
+  p <- ggplot(data = pos.er, aes(x = .data[["term"]], y = .data[["log10pval"]])) +
     geom_bar(stat = "identity", fill = "dodgerblue") +
     coord_flip() + xlab("Pathway") +
     scale_fill_manual(values = cols, drop = FALSE) +
     ylab("-log10(pval)") +
     ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) +
     theme_classic() +
-    geom_text(aes_string(label = "term", y = 0),
+    geom_text(aes(label = .data[["term"]], y = 0),
               size = 5,
               color = "black",
               position = position_dodge(1),
@@ -288,14 +288,14 @@ DEenrichRPlot <- function(
           axis.ticks.y = element_blank())
   if (isTRUE(x = balanced)) {
 
-    p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
+    p2 <- ggplot(data = neg.er, aes(x = .data[["term"]], y = .data[["log10pval"]])) +
       geom_bar(stat = "identity", fill = "indianred2") +
       coord_flip() + xlab("Pathway") +
       scale_fill_manual(values = cols, drop = FALSE) +
       ylab("-log10(pval)") +
       ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
       theme_classic() +
-      geom_text(aes_string(label = "term", y = 0),
+      geom_text(aes(label = .data[["term"]], y = 0),
                 size = 5,
                 color = "black",
                 position = position_dodge(1),
@@ -371,7 +371,7 @@ MixscapeLDA <- function(
 #' @param npcs Number of principle components to use.
 #' @param verbose Print progress bar.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @return Returns a list of the first 10 PCs from each projection.
 #'
@@ -698,8 +698,8 @@ RunMixscape <- function(
   fine.mode.labels = "guide_ID",
   prtb.type = "KO"
 ) {
-  mixtools.installed <- PackageCheck("mixtools", error = FALSE)
-  if (!mixtools.installed[1]) {
+  mixtools.installed <- requireNamespace('mixtools', quietly = TRUE)
+  if (isFALSE(x = mixtools.installed)) {
     stop("Please install the mixtools package to use RunMixscape",
          "\nThis can be accomplished with the following command: ",
          "\n----------------------------------------",
@@ -798,7 +798,7 @@ RunMixscape <- function(
           message("  ", gene)
         }
         de.genes <- prtb_markers[[s]][[gene]]
-        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells, drop = FALSE]
+        dat <- GetAssayData(object = object[[assay]], layer = "data")[de.genes, all.cells, drop = FALSE]
         if (slot == "scale.data") {
           dat <- ScaleData(object = dat, features = de.genes, verbose = FALSE)
         }
@@ -835,7 +835,7 @@ RunMixscape <- function(
           post.prob <- 1/(1 + lik.ratio)
           object[[new.class.name]][names(x = which(post.prob > 0.5)), 1] <- gene
           object[[new.class.name]][names(x = which(post.prob < 0.5)), 1] <- paste(gene, " NP", sep = "")
-          if (length(x = which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s)) < min.de.genes) {
+          if (length(x = which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s)) < min.cells) {
             if (verbose) {
               message("Fewer than ", min.cells, " cells assigned as ",
                       gene, "Assigning all to NP.")
@@ -851,7 +851,11 @@ RunMixscape <- function(
         }
         object[[new.class.name]][which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s), 1] <- paste(gene, prtb.type, sep = " ")
       }
-      object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
+      object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(
+        X = as.character(x = object[[new.class.name]][, 1]),
+        FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}
+      ))
+      object[[paste0(new.class.name, ".global")]][which(x = object[[new.class.name]][, 1] == "NP"), 1] <- "NP"
       object[[paste0(new.class.name, ".global")]][which(x = is.na(x = object[[paste0(new.class.name, ".global")]])), 1] <- nt.class.name
       object[[paste0(new.class.name,"_p_", tolower(prtb.type))]][names(x = post.prob), 1] <- post.prob
     }
@@ -872,7 +876,7 @@ RunMixscape <- function(
 #' @param max.genes Total number of DE genes to plot.
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25. 
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25.
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout
 #' probability from highest to lowest score.
@@ -888,7 +892,7 @@ RunMixscape <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
 #' @export
 #' @concept mixscape
 #'
@@ -1004,7 +1008,7 @@ MixscapeHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
 #' geom_density theme_classic
 #' @export
 #' @concept mixscape
@@ -1040,7 +1044,7 @@ PlotPerturbScore <- function(
       nm = c(gd, target.gene.ident)
     )
 
-    p <- ggplot(data = prtb_score, mapping = aes_string(x = "pvec", color = "gene")) +
+    p <- ggplot(data = prtb_score, mapping = aes(x = .data[["pvec"]], color = .data[["gene"]])) +
       geom_density() + theme_classic()
     top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
     prtb_score$y.jitter <- prtb_score$pvec
@@ -1059,7 +1063,7 @@ PlotPerturbScore <- function(
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(data = prtb_score, aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
@@ -1071,7 +1075,7 @@ PlotPerturbScore <- function(
     else{
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(data = prtb_score, aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
@@ -1089,7 +1093,7 @@ PlotPerturbScore <- function(
     #add mixscape identities
     prtb_score$mix <- object[[mixscape.class]][prtb_score$cell.bc,]
 
-    p <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+    p <- ggplot(data = prtb_score, aes(x = .data[["pvec"]], color = .data[["mix"]])) +
       geom_density() + theme_classic()
 
     top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
@@ -1117,10 +1121,10 @@ PlotPerturbScore <- function(
 
     if(is.null(split.by) == FALSE){
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
-      p2 <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+      p2 <- ggplot(data = prtb_score, aes(x = .data[["pvec"]], color = .data[["mix"]])) +
         scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme_classic() +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
@@ -1133,7 +1137,7 @@ PlotPerturbScore <- function(
     else{
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(data = prtb_score, aes(x = .data[["pvec"]], y = .data[["y.jitter"]]), size = 0.1) +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
@@ -1224,7 +1228,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   all_diff <- all_diff[, colnames(x = object[[assay]]), drop = FALSE]
   new.assay <- CreateAssayObject(
     data = rbind(
-      GetAssayData(object = object[[assay]], slot = "data"),
+      GetAssayData(object = object[[assay]], layer = "data"),
       all_diff
     ),
     min.cells = 0,
@@ -1233,8 +1237,8 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   )
   new.assay <- SetAssayData(
     object = new.assay,
-    slot = "scale.data",
-    new.data = GetAssayData(object = object[[assay]], slot = "scale.data")
+    layer = "scale.data",
+    new.data = GetAssayData(object = object[[assay]], layer= "scale.data")
   )
   object[[assay]] <- new.assay
   Idents(object = object) <- old.idents
@@ -1258,7 +1262,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
 #' @importFrom Matrix sparseMatrix colSums
 #'
 PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neighbors, verbose) {
-  nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, slot = slot)[features, nt_cells, drop = FALSE]))
+  nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, layer= slot)[features, nt_cells, drop = FALSE]))
   mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   # new_expr <- mysapply(X = all_cells, FUN = function(i) {
   #   index <- Indices(object = neighbors)[i, ]
@@ -1277,7 +1281,7 @@ PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neig
   new_expr <- log1p(x = new_expr)
   rownames(x = new_expr) <- rownames(x = nt_data)
   colnames(x = new_expr) <- all_cells
-  diff <- new_expr - as.matrix(GetAssayData(object = object, slot = slot, assay = assay)[features, colnames(x = new_expr), drop = FALSE])
+  diff <- new_expr - as.matrix(GetAssayData(object = object, layer = slot, assay = assay)[features, colnames(x = new_expr), drop = FALSE])
   return(diff)
 }
 

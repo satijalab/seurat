@@ -21,7 +21,7 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = 'styler',
+  tidy = TRUE,
   fig.width = 8,
   message = FALSE,
   warning = FALSE,
@@ -37,7 +37,7 @@ library(SeuratWrappers)
 library(Azimuth)
 library(ggplot2)
 library(patchwork)
-options(future.globals.maxSize = 1e9)
+options(future.globals.maxSize = 1e10)
 ```
 
 ## Introduction
@@ -48,8 +48,9 @@ For this vignette, we use a [dataset of human PBMC profiled with seven different
 ## Layers in the Seurat v5 object
 Seurat v5 assays store data in layers. These layers can store raw, un-normalized counts (`layer='counts'`), normalized data (`layer='data'`), or z-scored/variance-stabilized data (`layer='scale.data'`). We can load in the data, remove low-quality cells, and obtain predicted cell annotations (which will be useful for assessing integration later), using our [Azimuth pipeline](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
 
-```{r installdata, include=FALSE, eval=TRUE}
+```{r installdata, include=FALSE, message=FALSE, warning=FALSE}
 InstallData("pbmcref")
+InstallData("pbmcsca")
 ```
 
 ```{r loadannotate, message=FALSE}
@@ -90,7 +91,7 @@ Seurat v5 enables streamlined integrative analysis using the `IntegrateLayers` f
 * FastMNN (`method= FastMNNIntegration`)
 * scVI (`method=scVIIntegration`)
 
-Note that our anchor-based RPCA integration represents a faster and more conservative (less correction) method for integration. For interested users, we discuss this method in more detail in our [previous RPCA vignette](https://satijalab.org/seurat/articles/integration_rpca)
+Note that our anchor-based RPCA integration represents a faster and more conservative (less correction) method for integration. For interested users, we discuss this method in more detail in our [previous RPCA vignette](https://satijalab.org/seurat/articles/integration_rpca).
 
 You can find more detail on each method, and any installation prerequisites, in Seurat's documentation (for example, `?scVIIntegration`). For example, scVI integration requires `reticulate` which can be installed from CRAN (`install.packages("reticulate")`) as well as `scvi-tools` and its dependencies installed in a conda environment. Please see scVI installation instructions [here](https://docs.scvi-tools.org/en/stable/installation.html).
 
@@ -199,7 +200,6 @@ obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
 ```
 
 ```{r sct}
-options(future.globals.maxSize = 3e+09)
 obj <- SCTransform(obj)
 obj <- RunPCA(obj, npcs = 30, verbose = F)
 obj <- IntegrateLayers(object = obj, 
@@ -210,6 +210,7 @@ obj <- FindNeighbors(obj, dims = 1:30,reduction = 'integrated.dr')
 obj <- FindClusters(obj, resolution = 2)
 obj <- RunUMAP(obj, dims = 1:30,reduction = 'integrated.dr')
 ```
+
 
 <details>
   <summary>**Session Info**</summary>

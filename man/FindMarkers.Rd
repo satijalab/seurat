@@ -190,10 +190,10 @@ of the two groups, currently only used for poisson and negative binomial tests}
 
 \item{fc.results}{data.frame from FoldChange}
 
-\item{densify}{Convert the sparse matrix to a dense form before running the 
+\item{densify}{Convert the sparse matrix to a dense form before running the
 DE test. This can provide speedups but might require higher memory; default is FALSE}
 
-\item{fc.slot}{Slot used to calculate fold-change - will also affect the 
+\item{fc.slot}{Slot used to calculate fold-change - will also affect the
 default for \code{mean.fxn}, see below for more details.}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
@@ -219,7 +219,7 @@ slot "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 
-\item{recorrect_umi}{Recalculate corrected UMI counts using minimum of the 
+\item{recorrect_umi}{Recalculate corrected UMI counts using minimum of the
 median UMIs when performing DE using multiple SCT objects; default is TRUE}
 
 \item{ident.1}{Identity class to define markers for; pass an object of class
@@ -230,15 +230,15 @@ passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
 use all other cells for comparison; if an object of class \code{phylo} or
 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for}
 
-\item{group.by}{Regroup cells into a different identity class prior to 
+\item{group.by}{Regroup cells into a different identity class prior to
 performing differential expression (see example); \code{"ident"} to use Idents}
 
-\item{subset.ident}{Subset a particular identity class prior to regrouping. 
+\item{subset.ident}{Subset a particular identity class prior to regrouping.
 Only relevant if group.by is set (see example)}
 
 \item{assay}{Assay to use in differential expression testing}
 
-\item{reduction}{Reduction to use in differential expression testing - will 
+\item{reduction}{Reduction to use in differential expression testing - will
 test for DE on cell embeddings}
 }
 \value{
@@ -252,7 +252,7 @@ statistics as columns (p-values, ROC score, etc., depending on the test used (\c
 }
 }
 \description{
-Finds markers (differentially expressed genes) for identity classes
+Finds markers (differentially expressed genes) for each of the identity classes in a dataset. Note that differential expression between groups (e.g. treatment conditions) should account for biological variation across samples, e.g. by using pseudobulk expression profiles.
 }
 \details{
 p-value adjustment is performed using bonferroni correction based on
@@ -262,6 +262,9 @@ the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values
 should be interpreted cautiously, as the genes used for clustering are the
 same genes tested for differential expression.
 }
+\note{
+See the DE vignette for more details and examples
+}
 \examples{
 \dontrun{
 data("pbmc_small")
@@ -269,8 +272,8 @@ data("pbmc_small")
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 head(x = markers)
 
-# Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata
-# variable 'group')
+# Within cluster 2, find markers for cells in the 'g1' group compared with
+# other cells, using the 'groups' metadata variable.
 markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
 head(x = markers)
 
@@ -300,8 +303,5 @@ https://github.com/RGLab/MAST/
 Love MI, Huber W and Anders S (2014). "Moderated estimation of
 fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 https://bioconductor.org/packages/release/bioc/html/DESeq2.html
-}
-\seealso{
-\code{FoldChange}
 }
 \concept{differential_expression}

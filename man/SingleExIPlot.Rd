@@ -17,8 +17,10 @@ SingleExIPlot(
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  fill.by = "ident",
   add.noise = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 )
 }
 \arguments{
@@ -47,11 +49,16 @@ expression of the attribute being potted}
 
 \item{log}{plot Y axis on log10 scale}
 
+\item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
+
 \item{add.noise}{determine if adding small noise for plotting}
 
 \item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.
 default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 number of points exceed 100,000.}
+
+\item{raster.dpi}{the dpi for raster layer, default is 300.
+See \code{\link[ggrastr]{rasterize}} for more info.}
 }
 \value{
 A ggplot-based Expression-by-Identity plot

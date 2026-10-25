@@ -4,7 +4,6 @@
 ^\.Rproj\.user$
 ^.*\.old$
 .git
-appveyor.yml
 cran-comments.md
 CODE_OF_CONDUCT.md
 ^_pkgdown\.yaml$
@@ -12,4 +11,8 @@ CODE_OF_CONDUCT.md
 ^pkgdown$
 ^index\.md$
 ^vignettes$
+^benchmarks$
 ^LICENSE\.md$
+Rplots.pdf
+revdep/
+Seurat.Rcheck/

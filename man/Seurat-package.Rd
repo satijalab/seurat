@@ -30,6 +30,8 @@ Seurat uses the following [options()] to configure behaviour:
   Moran's I function available via the Rfast2 package}}
   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
   default behavior of split/multi violin plots}
+  \item{\code{Seurat.warn.findmarkers.bpcells.colmajor}}{Show message about improving
+  memory usage when running FindMarkers with a column-major ordered BPCells IterableMatrix.}
 }
 }
 
@@ -65,9 +67,11 @@ Other contributors:
   \item Efthymia Papalexi \email{epapalexi@nygenome.org} (\href{https://orcid.org/0000-0001-5898-694X}{ORCID}) [contributor]
   \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
   \item Karthik Shekhar \email{kshekhar@berkeley.edu} [contributor]
+  \item Anagha Shenoy \email{ashenoy@nygenome.org} (\href{https://orcid.org/0000-0002-0537-6862}{ORCID}) [contributor]
   \item Avi Srivastava \email{asrivastava@nygenome.org} (\href{https://orcid.org/0000-0001-9798-2079}{ORCID}) [contributor]
   \item Tim Stuart \email{tstuart@nygenome.org} (\href{https://orcid.org/0000-0002-3044-0897}{ORCID}) [contributor]
   \item Kristof Torkenczy (\href{https://orcid.org/0000-0002-4869-7957}{ORCID}) [contributor]
+  \item Brian Zhang \email{brianzhang@nygenome.org} (\href{https://orcid.org/0009-0008-1011-5983}{ORCID}) [contributor]
   \item Shiwei Zheng \email{szheng@nygenome.org} (\href{https://orcid.org/0000-0001-6682-6743}{ORCID}) [contributor]
   \item Satija Lab and Collaborators [funder]
 }

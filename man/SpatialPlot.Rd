@@ -33,11 +33,13 @@ SpatialPlot(
   alpha = c(1, 1),
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
   do.hover = FALSE,
-  information = NULL
+  information = NULL,
+  plot_segmentations = FALSE
 )
 
 SpatialDimPlot(
@@ -61,9 +63,11 @@ SpatialDimPlot(
   image.scale = "lowres",
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   label.box = TRUE,
   interactive = FALSE,
-  information = NULL
+  information = NULL,
+  plot_segmentations = FALSE
 )
 
 SpatialFeaturePlot(
@@ -83,8 +87,10 @@ SpatialFeaturePlot(
   image.scale = "lowres",
   shape = 21,
   stroke = NA,
+  stroke.alpha = NA,
   interactive = FALSE,
-  information = NULL
+  information = NULL,
+  plot_segmentations = FALSE
 )
 }
 \arguments{
@@ -171,6 +177,9 @@ The default is 21, which plots circles - use 22 to plot squares.}
 
 \item{stroke}{Control the width of the border around the spots}
 
+\item{stroke.alpha}{Control the opacity of spot borders (when stroke is specified). 
+Set to \code{NA} to use the same alpha as the fill.}
+
 \item{interactive}{Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 session, see \code{\link{ISpatialDimPlot}} or
 \code{\link{ISpatialFeaturePlot}} for more details}
@@ -180,6 +189,8 @@ session, see \code{\link{ISpatialDimPlot}} or
 \item{identify.ident}{DEPRECATED}
 
 \item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
+
+\item{plot_segmentations}{Define whether plot should plot centroids or segmentations}
 }
 \value{
 If \code{do.identify}, either a vector of cells selected or the object

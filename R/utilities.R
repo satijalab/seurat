@@ -1,5 +1,4 @@
 #' @include generics.R
-#' @importFrom SeuratObject PackageCheck
 #'
 NULL
 
@@ -137,13 +136,12 @@ AddAzimuthScores <- function(object, filename) {
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
-#' @importFrom ggplot2 cut_number
-#' @importFrom Matrix rowMeans colMeans
-#'
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
 #' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Seurat
 #'
 #' @examples
 #' \dontrun{
@@ -174,7 +172,7 @@ AddAzimuthScores <- function(object, filename) {
 #' head(x = pbmc_small[])
 #' }
 #'
-AddModuleScore <- function(
+AddModuleScore.Seurat <- function(
   object,
   features,
   pool = NULL,
@@ -194,13 +192,140 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
+  features.scores.use <- AddModuleScore(object = object[[assay]],
+                                        features = features,
+                                        kmeans.obj = object@kmeans.obj,
+                                        pool = pool,
+                                        nbin = nbin,
+                                        ctrl = ctrl,
+                                        k = k,
+                                        name = name,
+                                        seed = seed,
+                                        search = search,
+                                        slot = slot,
+                                        ...)
+  object[[colnames(x = features.scores.use)]] <- features.scores.use
+  CheckGC()
+  DefaultAssay(object = object) <- assay.old
+  return(object)
+}
+
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore StdAssay
+#'
+#' @references Tirosh et al, Science (2016)
+#'
+AddModuleScore.StdAssay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  layer_names <- Layers(object, search = slot)
+  output_list <- lapply(
+    layer_names,
+    function(layer_name) {
+      # Operate on the layer's matrix directly. For on-disk (e.g. BPCells)
+      # matrices this keeps the data lazy: the scoring only needs row/column
+      # reductions, so wrapping in CreateAssayObject() (which densifies the
+      # whole matrix to a dgCMatrix) is unnecessary.
+      layer_data <- LayerData(object, layer = layer_name)
+      .AddModuleScore(data = layer_data,
+                      features = features,
+                      kmeans.obj = kmeans.obj,
+                      pool = pool,
+                      nbin = nbin,
+                      ctrl = ctrl,
+                      k = k,
+                      name = name,
+                      seed = seed,
+                      search = search,
+                      ...)
+    }
+  )
+  features.scores.use <- do.call(rbind,output_list)
+  return(features.scores.use)
+}
+
+#'
+#' @param kmeans.obj A \code{DoKMeans} output used to define feature clusters
+#' when \code{k = TRUE}; ignored if \code{k = FALSE}.
+#' @export
+#' @concept utilities
+#' @rdname AddModuleScore
+#' @method AddModuleScore Assay
+#'
+AddModuleScore.Assay <- function(
+    object,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    slot = 'data',
+    ...
+) {
+  assay.data <- GetAssayData(object = object, layer = slot)
+  return(.AddModuleScore(data = assay.data,
+                        features = features,
+                        kmeans.obj = kmeans.obj,
+                        pool = pool,
+                        nbin = nbin,
+                        ctrl = ctrl,
+                        k = k,
+                        name = name,
+                        seed = seed,
+                        search = search,
+                        ...))
+}
+
+# Core AddModuleScore computation, operating directly on an expression matrix.
+#
+# Accepts any matrix supporting row/column reductions and row subsetting
+# (dgCMatrix, matrix, or an on-disk BPCells IterableMatrix), so callers can
+# avoid densifying on-disk data. Returns a data.frame of module scores (cells
+# as rows).
+#
+#' @importFrom ggplot2 cut_number
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+.AddModuleScore <- function(
+    data,
+    features,
+    kmeans.obj,
+    pool = NULL,
+    nbin = 24,
+    ctrl = 100,
+    k = FALSE,
+    name = 'Cluster',
+    seed = 1,
+    search = FALSE,
+    ...
+) {
+  assay.data <- data
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
     features <- list()
-    for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
-      features[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
+    for (i in as.numeric(x = names(x = table(kmeans.obj[[1]]$cluster)))) {
+      features[[i]] <- names(x = which(x = kmeans.obj[[1]]$cluster == i))
     }
     cluster.length <- length(x = features)
   } else {
@@ -210,7 +335,7 @@ AddModuleScore <- function(
     features <- lapply(
       X = features,
       FUN = function(x) {
-        missing.features <- setdiff(x = x, y = rownames(x = object))
+        missing.features <- setdiff(x = x, y = rownames(x = data))
         if (length(x = missing.features) > 0) {
           warning(
             "The following features are not present in the object: ",
@@ -241,7 +366,7 @@ AddModuleScore <- function(
                 )
               }
             )
-            missing.features <- setdiff(x = x, y = rownames(x = object))
+            missing.features <- setdiff(x = x, y = rownames(x = data))
             if (length(x = missing.features) > 0) {
               warning(
                 "The following features are still not present in the object: ",
@@ -252,7 +377,7 @@ AddModuleScore <- function(
             }
           }
         }
-        return(intersect(x = x, y = rownames(x = object)))
+        return(intersect(x = x, y = rownames(x = data)))
       }
     )
     cluster.length <- length(x = features)
@@ -266,7 +391,7 @@ AddModuleScore <- function(
     features <- lapply(
       X = features.old,
       FUN = CaseMatch,
-      match = rownames(x = object)
+      match = rownames(x = data)
     )
   }
   if (!all(LengthCheck(values = features))) {
@@ -276,7 +401,7 @@ AddModuleScore <- function(
       'exiting...'
     ))
   }
-  pool <- pool %||% rownames(x = object)
+  pool <- pool %||% rownames(x = data)
   data.avg <- Matrix::rowMeans(x = assay.data[pool, ])
   data.avg <- data.avg[order(data.avg)]
   data.cut <- cut_number(x = data.avg + rnorm(n = length(data.avg))/1e30, n = nbin, labels = FALSE, right = FALSE)
@@ -300,7 +425,7 @@ AddModuleScore <- function(
   ctrl.scores <- matrix(
     data = numeric(length = 1L),
     nrow = length(x = ctrl.use),
-    ncol = ncol(x = object)
+    ncol = ncol(x = data)
   )
   for (i in 1:length(ctrl.use)) {
     features.use <- ctrl.use[[i]]
@@ -309,7 +434,7 @@ AddModuleScore <- function(
   features.scores <- matrix(
     data = numeric(length = 1L),
     nrow = cluster.length,
-    ncol = ncol(x = object)
+    ncol = ncol(x = data)
   )
   for (i in 1:cluster.length) {
     features.use <- features[[i]]
@@ -319,11 +444,8 @@ AddModuleScore <- function(
   features.scores.use <- features.scores - ctrl.scores
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
-  rownames(x = features.scores.use) <- colnames(x = object)
-  object[[colnames(x = features.scores.use)]] <- features.scores.use
-  CheckGC()
-  DefaultAssay(object = object) <- assay.old
-  return(object)
+  rownames(x = features.scores.use) <- colnames(x = data)
+  return(features.scores.use)
 }
 
 #' Aggregated feature expression by identity class
@@ -672,7 +794,7 @@ CreateAnn <- function(name, ndim) {
 #' # Define custom distance matrix
 #' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
 #'
-#' input.data <- GetAssayData(pbmc_small, assay.type = "RNA", slot = "scale.data")
+#' input.data <- GetAssayData(pbmc_small, assay.type = "RNA", layer = "scale.data")
 #' cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 #'
 CustomDistance <- function(my.mat, my.function, ...) {
@@ -973,7 +1095,7 @@ GroupCorrelation <- function(
     min.cells = min.cells,
     ngroups = ngroups
   )
-  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], layer = slot))
   data <- data[rowMeans(x = data) != 0, ]
   grp.cors <- apply(
     X = data,
@@ -986,7 +1108,7 @@ GroupCorrelation <- function(
   grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
   grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
   colnames(x = grp.cors) <- c(paste0(var, "_cor"), "feature.grp")
-  object[[assay]][] <- grp.cors
+  object[[assay]] <- AddMetaData(object[[assay]], grp.cors)
   if (isTRUE(x = do.plot)) {
     print(GroupCorrelationPlot(
       object = object,
@@ -1083,7 +1205,7 @@ MetaFeature <- function(
 ) {
   cells <- cells %||% colnames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
-  newmat <- GetAssayData(object = object, assay = assay, slot = slot)
+  newmat <- GetAssayData(object = object, assay = assay, layer = slot)
   newmat <- newmat[features, cells]
   if (slot == 'scale.data') {
     newdata <- Matrix::colMeans(newmat)
@@ -1171,20 +1293,41 @@ PercentageFeatureSet <- function(
   assay = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  if (!is.null(x = features) && !is.null(x = pattern)) {
-    warn(message = "Both pattern and features provided. Pattern is being ignored.")
+  if (!is.null(x = features))  {
+    if (!is.null(x = pattern)) {
+      warning(
+        paste(
+          "Both `features` and `pattern` were provided;",
+          "`pattern` will be ignored."
+        )
+      )
+    }
+
+    available_features <- Features(object[[assay]])
+    missing_features <- setdiff(features, available_features)
+    if (length(missing_features) > 0) {
+      warning(
+        paste(
+          "The following features are not found in the",
+          paste0("'", assay, "'"),
+          "assay:",
+          paste(paste0("'", missing_features, "'"), collapse = ", ")
+        )
+      )
+    }
   }
   percent.featureset <- list()
-  layers <- Layers(object = object, search = "counts")
+  layers <- Layers(object = object, assay = assay, search = "counts")
   for (i in seq_along(along.with = layers)) {
     layer <- layers[i]
-    features.layer <- features %||% grep(
-      pattern = pattern,
-      x = rownames(x = object[[assay]][layer]),
-      value = TRUE)
     layer.data <- LayerData(object = object,
                             assay = assay,
                             layer = layer)
+    features.layer <- features %||% grep(
+      pattern = pattern,
+      x = rownames(x = layer.data),
+      value = TRUE)
+    features.layer <- intersect(features.layer, rownames(layer.data))
     layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
     layer.perc <- layer.sums / object[[]][colnames(layer.data), paste0("nCount_", assay)] * 100
     percent.featureset[[i]] <- layer.perc
@@ -1204,7 +1347,7 @@ PercentageFeatureSet <- function(
 #' @param object Seurat object
 #' @param method Whether to 'average' (default) or 'aggregate' expression levels
 #' @param assay  The name of the passed assay - used primarily for warning/error messages
-#' @param category.matrix A matrix defining groupings for pseudobulk expression 
+#' @param category.matrix A matrix defining groupings for pseudobulk expression
 #' calculations; each column represents an identity class, and each row a sample
 #' @param features Features to analyze. Default is all features in the assay
 #' @param layer Layer(s) to user; if multiple are given, assumed to follow
@@ -1217,7 +1360,6 @@ PercentageFeatureSet <- function(
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @method PseudobulkExpression Assay
 #' @rdname PseudobulkExpression
-#' @importFrom SeuratObject .IsFutureSeurat
 #' @export
 #' @concept utilities
 #'
@@ -1351,10 +1493,10 @@ PseudobulkExpression.StdAssay <- function(
 
 #' @param assays Which assays to use. Default is all assays
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, "ident", "replicate", 
+#' @param group.by Categories for grouping (e.g, "ident", "replicate",
 #' "celltype"); "ident" by default
 #' @param add.ident (Deprecated) See group.by
-#' @param method The method used for calculating pseudobulk expression; one of: 
+#' @param method The method used for calculating pseudobulk expression; one of:
 #' "average" or "aggregate"
 #' @param normalization.method Method for normalization, see \code{\link{NormalizeData}}
 #' @param scale.factor Scale factor for normalization, see \code{\link{NormalizeData}}
@@ -1452,29 +1594,31 @@ PseudobulkExpression.Seurat <- function(
         paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")
       )
     )
-    group.by <- colnames(x = data)[which(num.levels > 1)]
+    group.by <- rev(colnames(x = data)[which(num.levels > 1)])
     data <- data[, which(num.levels > 1), drop = F]
   }
-  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
-  #check if column names are numeric
-  col.names <- colnames(category.matrix)
-  if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
-    col.names <- ifelse(
-      !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
-      paste0("g", col.names),
-      col.names
-    )
-    colnames(category.matrix) <- col.names
-    inform(
-      message = paste0("First group.by variable `", group.by[1],
-      "` starts with a number, appending `g` to ensure valid variable names"),
-      .frequency = "regularly",
-      .frequency_id = "PseudobulkExpression"
-    )
-  }
-
   data.return <- list()
   for (i in 1:length(x = assays)) {
+    data_sub <- data[intersect(rownames(data),Cells(object[[assays[i]]])),,drop=FALSE]
+    category.matrix <- CreateCategoryMatrix(labels = data_sub, method = method)
+    #check if column names are numeric
+    col.names <- colnames(category.matrix)
+    if (any(!(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)))) {
+      col.names <- ifelse(
+        !(grepl("^[a-zA-Z]|^\\.[^0-9]", col.names)),
+        paste0("g", col.names),
+        col.names
+      )
+      colnames(category.matrix) <- col.names
+      inform(
+        message = paste0("First group.by variable `", group.by[1],
+        "` starts with a number, appending `g` to ensure valid variable names"),
+        .frequency = "regularly",
+        .frequency_id = "PseudobulkExpression"
+      )
+    }
+
+
     data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
@@ -1525,6 +1669,8 @@ PseudobulkExpression.Seurat <- function(
         ) <- NormalizeData(
           as.matrix(x = data.return[[1]]),
           normalization.method = normalization.method,
+          scale.factor = scale.factor,
+          margin = margin,
           verbose = verbose
         )
       }
@@ -1910,6 +2056,60 @@ as.data.frame.Matrix <- function(
   return(boundaries)
 }
 
+#' Build a discrete color scale
+#' @param data Data frame containing the variable to color by
+#' @param col.by Column name in \code{data} to color by
+#' @param cols Vector of colors or a single color palette name
+#' @param na.value Color to use for NA values
+#' @param aesthetic "fill" or "color" (aesthetic to apply the scale to)
+#'
+#' @return A ggplot2 scale object
+#'
+#' @importFrom RColorBrewer brewer.pal brewer.pal.info
+#' @importFrom ggplot2 scale_fill_manual scale_color_manual scale_fill_brewer scale_color_brewer
+#' @keywords internal
+#'
+#' @noRd
+#'
+.BuildDiscreteScale <- function(data, cols, col.by, na.value, aesthetic = c("fill", "color")) {
+  aesthetic <- match.arg(arg = aesthetic)
+  manual_scale <- if (aesthetic == "fill") scale_fill_manual else scale_color_manual
+
+  if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
+    manual_scale <- if (aesthetic == "fill") scale_fill_brewer else scale_color_brewer
+    return(manual_scale(palette = cols, na.value = na.value))
+  } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
+    palette <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+  } else {
+    vals <- sort(unique(data[[col.by]]))
+    # n_groups is number of discrete groups/clusters that need colours
+    n_groups <- length(vals)
+
+    # Check whether 'cols' can be treated as a manual mapping
+    has_valid_names <- !is.null(names(cols)) && !anyNA(names(cols)) && all(names(cols) != "")
+
+    # cols must be a named vector to be treated as an explicit mapping from group->color
+    # otherwise assign to groups in order
+    if (has_valid_names) {
+      palette <- cols[vals]
+      if (anyNA(palette)) {
+        warning("Missing color mappings for ", paste(vals[is.na(palette)], collapse = ", "), 
+                call. = FALSE, 
+                immediate. = TRUE)
+      }
+    } else {
+      if (length(cols) != n_groups) {
+        warning("Number of colors does not match number of groups; adjusting.",
+                call. = FALSE,
+                immediate. = TRUE)
+      }
+      palette <- rep_len(cols, n_groups)
+      names(palette) <- vals
+    }
+  }
+  return(manual_scale(values = palette, na.value = na.value))
+}
+
 # Generate chunk points
 #
 # @param dsize How big is the data being chunked
@@ -2150,6 +2350,20 @@ CreateDummyAssay <- function(assay) {
     counts = cm,
     check.matrix = FALSE
   ))
+}
+
+#' Divide matrix columns by a list of denominators
+#'
+#' @param x Matrix-like object with one column per identity.
+#' @param denominator Numeric vector of divisors, one per column of \code{x}.
+#'
+#' @return \code{x} with each column divided by its matching denominator.
+#' @noRd
+DivideColumnsByDenomList <- function(x, denominator) {
+  for (i in seq_along(along.with = denominator)) {
+    x[, i] <- x[, i] / denominator[i]
+  }
+  return(x)
 }
 
 # Extract delimiter information from a string.
@@ -2424,6 +2638,44 @@ OldParamHints <- function(param) {
   return(param.conversion[param])
 }
 
+
+
+# Restore previous seed when needed in `RunLeiden`
+#
+# @param seed old seed
+#
+# @author Benjamin Parks
+# @references from BPCells package
+# https://github.com/bnprks/BPCells/blob/f2026c3509f5e2542f7624bdaf75669d5d45d78b/r/R/utils.R#L18
+#
+
+restore_seed <- function(seed) {
+  if (is.null(seed)) {
+    rm(".Random.seed", envir = globalenv(), inherits = FALSE)
+  } else {
+    assign(".Random.seed", seed, envir = globalenv(), inherits = FALSE)
+  }
+}
+
+
+# Get current seed when needed in `RunLeiden`
+#
+# @param seed current seed
+#
+# @author Benjamin Parks
+# @references from BPCells package
+# https://github.com/bnprks/BPCells/blob/f2026c3509f5e2542f7624bdaf75669d5d45d78b/r/R/utils.R#L10
+#
+
+get_seed <- function() {
+  if (exists(".Random.seed", globalenv(), mode = "integer", inherits = FALSE)) {
+    return(get(".Random.seed", globalenv(), mode = "integer", inherits = FALSE))
+  } else {
+    return(NULL)
+  }
+}
+
+
 # Check if a web resource is available
 #
 # @param url A URL
@@ -2475,12 +2727,21 @@ Online <- function(url, strict = FALSE, seconds = 5L) {
 # Parenting(parent.find = 'Seurat', features = features[features > 7])
 #
 Parenting <- function(parent.find = 'Seurat', ...) {
-  calls <- as.character(x = sys.calls())
-  calls <- lapply(
-    X = strsplit(x = calls, split = '(', fixed = TRUE),
-    FUN = '[',
-    1
-  )
+  # Extract function names from call stack without serializing entire objects
+  # This avoids the performance issue when large objects are passed via do.call
+  calls <- vapply(sys.calls(), function(call) {
+    if (is.call(call) && length(call) > 0) {
+      # Get just the function name, not the full call with arguments
+      func <- call[[1]]
+      if (is.name(func)) {
+        return(as.character(func))
+      } else if (is.call(func)) {
+        # Handle cases like pkg::function - use deparse1 to preserve format
+        return(deparse1(func))
+      }
+    }
+    return("")
+  }, character(1))
   parent.index <- grep(pattern = parent.find, x = calls)
   if (length(x = parent.index) != 1) {
     warning(
@@ -2904,7 +3165,7 @@ CreateCategoryMatrix <- function(
 #' Construct an assay for spatial niche analysis
 #'
 #' This function will construct a new assay where each feature is a
-#' cell label The values represents the sum of a particular cell label
+#' cell label. The values represent the sum of a particular cell label
 #' neighboring a given cell.
 #'
 #' @param object A Seurat object
@@ -2913,7 +3174,8 @@ CreateCategoryMatrix <- function(
 #' @param assay Name for spatial neighborhoods assay
 #' @param cluster.name Name of output clusters
 #' @param neighbors.k Number of neighbors to consider for each cell
-#' @param niches.k Number of clusters to return based on the niche assay
+#' @param niches.k Number of niche clusters to construct
+#' @param ... Extra parameters passed to \code{\link{kmeans}}
 #'
 #' @importFrom stats kmeans
 #' @return Seurat object containing a new assay
@@ -2927,7 +3189,8 @@ BuildNicheAssay <- function(
   assay = "niche",
   cluster.name = "niches",
   neighbors.k = 20,
-  niches.k = 4
+  niches.k = 4,
+  ...
 ) {
   # initialize an empty cells x groups binary matrix
   cells <- Cells(object[[fov]])
@@ -2940,7 +3203,7 @@ BuildNicheAssay <- function(
   )
   rownames(cell.type.mtx) <- cells
   colnames(cell.type.mtx) <- groups
-  # populate the binary matrix 
+  # populate the binary matrix
   cells.idx <- seq_along(cells)
   group.idx <- match(group.labels, groups)
   cell.type.mtx[cbind(cells.idx, group.idx)] <- 1
@@ -2962,9 +3225,65 @@ BuildNicheAssay <- function(
   results <- kmeans(
     x = t(object[[assay]]@scale.data),
     centers = niches.k,
-    nstart = 30
+    nstart = 30,
+    ...
   )
   object[[cluster.name]] <- results[["cluster"]]
 
   return(object)
+}
+
+#' Set the number of threads to use for parallel processing in Seurat
+#'
+#' @param n Number of threads (>= 1) to use for processing. If NULL, will be set to (available cores / 2).
+#' @param verbose Whether to print the number of threads set and available cores to the console
+#'
+#' @details The default is one thread. Calling \code{setThreads()} without
+#' specifying \code{n} selects half the available cores. This setting 
+#' applies to supported C++ kernels in \code{NormalizeData},
+#' \code{FindVariableFeatures}, \code{ScaleData}, \code{SCTransform},
+#' \code{RunPCA}, \code{FindNeighbors}, \code{FindClusters}, and 
+#' CCA/RPCA integration. \code{RunUMAP} also passes this setting to the 
+#' \pkg{uwot} backend. Support depends on the input type, backend, and arguments; 
+#' not every stage of these functions can be run in parallel.
+#'
+#' Note that this thread setting is separate from \code{\link[future]{plan}}.
+#'
+#' @seealso \code{\link{getThreads}}
+#' 
+#' @concept utilities
+#' 
+#' @importFrom future availableCores
+#' @export
+setThreads <- function(n = NULL, verbose = TRUE) {
+  ncores <- future::availableCores()
+  if (is.null(n)) {
+    if (is.na(x = ncores)) {
+      warning("Could not detect number of cores, defaulting to 1 thread")
+      ncores <- 1L
+    }
+    n <- max(1L, as.integer(ncores / 2))
+  } else {
+    stopifnot("Number of threads must be a positive integer" = (length(n) == 1 && is.numeric(n) && n >= 1))
+  }
+  options(Seurat.nthreads = n)
+  if (verbose) {
+    message("Seurat threads set to ", n, " (", ncores, " available cores detected)")
+  }
+}
+
+#' Get the number of threads being used for parallel processing in Seurat
+#'
+#' @param verbose Whether to print the number of threads set and available cores to the console
+#' @return The number of threads currently set for processing
+#' 
+#' @concept utilities
+#' @export
+getThreads <- function(verbose = TRUE) {
+  n <- getOption("Seurat.nthreads")
+  if (verbose) {
+    message("Seurat threads: ", n)
+    message("Number of available cores detected: ", future::availableCores(), "\n")
+  }
+  return(n)
 }

@@ -93,7 +93,7 @@ prop.table(table(Idents(pbmc), pbmc$replicate), margin = 2)
 WhichCells(pbmc, idents = "NK")
 
 # How can I extract expression matrix for all NK cells (perhaps, to load into another package)
-nk.raw.data <- as.matrix(GetAssayData(pbmc, slot = 'counts')[, WhichCells(pbmc, ident = "NK")])
+nk.raw.data <- as.matrix(GetAssayData(pbmc, layer = 'counts')[, WhichCells(pbmc, ident = "NK")])
 
 # Can I create a Seurat object based on expression of a feature or value in object metadata?
 subset(pbmc, subset = MS4A1 > 1)

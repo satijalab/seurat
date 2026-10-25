@@ -2,8 +2,10 @@
 #' @importFrom methods slot slot<-
 #' @importFrom lifecycle deprecated deprecate_soft deprecate_stop
 #' deprecate_warn is_present
-#' @importFrom rlang !!!
+#' @importFrom rlang !!! .data
 #' abort
+#' data_sym
+#' data_syms
 #' arg_match
 #' arg_match0
 #' as_name
@@ -42,6 +44,8 @@ NULL
 #'   Moran's I function available via the Rfast2 package}}
 #'   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
 #'   default behavior of split/multi violin plots}
+#'   \item{\code{Seurat.warn.findmarkers.bpcells.colmajor}}{Show message about improving
+#'   memory usage when running FindMarkers with a column-major ordered BPCells IterableMatrix.}
 #' }
 #'
 #' @docType package
@@ -56,10 +60,11 @@ NULL
 
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
-  Seurat.warn.umap.uwot = TRUE,
+  Seurat.nthreads = 1L,
   Seurat.checkdots = "warn",
   Seurat.presto.wilcox.msg = TRUE, #CHANGE
   Seurat.Rfast2.msg = TRUE,
+  Seurat.warn.findmarkers.bpcells.colmajor = TRUE,
   Seurat.warn.vlnplot.split = TRUE,
   Seurat.object.assay.version = "v5"
 )
@@ -89,6 +94,9 @@ AttachDeps <- function(deps) {
 #'
 .onAttach <- function(libname, pkgname) {
   AttachDeps(deps = c('SeuratObject'))
+  packageStartupMessage(
+    "v5.6 adds significant improvements in speed and efficiency, particularly for large datasets.\nFor more information, see https://satijalab.org/seurat/articles/announcements.\n"
+  )
   return(invisible(x = NULL))
 }
 

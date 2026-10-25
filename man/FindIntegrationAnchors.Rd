@@ -22,6 +22,7 @@ FindIntegrationAnchors(
   nn.method = "annoy",
   n.trees = 50,
   eps = 0,
+  svd.method = NULL,
   verbose = TRUE
 )
 }
@@ -89,6 +90,13 @@ annoy}
 nearest neighbor search}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from RANN/Annoy)}
+
+\item{svd.method}{SVD backend to use when \code{reduction = "cca"}.
+If \code{NULL}, defaults to \code{"irlba"} except for pairs of dense CCA
+input matrices whose cell-by-cell cross-product matrix has at least
+1,000,000 entries, in which case it defaults to \code{"rspectra"}.
+\code{"irlba"} uses an explicit cross-product CCA path; \code{"rspectra"}
+uses an implicit operator to avoid forming the cross-product matrix.}
 
 \item{verbose}{Print progress bars and output}
 }

@@ -220,8 +220,8 @@ HTODemux <- function(
   counts <- GetAssayData(
     object = object,
     assay = assay,
-    slot = 'counts'
-  )[, colnames(x = object)]
+    layer = 'counts'
+  )
   counts <- as.matrix(x = counts)
   ncenters <- init %||% (nrow(x = data) + 1)
   switch(
@@ -265,7 +265,7 @@ HTODemux <- function(
   discrete[discrete > 0] <- 0
   # for each HTO, we will use the minimum cluster for fitting
   for (iter in rownames(x = data)) {
-    values <- counts[iter, colnames(object)]
+    values <- counts[iter, ]
     #commented out if we take all but the top cluster as background
     #values_negative=values[setdiff(object@cell.names,WhichCells(object,which.max(average.expression[iter,])))]
     values.use <- values[WhichCells(
@@ -445,9 +445,10 @@ GetResidual <- function(
     new.residuals <- lapply(
       X = sct.models,
       FUN = function(x) {
-        FetchResidualSCTModel(object = object,
-                              assay = assay,
-                              umi.assay = umi.assay,
+        model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[x]])
+        FetchResidualSCTModel(object = object[[assay]],
+                              umi.object = object[[umi.assay]],
+                              layer.cells = model.cells,
                               SCTModel = x,
                               new_features = features,
                               replace.value = replace.value,
@@ -456,7 +457,7 @@ GetResidual <- function(
       }
     )
   }
-  existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
+  existing.data <- GetAssayData(object = object, layer = 'scale.data', assay = assay)
   all.features <- union(x = rownames(x = existing.data), y = features)
    new.scale <- matrix(
     data = NA,
@@ -479,7 +480,7 @@ GetResidual <- function(
   object <- SetAssayData(
     object = object,
     assay = assay,
-    slot = "scale.data",
+    layer = "scale.data",
     new.data = new.scale
   )
   if (any(!features.orig %in% rownames(x = new.scale))) {
@@ -498,19 +499,26 @@ GetResidual <- function(
 #' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
-#' @param bin.size Specifies the bin sizes to read in - defaults to c(16, 8)
+#' @param bin.size Specifies the bin sizes to read in, can include "polygons" to load segmentations. Defaults to c(16, 8)
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
 #' @param image \code{VisiumV1}/\code{VisiumV2} instance(s) - if a vector is
 #' passed in it should be co-indexed with \code{`bin.size`}
+#' @param segmentation.type Which segmentations to load (cell or nucleus) when bin.size includes "polygons".
+#' Defaults to "cell".
+#' @param compact Whether to store segmentations in \emph{only} the \code{sf.data} slot
+#' in the corresponding Segmentation object (default TRUE) to save memory and processing time.
+#' If FALSE, segmentations are also stored in \code{\link[sp]{sp}} format in addition to the \code{sf.data} slot.
+#' @param image.name Name of the tissue image to be plotted. Defaults to tissue_lowres_image.png
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
 #'
 #' @importFrom png readPNG
 #' @importFrom jsonlite fromJSON
+#' @importFrom SeuratObject DefaultBoundary<-
 #'
 #' @export
 #' @concept preprocessing
@@ -522,6 +530,7 @@ GetResidual <- function(
 #' Load10X_Spatial(data.dir = data_dir)
 #' }
 #'
+
 Load10X_Spatial <- function (
   data.dir,
   filename = "filtered_feature_bc_matrix.h5",
@@ -531,6 +540,9 @@ Load10X_Spatial <- function (
   filter.matrix = TRUE,
   to.upper = FALSE,
   image = NULL,
+  image.name = "tissue_lowres_image.png",
+  segmentation.type = NULL,
+  compact = TRUE,
   ...
 ) {
   # if more than one directory is passed in
@@ -540,7 +552,7 @@ Load10X_Spatial <- function (
     # but also raise a warning
     warning(
       paste0(
-        "`data.dir` expects a single value but recieved multiple - ",
+        "data.dir expects a single value but received multiple - ",
         "continuing using the first: '",
         data.dir,
         "'."
@@ -554,17 +566,34 @@ Load10X_Spatial <- function (
     stop(paste0("No such file or directory: ", "'", data.dir, "'"))
   }
 
-  # if `bin.size` is not set but `data.dir` points to a folder with binned data
+  # if bin.size is not set but data.dir points to a folder with binned data
   if (is.null(bin.size) & file.exists(paste0(data.dir, "/binned_outputs"))) {
-    # point `bin.size` to the "standard" set - i.e. everything in the default
-    # output except the 8 um binning because it's a memory hog
+    # point bin.size to the "standard" set - i.e. everything in the default
+    # output except the 2 um binning because it's a memory hog
     bin.size <- c(16, 8)
   }
-  # if `bin.size` is specified
-  if(!is.null(bin.size)) {
-    # convert `bin.size` to a character vector and pad values to three digits
-    bin.size.pretty <- paste0(sprintf("%03d", bin.size), "um")
-    # point `data.dirs` to the specified binnings
+
+  # Seurat object to return
+  object <- NULL
+
+  bin.size.numeric <- bin.size
+
+  if (!is.null(bin.size)) {
+    # Store numeric bin sizes - these are used to load binned outputs
+    bin.size.numeric <- as.numeric(bin.size[bin.size != "polygons"])
+  }
+
+  # Set flag to indicate if segmentations should be loaded
+  load.segmentations <- length(bin.size.numeric) != length(bin.size)
+
+  # read h5 files if bin.size is NULL (occurs when no /binned_outputs directory exists) or if bin.size contains numeric values
+  load.binned.outputs <- is.null(bin.size) || (!is.null(bin.size.numeric) && length(bin.size.numeric) > 0)
+
+  # If bin.size is specified and binned outputs need to be loaded
+  if(!is.null(bin.size.numeric) && length(bin.size.numeric) > 0) {
+    # convert bin.size to a character vector and pad values to three digits
+    bin.size.pretty <- paste0(sprintf("%03d", bin.size.numeric), "um")
+    # point data.dirs to the specified binnings
     data.dirs <- paste0(
       data.dir,
       "/binned_outputs/",
@@ -582,67 +611,151 @@ Load10X_Spatial <- function (
     slice.names <- slice
   }
 
-  # read in counts matrices from specified h5 files
-  counts.paths <- lapply(data.dirs, file.path, filename)
-  counts.list <- lapply(counts.paths, Read10X_h5, ...)
-  # maybe convert Cell identifiers to uppercase
-  if (to.upper) {
-    rownames(counts) <- lapply(rownames(counts), toupper)
-  }
+  # read the h5 files in the top-level / binned output directory
+  if(load.binned.outputs) {
+    # read in counts matrices from specified h5 files
+    counts.paths <- lapply(data.dirs, file.path, filename)
+    counts.list <- lapply(counts.paths, Read10X_h5, ...)
+    # maybe convert Cell identifiers to uppercase
+    if (to.upper) {
+      rownames(counts) <- lapply(rownames(counts), toupper)
+    }
 
-  if (is.null(image)) {
-    # read in the corresponding images and coordinate mappings
-    image.list <- mapply(
-      Read10X_Image,
-      file.path(data.dirs, "spatial"),
-      assay = assay.names,
-      slice = slice.names,
-      MoreArgs = list(filter.matrix = filter.matrix)
-    )
-  } else {
-    # make sure any passed images are in a vector
-    image.list <- c(image)
-  }
-
-  # check that for each counts matrix there is a corresponding image
-  if (length(image.list) != length(counts.list)) {
-    stop(
-      paste0(
-        "The number of images does not match the number of counts matrices. ",
-        "Ensure each spatial dataset has a corresponding image."
+    if (is.null(image)) {
+      # read in the corresponding images and coordinate mappings
+      image.list <- mapply(
+        Read10X_Image,
+        file.path(data.dirs, "spatial"),
+        assay = assay.names,
+        slice = slice.names,
+        image.name = image.name,
+        MoreArgs = list(filter.matrix = filter.matrix)
       )
+    } else {
+      # make sure any passed images are in a vector
+      image.list <- c(image)
+    }
+
+    # check that for each counts matrix there is a corresponding image
+    if (length(image.list) != length(counts.list)) {
+      stop(
+        paste0(
+          "The number of images does not match the number of counts matrices. ",
+          "Ensure each spatial dataset has a corresponding image."
+        )
+      )
+    }
+
+    # for each counts matrix, build a Seurat object
+    object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
+    # associate each counts matrix with its corresponding image
+    object.list <- mapply(
+      function(
+        .object,
+        .image,
+        .assay,
+        .slice
+      ) {
+        # align the image's identifiers with the object's
+        .image <- .image[Cells(.object)]
+        # add the image to the corresponding Seurat instance
+        .object[[.slice]] <- .image
+        return (.object)
+      },
+      object.list,
+      image.list,
+      assay.names,
+      slice.names
+    )
+    # merge the Seurat instances - each assay should have unique Cell identifiers
+    object <- merge(
+      object.list[[1]],
+      y = object.list[-1]
     )
   }
 
-  # for each counts matrix, build a Seurat object
-  object.list <- mapply(CreateSeuratObject, counts.list, assay = assay.names)
-  # associate each counts matrix with its corresponding image
-  object.list <- mapply(
-    function(
-      .object,
-      .image,
-      .assay,
-      .slice
-    ) {
-	    # align the image's identifiers with the object's
-	    .image <- .image[Cells(.object)]
-      # add the image to the corresponding Seurat instance
-      .object[[.slice]] <- .image
-      return (.object)
-    },
-    object.list,
-    image.list,
-    assay.names,
-    slice.names
-  )
-  # merge the Seurat instances - each assay should have unique Cell identifiers
-  object <- merge(
-    object.list[[1]],
-    y = object.list[-1]
-  )
+  # read segmentation data if requested
+  if (load.segmentations) {
+    # Check for required packages, stop with clear message if missing
+    if (!requireNamespace("sf", quietly = TRUE)) {
+      stop("The 'sf' package must be installed to load segmentation data.")
+    }
+
+    segmentation.assay.name <- paste0(assay, ".Polygons")
+    seg.data.dir <- file.path(data.dir, "segmented_outputs")
+
+    # Check for different possible file formats/names
+    possible.files <- c(
+      "filtered_feature_cell_matrix.h5",
+      "filtered_feature_bc_matrix.h5",
+      "raw_feature_bc_matrix.h5"
+    )
+
+    seg.counts.path <- NULL
+    for (pf in possible.files) {
+      test.path <- file.path(seg.data.dir, pf)
+      if (file.exists(test.path)) {
+        seg.counts.path <- test.path
+        break
+      }
+    }
+
+    if (is.null(seg.counts.path)) {
+      stop("No cell segmentation matrix found. Looked for: ", paste(possible.files, collapse = ", "))
+    }
+
+    # Read raw counts matrix
+    segmentation.counts <- Read10X_h5(seg.counts.path, ...)
+
+    # Holds barcode names
+    segmentation.counts.cell.ids <- colnames(segmentation.counts)
+
+    # Check segmentation type
+    if (is.null(segmentation.type)) {
+      segmentation.type <- "cell"
+    } else if (length(segmentation.type) != 1 || !(segmentation.type %in% c("cell", "nucleus"))) {
+      stop("segmentation.type must be either 'cell' or 'nucleus'")
+    }
+
+    # Read the Visium (V2) object with segmentations loaded
+    visium.segmentation <- Read10X_Segmentations(
+      image.dir = file.path(seg.data.dir, "spatial"),
+      data.dir = data.dir,
+      image.name = image.name,
+      segmentation.type = segmentation.type,
+      compact = compact
+    )
+
+    # Create a new Seurat object with the raw counts
+    segmentation.object <- CreateSeuratObject(
+      segmentation.counts,
+      assay = segmentation.assay.name
+    )
+
+    common_cells <- unique(Cells(visium.segmentation)[Cells(visium.segmentation) %in% Cells(segmentation.object)])
+    visium.segmentation <- subset(
+      x = visium.segmentation,
+      cells = common_cells
+    )
+
+    # Set the default boundary type to centroids for plotting
+    DefaultBoundary(object = visium.segmentation) <- "centroids"
+
+    # Add the Visium object with segmentations to the Seurat object holding counts
+    segmentation.object[[paste0(slice, ".polygons")]] <- visium.segmentation
+
+    # Merge segmented outputs into the object containing binned outputs, if it exists
+    if (!is.null(object)) {
+      object <- merge(x = object, y = segmentation.object)
+    } else {
+      object <- segmentation.object
+    }
+    DefaultAssay(object = object) <- segmentation.assay.name
+  }
 
   return(object)
 }
+
 
 
 #' Read10x Probe Metadata
@@ -661,7 +774,7 @@ Read10X_probe_metadata <- function(
   data.dir,
   filename = 'raw_probe_bc_matrix.h5'
 ) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   file.path = paste0(data.dir,"/", filename)
@@ -869,7 +982,7 @@ MULTIseqDemux <- function(
   assay <- assay %||% DefaultAssay(object = object)
   multi_data_norm <- t(x = GetAssayData(
     object = object,
-    slot = "data",
+    layer = "data",
     assay = assay
   ))
   if (autoThresh) {
@@ -1075,6 +1188,11 @@ Read10X <- function(
     if (ncol(x = feature.names) > 2) {
       data_types <- factor(x = feature.names$V3)
       lvls <- levels(x = data_types)
+      if ("Protein Expression" %in% lvls) {
+        message("Xenium protein expression detected, but no scaling factor",
+                " is supplied with the MEX matrices (vs HDF5). The loaded",
+                " matrix is scaled by a constant from the original values.")
+      }
       if (length(x = lvls) > 1 && length(x = full.data) == 0) {
         message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
       }
@@ -1128,7 +1246,7 @@ Read10X <- function(
 #' @concept preprocessing
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('hdf5r', quietly = TRUE))) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
@@ -1158,6 +1276,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     shp <- infile[[paste0(genome, '/shape')]]
     features <- infile[[paste0(genome, '/', feature_slot)]][]
     barcodes <- infile[[paste0(genome, '/barcodes')]]
+
     sparse.mat <- sparseMatrix(
       i = indices[] + 1,
       p = indptr[],
@@ -1189,6 +1308,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
           simplify = FALSE,
           USE.NAMES = TRUE
         )
+
+        # Apply scaling factor that was used when serializing.
+        if ("Protein Expression" %in% types.unique) {
+          if ("protein_scaling_factor" %in% hdf5r::h5attr_names(infile)) {
+            apply_scaling_factor <- 1.0 / hdf5r::h5attr(infile, "protein_scaling_factor")
+            message("Scaling 'Protein Expression' by ", apply_scaling_factor)
+            sparse.mat[["Protein Expression"]] <- sparse.mat[["Protein Expression"]] * apply_scaling_factor
+          }
+        }
       }
     }
     output[[genome]] <- sparse.mat
@@ -1232,12 +1360,18 @@ Read10X_Image <- function(
   image.type <- match.arg(image.type, choices = c("VisiumV1", "VisiumV2"))
 
   # Read in the H&E stain image.
-  image <- png::readPNG(
-    source = file.path(
-      image.dir,
-      image.name
-    )
-  )
+  primary.path <- file.path(image.dir, image.name)
+  fallback.path <- file.path(dirname(dirname(dirname(image.dir))), "spatial", image.name)
+
+  image <- tryCatch({
+    png::readPNG(primary.path)
+  }, error = function(e) {
+    if (file.exists(fallback.path)) {
+      png::readPNG(fallback.path)
+    } else {
+      stop("Neither primary nor fallback image could be read:\n", primary.path, "\n", fallback.path)
+    }
+  })
 
   # Read in the scale factors.
   scale.factors <- Read10X_ScaleFactors(
@@ -1264,8 +1398,8 @@ Read10X_Image <- function(
       image = image
     )
 
-    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the 
-    # `spot.radius` slot and instead calculates the value on the fly, but we 
+    # As of v5.1.0 `Radius.VisiumV1` no longer returns the value of the
+    # `spot.radius` slot and instead calculates the value on the fly, but we
     # can populate the static slot in case it's depended on.
     visium.v1@spot.radius <- Radius(visium.v1)
 
@@ -1277,15 +1411,22 @@ Read10X_Image <- function(
 
   # Create an `sp` compatible `FOV` instance.
   fov <- CreateFOV(
-    coordinates[, c("imagerow", "imagecol")],
+    coordinates[, c("imagecol", "imagerow")],
     type = "centroids",
     radius = scale.factors[["spot"]],
     assay = assay,
     key = key
   )
 
-  # Build the final `VisiumV2` instance, essentially just adding `image` and
-  # `scale.factors` to the `fov`.
+  #### NOTE ####
+  # The Visium coordinate system takes the origin to be in the top-left corner,
+  # where the x-axis is horizontal and associated with the image column.
+  # We mark this with the coords_x_orientation flag.
+  # Older Visium objects in Seurat have a different system (x-axis vertical, etc),
+  # which is updated after checking whether the flag is set (SeuratObject::UpdateSeuratObject).
+  ###############
+
+  # Build the final `VisiumV2` instance
   visium.v2 <- new(
     Class = "VisiumV2",
     boundaries = fov@boundaries,
@@ -1293,7 +1434,8 @@ Read10X_Image <- function(
     assay = fov@assay,
     key = fov@key,
     image = image,
-    scale.factors = scale.factors
+    scale.factors = scale.factors,
+    coords_x_orientation = "horizontal"
   )
 
   return(visium.v2)
@@ -1317,7 +1459,7 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
   # if the coordinate mappings are in a parquet file
   if (tools::file_ext(filename) == "parquet") {
     # `arrow` must be installed to read parquet files
-    if (!requireNamespace("arrow", quietly = TRUE)) {
+    if (isFALSE(x = requireNamespace('arrow', quietly = TRUE))) {
       stop("Please install arrow to read parquet files")
     }
 
@@ -1391,6 +1533,116 @@ Read10X_ScaleFactors <- function(filename) {
   return (scale.factors)
 }
 
+#' Load 10X Genomics Visium Cell Segmentations
+#'
+#' @param image.dir Path to directory with 10X Genomics visium image data;
+#' @param data.dir Directory of the base spaceranger outs
+#' @param image.name Name of the tissue image to be plotted. tissue_lowres_image.png or tissue_hires_image.png
+#' @param assay Name of assay to associate segmentations to
+#' @param slice Name of the slice to associate the segmentations to
+#' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
+#' @param compact Whether to store segmentations in only the \code{sf.data} slot; see \code{\link{Load10X_Spatial}} for details
+#'
+#'
+#' @return A VisiumV2 object with segmentations
+#'
+#' @export
+#' @concept preprocessing
+#'
+Read10X_Segmentations <- function (image.dir,
+                                   data.dir,
+                                   image.name = "tissue_lowres_image.png",
+                                   assay = "Spatial.Polygons",
+                                   slice = "slice1.polygons",
+                                   segmentation.type = "cell",
+                                   compact = TRUE) {
+
+
+  sf.obj <- Read10X_HD_GeoJson(data.dir = data.dir,
+                                segmentation.type = segmentation.type)
+
+  # Create a Segmentation object; populate it based on the coordinates from the sf object
+  segmentations <- CreateSegmentation(sf.obj, compact = compact)
+
+  # Create a Centroids object; populate it based on the centroids from the sf object
+  centroids <- CreateCentroids(sf.obj,
+                              nsides = Inf,
+                              radius = NULL,
+                              theta = 0)
+
+  # Named list with segmentations and centroids
+  boundaries <- list(segmentations = segmentations, centroids = centroids)
+
+  # Get image, scale factors, key
+  image <- png::readPNG(source = file.path(image.dir, image.name))
+  scale.factors <- Read10X_ScaleFactors(filename = file.path(image.dir,
+                                                             "scalefactors_json.json"))
+  key <- Key(slice, quiet = TRUE)
+
+  # Build VisiumV2 object
+  visium.v2 <- new(
+    Class = "VisiumV2",
+    boundaries = boundaries,
+    assay = assay,
+    key = key,
+    image = image,
+    scale.factors = scale.factors,
+    coords_x_orientation = "horizontal"
+  )
+
+  return(visium.v2)
+}
+
+#' Format 10X Genomics GeoJson cell IDs
+#'
+#' @param ids Vector of cell IDs to format
+#' @param prefix Optional prefix string
+#' @param suffix Optional suffix string
+#' @param digits Number of digits to zero-pad
+#'
+#' A helper function to format cell IDs from the segmentation GeoJson to the same type as in the matrix.h5
+#' The GeoJson has cell IDs as integers (eg 1). They need to be in the format cellid_000000001-1
+#'
+#' @return Vector of formatted cell IDs
+Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", digits = 9) {
+  format_string <- paste0("%0", as.integer(digits), "d")
+
+  formatted_ids <- sapply(ids, function(id) {
+    numeric_part <- sprintf(format_string, as.integer(id))
+    paste0(prefix, numeric_part, suffix)
+  })
+
+  return(formatted_ids)
+}
+
+#' Load 10X Genomics GeoJson
+#'
+#' @param data.dir Path to the directory containing matrix data
+#' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
+#'
+#' @return An \code{sf} object containing polygon segmentations from the GeoJSON provided by 10x, formatted for downstream coordinate retrieval
+#'
+#' @export
+#' @concept preprocessing
+#'
+Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
+  segmentation_polygons <- sf::read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
+
+  # Restructure sf geometry for downstream compatibility
+  segmentation_polygons$geometry <- sf::st_sfc(lapply(
+    segmentation_polygons$geometry,
+    function(geom) {
+      coords <- geom[[1]]
+      sf::st_polygon(list(coords))
+    }
+  ), crs = sf::st_crs(NA))
+
+  segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
+  segmentation_polygons
+}
+
+
+
 #' Read and Load Akoya CODEX data
 #'
 #' @param filename Path to matrix generated by upstream processing.
@@ -1438,7 +1690,7 @@ ReadAkoya <- function(
   filter = 'DAPI|Blank|Empty',
   inform.quant = c('mean', 'total', 'min', 'max', 'std')
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
   # Check arguments
@@ -2011,7 +2263,7 @@ ReadNanostring <- function(
   subset.counts.matrix = NULL,
   cell.mols.only = TRUE
 ) {
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
 
@@ -2431,16 +2683,27 @@ ReadXenium <- function(
           if(!inherits(cell_seg, "try-error")) { break }
         }
 
-        if(!exists('cell_seg') || inherits(cell_seg, "try-error") || length(intersect(names(col.use), colnames(cell_seg))) != 2) {
-          warning('cells did not contain a segmentation_method column. Skipping...', call. = FALSE, immediate. = TRUE)
+        if (!exists("cell_seg") || inherits(cell_seg, "try-error")) {
+          warning("cells did not contain a segmentation_method column. Skipping...", call. = FALSE, immediate. = TRUE)
           NULL
         } else {
-          cell_seg <- cell_seg[, names(col.use)]
-          colnames(cell_seg) <- col.use
+          #Attempt to add default segmentation_method if nuclei/cell boundary files are provided
+          message("Cell_seg columns: ", paste(colnames(cell_seg), collapse = ", "))
+          if (!"segmentation_method" %in% colnames(cell_seg)) {
+            message("Adding default segmentation_method = 'cell'")
+            cell_seg$segmentation_method <- "cell"
+          }
 
+          #Try to detect unique cell identifier
+          if (!"cell_id" %in% colnames(cell_seg)) {
+            stop("Missing required column: cell_id")
+          }
+
+          cell_seg <- cell_seg[, c("cell_id", "segmentation_method")]
+          colnames(cell_seg) <- c("cell", "segmentation_method")
           cell_seg$cell <- binary_to_string(cell_seg$cell)
 
-          psegs(type = 'finish')
+          psegs(type = "finish")
 
           data.frame(segmentation_method = cell_seg$segmentation_method, row.names = cell_seg$cell)
         }
@@ -2640,6 +2903,1801 @@ ReadXenium <- function(
   return(data)
 }
 
+#' Check that the packages required to read Atera outputs are installed
+#'
+#' @keywords internal
+#' @noRd
+.AteraCheckDeps <- function() {
+  pkgs <- c('blosc', 'jsonlite', 'data.table')
+  have <- vapply(X = pkgs, FUN = requireNamespace, FUN.VALUE = logical(1), quietly = TRUE)
+  if (!all(have)) {
+    stop(
+      "Reading Atera outputs requires the following package(s): ",
+      paste(pkgs[!have], collapse = ', '),
+      call. = FALSE
+    )
+  }
+}
+
+#' @keywords internal
+#' @noRd
+.AteraLeU16 <- function(raw, pos) {
+  as.integer(raw[pos]) + as.integer(raw[pos + 1L]) * 256L
+}
+
+#' Widen a little-endian 4-byte field to a double, avoiding 32-bit signed
+#' integer overflow (zip offsets/sizes routinely exceed 2^31)
+#'
+#' @keywords internal
+#' @noRd
+.AteraLeU32 <- function(raw, pos) {
+  b <- as.integer(raw[pos:(pos + 3L)])
+  b[1] + b[2] * 256 + b[3] * 65536 + b[4] * 16777216
+}
+
+#' @keywords internal
+#' @noRd
+.AteraLeU64 <- function(raw, pos) {
+  b <- as.integer(raw[pos:(pos + 7L)])
+  lo <- b[1] + b[2] * 256 + b[3] * 65536 + b[4] * 16777216
+  hi <- b[5] + b[6] * 256 + b[7] * 65536 + b[8] * 16777216
+  lo + hi * 4294967296
+}
+
+#' Locate the End Of Central Directory record of a zip file, following the
+#' Zip64 EOCD locator/record when the classic EOCD's entry count/size/offset
+#' fields are the \code{0xFFFF}/\code{0xFFFFFFFF} placeholder
+#'
+#' @keywords internal
+#' @noRd
+.AteraZipEOCD <- function(con, file.size) {
+  eocd.sig <- as.raw(c(0x50, 0x4b, 0x05, 0x06))
+  tail.size <- min(file.size, 22L + 65535L)
+  seek(con, where = file.size - tail.size, origin = "start")
+  tail.bytes <- readBin(con, what = "raw", n = tail.size)
+  n <- length(tail.bytes)
+  pos <- NA_integer_
+  for (i in (n - 21L):1L) {
+    if (i < 1L) break
+    if (tail.bytes[i] == eocd.sig[1] && tail.bytes[i + 1L] == eocd.sig[2] &&
+        tail.bytes[i + 2L] == eocd.sig[3] && tail.bytes[i + 3L] == eocd.sig[4]) {
+      pos <- i
+      break
+    }
+  }
+  if (is.na(pos)) {
+    stop("Could not locate End Of Central Directory record; not a valid zip file", call. = FALSE)
+  }
+  n.entries <- .AteraLeU16(tail.bytes, pos + 10L)
+  cd.size <- .AteraLeU32(tail.bytes, pos + 12L)
+  cd.offset <- .AteraLeU32(tail.bytes, pos + 16L)
+
+  is.zip64 <- n.entries == 0xFFFF || cd.size >= 0xFFFFFFFF || cd.offset >= 0xFFFFFFFF
+  if (is.zip64) {
+    # the Zip64 EOCD locator is the fixed-size (20 byte) record immediately
+    # preceding the EOCD record we just found; `pos` is a 1-based index into
+    # tail.bytes, so the 0-based absolute file offset of the signature is
+    # (file.size - tail.size) + pos - 1
+    locator.abs.pos <- (file.size - tail.size) + pos - 21L
+    seek(con, where = locator.abs.pos, origin = "start")
+    locator <- readBin(con, what = "raw", n = 20L)
+    zip64.eocd.offset <- .AteraLeU64(locator, 9L)
+    seek(con, where = zip64.eocd.offset, origin = "start")
+    zip64.eocd <- readBin(con, what = "raw", n = 56L)
+    n.entries <- .AteraLeU64(zip64.eocd, 33L)
+    cd.size <- .AteraLeU64(zip64.eocd, 41L)
+    cd.offset <- .AteraLeU64(zip64.eocd, 49L)
+  }
+  list(n.entries = n.entries, cd.size = cd.size, cd.offset = cd.offset)
+}
+
+#' Parse the central directory of a zip file into a name -> (local header
+#' offset, size) index, entirely in memory (no disk extraction). Atera
+#' zarr.zip archives always store entries uncompressed (zip method
+#' \dQuote{Stored}); the zarr/Blosc layer does all the compression, so this
+#' index is all that's needed to seek directly to any chunk's raw bytes.
+#'
+#' @keywords internal
+#' @noRd
+.AteraZipIndex <- function(zip.file) {
+  file.size <- file.info(zip.file)$size
+  con <- file(zip.file, "rb")
+  on.exit(close(con))
+  eocd <- .AteraZipEOCD(con, file.size)
+
+  seek(con, where = eocd$cd.offset, origin = "start")
+  cd <- readBin(con, what = "raw", n = eocd$cd.size)
+
+  cdfh.sig <- as.raw(c(0x50, 0x4b, 0x01, 0x02))
+  names.out <- character(eocd$n.entries)
+  offsets.out <- numeric(eocd$n.entries)
+  sizes.out <- numeric(eocd$n.entries)
+  methods.out <- integer(eocd$n.entries)
+
+  pos <- 1L
+  i <- 0L
+  cd.len <- length(cd)
+  while (pos <= cd.len - 45L) {
+    if (!(cd[pos] == cdfh.sig[1] && cd[pos + 1L] == cdfh.sig[2] &&
+          cd[pos + 2L] == cdfh.sig[3] && cd[pos + 3L] == cdfh.sig[4])) {
+      break
+    }
+    i <- i + 1L
+    method <- .AteraLeU16(cd, pos + 10L)
+    csize <- .AteraLeU32(cd, pos + 20L)
+    usize <- .AteraLeU32(cd, pos + 24L)
+    fname.len <- .AteraLeU16(cd, pos + 28L)
+    extra.len <- .AteraLeU16(cd, pos + 30L)
+    comment.len <- .AteraLeU16(cd, pos + 32L)
+    lho <- .AteraLeU32(cd, pos + 42L)
+
+    name.start <- pos + 46L
+    name <- rawToChar(cd[name.start:(name.start + fname.len - 1L)])
+
+    if (extra.len > 0L) {
+      extra.start <- name.start + fname.len
+      extra <- cd[extra.start:(extra.start + extra.len - 1L)]
+      # walk extra-field sub-records looking for the Zip64 tag (0x0001);
+      # per the zip spec, only fields that were placeholder-valued in the
+      # fixed header are present here, in order: usize, csize, offset
+      ep <- 1L
+      while (ep <= length(extra) - 3L) {
+        tag <- .AteraLeU16(extra, ep)
+        sz <- .AteraLeU16(extra, ep + 2L)
+        if (tag == 1L) {
+          dp <- ep + 4L
+          if (usize >= 0xFFFFFFFF) { usize <- .AteraLeU64(extra, dp); dp <- dp + 8L }
+          if (csize >= 0xFFFFFFFF) { csize <- .AteraLeU64(extra, dp); dp <- dp + 8L }
+          if (lho >= 0xFFFFFFFF)   { lho   <- .AteraLeU64(extra, dp); dp <- dp + 8L }
+          break
+        }
+        ep <- ep + 4L + sz
+      }
+    }
+
+    names.out[i] <- name
+    offsets.out[i] <- lho
+    sizes.out[i] <- csize
+    methods.out[i] <- method
+
+    pos <- name.start + fname.len + extra.len + comment.len
+  }
+
+  if (i != eocd$n.entries) {
+    names.out <- names.out[seq_len(i)]
+    offsets.out <- offsets.out[seq_len(i)]
+    sizes.out <- sizes.out[seq_len(i)]
+    methods.out <- methods.out[seq_len(i)]
+  }
+  if (any(methods.out != 0L)) {
+    stop("Atera zarr.zip entries are expected to be stored (uncompressed by zip); found a deflated entry", call. = FALSE)
+  }
+
+  list(
+    name = names.out,
+    offset = offsets.out,
+    size = sizes.out,
+    lookup = as.list(setNames(seq_along(names.out), names.out))
+  )
+}
+
+#' Given a local file header offset (from the central directory), compute
+#' the byte offset where the entry's raw data actually begins (skipping the
+#' fixed 30-byte local header plus its variable name/extra fields)
+#'
+#' @keywords internal
+#' @noRd
+.AteraLocalDataOffset <- function(con, local.header.offset) {
+  seek(con, where = local.header.offset, origin = "start")
+  hdr <- readBin(con, what = "raw", n = 30L)
+  fname.len <- .AteraLeU16(hdr, 27L)
+  extra.len <- .AteraLeU16(hdr, 29L)
+  local.header.offset + 30L + fname.len + extra.len
+}
+
+#' Read one zip entry's raw bytes directly into memory (no disk
+#' extraction). \code{zidx} is a \code{.AteraZipIndex()} result; \code{con}
+#' is an open \code{file(zip.file, "rb")} connection. Returns \code{NULL}
+#' if the entry isn't present (eg a missing/all-fill-value zarr chunk).
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadEntryRaw <- function(con, zidx, name) {
+  i <- zidx$lookup[[name]]
+  if (is.null(i)) {
+    return(NULL)
+  }
+  data.offset <- .AteraLocalDataOffset(con, zidx$offset[i])
+  seek(con, where = data.offset, origin = "start")
+  readBin(con, what = "raw", n = zidx$size[i])
+}
+
+#' @keywords internal
+#' @noRd
+.AteraReadJSON <- function(con, zidx, name) {
+  raw <- .AteraReadEntryRaw(con, zidx, name)
+  if (is.null(raw)) {
+    return(NULL)
+  }
+  jsonlite::fromJSON(rawToChar(raw), simplifyVector = TRUE)
+}
+
+#' R storage mode that a given zarr dtype string decodes to via
+#' \code{blosc::blosc_decompress}, used to pre-allocate output vectors
+#' without needing to decompress a chunk first. Note \code{<u4}/\code{<i8}/
+#' \code{<u8} all decode to \code{double}, since R has no native type wide
+#' enough to hold their full range losslessly.
+#'
+#' @keywords internal
+#' @noRd
+.AteraDtypeRType <- function(dtype) {
+  switch(
+    EXPR = dtype,
+    "|i1" = , "|u1" = , "<i2" = , "<u2" = , "<i4" = "integer",
+    "<u4" = , "<i8" = , "<u8" = , "<f2" = , "<f4" = , "<f8" = "double",
+    "|b1" = "logical",
+    stop("Unsupported zarr dtype: ", dtype, call. = FALSE)
+  )
+}
+
+#' Decode one already-Blosc-compressed chunk's raw bytes into a typed R
+#' vector, using the exact zarr dtype string from \code{.zarray} (eg
+#' \code{"<i4"}, \code{"<u4"}, \code{"<f4"}, \code{"|b1"}) so that
+#' \code{blosc}'s self-describing frame header drives decompression
+#'
+#' @keywords internal
+#' @noRd
+.AteraDecodeChunk <- function(raw, dtype, n, fill.value = 0) {
+  if (is.null(raw)) return(rep(fill.value, n))
+  vals <- blosc::blosc_decompress(raw, dtype = dtype)
+  vals[seq_len(n)]
+}
+
+#' Read a zarr v2 array (1-D or 2-D), stored inside a zip archive, directly
+#' into memory with no disk extraction. \code{row.range} (1-based,
+#' inclusive \code{c(start, end)}) restricts which rows (first dimension)
+#' are decoded and returned; only chunks overlapping that range are
+#' read/decompressed, which is what makes gene-restricted transcript reads
+#' cheap. Missing chunks (sparse zarr arrays) are filled with the array's
+#' \code{fill_value}. Set \code{parallel = FALSE} inside tile workers to
+#' decode chunks sequentially without launching nested futures.
+#'
+#' @importFrom future.apply future_lapply
+#' @keywords internal
+#' @noRd
+.AteraReadArray <- function(con, zidx, array.path, row.range = NULL, parallel = TRUE) {
+  apply.chunks <- if (parallel) future_lapply else lapply
+  meta <- .AteraReadJSON(con, zidx, paste0(array.path, "/.zarray"))
+  shape <- meta$shape
+  # Coerced to double (chunk sizes parse as plain R integers, unlike `shape`,
+  # which jsonlite already widens to double once it exceeds 32-bit range):
+  # chunk-index * chunk-size products below can exceed 32-bit range for large
+  # arrays (eg a multi-billion-element sparse matrix's X/data), and R's
+  # native integer arithmetic silently overflows to NA rather than promoting
+  # to double, so at least one operand of every such product must be double
+  chunks <- as.double(meta$chunks)
+  dtype <- meta$dtype
+  order <- if (is.null(meta$order)) "C" else meta$order
+  sep <- if (is.null(meta$dimension_separator)) "." else meta$dimension_separator
+  fill.value <- if (is.null(meta$fill_value)) 0 else meta$fill_value
+  ndim <- length(shape)
+
+  if (ndim == 0L) {
+    raw.chunk <- .AteraReadEntryRaw(con, zidx, paste0(array.path, "/0"))
+    return(.AteraDecodeChunk(raw.chunk, dtype, 1L, fill.value))
+  }
+
+  # Read chunk bytes sequentially through `con` so workers never share or
+  # serialize an open connection. Parallel decoding only touches the
+  # in-memory raw vectors.
+  if (ndim == 1L) {
+    n <- shape[1L]
+    csize <- chunks[1L]
+    if (is.null(row.range)) row.range <- c(1L, n)
+    start <- row.range[1L]; end <- row.range[2L]
+    c.first <- (start - 1L) %/% csize
+    c.last <- (end - 1L) %/% csize
+    chunk.idx <- c.first:c.last
+    raw.chunks <- lapply(chunk.idx, function(ci) {
+      .AteraReadEntryRaw(con, zidx, paste0(array.path, "/", ci))
+    })
+    actual.ns <- vapply(chunk.idx, function(ci) min(csize, n - ci * csize), numeric(1L))
+    decoded <- apply.chunks(seq_along(raw.chunks), function(k) {
+      .AteraDecodeChunk(raw.chunks[[k]], dtype, actual.ns[k], fill.value)
+    })
+    out <- vector(mode = .AteraDtypeRType(dtype), length = end - start + 1L)
+    for (k in seq_along(chunk.idx)) {
+      ci <- chunk.idx[k]
+      row0 <- ci * csize + 1L
+      actual.n <- actual.ns[k]
+      vals <- decoded[[k]]
+      lo <- max(start, row0)
+      hi <- min(end, row0 + actual.n - 1L)
+      if (lo > hi) next
+      out[(lo - start + 1L):(hi - start + 1L)] <- vals[(lo - row0 + 1L):(hi - row0 + 1L)]
+    }
+    return(out)
+  }
+
+  if (ndim == 2L) {
+    nrow <- shape[1L]; ncol <- shape[2L]
+    crow <- chunks[1L]; ccol <- chunks[2L]
+    if (is.null(row.range)) row.range <- c(1L, nrow)
+    start <- row.range[1L]; end <- row.range[2L]
+    n.chunk.cols <- ceiling(ncol / ccol)
+    c.first <- (start - 1L) %/% crow
+    c.last <- (end - 1L) %/% crow
+
+    jobs <- list()
+    for (ri in c.first:c.last) {
+      row0 <- ri * crow + 1L
+      actual.nrow <- min(crow, nrow - ri * crow)
+      lo <- max(start, row0)
+      hi <- min(end, row0 + actual.nrow - 1L)
+      if (lo > hi) next
+      for (ci in seq_len(n.chunk.cols) - 1L) {
+        col0 <- ci * ccol + 1L
+        actual.ncol <- min(ccol, ncol - ci * ccol)
+        key <- paste0(array.path, "/", ri, sep, ci)
+        raw.chunk <- .AteraReadEntryRaw(con, zidx, key)
+        jobs[[length(jobs) + 1L]] <- list(
+          raw = raw.chunk,
+          n = actual.nrow * actual.ncol,
+          nrow = actual.nrow,
+          ncol = actual.ncol,
+          row0 = row0, col0 = col0, lo = lo, hi = hi
+        )
+      }
+    }
+
+    decoded <- apply.chunks(jobs, function(job) {
+      .AteraDecodeChunk(job$raw, dtype, job$n, fill.value)
+    })
+
+    out <- matrix(vector(mode = .AteraDtypeRType(dtype), length = 1L), nrow = end - start + 1L, ncol = ncol)
+    for (k in seq_along(jobs)) {
+      job <- jobs[[k]]
+      vals <- decoded[[k]]
+      chunk.mat <- if (identical(order, "F")) {
+        matrix(vals, nrow = job$nrow, ncol = job$ncol)
+      } else {
+        t(matrix(vals, nrow = job$ncol, ncol = job$nrow))
+      }
+      out[(job$lo - start + 1L):(job$hi - start + 1L), job$col0:(job$col0 + job$ncol - 1L)] <-
+        chunk.mat[(job$lo - job$row0 + 1L):(job$hi - job$row0 + 1L), , drop = FALSE]
+    }
+    return(out)
+  }
+
+  stop("Unsupported array rank: ", ndim, call. = FALSE)
+}
+
+#' Decode a numcodecs VLenUTF8-filtered, already-Blosc-decompressed byte
+#' buffer into a character vector: a \code{u32} count \code{N}, followed by
+#' \code{N} \code{(u32 len, len raw utf8 bytes)} records, with no padding
+#'
+#' @keywords internal
+#' @noRd
+.AteraDecodeVlenUtf8 <- function(raw.bytes) {
+  n <- as.integer(raw.bytes[1L]) + as.integer(raw.bytes[2L]) * 256L +
+    as.integer(raw.bytes[3L]) * 65536L + as.integer(raw.bytes[4L]) * 16777216L
+  strs <- character(n)
+  pos <- 5L
+  for (i in seq_len(n)) {
+    len <- as.integer(raw.bytes[pos]) + as.integer(raw.bytes[pos + 1L]) * 256L +
+      as.integer(raw.bytes[pos + 2L]) * 65536L + as.integer(raw.bytes[pos + 3L]) * 16777216L
+    pos <- pos + 4L
+    strs[i] <- rawToChar(raw.bytes[pos:(pos + len - 1L)])
+    pos <- pos + len
+  }
+  strs
+}
+
+#' Read a \code{|O} (vlen-utf8) 1-D string array, chunk by chunk
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadStringArray <- function(con, zidx, array.path) {
+  meta <- .AteraReadJSON(con, zidx, paste0(array.path, "/.zarray"))
+  n <- meta$shape[1L]
+  csize <- meta$chunks[1L]
+  n.chunks <- ceiling(n / csize)
+  parts <- vector("list", n.chunks)
+  for (ci in seq_len(n.chunks) - 1L) {
+    key <- paste0(array.path, "/", ci)
+    raw.chunk <- .AteraReadEntryRaw(con, zidx, key)
+    dec <- blosc::blosc_decompress(raw.chunk)
+    parts[[ci + 1L]] <- .AteraDecodeVlenUtf8(dec)
+  }
+  unlist(parts, use.names = FALSE)
+}
+
+#' Read an AnnData-style categorical column (a subgroup containing
+#' \code{categories} and \code{codes} arrays) into an R factor
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadCategorical <- function(con, zidx, group.path) {
+  cat.meta <- .AteraReadJSON(con, zidx, paste0(group.path, "/categories/.zarray"))
+  categories <- if (identical(cat.meta$dtype, "|O")) {
+    .AteraReadStringArray(con, zidx, paste0(group.path, "/categories"))
+  } else {
+    .AteraReadArray(con, zidx, paste0(group.path, "/categories"))
+  }
+  codes <- .AteraReadArray(con, zidx, paste0(group.path, "/codes"))
+  values <- rep_len(NA_character_, length(codes))
+  keep <- codes >= 0
+  values[keep] <- categories[codes[keep] + 1L]
+  factor(values, levels = categories)
+}
+
+#' Decode a two-column (low, high) packed-uint32 id array (a matrix, as
+#' returned by \code{.AteraReadArray}) into a single double id per row,
+#' mapping the "all bits set" sentinel to NA (unassigned). Ids that were
+#' stored as a plain (already-scalar) array are returned as-is.
+#'
+#' @keywords internal
+#' @noRd
+.AteraDecodePackedId <- function(ids) {
+  if (!is.matrix(x = ids)) {
+    return(ids)
+  }
+  sentinel <- 2^32 - 1
+  unassigned <- ids[, 1] == sentinel & ids[, 2] == sentinel
+  decoded <- ids[, 1] + ids[, 2] * 2^32
+  decoded[unassigned] <- NA
+  return(decoded)
+}
+
+#' Format a decoded numeric id as a string without falling back to
+#' scientific notation, so ids remain usable as matrix/data frame join keys
+#'
+#' @keywords internal
+#' @noRd
+.AteraFormatId <- function(ids) {
+  formatted <- sprintf(fmt = '%.0f', ids)
+  formatted[is.na(x = ids)] <- NA
+  return(formatted)
+}
+
+#' Enumerate the direct child entries (arrays or categorical subgroups) of
+#' a zarr group from an already-parsed zip index, without any additional
+#' I/O
+#'
+#' @keywords internal
+#' @noRd
+.AteraGroupEntries <- function(zidx, group.path) {
+  prefix <- paste0(group.path, "/")
+  matches <- zidx$name[startsWith(zidx$name, prefix)]
+  rest <- substring(matches, nchar(prefix) + 1L)
+  first.seg <- sub("/.*$", "", rest)
+  setdiff(unique(first.seg), c(".zgroup", ".zattrs", ".zarray"))
+}
+
+#' Read a flat AnnData-style zarr group (eg \code{obs}/\code{var}) into a
+#' data frame; plain columns are zarr arrays (string arrays use the
+#' vlen-utf8 filter), categorical columns are subgroups containing
+#' \code{categories} and \code{codes} arrays
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadFlatGroup <- function(con, zidx, group.path, columns = NULL) {
+  entries <- .AteraGroupEntries(zidx, group.path)
+  if (!is.null(x = columns)) {
+    entries <- intersect(x = entries, y = columns)
+  }
+  cols <- list()
+  for (e in entries) {
+    epath <- paste0(group.path, "/", e)
+    if (!is.null(zidx$lookup[[paste0(epath, "/.zarray")]])) {
+      meta <- .AteraReadJSON(con, zidx, paste0(epath, "/.zarray"))
+      cols[[e]] <- if (identical(meta$dtype, "|O")) {
+        .AteraReadStringArray(con, zidx, epath)
+      } else {
+        .AteraReadArray(con, zidx, epath)
+      }
+    } else if (!is.null(zidx$lookup[[paste0(epath, "/categories/.zarray")]])) {
+      cols[[e]] <- .AteraReadCategorical(con, zidx, epath)
+    }
+  }
+  return(as.data.frame(x = cols, stringsAsFactors = FALSE, check.names = FALSE))
+}
+
+#' Read one of Atera's flat (non-gridded) segmentation polygon sets
+#' (\code{polygon_sets/0} = nucleus, \code{polygon_sets/1} = cell) into a
+#' long-format data frame of \code{cell}/\code{x}/\code{y}, one row per
+#' polygon vertex, joined against \code{cell.id} (a formatted, decoded
+#' \code{cell_id} vector read from the same \code{cells.zarr.zip}) by
+#' 0-based row index -- not assumed to be in the same row order as any
+#' other file
+#'
+#' Every polygon's last stored vertex is a closing duplicate of its first
+#' vertex (\code{x} always matches exactly), and in the majority of polygons
+#' that duplicate's \code{y} is corrupted to exactly \code{0} in Atera's own
+#' \code{vertices} array. Since consumers (eg \code{geom_polygon}, \code{sf})
+#' already close rings back to the first vertex, that last vertex is dropped
+#' here rather than propagating the corrupted coordinate.
+#' When \code{cells} is supplied, only vertex chunks containing polygons
+#' for those cell IDs are read, and only selected polygons are expanded.
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadPolygonSet <- function(con, zidx, set.idx, cell.id, cells = NULL) {
+  base <- paste0("polygon_sets/", set.idx)
+  cell_index <- .AteraReadArray(con, zidx, paste0(base, "/cell_index"))
+  rows <- if (is.null(cells)) seq_along(cell_index) else which(cell.id[cell_index + 1L] %in% cells)
+  if (length(rows) == 0L) {
+    return(data.frame(cell = character(0), x = numeric(0), y = numeric(0)))
+  }
+  num_vertices <- .AteraReadArray(con, zidx, paste0(base, "/num_vertices"))[rows] - 1L
+  if (length(rows) == length(cell_index)) {
+    vertices <- .AteraReadArray(con, zidx, paste0(base, "/vertices"))
+  } else {
+    meta <- .AteraReadJSON(con, zidx, paste0(base, "/vertices/.zarray"))
+    row.groups <- split(rows, (rows - 1L) %/% meta$chunks[1L])
+    vertices <- do.call(rbind, lapply(row.groups, function(idx) {
+      lo <- idx[1L]
+      block <- .AteraReadArray(
+        con, zidx, paste0(base, "/vertices"),
+        row.range = c(lo, idx[length(idx)])
+      )
+      block[idx - lo + 1L, , drop = FALSE]
+    }))
+  }
+  cell_index <- cell_index[rows]
+
+  n <- nrow(vertices)
+  poly.idx <- rep(seq_len(n), num_vertices)
+  vert.idx <- sequence(num_vertices)
+  col.x <- (vert.idx - 1L) * 2L + 1L
+  col.y <- (vert.idx - 1L) * 2L + 2L
+
+  data.frame(
+    cell = cell.id[cell_index[poly.idx] + 1L],
+    x = vertices[cbind(poly.idx, col.x)],
+    y = vertices[cbind(poly.idx, col.y)]
+  )
+}
+
+#' Build a cheap, reusable handle onto a \code{transcripts.zarr.zip}: parses
+#' the zip's central directory and each grid tile's (tiny) \code{gene_offset}
+#' index up front, but reads no \code{location}/\code{quality_score} data.
+#' Used to defer the expensive part of transcript loading (decoding
+#' \code{location}/\code{quality_score} chunks) until specific genes are
+#' actually requested, so \code{molecule.coordinates = TRUE} doesn't have to
+#' materialize the full transcript table just to be usable later.
+#'
+#' @keywords internal
+#' @noRd
+.AteraMoleculesHandle <- function(data.dir, mols.qv.threshold = 20) {
+  zip.file <- file.path(data.dir, "transcripts.zarr.zip")
+  zidx <- .AteraZipIndex(zip.file)
+  con <- file(zip.file, "rb")
+  on.exit(close(con))
+
+  attrs <- .AteraReadJSON(con, zidx, ".zattrs")
+  gene.names <- unlist(attrs$gene_names)
+
+  grid.entries <- grep("^grid/[^/.]", zidx$name, value = TRUE)
+  tile.dirs <- unique(vapply(
+    strsplit(grid.entries, "/"),
+    function(p) paste(p[1:2], collapse = "/"),
+    character(1)
+  ))
+  tiles <- lapply(tile.dirs, function(tile.dir) {
+    list(dir = tile.dir, gene_offset = .AteraReadArray(con, zidx, paste0(tile.dir, "/gene_offset")))
+  })
+
+  structure(
+    list(
+      zip.file = zip.file,
+      zidx = zidx,
+      gene.names = gene.names,
+      tiles = tiles,
+      mols.qv.threshold = mols.qv.threshold
+    ),
+    class = "AteraMoleculesHandle"
+  )
+}
+
+#' Fetch transcript molecule coordinates from an \code{.AteraMoleculesHandle}
+#' for \code{genes} (or all genes, if \code{NULL}), reading only the
+#' (gene-sorted, contiguous) chunks needed for the requested genes out of
+#' each grid tile
+#'
+#' A gene's rows are typically spread across most of a bundle's grid tiles
+#' (eg ~85-88 of 102 for genes checked on a real whole-transcriptome bundle);
+#' each tile's read is independent, so this is parallelized across tiles
+#' rather than reading them one at a time according to the active future plan.
+#' Each worker opens its own connection so file positions remain independent
+#' across processes.
+#' Array reads within a tile run sequentially to avoid nested parallelism.
+#' With \code{codewords = TRUE}, read codeword identities for the requested
+#' genes instead of quality scores and label each codeword separately.
+#'
+#' @importFrom future.apply future_lapply
+#' @keywords internal
+#' @noRd
+.AteraFetchMolecules <- function(handle, genes = NULL, codewords = FALSE) {
+  if (codewords && is.null(genes)) genes <- handle$gene.names
+
+  read.tile <- function(tile) {
+    con <- file(handle$zip.file, "rb")
+    on.exit(close(con))
+    gene_offset <- tile$gene_offset
+    if (is.null(genes)) {
+      location <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), parallel = FALSE)
+      quality_score <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), parallel = FALSE)
+      gene.idx <- rep(seq_len(nrow(gene_offset)), gene_offset[, 2] - gene_offset[, 1])
+      return(data.frame(
+        x = location[, 1],
+        y = location[, 2],
+        gene = handle$gene.names[gene.idx],
+        qv = as.vector(quality_score)
+      ))
+    }
+    gene.rows <- match(genes, handle$gene.names)
+    gene.rows <- gene.rows[!is.na(gene.rows) & (gene_offset[gene.rows, 2] - gene_offset[gene.rows, 1]) > 0]
+    if (length(gene.rows) == 0) {
+      return(NULL)
+    }
+    gene.dfs <- lapply(gene.rows, function(g) {
+      rows <- c(gene_offset[g, 1] + 1L, gene_offset[g, 2])
+      loc <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/location"), row.range = rows, parallel = FALSE)
+      if (codewords) {
+        cw <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/codeword_identity"), row.range = rows, parallel = FALSE)
+        return(data.frame(x = loc[, 1], y = loc[, 2], gene = paste0(handle$gene.names[g], "_codeword_", cw)))
+      }
+      qv <- .AteraReadArray(con, handle$zidx, paste0(tile$dir, "/quality_score"), row.range = rows, parallel = FALSE)
+      data.frame(x = loc[, 1], y = loc[, 2], gene = handle$gene.names[g], qv = as.vector(qv))
+    })
+    data.table::rbindlist(gene.dfs)
+  }
+
+  tile.dfs <- future_lapply(handle$tiles, read.tile)
+
+  df <- as.data.frame(data.table::rbindlist(tile.dfs))
+  if (nrow(df) == 0L) {
+    return(data.frame(x = numeric(0), y = numeric(0), gene = character(0)))
+  }
+  keep <- !is.na(df$gene)
+  if (!codewords && !is.null(handle$mols.qv.threshold)) {
+    keep <- keep & df$qv >= handle$mols.qv.threshold
+  }
+  df <- df[keep, , drop = FALSE]
+  df$qv <- NULL
+  df
+}
+
+#' Check that the \code{RBioFormats} package is installed; only called when
+#' a morphology image is actually requested. The morphology OME-TIFFs are
+#' pyramidal and JPEG2000-compressed, which the base \code{tiff} package
+#' cannot reliably decode (it reports an "unknown" compression type and
+#' cannot enumerate pyramid levels); \code{RBioFormats} wraps the Bio-Formats
+#' Java library, which handles them correctly.
+#'
+#' @keywords internal
+#' @noRd
+.AteraCheckMorphologyDeps <- function() {
+  if (!requireNamespace('RBioFormats', quietly = TRUE)) {
+    stop(
+      "Reading Atera morphology images requires the 'RBioFormats' package. ",
+      "Install it with BiocManager::install('RBioFormats')",
+      call. = FALSE
+    )
+  }
+}
+
+#' List the per-channel morphology OME-TIFF files in a
+#' \dQuote{morphology_2d}/\dQuote{morphology_3d} directory, excluding macOS
+#' resource-fork files (\code{._*})
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyFiles <- function(data.dir, three.d = FALSE) {
+  dir <- file.path(data.dir, if (isTRUE(three.d)) "morphology_3d" else "morphology_2d")
+  if (!dir.exists(dir)) {
+    stop("No ", basename(dir), " directory found at ", dir, call. = FALSE)
+  }
+  files <- list.files(dir, pattern = "\\.ome\\.tif+$", full.names = TRUE)
+  files <- files[!grepl("^\\._", basename(files))]
+  if (!length(files)) {
+    stop("No morphology OME-TIFF files found in ", dir, call. = FALSE)
+  }
+  files
+}
+
+#' Parse the 0-based channel index out of a \dQuote{chNNNN_<name>.ome.tif}
+#' morphology image filename. Each file is itself a multi-page OME-TIFF
+#' containing every channel of the panel, but only the page at this index
+#' holds that channel's real image data (the rest are placeholders) -- see
+#' \code{.AteraReadMorphologyImage}
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyChannelIndex <- function(filename) {
+  m <- regmatches(basename(filename), regexec("^ch(\\d+)_.+\\.ome\\.tif+$", basename(filename)))[[1]]
+  if (length(m) != 2) {
+    stop(
+      "Expected a morphology image filename of the form 'chNNNN_<name>.ome.tif', found ",
+      basename(filename),
+      call. = FALSE
+    )
+  }
+  as.integer(m[2])
+}
+
+#' Parse the channel name out of a \dQuote{chNNNN_<name>.ome.tif} morphology
+#' image filename
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyChannelName <- function(filename) {
+  m <- regmatches(basename(filename), regexec("^ch\\d+_(.+)\\.ome\\.tif+$", basename(filename)))[[1]]
+  if (length(m) != 2) {
+    stop(
+      "Expected a morphology image filename of the form 'chNNNN_<name>.ome.tif', found ",
+      basename(filename),
+      call. = FALSE
+    )
+  }
+  m[2]
+}
+
+#' Build a cheap, reusable handle onto a channel's Atera morphology
+#' OME-TIFF: resolves the matching file, its real-data channel index, and
+#' per-resolution-level pixel dimensions/pixel size up front, but reads no
+#' pixel data. Used to defer the expensive part (decoding image tiles) until
+#' a specific region is actually requested via
+#' \code{.AteraReadMorphologyRegion}, the same handle/fetch split already
+#' used for transcripts by \code{.AteraMoleculesHandle}/
+#' \code{.AteraFetchMolecules}.
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyHandle <- function(data.dir, channel = "dapi") {
+  .AteraCheckMorphologyDeps()
+
+  files <- .AteraMorphologyFiles(data.dir)
+  names(files) <- vapply(files, .AteraMorphologyChannelName, character(1L))
+
+  file <- if (is.numeric(channel)) {
+    indices <- vapply(files, .AteraMorphologyChannelIndex, integer(1L))
+    hits <- files[indices == as.integer(channel)]
+    if (!length(hits)) {
+      stop("No morphology image found for channel index ", channel, call. = FALSE)
+    }
+    hits[[1]]
+  } else {
+    hits <- names(files)[grepl(channel, names(files), ignore.case = TRUE)]
+    if (!length(hits)) {
+      stop(
+        "No morphology image found matching channel '", channel, "'; available channels: ",
+        paste(names(files), collapse = ", "),
+        call. = FALSE
+      )
+    }
+    files[[hits[1]]]
+  }
+
+  md <- RBioFormats::read.metadata(file)
+  n.levels <- RBioFormats::seriesCount(md)
+  cm <- RBioFormats::coreMetadata(md)
+  # RBioFormats::coreMetadata() unwraps its usual per-series list and returns
+  # a single series' metadata directly when there's only one series (eg a
+  # non-pyramidal image with no resolution levels), so it must be re-wrapped
+  # to keep the one-element-per-level shape `dims` below expects
+  if (n.levels == 1L) {
+    cm <- list(cm)
+  }
+  dims <- lapply(cm, function(x) c(x = x$sizeX, y = x$sizeY))
+
+  specs.file <- file.path(data.dir, "experiment.spatial")
+  pixel.size.full <- if (file.exists(specs.file) && requireNamespace('jsonlite', quietly = TRUE)) {
+    jsonlite::read_json(specs.file)$pixel_size
+  } else {
+    NA_real_
+  }
+
+  structure(
+    list(
+      file = file,
+      channel = .AteraMorphologyChannelName(file),
+      channel.index = .AteraMorphologyChannelIndex(file),
+      n.resolutions = n.levels,
+      dim = dims,
+      pixel.size.full = pixel.size.full
+    ),
+    class = "AteraMorphologyHandle"
+  )
+}
+
+#' Convert a \code{region} (a list with optional \code{x}/\code{y} elements,
+#' each a length-2 micron range) into 1-based pixel index ranges at a given
+#' \code{.AteraMorphologyHandle}'s resolution \code{level}, clamped to the
+#' plane's extent on that axis. A missing/\code{NULL} \code{region}, or a
+#' missing \code{x}/\code{y} element, reads the whole plane along that axis.
+#'
+#' @keywords internal
+#' @noRd
+.AteraMorphologyRegionToPixels <- function(handle, level, region, pixel.size) {
+  d <- handle$dim[[level]]
+  to.pixels <- function(um.range, size) {
+    if (is.null(um.range)) {
+      return(NULL)
+    }
+    if (is.na(pixel.size)) {
+      stop(
+        "Cannot convert 'morphology.region' from microns to pixels: pixel size unavailable ",
+        "(no 'experiment.spatial' file found)",
+        call. = FALSE
+      )
+    }
+    px <- round(um.range / pixel.size) + 1L
+    px <- pmax(1L, pmin(size, px))
+    px[1]:px[2]
+  }
+  list(
+    x = to.pixels(region$x, d["x"]),
+    y = to.pixels(region$y, d["y"])
+  )
+}
+
+#' Read a (optionally cropped) single channel plane from an
+#' \code{.AteraMorphologyHandle} at a given pyramid resolution level, by
+#' default the lowest-resolution (smallest) level, which is normally all
+#' that is needed for overview plots.
+#'
+#' \code{x.range}/\code{y.range} (1-based pixel indices at \code{resolution})
+#' restrict the read to a rectangular window via
+#' \code{RBioFormats::read.image}'s \code{subset} argument, which decodes
+#' only the on-disk tiles overlapping that window rather than materializing
+#' the whole plane -- needed because a full-resolution plane of these
+#' whole-slide images can be tens of thousands of pixels per side (large
+#' enough that reading it whole can exceed available Java heap memory).
+#' Resolution levels are exposed by \code{RBioFormats} as separate
+#' \dQuote{series} (\code{resolution} argument) of a single real image
+#' series (\code{series = 1}), not as true multi-series data.
+#'
+#' @return A list with elements \code{image} (a numeric matrix, indexed
+#' \verb{[x, y]} in the same top-left-origin pixel convention as the OME-TIFF
+#' and, after scaling by \code{pixel.size} and offsetting by \code{origin},
+#' the same convention as \code{ReadAtera}'s \code{centroids}/\code{microns}
+#' micron coordinates -- no axis flip is needed), \code{channel} (the
+#' matched channel name), \code{resolution} (the pyramid level read, 1 =
+#' full resolution), \code{n.resolutions} (the number of pyramid levels
+#' available), \code{pixel.size} (microns per pixel of \code{image}, i.e.
+#' already scaled for the resolution level read; \code{NA} if
+#' \code{experiment.spatial} could not be read), and \code{origin} (the
+#' micron coordinates, \code{c(x=, y=)}, of \code{image}'s \verb{[1, 1]}
+#' pixel -- \code{c(x=0, y=0)} unless \code{x.range}/\code{y.range} crop out
+#' the top-left corner of the full plane)
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadMorphologyRegion <- function(handle, resolution = NULL, x.range = NULL, y.range = NULL) {
+  level <- resolution %||% handle$n.resolutions
+  d <- handle$dim[[level]]
+  downsample <- 2 ^ (level - 1L)
+  pixel.size <- if (is.na(handle$pixel.size.full)) NA_real_ else handle$pixel.size.full * downsample
+
+  x.range <- x.range %||% seq_len(d["x"])
+  y.range <- y.range %||% seq_len(d["y"])
+
+  img <- RBioFormats::read.image(
+    handle$file, series = 1L, resolution = level, normalize = FALSE,
+    subset = list(x = x.range, y = y.range, c = handle$channel.index + 1L)
+  )
+  ## requesting a single channel via 'subset' already drops the channel
+  ## dimension (2D result); only index it away if it's still present (3D)
+  if (length(dim(img)) == 3L) {
+    img <- img[, , 1L]
+  }
+
+  list(
+    image = img,
+    channel = handle$channel,
+    resolution = level,
+    n.resolutions = handle$n.resolutions,
+    pixel.size = pixel.size,
+    origin = c(x = (x.range[1] - 1L), y = (y.range[1] - 1L)) * (if (is.na(pixel.size)) NA_real_ else pixel.size)
+  )
+}
+
+#' Read a single channel plane of an Atera morphology image, optionally
+#' cropped to \code{region} (a list with \code{x}/\code{y} elements, each a
+#' length-2 micron range; \code{NULL}, the default, reads the whole plane).
+#' A thin convenience wrapper around \code{.AteraMorphologyHandle} +
+#' \code{.AteraReadMorphologyRegion} for the common one-shot case (see those
+#' for details/return value).
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadMorphologyImage <- function(data.dir, channel = "dapi", resolution = NULL, region = NULL) {
+  handle <- .AteraMorphologyHandle(data.dir = data.dir, channel = channel)
+  level <- resolution %||% handle$n.resolutions
+  downsample <- 2 ^ (level - 1L)
+  pixel.size <- if (is.na(handle$pixel.size.full)) NA_real_ else handle$pixel.size.full * downsample
+
+  px.region <- .AteraMorphologyRegionToPixels(handle, level, region, pixel.size)
+  .AteraReadMorphologyRegion(handle, resolution = level, x.range = px.region$x, y.range = px.region$y)
+}
+
+#' Turn a feature type name (eg \dQuote{Negative Control Probe}) into a
+#' filesystem-safe directory name for use under \code{bpcells.dir}
+#'
+#' @keywords internal
+#' @noRd
+.AteraSanitizeName <- function(x) {
+  gsub("[^A-Za-z0-9]+", "_", x)
+}
+
+#' Check that the \code{BPCells} package is installed; only called when a
+#' \code{bpcells.dir} cache is actually requested
+#'
+#' @keywords internal
+#' @noRd
+.AteraCheckBPCellsDeps <- function() {
+  if (!requireNamespace('BPCells', quietly = TRUE)) {
+    stop("Reading/writing an Atera bpcells.dir cache requires the 'BPCells' package", call. = FALSE)
+  }
+}
+
+#' Default, session-scoped \code{bpcells.dir} used when the caller hasn't
+#' specified one: a subdirectory of \code{tempdir()} keyed off
+#' \code{data.dir}, so repeated \code{LoadAtera()}/\code{ReadAtera()} calls
+#' against the same bundle within a session reuse the same on-disk cache.
+#'
+#' @keywords internal
+#' @noRd
+.AteraDefaultBPCellsDir <- function(data.dir) {
+  file.path(tempdir(), "atera_bpcells", .AteraSanitizeName(normalizePath(data.dir, mustWork = FALSE)))
+}
+
+#' Resolve the effective \code{bpcells.dir} to use, applying the
+#' always-on-by-default policy: \code{NULL} (the parameter default) means
+#' "cache on disk via BPCells if it's installed", falling back to in-memory
+#' matrices with a one-time message if it isn't. Passing \code{FALSE}
+#' explicitly opts out of BPCells entirely (plain in-memory matrices, no
+#' dependency on the package). Any other value is used as-is, as an explicit
+#' cache directory (and requires \code{BPCells} to be installed).
+#'
+#' @keywords internal
+#' @noRd
+.AteraResolveBPCellsDir <- function(bpcells.dir, data.dir) {
+  if (isFALSE(bpcells.dir)) {
+    return(NULL)
+  }
+  if (is.null(bpcells.dir)) {
+    if (!requireNamespace('BPCells', quietly = TRUE)) {
+      .AteraWarnOnceNoBPCells()
+      return(NULL)
+    }
+    return(.AteraDefaultBPCellsDir(data.dir = data.dir))
+  }
+  return(bpcells.dir)
+}
+
+#' Emit a one-time (per session) message when falling back to in-memory
+#' matrices because BPCells isn't installed
+#'
+#' @keywords internal
+#' @noRd
+.AteraWarnOnceNoBPCells <- function() {
+  opt <- 'Seurat.atera.warned_no_bpcells'
+  if (!isTRUE(getOption(opt))) {
+    message(
+      "Package 'BPCells' is not installed; loading Atera counts matrices ",
+      "in-memory instead of on-disk. Install 'BPCells' for lazy, on-disk-",
+      "backed loading (recommended for large bundles), or pass ",
+      "`bpcells.dir = FALSE` to silence this message and always load in-",
+      "memory."
+    )
+    options(structure(list(TRUE), names = opt))
+  }
+}
+
+#' Split a contiguous feature row range \code{r1:r2} into smaller row
+#' sub-ranges, each covering no more than \code{nnz.budget} non-zero matrix
+#' entries (per the running element counts in \code{x.indptr}), so that
+#' \code{.AteraReadCountsMatrix} can decode/build one bounded-size matrix
+#' chunk at a time instead of materializing an entire (potentially
+#' multi-billion-entry) feature type's worth of \code{X/data}/\code{X/indices}
+#' in memory at once. A single row whose own nnz already exceeds
+#' \code{nnz.budget} still gets its own (over-budget) batch, since rows can't
+#' be split further.
+#'
+#' @return A list of length-2 integer vectors \code{c(start, end)}, each a
+#' 1-based, inclusive row sub-range of \code{r1:r2}
+#'
+#' @keywords internal
+#' @noRd
+.AteraNnzRowBatches <- function(x.indptr, r1, r2, nnz.budget) {
+  batches <- list()
+  batch.start <- r1
+  base <- x.indptr[r1]
+  for (i in r1:r2) {
+    if (x.indptr[i + 1L] - base >= nnz.budget) {
+      batches[[length(batches) + 1L]] <- c(batch.start, i)
+      batch.start <- i + 1L
+      base <- x.indptr[i + 1L]
+    }
+  }
+  if (batch.start <= r2) {
+    batches[[length(batches) + 1L]] <- c(batch.start, r2)
+  }
+  batches
+}
+
+#' Decode a single feature (\code{X} row) sub-range \code{sr1:sr2} of the
+#' counts matrix into an in-memory sparse matrix, named/dimensioned
+#' consistently with the full matrix (all cells as columns)
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadRowBlockMatrix <- function(con, zidx, x.indptr, sr1, sr2, var, cell.ids) {
+  nnz.start <- x.indptr[sr1] + 1L
+  nnz.end <- x.indptr[sr2 + 1L]
+  if (nnz.end >= nnz.start) {
+    d <- .AteraReadArray(con, zidx, "X/data", row.range = c(nnz.start, nnz.end))
+    i <- .AteraReadArray(con, zidx, "X/indices", row.range = c(nnz.start, nnz.end))
+  } else {
+    d <- numeric(0)
+    i <- numeric(0)
+  }
+  blk <- new(
+    Class = "dgRMatrix",
+    j = as.integer(i),
+    p = as.integer(x.indptr[sr1:(sr2 + 1L)] - x.indptr[sr1]),
+    x = as.double(d),
+    Dim = c(sr2 - sr1 + 1L, length(cell.ids))
+  )
+  blk <- as(blk, "CsparseMatrix")
+  rownames(blk) <- var$feature_name[sr1:sr2]
+  colnames(blk) <- cell.ids
+  blk
+}
+
+#' Build (and, when \code{bpcells.dir} is set, cache) one feature type's
+#' counts matrix, in bounded-memory row batches (see
+#' \code{.AteraNnzRowBatches}) rather than decoding the whole
+#' \code{r1:r2}/\code{X/data} range at once -- the latter needs tens of GB of
+#' RAM for a multi-billion-entry feature type (eg a whole-transcriptome
+#' panel's "Gene Expression" rows), which doesn't fit on commodity machines.
+#'
+#' Each batch is decoded, (when caching) converted to a \code{BPCells}
+#' \code{uint32_t} matrix and written to its own small temporary on-disk
+#' directory, and then discarded from memory; batches are only ever
+#' recombined (\code{rbind}) as cheap, lazy on-disk/\code{IterableMatrix}
+#' references, and that combined reference is written to \code{cache.path}
+#' (the real, permanent cache directory) \emph{before} the temporary
+#' per-batch directories are cleaned up -- \code{BPCells::write_matrix_dir}'s
+#' own chunked iteration streams through that final write without
+#' re-materializing everything at once. Without \code{bpcells.dir}, batches
+#' are instead recombined in-memory, so peak memory is still bounded by the
+#' full matrix's size (an in-memory result is, by definition, not scalable
+#' beyond available RAM).
+#'
+#' @return A \link[Matrix:dgCMatrix-class]{sparse matrix}, or (when
+#' \code{bpcells.dir} is set) a \code{BPCells} \code{IterableMatrix} opened
+#' from \code{cache.path}
+#'
+#' @keywords internal
+#' @noRd
+.AteraBuildFeatureTypeMatrix <- function(con, zidx, x.indptr, r1, r2, var, cell.ids, bpcells.dir, cache.path, nnz.budget) {
+  row.batches <- .AteraNnzRowBatches(x.indptr, r1, r2, nnz.budget)
+  use.bpcells <- !is.null(bpcells.dir)
+
+  if (!use.bpcells) {
+    parts <- lapply(row.batches, function(b) {
+      .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
+    })
+    return(if (length(parts) == 1L) parts[[1L]] else do.call(rbind, parts))
+  }
+
+  .AteraCheckBPCellsDeps()
+  staging.dir <- file.path(bpcells.dir, paste0(".tmp_", .AteraSanitizeName(basename(tempfile()))))
+  dir.create(staging.dir, recursive = TRUE)
+  on.exit(unlink(staging.dir, recursive = TRUE), add = TRUE)
+
+  tmp.dirs <- vapply(seq_along(row.batches), function(k) {
+    b <- row.batches[[k]]
+    blk <- .AteraReadRowBlockMatrix(con, zidx, x.indptr, b[1L], b[2L], var, cell.ids)
+    blk <- BPCells::convert_matrix_type(methods::as(blk, "IterableMatrix"), type = "uint32_t")
+    tmp.dir <- file.path(staging.dir, k)
+    BPCells::write_matrix_dir(mat = blk, dir = tmp.dir)
+    tmp.dir
+  }, character(1L))
+
+  part.mats <- lapply(tmp.dirs, BPCells::open_matrix_dir)
+  combined <- if (length(part.mats) == 1L) part.mats[[1L]] else do.call(rbind, part.mats)
+  BPCells::write_matrix_dir(mat = combined, dir = cache.path)
+  BPCells::open_matrix_dir(dir = cache.path)
+}
+
+#' Read the Atera counts matrix (\code{csc_cell_feature_matrix.zarr.zip}),
+#' optionally restricted to a subset of feature types and optionally backed
+#' by an on-disk \code{BPCells} cache.
+#'
+#' \code{var/feature_type} is row-contiguous in this file (each feature type
+#' occupies one contiguous run of rows), so each requested feature type is
+#' translated into a single contiguous row-range; that is in turn translated
+#' (via a full, but trivially small, read of \code{X/indptr}) into nnz
+#' element-ranges, and only those \code{X/data}/\code{X/indices} chunks are
+#' decoded via \code{.AteraReadArray}'s \code{row.range} chunk-skipping. Each
+#' feature type's row-range is further split into bounded-size row batches
+#' (\code{.AteraBuildFeatureTypeMatrix}) so that building/caching even a
+#' multi-billion-entry feature type stays within a few GB of peak memory.
+#'
+#' When \code{bpcells.dir} is set and every requested feature type already has
+#' a cache directory under it, the zarr file is not read at all beyond the
+#' (tiny) \code{var/feature_type} column needed to validate the requested
+#' feature type names.
+#'
+#' @return A named list of matrices (one per feature type), each either a
+#' \link[Matrix:dgCMatrix-class]{sparse matrix} or, when cached/written via
+#' \code{bpcells.dir}, a \code{BPCells} \code{IterableMatrix}.
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadCountsMatrix <- function(data.dir, feature.types = NULL, bpcells.dir = NULL, nnz.batch = 5e7) {
+  zip.file <- file.path(data.dir, "csc_cell_feature_matrix.zarr.zip")
+  zidx <- .AteraZipIndex(zip.file)
+  con <- file(zip.file, "rb")
+  on.exit(close(con), add = TRUE)
+
+  ft.factor <- .AteraReadCategorical(con, zidx, "var/feature_type")
+  ft.chr <- as.character(ft.factor)
+  rl <- rle(ft.chr)
+  ends <- cumsum(rl$lengths)
+  starts <- ends - rl$lengths + 1L
+
+  all.types <- rl$values
+  if (is.null(feature.types)) {
+    target.types <- all.types
+  } else {
+    unknown <- setdiff(feature.types, all.types)
+    if (length(unknown) > 0L) {
+      stop("Unknown Atera feature type(s): ", paste(unknown, collapse = ', '), call. = FALSE)
+    }
+    target.types <- feature.types
+  }
+
+  result <- vector(mode = 'list', length = length(target.types))
+  names(result) <- target.types
+  need.build <- character(0)
+  for (ft in target.types) {
+    cache.path <- if (!is.null(bpcells.dir)) file.path(bpcells.dir, .AteraSanitizeName(ft)) else NULL
+    if (!is.null(cache.path) && dir.exists(cache.path)) {
+      .AteraCheckBPCellsDeps()
+      result[[ft]] <- BPCells::open_matrix_dir(dir = cache.path)
+    } else {
+      need.build <- c(need.build, ft)
+    }
+  }
+  if (length(need.build) == 0L) {
+    return(result)
+  }
+
+  var <- .AteraReadFlatGroup(con, zidx, "var", columns = c("feature_name", "feature_type"))
+  obs <- .AteraReadFlatGroup(con, zidx, "obs", columns = "cell_id")
+  cell.ids <- .AteraFormatId(.AteraDecodePackedId(obs$cell_id))
+
+  x.indptr <- .AteraReadArray(con, zidx, "X/indptr")
+
+  if (!is.null(bpcells.dir)) {
+    dir.create(bpcells.dir, showWarnings = FALSE, recursive = TRUE)
+  }
+  for (ft in need.build) {
+    ft.i <- match(ft, rl$values)
+    cache.path <- if (!is.null(bpcells.dir)) file.path(bpcells.dir, .AteraSanitizeName(ft)) else NULL
+    result[[ft]] <- .AteraBuildFeatureTypeMatrix(
+      con = con, zidx = zidx, x.indptr = x.indptr,
+      r1 = starts[ft.i], r2 = ends[ft.i],
+      var = var, cell.ids = cell.ids,
+      bpcells.dir = bpcells.dir, cache.path = cache.path, nnz.budget = nnz.batch
+    )
+  }
+  return(result)
+}
+
+#' Load Atera spatial data
+#'
+#' Read the output of \href{https://www.10xgenomics.com}{10x Genomics} Atera,
+#' a next-generation in situ sequencing platform. All Atera outputs (aside
+#' from images) are stored in AnnData zarr (storage format v2) files, zipped
+#' with \code{Stored} (uncompressed) zip entries; reading them requires the
+#' \code{blosc} and \code{jsonlite} packages. Zarr chunks are read directly
+#' out of the zip archive by byte-range seeks with no disk extraction.
+#'
+#' @param data.dir Directory containing all Atera output files with default
+#' filenames
+#' @param outs Types of outputs to read; choose one or more of:
+#' \itemize{
+#'  \item \dQuote{matrix}: the counts matrix
+#'  \item \dQuote{centroids}: cell centroids in micron coordinate space
+#'  \item \dQuote{segmentations}: cell segmentation boundary polygons in
+#'  micron coordinate space
+#'  \item \dQuote{nucleus_segmentations}: nucleus segmentation boundary
+#'  polygons in micron coordinate space. Cells may have zero, one, or more
+#'  than one nucleus polygon
+#'  \item \dQuote{microns}: transcript molecule coordinates. This is
+#'  optional as transcripts files can be very large.
+#'  \item \dQuote{morphology}: a single channel plane of a
+#'  \dQuote{morphology_2d} image (eg the DAPI stain), by default at the
+#'  lowest-resolution pyramid level, for use as a background/overview image.
+#'  Requires the \code{RBioFormats} package, since these images are
+#'  pyramidal, JPEG2000-compressed OME-TIFFs that the base \code{tiff}
+#'  package cannot reliably decode.
+#' }
+#' @param mols.qv.threshold Remove transcript molecules with a calibrated
+#' Q-score less than this threshold when reading \dQuote{microns}. Set to
+#' \code{NULL} to disable filtering.
+#' @param morphology.channel Channel to read when \dQuote{morphology} is in
+#' \code{outs}: either a channel name (matched case-insensitively as a
+#' substring, eg \dQuote{dapi}) or a 0-based integer channel index (matching
+#' the \dQuote{chNNNN} prefix of the image filename).
+#' @param morphology.resolution Pyramid resolution level to read when
+#' \dQuote{morphology} is in \code{outs}, where \code{1} is full resolution
+#' and each subsequent level halves both dimensions. Defaults to \code{NULL},
+#' which reads the lowest-resolution (smallest, fastest) level available --
+#' normally all that's needed for an overview plot.
+#' @param morphology.region Optional list with \code{x}/\code{y} elements
+#' (each a length-2 micron range, in the same coordinate space as
+#' \dQuote{centroids}/\dQuote{microns}/segmentations), used to crop
+#' \dQuote{morphology} to a rectangular window instead of reading the whole
+#' plane. Only the on-disk tiles overlapping that window are decoded, so
+#' this is the recommended way to read a region at \code{morphology.resolution
+#' = 1} (full resolution): reading a full-resolution plane in its entirety
+#' can exceed available memory for these whole-slide images, since they can
+#' be tens of thousands of pixels per side. Defaults to \code{NULL}, which
+#' reads the whole plane.
+#' @param genes Optional character vector of gene names to restrict
+#' \dQuote{microns} to. When set, only the chunks spanning each requested
+#' gene's (gene-sorted, contiguous) row range are read/decompressed instead
+#' of the full transcript table; this avoids materializing all rows when
+#' only a handful of genes are needed. Ignored when \code{"microns"} is not
+#' in \code{outs}.
+#' @param feature.types Optional character vector of feature types (eg
+#' \dQuote{Gene Expression}) to restrict \dQuote{matrix} to. When set, only
+#' the (contiguous) rows for the requested feature type(s) are
+#' read/decompressed instead of the full counts matrix. Defaults to
+#' \code{NULL}, which reads all feature types (current/default behavior).
+#' Ignored when \code{"matrix"} is not in \code{outs}.
+#' @param bpcells.dir Path to a directory used to cache the counts matrix on
+#' disk, one subdirectory per feature type, via
+#' \link[BPCells:write_matrix_dir]{BPCells}. When set, a feature type already
+#' cached under this directory is opened directly with
+#' \link[BPCells:open_matrix_dir]{BPCells::open_matrix_dir} (no zarr read at
+#' all); a feature type not yet cached is read as usual and then written to
+#' this directory for reuse by later calls. Defaults to \code{NULL}, which
+#' auto-selects a session-scoped cache directory under \code{tempdir()} (so
+#' matrices are BPCells-backed, on-disk, and lazy by default, even for small
+#' bundles) if the \code{BPCells} package is installed, or falls back to
+#' in-memory sparse matrices (with a one-time message) if it isn't. Pass
+#' \code{FALSE} to explicitly opt out and always return in-memory sparse
+#' matrices, without requiring \code{BPCells} at all. Ignored when
+#' \code{"matrix"} is not in \code{outs}.
+#' @details Parallel processing uses the active \code{future::plan()}.
+#' Molecule and codeword reads parallelize across tiles; numeric array reads
+#' parallelize chunk decoding. Array reads inside tile workers stay sequential
+#' to avoid nested parallelism. Configure the strategy and worker count with
+#' \code{future::plan(future::multisession, workers = 4)}, or use
+#' \code{future::plan(future::sequential)} for sequential processing.
+#' This setting is independent of \code{setThreads()}.
+#'
+#' @return \code{ReadAtera}: A list with some combination of the following
+#' values:
+#' \itemize{
+#'  \item \dQuote{\code{matrix}}: a named list of
+#'  \link[Matrix:dgCMatrix-class]{sparse matrices} with expression data, one
+#'  per feature type (eg \dQuote{Gene Expression}); cells are columns and
+#'  features are rows
+#'  \item \dQuote{\code{centroids}}: a data frame with cell centroid
+#'  coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{segmentations}}/\dQuote{\code{nucleus_segmentations}}:
+#'  a data frame with one row per polygon vertex, in three columns:
+#'  \dQuote{cell}, \dQuote{x}, and \dQuote{y}
+#'  \item \dQuote{\code{microns}}: a data frame with transcript coordinates
+#'  in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
+#'  \item \dQuote{\code{morphology}}: a list with elements \code{image} (a
+#'  numeric matrix, indexed \verb{[x, y]}, in the same top-left-origin pixel
+#'  convention as \dQuote{centroids}/\dQuote{microns}' micron coordinates --
+#'  no axis flip is needed), \code{channel}, \code{resolution},
+#'  \code{n.resolutions}, \code{pixel.size} (microns per pixel of
+#'  \code{image}), and \code{origin} (the micron coordinates,
+#'  \code{c(x=, y=)}, of \code{image}'s \verb{[1, 1]} pixel -- \code{c(x=0,
+#'  y=0)} unless \code{morphology.region} crops out the top-left corner of
+#'  the full plane); see
+#'  \code{morphology.channel}/\code{morphology.resolution}/\code{morphology.region}
+#' }
+#'
+#' @export
+#' @concept preprocessing
+#'
+ReadAtera <- function(
+  data.dir,
+  outs = c("matrix", "centroids"),
+  mols.qv.threshold = 20,
+  genes = NULL,
+  feature.types = NULL,
+  bpcells.dir = NULL,
+  morphology.channel = "dapi",
+  morphology.resolution = NULL,
+  morphology.region = NULL
+) {
+  outs <- match.arg(
+    arg = outs,
+    choices = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "microns", "morphology"),
+    several.ok = TRUE
+  )
+
+  .AteraCheckDeps()
+
+  data <- sapply(outs, function(otype) {
+    switch(
+      EXPR = otype,
+      'matrix' = {
+        pmtx <- progressor()
+        pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
+
+        bpcells.dir <- .AteraResolveBPCellsDir(bpcells.dir = bpcells.dir, data.dir = data.dir)
+        if (!is.null(bpcells.dir)) {
+          .AteraCheckBPCellsDeps()
+        }
+        result <- .AteraReadCountsMatrix(
+          data.dir = data.dir,
+          feature.types = feature.types,
+          bpcells.dir = bpcells.dir
+        )
+
+        pmtx(type = "finish")
+
+        result
+      },
+      'centroids' = {
+        pcents <- progressor()
+        pcents(message = 'Loading cell centroids', class = 'sticky', amount = 0)
+
+        zip.file <- file.path(data.dir, "cells.zarr.zip")
+        zidx <- .AteraZipIndex(zip.file)
+        con <- file(zip.file, "rb")
+        on.exit(close(con), add = TRUE)
+
+        cell_id <- .AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id"))
+        cell_summary <- .AteraReadArray(con, zidx, "cell_summary")
+
+        pcents(type = 'finish')
+
+        data.frame(
+          x = cell_summary[, 1],
+          y = cell_summary[, 2],
+          cell = .AteraFormatId(cell_id)
+        )
+      },
+      'segmentations' = ,
+      'nucleus_segmentations' = {
+        pseg <- progressor()
+        pseg(
+          message = if (otype == 'segmentations') 'Loading cell segmentations' else 'Loading nucleus segmentations',
+          class = 'sticky',
+          amount = 0
+        )
+
+        zip.file <- file.path(data.dir, "cells.zarr.zip")
+        zidx <- .AteraZipIndex(zip.file)
+        con <- file(zip.file, "rb")
+        on.exit(close(con), add = TRUE)
+
+        cell_id <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
+        set.idx <- if (otype == 'segmentations') 1L else 0L
+        df <- .AteraReadPolygonSet(con, zidx, set.idx, cell_id)
+
+        pseg(type = 'finish')
+
+        df
+      },
+      'microns' = {
+        pmicrons <- progressor()
+        pmicrons(message = "Loading transcript coordinates", class = 'sticky', amount = 0)
+
+        handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
+        df <- .AteraFetchMolecules(handle = handle, genes = genes)
+
+        pmicrons(type = 'finish')
+
+        df
+      },
+      'morphology' = {
+        pmorph <- progressor()
+        pmorph(message = 'Loading morphology image', class = 'sticky', amount = 0)
+
+        result <- .AteraReadMorphologyImage(
+          data.dir = data.dir,
+          channel = morphology.channel,
+          resolution = morphology.resolution,
+          region = morphology.region
+        )
+
+        pmorph(type = 'finish')
+
+        result
+      },
+      stop("Unknown Atera input type: ", otype)
+    )
+  }, simplify = FALSE, USE.NAMES = TRUE)
+
+  metadata <- file.path(data.dir, "experiment.spatial")
+  if (file.exists(metadata) && requireNamespace("jsonlite", quietly = TRUE)) {
+    meta <- jsonlite::read_json(metadata)
+    data$metadata <- meta[
+      intersect(
+        names(meta),
+        c(
+          'run_name', 'slide_name', 'region_name', 'chemistry_version',
+          'num_cells', 'num_transcripts'
+        )
+      )
+    ]
+    if (!is.null(meta$panel_a)) {
+      data$metadata$panel_name <- meta$panel_a$panel_name
+    }
+  }
+  return(data)
+}
+
+#' @return \code{LoadAtera}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param data.dir Path to folder containing Atera outputs
+#' @param fov FOV name
+#' @param assay Assay name
+#' @param mols.qv.threshold Remove transcript molecules with a calibrated
+#' Q-score less than this threshold
+#' @param cell.centroids Whether or not to load cell centroids
+#' @param molecule.coordinates Whether or not to load transcript molecule
+#' coordinates
+#' @param segmentations Which segmentation boundary polygons to load, one
+#' of \dQuote{cell} or \dQuote{nucleus}, or \code{NULL} to load none
+#' @param genes Optional character vector of gene names to restrict the
+#' initial \code{molecule.coordinates} load to. When \code{molecule.coordinates
+#' = TRUE}, a lazy, on-disk handle onto the transcript table is always kept
+#' on the returned object (regardless of whether \code{genes} is set), so
+#' additional genes can be fetched later with \code{\link{LoadAteraMolecules}}
+#' without re-reading genes already fetched. See \code{\link{ReadAtera}}
+#' @param feature.types Optional character vector of feature types to
+#' restrict the counts matrix to (eg \dQuote{Gene Expression}); \code{NULL}
+#' (the default) loads all feature types, matching current behavior.
+#' \dQuote{Gene Expression} is always included, since it backs the object's
+#' primary assay. See \code{\link{ReadAtera}}
+#' @param bpcells.dir Path to a directory used to cache the counts matrix on
+#' disk via \code{BPCells}. \code{NULL} (the default) auto-selects a
+#' session-scoped cache directory so the returned object is BPCells-backed
+#' and lazy by default (even for small bundles) whenever \code{BPCells} is
+#' installed; pass \code{FALSE} to always get plain in-memory matrices
+#' instead. See \code{\link{ReadAtera}}
+#' @param morphology.image Whether to load a single channel plane of a
+#' \dQuote{morphology_2d} image (eg the DAPI stain), by default at the
+#' lowest-resolution pyramid level, for use as a background/overview image
+#' in plots. Requires the \code{RBioFormats} package. Defaults to
+#' \code{FALSE} since it is an optional dependency and not needed for
+#' downstream analysis. See \code{\link{ReadAtera}}
+#' @param morphology.channel Channel to load when \code{morphology.image =
+#' TRUE}: either a channel name (matched case-insensitively as a substring,
+#' eg \dQuote{dapi}) or a 0-based integer channel index. See
+#' \code{\link{ReadAtera}}
+#' @param morphology.resolution Pyramid resolution level to load when
+#' \code{morphology.image = TRUE}, where \code{1} is full resolution.
+#' Defaults to \code{NULL}, which loads the lowest-resolution (smallest,
+#' fastest) level available. See \code{\link{ReadAtera}}
+#' @param morphology.region Optional list with \code{x}/\code{y} elements
+#' (each a length-2 micron range) to crop the loaded morphology image to a
+#' rectangular window instead of reading the whole plane; recommended when
+#' using \code{morphology.resolution = 1} (full resolution) on real-world
+#' datasets, since these whole-slide images can be tens of thousands of
+#' pixels per side. Defaults to \code{NULL}, which reads the whole plane.
+#' See \code{\link{ReadAtera}}
+#'
+#' @importFrom SeuratObject Cells CreateCentroids CreateFOV CreateSegmentation
+#' CreateSeuratObject CreateAssay5Object CreateMolecules
+#'
+#' @export
+#'
+#' @rdname ReadAtera
+#'
+LoadAtera <- function(
+  data.dir,
+  fov = 'fov',
+  assay = 'Atera',
+  mols.qv.threshold = 20,
+  cell.centroids = TRUE,
+  molecule.coordinates = FALSE,
+  segmentations = NULL,
+  genes = NULL,
+  feature.types = NULL,
+  bpcells.dir = NULL,
+  morphology.image = FALSE,
+  morphology.channel = "dapi",
+  morphology.resolution = NULL,
+  morphology.region = NULL
+) {
+  if (!is.null(segmentations) && !(segmentations %in% c('nucleus', 'cell'))) {
+    stop('segmentations must be NULL or one of "nucleus", "cell"')
+  }
+
+  if (!cell.centroids && is.null(segmentations)) {
+    stop("Must load either centroids or cell/nucleus segmentations")
+  }
+
+  if (!is.null(feature.types)) {
+    feature.types <- union(feature.types, "Gene Expression")
+  }
+
+  data <- ReadAtera(
+    data.dir = data.dir,
+    outs = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "morphology")[
+      c(TRUE, cell.centroids, isTRUE(segmentations == 'cell'), isTRUE(segmentations == 'nucleus'), morphology.image)
+    ],
+    mols.qv.threshold = mols.qv.threshold,
+    feature.types = feature.types,
+    bpcells.dir = bpcells.dir,
+    morphology.channel = morphology.channel,
+    morphology.resolution = morphology.resolution,
+    morphology.region = morphology.region
+  )
+  mols.handle <- NULL
+  if (molecule.coordinates) {
+    mols.handle <- .AteraMoleculesHandle(data.dir = data.dir, mols.qv.threshold = mols.qv.threshold)
+    if (!is.null(genes)) {
+      data$microns <- .AteraFetchMolecules(handle = mols.handle, genes = genes)
+    }
+  }
+
+  segmentations.key <- intersect(c("segmentations", "nucleus_segmentations"), names(data))
+
+  segmentations.data <- Filter(Negate(is.null), list(
+    centroids = if (is.null(data$centroids)) {
+      NULL
+    } else {
+      CreateCentroids(data$centroids)
+    },
+    segmentations = if (length(segmentations.key) > 0) {
+      CreateSegmentation(data[[segmentations.key]])
+    } else {
+      NULL
+    }
+  ))
+
+  coords <- CreateFOV(
+    segmentations.data,
+    assay = assay,
+    molecules = if (is.null(data$microns)) {
+      NULL
+    } else {
+      CreateMolecules(data$microns)
+    }
+  )
+
+  slot.map <- c(
+    `Deprecated Codeword` = 'DeprecatedCodeword',
+    `Unassigned Codeword` = 'BlankCodeword',
+    `Negative Control Codeword` = 'ControlCodeword',
+    `Negative Control Probe` = 'ControlProbe',
+    `Genomic Control` = 'GenomicControl'
+  )
+
+  atera.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+
+  if (!is.null(data$metadata)) {
+    Misc(atera.obj, 'run_metadata') <- data$metadata
+  }
+
+  extra.types <- intersect(names(slot.map), names(data$matrix))
+  single.feature.types <- Filter(function(name) nrow(data$matrix[[name]]) == 1L, extra.types)
+  for (name in setdiff(extra.types, single.feature.types)) {
+    atera.obj[[slot.map[name]]] <- CreateAssay5Object(counts = data$matrix[[name]])
+  }
+
+  atera.obj <- subset(atera.obj, cells = intersect(Cells(atera.obj), Cells(coords)))
+  coords <- subset(coords, cells = intersect(Cells(atera.obj), Cells(coords)))
+
+  atera.obj[[fov]] <- coords
+
+  for (name in single.feature.types) {
+    # CreateAssay5Object errors on single-feature layers ("Layers must be
+    # two-dimensional objects"), which would otherwise force falling back to
+    # the legacy v3 Assay (CreateAssayObject) here -- but that class's
+    # LayerData.Assay() validates its `cells` argument via
+    # rlang::arg_match(..., multiple = TRUE) every time per-assay stats are
+    # (re)computed (on creation, on every later subset(), etc.), and that
+    # call doesn't scale: it's effectively unusable past a few thousand
+    # cells, let alone the millions typical of a whole-tissue Atera run.
+    # A single-feature "assay" isn't useful for standard per-feature
+    # analysis anyway, so it's stashed as a plain matrix in Misc instead,
+    # subset to the cells actually retained above.
+    Misc(atera.obj, paste0('atera.', slot.map[name])) <- data$matrix[[name]][, Cells(atera.obj), drop = FALSE]
+  }
+
+  if (!is.null(mols.handle)) {
+    Misc(atera.obj, 'atera.molecules') <- list(handle = mols.handle, cache = data$microns, fov = fov)
+  }
+
+  if (!is.null(data$morphology)) {
+    Misc(atera.obj, 'atera.morphology') <- data$morphology
+  }
+
+  return(atera.obj)
+}
+
+#' Fetch additional Atera transcript molecules for genes not yet loaded
+#'
+#' Fetches transcript molecule coordinates for \code{genes} and adds them to
+#' the molecule layer of a Seurat object created by
+#' \code{\link{LoadAtera}(..., molecule.coordinates = TRUE)}, without
+#' re-reading genes that have already been fetched (by this call or by
+#' \code{genes} at load time). This is meant for interactive exploration,
+#' where different genes are plotted one at a time and reloading the full
+#' transcript table for each one would be wasteful.
+#'
+#' @param object A Seurat object created by \code{LoadAtera(..., molecule.coordinates = TRUE)}
+#' @param genes Character vector of gene names to fetch
+#'
+#' @return \code{object}, with \code{genes}' transcript coordinates added to
+#' its molecule layer (in addition to any genes fetched by a previous call)
+#'
+#' @importFrom SeuratObject CreateMolecules
+#'
+#' @export
+#'
+LoadAteraMolecules <- function(object, genes) {
+  handle.info <- Misc(object, slot = 'atera.molecules')
+  if (is.null(handle.info)) {
+    stop(
+      "'object' was not loaded with LoadAtera(..., molecule.coordinates = TRUE)",
+      call. = FALSE
+    )
+  }
+
+  cached.genes <- if (is.null(handle.info$cache)) character(0) else unique(handle.info$cache$gene)
+  missing.genes <- setdiff(genes, cached.genes)
+  if (length(missing.genes) == 0L) {
+    return(object)
+  }
+  new.df <- .AteraFetchMolecules(handle = handle.info$handle, genes = missing.genes)
+  handle.info$cache <- if (is.null(handle.info$cache)) {
+    new.df
+  } else {
+    rbind(handle.info$cache, new.df)
+  }
+
+  object[[handle.info$fov]]@molecules <- list(
+    molecules = CreateMolecules(handle.info$cache, key = 'mols_')
+  )
+  Misc(object, 'atera.molecules') <- handle.info
+
+  return(object)
+}
+
+#' Add segmentation polygons to an Atera field of view, for only the cells
+#' currently present in it
+#'
+#' \code{LoadAtera(..., segmentations = "cell")} builds a \code{Polygons}
+#' object (via \code{sp::SpatialPolygons()}) for every cell up front, which
+#' doesn't scale to bundles with many hundreds of thousands of cells -- that
+#' machinery gets impractically slow, and can overflow R's protection stack,
+#' well before reaching cell counts typical of a whole-tissue Atera run. This
+#' function instead builds segmentation polygons only for the cells already
+#' present in \code{object[[fov]]}, so a bundle too large to load
+#' segmentations for up front (\code{LoadAtera(..., segmentations = NULL)})
+#' can still get polygons for a \code{\link[SeuratObject]{Crop}}ped
+#' region-of-interest FOV, which typically has orders of magnitude fewer
+#' cells.
+#'
+#' @param object A Seurat object created by \code{\link{LoadAtera}}
+#' @param data.dir The same \code{data.dir} passed to the original
+#' \code{\link{LoadAtera}} call (the Atera output bundle directory)
+#' @param fov Name of the FOV (typically already cropped via
+#' \code{\link[SeuratObject]{Crop}}) to add segmentation polygons to
+#' @param segmentations One of \code{"cell"} or \code{"nucleus"}
+#'
+#' @return \code{object}, with a \code{"segmentations"} boundary added to
+#' \code{object[[fov]]}, built only for the cells currently in that FOV
+#'
+#' @importFrom SeuratObject Cells CreateSegmentation
+#'
+#' @export
+#'
+LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell") {
+  if (!isTRUE(segmentations %in% c("cell", "nucleus"))) {
+    stop("segmentations must be one of \"cell\", \"nucleus\"", call. = FALSE)
+  }
+  cell.ids <- Cells(object[[fov]])
+
+  zip.file <- file.path(data.dir, "cells.zarr.zip")
+  zidx <- .AteraZipIndex(zip.file)
+  con <- file(zip.file, "rb")
+  on.exit(close(con), add = TRUE)
+
+  all.cell.ids <- .AteraFormatId(.AteraDecodePackedId(.AteraReadArray(con, zidx, "cell_id")))
+  set.idx <- if (segmentations == "cell") 1L else 0L
+  df <- .AteraReadPolygonSet(con, zidx, set.idx, all.cell.ids, cells = cell.ids)
+
+  object[[fov]][["segmentations"]] <- CreateSegmentation(df)
+  return(object)
+}
+
+#' Load per-codeword transcript breakdowns for specific genes
+#'
+#' Atera's per-transcript \code{codeword_identity} (which specific barcode/
+#' codeword called each detection) is collapsed away by
+#' \code{\link{LoadAteraMolecules}}, which reports one combined position per
+#' gene. A gene can map to more than one distinct codeword (more than one
+#' probe/barcode design targeting the same gene); this instead returns one
+#' \code{"<gene>_codeword_<id>"} pseudo-feature per codeword, which is useful
+#' for a common QC question: whether different codewords for the same gene
+#' cluster differently in space (which would suggest a probe-specific
+#' artifact rather than true expression).
+#'
+#' @param object A Seurat object created by \code{\link{LoadAtera}}
+#' @param data.dir The same \code{data.dir} passed to the original
+#' \code{\link{LoadAtera}} call (the Atera output bundle directory)
+#' @param genes Character vector of one or more gene names to break down by
+#' codeword
+#' @param fov Name of the FOV to attach the resulting molecules to; defaults
+#' to the object's default FOV
+#'
+#' @return \code{object}, with one \code{"<gene>_codeword_<id>"} molecule
+#' entry per codeword mapping to each requested gene, merged into
+#' \code{object[[fov]]}'s existing molecule layer (regular genes loaded via
+#' \code{\link{LoadAteraMolecules}} are preserved, not overwritten; genes
+#' already broken down by a previous call are not re-fetched)
+#'
+#' @importFrom SeuratObject DefaultFOV Misc CreateMolecules
+#'
+#' @export
+#'
+LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
+  fov <- fov %||% DefaultFOV(object = object)
+
+  handle.info <- Misc(object, slot = 'atera.molecules')
+  handle <- if (is.null(handle.info)) NULL else handle.info$handle
+  zip.file <- file.path(data.dir, "transcripts.zarr.zip")
+  if (is.null(handle) || !identical(
+    normalizePath(handle$zip.file, mustWork = FALSE),
+    normalizePath(zip.file, mustWork = FALSE)
+  )) {
+    handle <- .AteraMoleculesHandle(data.dir = data.dir)
+  }
+  unknown <- setdiff(genes, handle$gene.names)
+  if (length(unknown) > 0) {
+    stop("Unknown Atera gene(s): ", paste(unknown, collapse = ", "), call. = FALSE)
+  }
+
+  # Initialize handle so codewords cached across successive LoadAteraCodewords calls
+  handle.info <- handle.info %||% list(handle = handle, fov = fov)
+  existing.cache <- if (is.null(handle.info)) NULL else handle.info$cache
+  cached.genes <- if (is.null(existing.cache)) character(0) else unique(existing.cache$gene)
+  already.loaded <- vapply(genes, function(g) {
+    any(grepl(paste0("^", g, "_codeword_"), cached.genes))
+  }, logical(1L))
+  missing.genes <- genes[!already.loaded]
+
+  if (length(missing.genes) > 0) {
+    gene.dfs <- lapply(missing.genes, function(gene_name) {
+      .AteraFetchMolecules(handle, genes = gene_name, codewords = TRUE)
+    })
+    new.df <- do.call(rbind, gene.dfs)
+    existing.cache <- if (is.null(existing.cache)) new.df else rbind(existing.cache, new.df)
+  }
+
+  object[[fov]]@molecules <- list(molecules = CreateMolecules(existing.cache, key = 'mols_'))
+  if (!is.null(handle.info)) {
+    handle.info$cache <- existing.cache
+    Misc(object, 'atera.molecules') <- handle.info
+  }
+
+  return(object)
+}
+
 #' Load Slide-seq spatial data
 #'
 #' @param coord.file Path to csv file containing bead coordinate positions
@@ -2747,7 +4805,7 @@ ReadVitessce <- function(
   type = c('segmentations', 'centroids'),
   filter = NA_character_
 ) {
-  if (!requireNamespace('jsonlite', quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('jsonlite', quietly = TRUE))) {
     stop("Please install 'jsonlite' for this function")
   }
   type <- match.arg(arg = type, several.ok = TRUE)
@@ -2964,7 +5022,7 @@ ReadVizgen <- function(
   z = 3L
 ) {
   # TODO: handle multiple segmentations per z-plane
-  if (!requireNamespace("data.table", quietly = TRUE)) {
+  if (isFALSE(x = requireNamespace('data.table', quietly = TRUE))) {
     stop("Please install 'data.table' for this function")
   }
   # hdf5r is only used for loading polygon boundaries
@@ -3387,15 +5445,28 @@ RunMarkVario <- function(
       f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
     )
     mv <- future_lapply(X = features, FUN = function(x) {
-      pp[["marks"]] <- as.data.frame(x = t(x = data[x, ]))
-      markvario(X = pp, normalise = TRUE, ...)
+      # drop = FALSE so that a chunk holding a single feature stays a matrix
+      # and t() keeps one row per cell
+      pp[["marks"]] <- as.data.frame(x = t(x = data[x, , drop = FALSE]))
+      chunk <- markvario(X = pp, normalise = TRUE, ...)
+      # markvario() hands back a bare 'fv' for a single mark and a named list
+      # of them for several. Keep every chunk a list, so that the unlist()
+      # below contributes one entry per feature rather than one per column of
+      # an 'fv' whenever a chunk holds a single feature.
+      if (inherits(x = chunk, what = 'fv')) {
+        chunk <- list(chunk)
+      }
+      return(chunk)
     })
     mv <- unlist(x = mv, recursive = FALSE)
-    names(x = mv) <- rownames(x = data)
   } else {
     pp[["marks"]] <- as.data.frame(x = t(x = data))
     mv <- markvario(X = pp, normalise = TRUE, ...)
+    if (inherits(x = mv, what = 'fv')) {
+      mv <- list(mv)
+    }
   }
+  names(x = mv) <- rownames(x = data)
   return(mv)
 }
 
@@ -3419,10 +5490,10 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
     message("Computing Moran's I")
     mysapply <- pbsapply
   }
-  Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
-  if (Rfast2.installed) {
+  Rfast2.installed <- requireNamespace('Rfast2', quietly = TRUE)
+  if (isTRUE(x = Rfast2.installed)) {
     MyMoran <- Rfast2::moranI
-  } else if (!PackageCheck('ape', error = FALSE)) {
+  } else if (isFALSE(x = requireNamespace('ape', quietly = TRUE))) {
     stop(
       "'RunMoransI' requires either Rfast2 or ape to be installed",
       call. = FALSE
@@ -3482,7 +5553,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #'
 #' @examples
 #' data("pbmc_small")
-#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
+#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", layer = "counts"))
 #' downsampled = SampleUMI(data = counts)
 #' head(x = downsampled)
 #'
@@ -3514,64 +5585,91 @@ SampleUMI <- function(
   return(new_data)
 }
 
-#' Use regularized negative binomial regression to normalize UMI count data
+#' SCTransform: Regularized NB regression for UMI count normalization
 #'
-#' This function calls sctransform::vst. The sctransform package is available at
-#' https://github.com/satijalab/sctransform.
-#' Use this function as an alternative to the NormalizeData,
-#' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-#' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
-#' scale.data being pearson residuals; sctransform::vst intermediate results are saved
-#' in misc slot of new assay.
+#' Perform a variance‐stabilizing transformation on UMI counts using
+#' \code{sctransform::vst} (https://github.com/satijalab/sctransform). This
+#' replaces the \code{NormalizeData} → \code{FindVariableFeatures} →
+#' \code{ScaleData} workflow by fitting a regularized negative binomial model
+#' per gene and returning:
 #'
-#' @param object UMI counts matrix
-#' @param cell.attr A metadata with cell attributes
-#' @param reference.SCT.model If not NULL, compute residuals for the object
-#' using the provided SCT model; supports only log_umi as the latent variable.
-#' If residual.features are not specified, compute for the top variable.features.n
-#' specified in the model which are also present in the object. If
-#' residual.features are specified, the variable features of the resulting SCT
-#' assay are set to the top variable.features.n in the model.
-#' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
-#' @param ncells Number of subsampling cells used to build NB regression; default is 5000
-#' @param residual.features Genes to calculate residual features for; default is NULL (all genes).
-#' If specified, will be set to VariableFeatures of the returned object.
-#' @param variable.features.n Use this many features as variable features after
-#' ranking by residual variance; default is 3000. Only applied if residual.features is not set.
-#' @param variable.features.rv.th Instead of setting a fixed number of variable features,
-#' use this residual variance cutoff; this is only used when \code{variable.features.n}
-#' is set to NULL; default is 1.3. Only applied if residual.features is not set.
-#' @param vars.to.regress Variables to regress out in a second non-regularized linear
-#' @param latent.data Extra data to regress out, should be cells x latent data
-#' regression. For example, percent.mito. Default is NULL
-#' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
-#' @param do.center Whether to center residuals to have mean zero; default is TRUE
-#' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
-#' where n is the number of cells
-#' @param vst.flavor When set to 'v2' sets method = glmGamPoi_offset, n_cells=2000,
-#' and exclude_poisson = TRUE which causes the model to learn theta and intercept
-#' only besides excluding poisson genes from learning and regularization
-#' @param conserve.memory If set to TRUE the residual matrix for all genes is never
-#' created in full; useful for large data sets, but will take longer to run;
-#' this will also set return.only.var.genes to TRUE; default is FALSE
-#' @param return.only.var.genes If set to TRUE the scale.data matrices in output assay are
-#' subset to contain only the variable genes; default is TRUE
-#' @param seed.use Set a random seed. By default, sets the seed to 1448145. Setting
-#' NULL will not set a seed.
-#' @param verbose Whether to print messages and progress bars
-#' @param ... Additional parameters passed to \code{sctransform::vst}
+#' - A new assay (default name “SCT”), in which:
+#'   - \code{counts}: depth‐corrected UMI counts (as if each cell had uniform
+#'     sequencing depth; controlled by \code{do.correct.umi}).
+#'   - \code{data}: \code{log1p} of corrected counts.
+#'   - \code{scale.data}: Pearson residuals from the fitted NB model (optionally
+#'     centered and/or scaled).
+#'   - \code{misc}: intermediate outputs from \code{sctransform::vst}.
 #'
-#' @return Returns a Seurat object with a new assay (named SCT by default) with
-#' counts being (corrected) counts, data being log1p(counts), scale.data being
-#' pearson residuals; sctransform::vst intermediate results are saved in misc
-#' slot of the new assay.
+#' When multiple \code{counts} layers exist (e.g. after \code{split()}),
+#' each layer is modeled independently. A consensus variable‐feature set is
+#' then defined by ranking features by how often they’re called “variable”
+#' across different layers (ties broken by median rank).
+#'
+#' By default, \code{sctransform::vst} will drop features expressed in fewer
+#' than five cells. In the multi-layer case, this can lead to consenus
+#' variable-features being excluded from the output's \code{scale.data} when
+#' a feature is "variable" across many layers but sparsely expressed in at
+#' least one.
+#'
+#' @param object A Seurat object or UMI count matrix.
+#' @param cell.attr Optional metadata frame (cells × attributes).
+#' @param reference.SCT.model Pre‐fitted SCT model (supports only \code{log_umi}
+#'   as latent variable). If provided, computes residuals via that model. When
+#'   \code{residual.features} is NULL, uses the model’s top
+#'   \code{variable.features.n}; otherwise, sets the assay’s variable features
+#'   to \code{residual.features}.
+#' @param do.correct.umi Logical; if TRUE (default), stores corrected UMIs in
+#'   \code{counts}.
+#' @param ncells Integer; number of cells to subsample when fitting NB
+#'   regression (default: 5000).
+#' @param residual.features Character vector of genes to compute residuals for.
+#'   Default NULL (all genes). If set, these become the assay’s variable
+#'   features.
+#' @param variable.features.n Integer; when \code{residual.features} is NULL,
+#'   select this many top features by residual variance (default: 3000).
+#' @param variable.features.rv.th Numeric; if \code{variable.features.n} is NULL,
+#'   select features exceeding this residual‐variance threshold (default: 1.3).
+#' @param vars.to.regress Character vector of metadata columns (e.g.
+#'   \code{percent.mito}) to regress out in a second, non‐regularized model.
+#' @param latent.data Numeric matrix (cells × latent covariates) to regress out.
+#' @param do.scale Logical; if TRUE, scale residuals to unit variance
+#'   (default: FALSE).
+#' @param do.center Logical; if TRUE, center residuals to mean zero
+#'   (default: TRUE).
+#' @param clip.range Numeric vector of length 2; range to clip residuals
+#'   (default \code{c(-sqrt(n/30), sqrt(n/30))}, with n = number of cells).
+#' @param vst.flavor Character; if \code{"v2"}, uses \code{method = "glmGamPoi_offset"},
+#'   \code{n_cells = 2000}, and \code{exclude_poisson = TRUE} to fit \eqn{\theta} and
+#'   intercept only.
+#' @param conserve.memory Logical; if TRUE, never builds the full residual
+#'   matrix (slower but memory‐efficient; forces \code{return.only.var.genes=TRUE};
+#'   default: FALSE).
+#' @param return.only.var.genes Logical; if TRUE (default), \code{scale.data}
+#'   is subset to variable features only.
+#' @param defer.residual.matrix Logical; if TRUE, skip materializing the
+#'   Pearson residual matrix in this call. (For internal use by the
+#'   v5 multi-layer \code{SCTransform} workflow, which computes the final
+#'   merged \code{scale.data} matrix after processing all layers. Not used for
+#'   the standard v3/single-matrix workflow.)
+#' @param seed.use Integer; random seed for reproducibility (default: 1448145).
+#'   Set to NULL to skip setting a seed.
+#' @param verbose Logical; whether to print progress messages (default: TRUE).
+#' @param ... Additional arguments passed to \code{sctransform::vst}.
+#'
+#' @return A Seurat object with a new \code{SCT} assay containing:
+#' \code{counts} (corrected UMIs), \code{data} (log1p counts), and
+#' \code{scale.data} (Pearson residuals), plus \code{misc} for intermediate
+#' \code{vst} outputs.
 #'
 #' @importFrom stats setNames
 #' @importFrom Matrix colSums
 #' @importFrom SeuratObject as.sparse
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
-#' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
+#' @seealso \code{\link[sctransform]{vst}},
+#'   \code{\link[sctransform]{get_residuals}},
+#'   \code{\link[sctransform]{correct_counts}}
 #'
 #' @rdname SCTransform
 #' @concept preprocessing
@@ -3594,6 +5692,7 @@ SCTransform.default <- function(
   vst.flavor = 'v2',
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
+  defer.residual.matrix = FALSE,
   seed.use = 1448145,
   verbose = TRUE,
   ...
@@ -3672,6 +5771,11 @@ SCTransform.default <- function(
   vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+  fast.sct.default <- (
+    identical(x = residual.type, y = 'pearson') &&
+    !any(c("batch_var", "latent_var", "latent_var_nonreg") %in% names(x = vst.args)) &&
+    !any(vst.args[['min_variance']] %in% c('model_mean', 'model_median'))
+  )
  # set sct normalization method
   if (!is.null( reference.SCT.model)) {
     sct.method <- "reference.model"
@@ -3685,6 +5789,16 @@ SCTransform.default <- function(
   # set vst model
   vst.out <- switch(
     EXPR = sct.method,
+    'default' = {
+      if (isTRUE(x = fast.sct.default)) {
+        vst.args[['return_corrected_umi']] <- FALSE
+        vst.args[['residual_type']] <- 'none'
+      } else {
+        vst.args[['return_corrected_umi']] <- do.correct.umi
+      }
+      vst.out <- do.call(what = 'vst', args = vst.args)
+      vst.out
+    },
     'reference.model' = {
       if (verbose) {
         message("Using reference SCTModel to calculate pearson residuals")
@@ -3729,41 +5843,196 @@ SCTransform.default <- function(
       )
       vst.out$gene_attr$residual_variance <- NA_real_
       vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
-      vst.out
-    },
-    'default' = {
-      vst.out <- do.call(what = 'vst', args = vst.args)
+      if (do.correct.umi && !is.null(x = vst.out$umi_corrected)) {
+        dimnames(x = vst.out$umi_corrected) <- dimnames(x = umi)
+      }
       vst.out
     })
-
-  feature.variance <- vst.out$gene_attr[,"residual_variance"]
-  names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
-  if (verbose) {
-    message('Determine variable features')
-  }
-  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(x = variable.features.n)) {
-    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(x = feature.variance))]
-  } else {
-    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
-  }
 
   # get residuals
   vst.out <- switch(
     EXPR = sct.method,
+    'default' = {
+      if (!isTRUE(x = fast.sct.default)) {
+        feature.variance <- vst.out$gene_attr[, "residual_variance"]
+        names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+        feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+        feature.idx <- if (is.null(x = variable.features.n)) {
+          feature.variance >= variable.features.rv.th
+        } else {
+          seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+        }
+        top.features <- names(x = feature.variance)[feature.idx]
+        if (isTRUE(x = return.only.var.genes)) {
+          scale.data.features <- intersect(x = top.features, y = rownames(x = vst.out$y))
+          vst.out$y <- vst.out$y[scale.data.features, , drop = FALSE]
+        }
+        vst.out
+      } else {
+        model.pars <- vst.out$model_pars_fit
+        genes <- rownames(x = model.pars)
+        if (!identical(x = genes, y = rownames(x = umi))) {
+          umi <- umi[genes, , drop = FALSE]
+        }
+        min.variance <- vst.out$arguments$min_variance
+        min.var <- if (identical(x = min.variance, y = "umi_median")) {
+          (median(umi@x) / 5) ^ 2
+        } else {
+          min.variance
+        }
+        # Persist the resolved numeric min_var in the model. Downstream residual
+        # recomputation (FetchResiduals / GetResidual) reads arguments$min_variance
+        # and only recomputes (median(nonzeros)/5)^2 when it is the string "umi_median".
+        # That recompute is order/subset dependent, so it can diverge from the
+        # value used here for scale.data. Storing the resolved value makes later
+        # residuals deterministic and consistent with scale.data.
+        vst.out$arguments$min_variance <- min.var
+        # should be set already by the vst call but just fixing in case its null
+        res.clip.range <- vst.out$arguments$res_clip_range %||%
+          c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+
+        # Compute residual statistics and corrected UMI counts
+        # Note: does not compute residual matrix yet (saves a lot of memory)
+        # Just computes the residual variance for each gene and (if asked for) corrected UMI counts
+        stats <- SCTResidualStatsAndCorrected(
+          x = umi@x,
+          i = umi@i,
+          p = umi@p,
+          rows = nrow(x = umi),
+          cols = ncol(x = umi),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
+          target_log_umi = median(vst.out$cell_attr[, "log_umi"]),
+          min_var = min.var,
+          residual_clip_min = min(res.clip.range),
+          residual_clip_max = max(res.clip.range),
+          n_threads = getThreads(verbose = FALSE),
+          compute_corrected = do.correct.umi
+        )
+        vst.out$gene_attr[genes, "residual_mean"] <- stats$residual_mean
+        vst.out$gene_attr[genes, "residual_variance"] <- stats$residual_variance
+    
+        # Determine variable features
+        feature.variance <- vst.out$gene_attr[, "residual_variance"]
+        names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+        feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+        feature.idx <- if (is.null(x = variable.features.n)) {
+          feature.variance >= variable.features.rv.th
+        } else {
+          seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+        }
+        top.features <- names(x = feature.variance)[feature.idx]
+
+        # Store corrected UMI counts if requested, if not just restore original counts matrix
+        if (do.correct.umi) {
+          vst.out$umi_corrected <- stats$corrected
+          dimnames(x = vst.out$umi_corrected) <- dimnames(x = umi)
+        } else {
+          vst.out$umi_corrected <- umi
+        }
+
+        # Compute matrix of Pearson residuals for features to be included in scale.data
+        scale.data.features <- if (return.only.var.genes) {
+          top.features
+        } else {
+          genes
+        }
+        if (isTRUE(x = defer.residual.matrix)) {
+          vst.out$y <- matrix(
+            data = numeric(length = 0L),
+            nrow = 0L,
+            ncol = ncol(x = umi),
+            dimnames = list(character(length = 0L), colnames(x = umi))
+          )
+        } else {
+          vst.out$y <- SCTPearsonResidualMatrix(
+            x = umi@x,
+            i = umi@i,
+            p = umi@p,
+            rows = nrow(x = umi),
+            cols = ncol(x = umi),
+            theta = model.pars[, "theta"],
+            intercept = model.pars[, "(Intercept)"],
+            slope = model.pars[, "log_umi"],
+            log_umi = vst.out$cell_attr[colnames(x = umi), "log_umi"],
+            feature_index = as.integer(x = match(x = scale.data.features, table = genes) - 1L),
+            min_var = min.var,
+            clip_min = min(clip.range),
+            clip_max = max(clip.range),
+            do_center = do.center,
+            n_threads = getThreads(verbose = FALSE),
+            display_progress = verbose
+          )
+          dimnames(x = vst.out$y) <- list(scale.data.features, colnames(x = umi))
+        }
+      
+      vst.out
+      }
+    },
     'reference.model' = {
+      feature.variance <- vst.out$gene_attr[, "residual_variance"]
+      names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+
+      feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+
+      feature.idx <- if (is.null(x = variable.features.n)) {
+        feature.variance >= variable.features.rv.th
+      } else {
+        seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+      }
+      top.features <- names(x = feature.variance)[feature.idx]
       if (is.null(x = residual.features)) {
         residual.features <- top.features
       }
+
       residual.features <- Reduce(
         f = intersect,
         x = list(residual.features, rownames(x = umi), rownames(x = vst.out$model_pars_fit))
       )
-      residual.feature.mat <- get_residuals(
-        vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE],
-        verbosity = as.numeric(x = verbose)*2
-      )
+      sub <- umi[residual.features, , drop = FALSE]
+      min.variance <- vst.out$arguments$min_variance
+      # Reproduce sctransform::get_residuals() -
+      # res_clip_range = +/- sqrt(ncol(sub)), the scalar variance floor from the
+      # model, and do_center = FALSE (reference centering by the reference
+      # residual_mean is applied by the sweep below, not by the kernel).
+      # "model_mean"/"model_median" use a per-gene variance floor -> fall back to
+      # get_residuals() for exact behavior.
+      if (min.variance %in% c("model_mean", "model_median")) {
+        residual.feature.mat <- get_residuals(
+          vst_out = vst.out,
+          umi = sub,
+          verbosity = as.numeric(x = verbose) * 2
+        )
+      } else {
+        model.pars <- vst.out$model_pars_fit[residual.features, , drop = FALSE]
+        min.var <- if (identical(x = min.variance, y = "umi_median")) {
+          (median(x = sub@x) / 5) ^ 2
+        } else {
+          min.variance
+        }
+        res.clip.range <- c(-sqrt(x = ncol(x = sub)), sqrt(x = ncol(x = sub)))
+        residual.feature.mat <- SCTPearsonResidualMatrix(
+          x = sub@x,
+          i = sub@i,
+          p = sub@p,
+          rows = nrow(x = sub),
+          cols = ncol(x = sub),
+          theta = model.pars[, "theta"],
+          intercept = model.pars[, "(Intercept)"],
+          slope = model.pars[, "log_umi"],
+          log_umi = vst.out$cell_attr[colnames(x = sub), "log_umi"],
+          feature_index = as.integer(x = seq_len(length.out = nrow(x = sub)) - 1L),
+          min_var = min.var,
+          clip_min = min(res.clip.range),
+          clip_max = max(res.clip.range),
+          do_center = FALSE,
+          n_threads = getThreads(verbose = FALSE),
+          display_progress = verbose
+        )
+        dimnames(x = residual.feature.mat) <- dimnames(x = sub)
+      }
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
       vst.out$y <- sweep(
@@ -3792,16 +6061,25 @@ SCTransform.default <- function(
       vst.out
     },
     'conserve.memory' = {
+      feature.variance <- vst.out$gene_attr[, "residual_variance"]
+      names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
+      feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+      feature.idx <- if (is.null(x = variable.features.n)) {
+        feature.variance >= variable.features.rv.th
+      } else {
+        seq_len(length.out = min(variable.features.n, length(x = feature.variance)))
+      }
+      top.features <- names(x = feature.variance)[feature.idx]
       vst.out$y <- get_residuals(
         vst_out = vst.out,
-        umi = umi[top.features, ],
+        umi = umi[top.features, , drop = FALSE],
         residual_type = residual.type,
         res_clip_range = res.clip.range,
-        verbosity = as.numeric(x = verbose)*2
+        verbosity = as.numeric(x = verbose) * 2
       )
       vst.out$gene_attr$residual_mean <- NA_real_
-      vst.out$gene_attr[top.features, "residual_mean"] = rowMeans2(x =  vst.out$y)
-      if (do.correct.umi & residual.type == 'pearson') {
+      vst.out$gene_attr[top.features, "residual_mean"] <- rowMeans2(x = vst.out$y)
+      if (do.correct.umi && residual.type == 'pearson') {
         vst.out$umi_corrected <- correct_counts(
           x = vst.out,
           umi = umi,
@@ -3809,37 +6087,73 @@ SCTransform.default <- function(
         )
       }
       vst.out
-    },
-    'default' = {
-      if (return.only.var.genes) {
-        vst.out$y <- vst.out$y[top.features, ]
-      }
-      vst.out
-    })
+    }
+   )
+  residuals.preprocessed <- identical(x = sct.method, y = "default") && isTRUE(x = fast.sct.default)
+  if (!isTRUE(x = residuals.preprocessed)) {
+    scale.data <- vst.out$y
+    # clip the residuals
+    scale.data[scale.data < clip.range[1]] <- clip.range[1]
+    scale.data[scale.data > clip.range[2]] <- clip.range[2]
+    # 2nd regression
+    vst.out$y <- ScaleData(
+      scale.data,
+      features = NULL,
+      vars.to.regress = vars.to.regress,
+      latent.data = latent.data,
+      model.use = 'linear',
+      use.umi = FALSE,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = Inf,
+      block.size = 750,
+      min.cells.to.block = 3000,
+      verbose = verbose
+    )
+  }
+  
+  # User may (not common) want to regress out additional variables after SCTransform
+  # when the residual matrix has already been centered and clipped.
+  if (isTRUE(x = residuals.preprocessed) && (!is.null(x = vars.to.regress) || isTRUE(x = do.scale))) {
+    if (is.null(x = rownames(x = vst.out$y)) && nrow(x = vst.out$y) == nrow(x = vst.out$gene_attr)) {
+      rownames(x = vst.out$y) <- rownames(x = vst.out$gene_attr)
+    }
+    if (is.null(x = colnames(x = vst.out$y)) && ncol(x = vst.out$y) == nrow(x = vst.out$cell_attr)) {
+      colnames(x = vst.out$y) <- rownames(x = vst.out$cell_attr)
+    }
+    vst.out$y <- ScaleData(
+      vst.out$y,
+      features = NULL,
+      vars.to.regress = vars.to.regress,
+      latent.data = latent.data,
+      model.use = 'linear',
+      use.umi = FALSE,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = Inf,
+      block.size = 750,
+      min.cells.to.block = 3000,
+      verbose = verbose
+    )
+  }
 
-  scale.data <- vst.out$y
-  # clip the residuals
-  scale.data[scale.data < clip.range[1]] <- clip.range[1]
-  scale.data[scale.data > clip.range[2]] <- clip.range[2]
-  # 2nd regression
-  scale.data <- ScaleData(
-    scale.data,
-    features = NULL,
-    vars.to.regress = vars.to.regress,
-    latent.data = latent.data,
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = do.scale,
-    do.center = do.center,
-    scale.max = Inf,
-    block.size = 750,
-    min.cells.to.block = 3000,
-    verbose = verbose
-  )
-  vst.out$y <- scale.data
   vst.out$variable_features <- residual.features %||% top.features
+  if (
+    !is.null(x = vst.out$umi_corrected) &&
+      identical(x = dim(x = vst.out$umi_corrected), y = dim(x = umi)) &&
+      (is.null(x = rownames(x = vst.out$umi_corrected)) || is.null(x = colnames(x = vst.out$umi_corrected)))
+  ) {
+    dimnames(x = vst.out$umi_corrected) <- dimnames(x = umi)
+  }
+  if (do.correct.umi && is.null(x = vst.out$umi_corrected)) {
+    vst.out$residual_type <- vst.out$residual_type %||% "none"
+  }
   if (!do.correct.umi) {
     vst.out$umi_corrected <- umi
+  }
+  if (sct.method %in% c('default', 'conserve.memory')) {
+    # Store the residual type used for output, including deferred residuals.
+    vst.out$arguments$residual_type <- residual.type
   }
   min_var <- vst.out$arguments$min_variance
   return(vst.out)
@@ -3877,9 +6191,14 @@ SCTransform.Assay <- function(
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
+    rlang::warn(
+      "A reference SCT model was provided, therefore counts are not corrected (regardless of do.correct.umi)",
+      .frequency = "once",
+      .frequency_id = "SCTransform-reference-SCTmodel-correct-counts"
+    )
   }
 
-  umi <- GetAssayData(object = object, slot = 'counts')
+  umi <- GetAssayData(object = object, layer = 'counts')
   vst.out <- SCTransform(object = umi,
                          cell.attr = cell.attr,
                          reference.SCT.model = reference.SCT.model,
@@ -3918,13 +6237,13 @@ SCTransform.Assay <- function(
   # put log1p transformed counts in data
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'data',
-    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+    layer = 'data',
+    new.data = log1p(x = GetAssayData(object = assay.out, layer = 'counts'))
   )
   scale.data <- vst.out$y
   assay.out <- SetAssayData(
     object = assay.out,
-    slot = 'scale.data',
+    layer = 'scale.data',
     new.data = scale.data
   )
   vst.out$y <- NULL
@@ -4005,7 +6324,16 @@ SCTransform.Seurat <- function(
                             verbose = verbose,
                             ...)
   assay.data <- SCTAssay(assay.data, assay.orig = assay)
-  slot(object = slot(object = assay.data, name = "SCTModel.list")[[1]], name = "umi.assay") <- assay
+  
+  # Extract all SCT models stored in assay
+  sct_models <- slot(object = assay.data, name = "SCTModel.list")
+  
+  # Update umi.assay field for every SCT model 
+  slot(object = assay.data, name = "SCTModel.list") <- lapply(sct_models, function(model) {
+    slot(model, name = "umi.assay") <- assay
+    model
+  })
+
   object[[new.assay.name]] <- assay.data
 
   if (verbose) {
@@ -4109,6 +6437,7 @@ FindVariableFeatures.V3Matrix <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 ) {
@@ -4120,31 +6449,12 @@ FindVariableFeatures.V3Matrix <- function(
     object <- as.sparse(x = object)
   }
   if (selection.method == "vst") {
-    if (clip.max == 'auto') {
-      clip.max <- sqrt(x = ncol(x = object))
-    }
-    hvf.info <- data.frame(mean = rowMeans(x = object))
-    hvf.info$variance <- SparseRowVar2(
-      mat = object,
-      mu = hvf.info$mean,
-      display_progress = verbose
-    )
-    hvf.info$variance.expected <- 0
-    hvf.info$variance.standardized <- 0
-    not.const <- hvf.info$variance > 0
-    fit <- loess(
-      formula = log10(x = variance) ~ log10(x = mean),
-      data = hvf.info[not.const, ],
-      span = loess.span
-    )
-    hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-    # use c function to get variance after feature standardization
-    hvf.info$variance.standardized <- SparseRowVarStd(
-      mat = object,
-      mu = hvf.info$mean,
-      sd = sqrt(hvf.info$variance.expected),
-      vmax = clip.max,
-      display_progress = verbose
+    hvf.info <- .FindVariableFeaturesVSTInfo(
+      object = object,
+      loess.span = loess.span,
+      clip.max = clip.max,
+      nselect = nfeatures,
+      verbose = verbose
     )
     colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   } else {
@@ -4219,14 +6529,14 @@ FindVariableFeatures.Assay <- function(
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
   if (selection.method == "vst") {
-    data <- GetAssayData(object = object, slot = "counts")
+    data <- GetAssayData(object = object, layer = "counts")
     # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
     if (IsMatrixEmpty(x = data)) {
       warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
-      data <- GetAssayData(object = object, slot = "data")
+      data <- GetAssayData(object = object, layer = "data")
     }
   } else {
-    data <- GetAssayData(object = object, slot = "data")
+    data <- GetAssayData(object = object, layer = "data")
   }
   hvf.info <- FindVariableFeatures(
     object = data,
@@ -4284,13 +6594,7 @@ FindVariableFeatures.SCTAssay <- function(
   nfeatures = 2000,
   ...
 ) {
-  if (length(x = slot(object = object, name = "SCTModel.list")) > 1) {
-    stop("SCT assay is comprised of multiple SCT models. To change the variable features, please set manually with VariableFeatures<-", call. = FALSE)
-  }
-  feature.attr <- SCTResults(object = object, slot = "feature.attributes")
-  nfeatures <- min(nfeatures, nrow(x = feature.attr))
-  top.features <- rownames(x = feature.attr)[order(feature.attr$residual_variance, decreasing = TRUE)[1:nfeatures]]
-  VariableFeatures(object = object) <- top.features
+  VariableFeatures(object) <- VariableFeatures(object, nfeatures = nfeatures)
   return(object)
 }
 
@@ -4380,6 +6684,7 @@ FindSpatiallyVariableFeatures.default <- function(
   verbose = TRUE,
   ...
 ) {
+  selection.method <- match.arg(arg = selection.method)
   # error check dimensions
   if (ncol(x = object) != nrow(x = spatial.location)) {
     stop("Please provide the same number of observations as spatial locations.")
@@ -4411,7 +6716,8 @@ FindSpatiallyVariableFeatures.default <- function(
   return(svf.info)
 }
 
-#' @param slot Slot in the Assay to pull data from
+#' @param layer The layer in the specified assay to pull data from.
+#' @param slot Deprecated, use `layer`.
 #' @param features If provided, only compute on given features. Otherwise,
 #' compute for all features.
 #' @param nfeatures Number of features to mark as the top spatially variable.
@@ -4424,25 +6730,59 @@ FindSpatiallyVariableFeatures.default <- function(
 #'
 FindSpatiallyVariableFeatures.Assay <- function(
   object,
-  slot = "scale.data",
+  layer = "scale.data",
+  slot = deprecated(),
   spatial.location,
   selection.method = c('markvariogram', 'moransi'),
   features = NULL,
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
-  nfeatures = nfeatures,
+  nfeatures = 2000,
   verbose = TRUE,
   ...
 ) {
-  features <- features %||% rownames(x = object)
+  if (is_present(slot)) {
+    deprecate_soft(
+      when = '5.3.0',
+      what = 'FindSpatiallyVariableFeatures(slot = )',
+      with = 'FindSpatiallyVariableFeatures(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+  features <- features %||% Features(object, layer = layer)
+  selection.method <- match.arg(selection.method)
   if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
     features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
     features <- features[! features %in% features.computed]
   }
-  data <- GetAssayData(object = object, slot = slot)
-  data <- as.matrix(x = data[features, ])
-  data <- data[RowVar(x = data) > 0, ]
+  cells <- rownames(spatial.location)
+  cell.mismatch <- setdiff(cells, Cells(x = object, layer = layer))
+  if (length(cell.mismatch) > 0L) {
+    stop(
+      "At least some of the row names in 'spatial.location' do not match cells in the '",
+      layer, "' layer; check that the row names of 'spatial.location' are cell names.",
+      call. = FALSE
+    )
+  }
+  data <- LayerData(object, layer = layer, cells = cells, features = features)
+  data <- as.matrix(x = data)
+  # RowVar() is C++ and aborts the session on an empty matrix rather than
+  # raising an R error, so catch any remaining path that produces one. One
+  # column is caught here too: RowVar() divides by 'ncol - 1', so a single
+  # cell yields NaN for every feature, and the NA subscript that follows
+  # fails further down with a message that says nothing about the cause.
+  if (ncol(x = data) < 2) {
+    stop(
+      "Fewer than two cells were returned from the '", layer, "' layer; ",
+      "finding spatially variable features requires at least two cells.",
+      call. = FALSE
+    )
+  }
+  # Keep a single surviving feature as a one-row matrix; without drop = FALSE it
+  # becomes a vector and `nrow()` returns NULL, triggering "argument is of length
+  # zero" in the `if (nrow(x = data) != 0)` check below.
+  data <- data[RowVar(x = data) > 0, , drop = FALSE]
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
       object = data,
@@ -4457,10 +6797,22 @@ FindSpatiallyVariableFeatures.Assay <- function(
   } else {
     svf.info <- c()
   }
+  if (selection.method == "markvariogram" &&
+      "markvariogram" %in% names(x = Misc(object = object))) {
+    svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
+  }
+  # Nothing was computed and nothing was cached: every requested feature had
+  # zero variance. The branches below index into 'svf.info', so return here
+  # rather than letting them fail on a NULL.
+  if (!length(x = svf.info)) {
+    warning(
+      "None of the requested features vary across the given cells in the '",
+      layer, "' layer; returning the object unchanged.",
+      call. = FALSE
+    )
+    return(object)
+  }
   if (selection.method == "markvariogram") {
-    if ("markvariogram" %in% names(x = Misc(object = object))) {
-      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
-    }
     suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
     svf.info <- ComputeRMetric(mv = svf.info, r.metric)
     svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
@@ -4490,7 +6842,10 @@ FindSpatiallyVariableFeatures.Assay <- function(
 FindSpatiallyVariableFeatures.Seurat <- function(
   object,
   assay = NULL,
-  slot = "scale.data",
+  layer = "scale.data",
+  # Using `deprecated()` as the default for any arguments will break the
+  # `LogSeuratCommand` call at the end of this method.
+  slot = NULL,
   features = NULL,
   image = NULL,
   selection.method = c('markvariogram', 'moransi'),
@@ -4501,15 +6856,46 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  if (!is.null(slot)) {
+    deprecate_soft(
+      when = '5.3.0',
+      what = 'FindSpatiallyVariableFeatures(slot = )',
+      with = 'FindSpatiallyVariableFeatures(layer = )'
+    )
+    layer <- slot %||% layer
+  }
+
   assay <- assay %||% DefaultAssay(object = object)
-  features <- features %||% rownames(x = object[[assay]])
-  image <- image %||% DefaultImage(object = object)
+  selection.method <- match.arg(arg = selection.method)
+  images <- Images(object = object, assay = assay)
+  if (is.null(x = image)) {
+    if (!length(x = images)) {
+      stop(
+        "No image is associated with assay ", sQuote(x = assay, q = FALSE),
+        call. = FALSE
+      )
+    }
+    image <- images[[1L]]
+  }
+  features <- features %||% Features(object, assay = assay, layer = layer)
   tc <- GetTissueCoordinates(object = object[[image]])
-  # check if markvariogram has been run on necessary features
-  # only run for new ones
+  if ('cell' %in% colnames(x = tc)) {
+    cell.names <- as.character(x = tc[['cell']])
+    if (anyNA(cell.names) || any(!nzchar(x = cell.names)) || anyDuplicated(x = cell.names)) {
+      stop(
+        "Spatial coordinates must contain exactly one row per cell. Use ",
+        "'DefaultBoundary()' to select a centroid-based boundary or provide ",
+        "'spatial.location'.",
+        call. = FALSE
+      )
+    }
+    rownames(x = tc) <- cell.names
+    tc <- tc[, setdiff(x = colnames(x = tc), y = 'cell'), drop = FALSE]
+  }
+
   object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
-    slot = slot,
+    layer = layer,
     features = features,
     spatial.location = tc,
     selection.method = selection.method,
@@ -4520,7 +6906,10 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     verbose = verbose,
     ...
   )
-  object <- LogSeuratCommand(object = object)
+
+  object <- LogSeuratCommand(object)
+
+  return(object)
 }
 
 #' @rdname LogNormalize
@@ -4553,9 +6942,6 @@ LogNormalize.V3Matrix <- function(
   verbose = TRUE,
   ...
 ) {
-  # if (is.data.frame(x = data)) {
-  #   data <- as.matrix(x = data)
-  # }
   if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
@@ -4563,15 +6949,13 @@ LogNormalize.V3Matrix <- function(
   if (verbose) {
     cat("Performing log-normalization\n", file = stderr())
   }
-  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
-  colnames(x = norm.data) <- colnames(x = data)
-  rownames(x = norm.data) <- rownames(x = data)
-  return(norm.data)
+  nthreads <- getThreads(verbose = FALSE)
+  # LogNorm takes only x and p slots of the dgCMatrix
+  # then replaces the x slot with normalized values - all other slots can be reused
+  data@x <- LogNorm(x = data@x, p = data@p, scale_factor = scale.factor, nthreads = nthreads, display_progress = verbose)
+  return(data)
 }
 
-#' @importFrom future.apply future_lapply
-#' @importFrom future nbrOfWorkers
-#'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
 #'   \item \dQuote{\code{LogNormalize}}: Feature counts for each cell are
@@ -4586,8 +6970,10 @@ LogNormalize.V3Matrix <- function(
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param margin If performing CLR normalization, normalize across features (1) or cells (2)
 # @param across If performing CLR normalization, normalize across either "features" or "cells".
-#' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
-#' @param verbose display progress bar for normalization procedure
+#' @param block.size How many cells should be run in each chunk - will be split evenly across threads.
+#' If supplied, temporarily sets the thread count to \code{ceiling(ncol(object) / block.size)},
+#' capped at the number of available cores.
+#' @param verbose Whether to display a progress bar
 #'
 #' @rdname NormalizeData
 #' @concept preprocessing
@@ -4606,92 +6992,38 @@ NormalizeData.V3Matrix <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  normalized.data <- if (nbrOfWorkers() > 1) {
-    norm.function <- switch(
-      EXPR = normalization.method,
-      'LogNormalize' = LogNormalize,
-      'CLR' = CustomNormalize,
-      'RC' = RelativeCounts,
-      stop("Unknown normalization method: ", normalization.method)
-    )
-    if (normalization.method != 'CLR') {
-      margin <- 2
+  if (!is.null(block.size)) {
+    stopifnot("'block.size' must be a positive number" =
+              length(x = block.size) == 1L && is.numeric(x = block.size) && block.size > 0)
+    req_nthreads <- ceiling(length(Cells(x = object)) / block.size)
+    available <- future::availableCores()
+    if (is.na(x = available)) {
+      available <- 1L
     }
-    tryCatch(
-      expr = Parenting(parent.find = 'Seurat', margin = margin),
-      error = function(e) {
-        invisible(x = NULL)
-      }
-    )
-    dsize <- switch(
-      EXPR = margin,
-      '1' = nrow(x = object),
-      '2' = ncol(x = object),
-      stop("'margin' must be 1 or 2")
-    )
-    chunk.points <- ChunkPoints(
-      dsize = dsize,
-      csize = block.size %||% ceiling(x = dsize / nbrOfWorkers())
-    )
-    normalized.data <- future_lapply(
-      X = 1:ncol(x = chunk.points),
-      FUN = function(i) {
-        block <- chunk.points[, i]
-        data <- if (margin == 1) {
-          object[block[1]:block[2], , drop = FALSE]
-        } else {
-          object[, block[1]:block[2], drop = FALSE]
-        }
-        clr_function <- function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        }
-        args <- list(
-          data = data,
-          scale.factor = scale.factor,
-          verbose = FALSE,
-          custom_function = clr_function, margin = margin
-        )
-        args <- args[names(x = formals(fun = norm.function))]
-        return(do.call(
-          what = norm.function,
-          args = args
-        ))
-      }
-    )
-    do.call(
-      what = switch(
-        EXPR = margin,
-        '1' = 'rbind',
-        '2' = 'cbind',
-        stop("'margin' must be 1 or 2")
-      ),
-      args = normalized.data
-    )
-  } else {
-    switch(
-      EXPR = normalization.method,
-      'LogNormalize' = LogNormalize(
-        data = object,
-        scale.factor = scale.factor,
-        verbose = verbose
-      ),
-      'CLR' = CustomNormalize(
-        data = object,
-        custom_function = function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-        },
-        margin = margin,
-        verbose = verbose
-        # across = across
-      ),
-      'RC' = RelativeCounts(
-        data = object,
-        scale.factor = scale.factor,
-        verbose = verbose
-      ),
-      stop("Unkown normalization method: ", normalization.method)
-    )
+    req_nthreads <- max(1L, min(as.integer(x = req_nthreads), as.integer(x = available)))
+    old_options <- options(Seurat.nthreads = req_nthreads)
+    on.exit(expr = options(old_options), add = TRUE)
   }
+  normalized.data <- switch(EXPR = normalization.method,
+                            'LogNormalize' = LogNormalize(
+                              data = object,
+                              scale.factor = scale.factor,
+                              verbose = verbose
+                            ),
+                            'CLR' = CustomNormalize(
+                              data = object,
+                              custom_function = function(x) {
+                                return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
+                              },
+                              margin = margin,
+                              verbose = verbose
+                            ),
+                            'RC' = RelativeCounts(
+                              data = object,
+                              scale.factor = scale.factor,
+                              verbose = verbose
+                            ),
+                            stop("Unknown normalization method: ", normalization.method))
   return(normalized.data)
 }
 
@@ -4710,9 +7042,9 @@ NormalizeData.Assay <- function(
 ) {
   object <- SetAssayData(
     object = object,
-    slot = 'data',
+    layer = 'data',
     new.data = NormalizeData(
-      object = GetAssayData(object = object, slot = 'counts'),
+      object = GetAssayData(object = object, layer = 'counts'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
       verbose = verbose,
@@ -4747,17 +7079,73 @@ NormalizeData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- NormalizeData(
-    object = object[[assay]],
+  if (!(assay %in% Assays(object = object))) {
+    stop("Assay ", assay, " not found in object")
+  }
+  slot(object, "assays")[[assay]] <- NormalizeData(
+    object = slot(object, "assays")[[assay]],
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose,
     margin = margin,
     ...
   )
-  object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
   return(object)
+}
+
+FastSparseRowScaleInternal <- FastSparseRowScale
+
+FastSparseRowScale <- function(
+  mat,
+  features = as.integer(x = c()),
+  scale = TRUE,
+  center = TRUE,
+  scale_max = 10,
+  nthreads = 1L,
+  display_progress = FALSE
+) {
+  if (inherits(x = mat, what = "dgTMatrix")) {
+    mat <- as(object = mat, Class = "dgCMatrix")
+  }
+  if (!inherits(x = mat, what = "dgCMatrix")) {
+    stop("FastSparseRowScale requires a dgCMatrix or dgTMatrix", call. = FALSE)
+  }
+  rows <- nrow(x = mat)
+  cols <- ncol(x = mat)
+  result <- FastSparseRowScaleInternal(
+    x = mat@x,
+    i = mat@i,
+    p = mat@p,
+    rows = rows,
+    cols = cols,
+    features,
+    scale,
+    center,
+    scale_max,
+    nthreads,
+    display_progress
+  )
+  if (isTRUE(x = scale)) {
+    selected <- if (length(x = features)) {
+      features + 1L
+    } else {
+      seq_len(length.out = rows)
+    }
+    row.sum <- Matrix::rowSums(x = mat[selected, , drop = FALSE])
+    row.sq.sum <- Matrix::rowSums(x = mat[selected, , drop = FALSE] ^ 2)
+    variance.numerator <- if (isTRUE(x = center)) {
+      row.sq.sum - (row.sum * row.sum / cols)
+    } else {
+      row.sq.sum
+    }
+    sigma <- sqrt(x = variance.numerator / (cols - 1))
+    invalid <- which(x = !(sigma > 0) | is.na(x = sigma))
+    if (length(x = invalid)) {
+      result[invalid, ] <- NaN
+    }
+  }
+  return(result)
 }
 
 #' @importFrom future nbrOfWorkers
@@ -4811,8 +7199,8 @@ ScaleData.default <- function(
   CheckDots(...)
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
-  object <- object[features, , drop = FALSE]
-  object.names <- dimnames(x = object)
+  # pass the full matrix plus feature indices into C++ and select the requested rows there
+  object.names <- list(features, colnames(x = object))
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Assay",
@@ -4821,7 +7209,65 @@ ScaleData.default <- function(
   ))
   split.by <- split.by %||% TRUE
   split.cells <- split(x = colnames(x = object), f = split.by)
+  nthreads <- getThreads(verbose = FALSE)
   CheckGC()
+  # When no regression is requested and the data are not split,
+  # compute the row statistics and materialise the final dense matrix in a single C++ call.
+  if (
+    is.null(x = vars.to.regress) &&
+    is.null(x = latent.data) &&
+    length(x = split.cells) == 1 &&
+    !anyNA(x = object)
+  ) {
+    if (verbose && (do.scale || do.center)) {
+      msg <- paste(
+        na.omit(object = c(
+          ifelse(test = do.center, yes = 'centering', no = NA_character_),
+          ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+        )),
+        collapse = ' and '
+      )
+      msg <- paste0(
+        toupper(x = substr(x = msg, start = 1, stop = 1)),
+        substr(x = msg, start = 2, stop = nchar(x = msg)),
+        ' data matrix'
+      )
+      message(msg)
+    }
+    # 0-based row indices of the requested features within the full matrix.
+    feature.idx <- match(x = features, table = rownames(x = object)) - 1L
+    if (inherits(x = object, what = 'dgTMatrix')) {
+      object <- as(object = object, Class = 'dgCMatrix')
+    }
+    if (is(object = object, class2 = 'dgCMatrix')) {
+      scaled.data <- FastSparseRowScaleInternal(
+        x = object@x,
+        i = object@i,
+        p = object@p,
+        rows = nrow(x = object),
+        cols = ncol(x = object),
+        features = feature.idx,
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        nthreads = nthreads,
+        display_progress = verbose
+      )
+    } else {
+      scaled.data <- FastDenseRowScale(
+        mat = as.matrix(x = object),
+        features = feature.idx,
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        nthreads = nthreads,
+        display_progress = verbose
+      )
+    }
+    dimnames(x = scaled.data) <- object.names
+    return(scaled.data)
+  }
+  object <- object[features, , drop = FALSE]
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
       latent.data <- data.frame(row.names = colnames(x = object))
@@ -4870,7 +7316,7 @@ ScaleData.default <- function(
           return(RegressOutMatrix(
             data.expr = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
             latent.data = latent.data[split.cells[[group]], , drop = FALSE],
-            features.regress = features,
+            features.regress = NULL,
             model.use = model.use,
             use.umi = use.umi,
             verbose = FALSE
@@ -4904,7 +7350,7 @@ ScaleData.default <- function(
           return(RegressOutMatrix(
             data.expr = object[, split.cells[[x]], drop = FALSE],
             latent.data = latent.data[split.cells[[x]], , drop = FALSE],
-            features.regress = features,
+            features.regress = NULL,
             model.use = model.use,
             use.umi = use.umi,
             verbose = verbose
@@ -5036,14 +7482,74 @@ ScaleData.default <- function(
 ScaleData.IterableMatrix <- function(
     object,
     features = NULL,
+    vars.to.regress = NULL,
+    latent.data = NULL,
     do.scale = TRUE,
     do.center = TRUE,
     scale.max = 10,
+    verbose = TRUE,
     ...
 ) {
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
+
+  # Handle covariate regression using BPCells::regress_out
+  if (!is.null(x = vars.to.regress)) {
+    if (is.null(x = latent.data)) {
+      latent.data <- data.frame(row.names = colnames(x = object))
+    } else {
+      latent.data <- latent.data[colnames(x = object), , drop = FALSE]
+      rownames(x = latent.data) <- colnames(x = object)
+    }
+    # Check if any vars.to.regress are features in the matrix
+    if (any(vars.to.regress %in% rownames(x = object))) {
+      feature_vars <- vars.to.regress[vars.to.regress %in% rownames(x = object)]
+      # For IterableMatrix, convert the subset to a regular matrix for latent.data
+      feature_data <- t(as.matrix(object[feature_vars, , drop = FALSE]))
+      latent.data <- cbind(latent.data, feature_data)
+    }
+    # Validate that we have the requested variables
+    notfound <- setdiff(x = vars.to.regress, y = colnames(x = latent.data))
+    if (length(x = notfound) == length(x = vars.to.regress)) {
+      stop(
+        "None of the requested variables to regress are present in the object.",
+        call. = FALSE
+      )
+    } else if (length(x = notfound) > 0) {
+      warning(
+        "Requested variables to regress not in object: ",
+        paste(notfound, collapse = ", "),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      vars.to.regress <- colnames(x = latent.data)
+    }
+    if (verbose) {
+      message("Regressing out ", paste(vars.to.regress, collapse = ', '))
+    }
+    # Use BPCells regress_out function
+    regress_data <- latent.data[, vars.to.regress, drop = FALSE]
+    object <- BPCells::regress_out(mat = object, latent_data = regress_data, prediction_axis = "row")
+  }
+
+  # Proceed with scaling/centering
+  if (verbose && (do.scale || do.center)) {
+    msg <- paste(
+      na.omit(object = c(
+        ifelse(test = do.center, yes = 'centering', no = NA_character_),
+        ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+      )),
+      collapse = ' and '
+    )
+    msg <- paste0(
+      toupper(x = substr(x = msg, start = 1, stop = 1)),
+      substr(x = msg, start = 2, stop = nchar(x = msg)),
+      ' data matrix'
+    )
+    message(msg)
+  }
+
   if (do.center) {
     features.mean <- BPCells::matrix_stats(
       matrix = object,
@@ -5052,18 +7558,29 @@ ScaleData.IterableMatrix <- function(
     features.mean <- 0
   }
   if (do.scale) {
-    features.sd <- sqrt(BPCells::matrix_stats(
+    features.var <- BPCells::matrix_stats(
       matrix = object,
-      row_stats = 'variance')$row_stats['variance',])
+      row_stats = 'variance')$row_stats['variance',]
+    if (do.center) {
+      features.sd <- sqrt(features.var)
+    } else {
+      # When not centering, scale by sqrt(sum(x^2) / (n-1)) to match
+      # FastSparseRowScale behavior (Bessel-corrected root mean square)
+      n <- ncol(object)
+      features.row.mean <- BPCells::matrix_stats(
+        matrix = object,
+        row_stats = 'mean')$row_stats['mean',]
+      features.sd <- sqrt(features.var + n * features.row.mean^2 / (n - 1))
+    }
     features.sd[features.sd == 0] <- 0.01
   } else {
     features.sd <- 1
   }
-  if (scale.max != Inf) {
+  if (scale.max != Inf && (do.scale || do.center)) {
     object <- BPCells::min_by_row(mat = object, vals = scale.max * features.sd + features.mean)
   }
   scaled.data <- (object - features.mean) / features.sd
-return(scaled.data)
+  return(scaled.data)
 }
 
 
@@ -5092,13 +7609,13 @@ ScaleData.Assay <- function(
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
   if (length(x = features) == 0) {
-    features <- rownames(x = GetAssayData(object = object, slot = slot.use))
+    features <- rownames(x = GetAssayData(object = object, layer = slot.use))
   }
   object <- SetAssayData(
     object = object,
-    slot = 'scale.data',
+    layer = 'scale.data',
     new.data = ScaleData(
-      object = GetAssayData(object = object, slot = slot.use),
+      object = GetAssayData(object = object, layer = slot.use),
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
@@ -5157,7 +7674,6 @@ ScaleData.Seurat <- function(
     split.by <- object[[split.by]]
   }
   assay.data <- ScaleData(
-    # object = assay.data,
     object = object[[assay]],
     features = features,
     vars.to.regress = vars.to.regress,
@@ -5555,10 +8071,10 @@ GetResidualSCTModel <- function(
   umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", model = SCTModel)
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
   sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
-  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, layer = "scale.data"))
   if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
   existing_features <- names(x = which(x = ! apply(
-    X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
+    X = GetAssayData(object = object, assay = assay, layer = "scale.data")[, model.cells],
     MARGIN = 1,
     FUN = anyNA)
   ))
@@ -5584,25 +8100,26 @@ GetResidualSCTModel <- function(
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
   if (length(x = diff_features) == 0) {
-    umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[features_to_compute, model.cells, drop = FALSE]
+    umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts" )[features_to_compute, model.cells, drop = FALSE]
   } else {
     warning(
       "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
       " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
     )
     if (length(x = intersect_features) == 0) {
-      return(matrix(
+      new_residual <- matrix(
         data = NA,
         nrow = length(x = features_to_compute),
         ncol = length(x = model.cells),
         dimnames = list(features_to_compute, model.cells)
-      ))
+      )
+    } else {
+      umi <- GetAssayData(object = object, assay = umi.assay, layer = "counts")[intersect_features, model.cells, drop = FALSE]
     }
-    umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")[intersect_features, model.cells, drop = FALSE]
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
-  if (nrow(x = umi) > 0) {
+  if (exists(x = "umi", inherits = FALSE) && nrow(x = umi) > 0) {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
     if (verbose) {
       message("sct.model: ", SCTModel)
@@ -5615,15 +8132,48 @@ GetResidualSCTModel <- function(
       verbosity = as.numeric(x = verbose) * 2
     )
     new_residual <- as.matrix(x = new_residual)
+    if (!identical(dim(x = new_residual), dim(x = umi))) {
+      new_residual <- matrix(
+        data = new_residual,
+        nrow = nrow(x = umi),
+        ncol = ncol(x = umi),
+        dimnames = dimnames(x = umi)
+      )
+    } else {
+      dimnames(x = new_residual) <- dimnames(x = umi)
+    }
     # centered data
-    new_residual <- new_residual - rowMeans(x = new_residual)
-  } else {
+    new_residual <- sweep(
+      x = new_residual,
+      MARGIN = 1,
+      STATS = rowMeans(x = new_residual),
+      FUN = "-"
+    )
+  } else if (!exists(x = "new_residual", inherits = FALSE)) {
     new_residual <- matrix(data = NA, nrow = 0, ncol = length(x = model.cells), dimnames = list(c(), model.cells))
+  }
+  if (length(x = diff_features) > 0 && length(x = intersect_features) > 0) {
+    padded_residual <- matrix(
+      data = NA,
+      nrow = length(x = features_to_compute),
+      ncol = length(x = model.cells),
+      dimnames = list(features_to_compute, model.cells)
+    )
+    padded_residual[rownames(x = new_residual), colnames(x = new_residual)] <- new_residual
+    new_residual <- padded_residual
   }
   old.features <- setdiff(x = new_features, y = features_to_compute)
   if (length(x = old.features) > 0) {
-    old_residuals <- GetAssayData(object = object[[assay]], slot = "scale.data")[old.features, model.cells, drop = FALSE]
-    new_residual <- rbind(new_residual, old_residuals)[new_features, ]
+    old_residuals <- GetAssayData(object = object[[assay]], layer = "scale.data")[old.features, model.cells, drop = FALSE]
+    combined_residual <- matrix(
+      data = NA,
+      nrow = length(x = new_features),
+      ncol = length(x = model.cells),
+      dimnames = list(new_features, model.cells)
+    )
+    combined_residual[rownames(x = new_residual), colnames(x = new_residual)] <- new_residual
+    combined_residual[rownames(x = old_residuals), colnames(x = old_residuals)] <- old_residuals
+    new_residual <- combined_residual
   }
   return(new_residual)
 }
@@ -5732,6 +8282,9 @@ RegressOutMatrix <- function(
   if (any(bypass)) {
     return(data.expr)
   }
+  if (nrow(x = data.expr) == 0) {
+    return(data.expr)
+  }
   # Check model.use
   possible.models <- c("linear", "poisson", "negbinom")
   if (!model.use %in% possible.models) {
@@ -5743,7 +8296,7 @@ RegressOutMatrix <- function(
   }
   # Check features.regress
   if (is.null(x = features.regress)) {
-    features.regress <- 1:nrow(x = data.expr)
+    features.regress <- seq_len(length.out = nrow(x = data.expr))
   }
   if (is.character(x = features.regress)) {
     features.regress <- intersect(x = features.regress, y = rownames(x = data.expr))

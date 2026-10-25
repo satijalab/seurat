@@ -254,7 +254,7 @@ SCTAssay <- setClass(
 #' @concept spatial
 #' @export
 #'
-scalefactors <- function(spot, fiducial, hires, lowres) {
+scalefactors <- function(spot = 1, fiducial = 1, hires = 1, lowres = 1) {
   object <- list(
     spot = spot,
     fiducial = fiducial,
@@ -426,7 +426,7 @@ CreateSCTAssayObject <- function(
     min.features = min.features
   )
   if (!is.null(scale.data)) {
-    assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
+    assay <- SetAssayData(object = assay, layer = "scale.data", new.data = scale.data)
   }
 
   slot(object = assay, name = "assay.orig") <- umi.assay
@@ -652,7 +652,7 @@ DietSeurat <- function(
     cells.keep[[assay]] <- colnames(x = object[[assay]] )
   }
   cells.keep <- intersect(colnames(x = object), unlist(cells.keep))
-  if (length(cells.keep) <- ncol(x = object)) {
+  if (length(cells.keep) < ncol(x = object)) {
     object <- subset(object, cells = cells.keep)
   }
   return(object)
@@ -932,7 +932,7 @@ TopNeighbors <- function(object, cell, n = 5) {
 #'
 as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
   CheckDots(...)
-  if (!PackageCheck('monocle', error = FALSE)) {
+  if (isFALSE(x = requireNamespace('monocle', quietly = TRUE))) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
     stop("Seurat can only convert to/from Monocle v2.X objects")
@@ -940,7 +940,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = x)
   # make variables, then run `newCellDataSet`
   # create cellData counts
-  counts <- GetAssayData(object = x, assay = assay, slot = "counts")
+  counts <- GetAssayData(object = x, assay = assay, layer = "counts")
   # metadata
   cell.metadata <- x[[]]
   feature.metadata <- x[[assay]][[]]
@@ -1025,7 +1025,7 @@ as.Seurat.CellDataSet <- function(
   ...
 ) {
   CheckDots(...)
-  if (!PackageCheck('monocle', error = FALSE)) {
+  if (isFALSE(x = requireNamespace('monocle', quietly = TRUE))) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
     stop("Seurat can only convert to/from Monocle v2.X objects")
@@ -1174,7 +1174,7 @@ as.Seurat.SingleCellExperiment <- function(
   ...
 ) {
   CheckDots(...)
-  if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
+  if (isFALSE(x = requireNamespace('SingleCellExperiment', quietly = TRUE))) {
     stop(
       "Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object.",
       "\nhttps://bioconductor.org/packages/SingleCellExperiment/",
@@ -1196,6 +1196,7 @@ as.Seurat.SingleCellExperiment <- function(
   } else {
     assayn <- orig.exp
   }
+  object <- NULL
   for (assay in assayn) {
     if (assay != orig.exp) {
       x <- SingleCellExperiment::swapAltExp(x = x, name = assay, saved = NULL)
@@ -1233,13 +1234,13 @@ as.Seurat.SingleCellExperiment <- function(
       list(CreateAssayObject(counts = mats$counts))
     } else {
       a <- CreateAssayObject(counts = mats$counts)
-      a <- SetAssayData(object = a, slot = 'data', new.data = mats$data)
+      a <- SetAssayData(object = a, layer = 'data', new.data = mats$data)
       list(a)
     }
     names(x = assays) <- assay
     Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
     # Create the Seurat object
-    if (!exists(x = "object")) {
+    if (is.null(x = object)) {
       object <- CreateSeuratObject(
         counts = assays[[assay]],
         Class = 'Seurat',
@@ -1318,23 +1319,49 @@ as.Seurat.SingleCellExperiment <- function(
 #'
 as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   CheckDots(...)
-  if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
+  if (isFALSE(x = requireNamespace('SingleCellExperiment', quietly = TRUE))) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object")
   }
   assay <- assay %||% Assays(object = x)
   if (!all(assay %in% Assays(object = x))) {
     stop("One or more of the assays you are trying to convert is not in the Seurat object")
   }
+
+  # filter dim reducs to keep only those in assays being converted
+  all_reducs <- .FilterObjects(object = x, classes.keep = "DimReduc")
+  reduc_assays <- sapply(X = all_reducs, FUN = function(i) {
+    DefaultAssay(object = x[[i]])
+  })
+  names(x = reduc_assays) <- all_reducs
+  good_reducs <- names(reduc_assays[reduc_assays %in% assay])
+
+  # Equal Number of Cells check assays
+  cell_nums <- sapply(X = assay, FUN = function(y) {
+    length(x = Cells(x = x, assay = y))
+  })
+  if (length(unique(cell_nums)) > 1) {
+    stop("Cannot convert assays with differing numbers of cells.\nEnsure all assays contain the same number of cells before converting.")
+  }
+
+  # Equal Number of Cells check reductions
+  dim_cell_nums <- sapply(X = good_reducs, function(z) {
+    length(x = Cells(x = x[[z]]))
+  })
+  if (length(unique(dim_cell_nums)) > 1) {
+    stop("Cannot convert reductions with differing numbers of cells.\nEnsure all reductions contain the same number of cells before converting.")
+  }
+
+  # convert assay data
   if (DefaultAssay(object = x) %in% assay) {
     assay <- union(DefaultAssay(object = x), assay)
   }
   experiments <- list()
   for (assayn in assay) {
     assays <- list(
-      counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-      logcounts = GetAssayData(object = x, assay = assayn, slot = "data")
+      counts = GetAssayData(object = x, assay = assayn, layer = "counts"),
+      logcounts = GetAssayData(object = x, assay = assayn, layer = "data")
     )
-    scaledata_a <- GetAssayData(object = x, assay = assayn, slot = "scale.data")
+    scaledata_a <- GetAssayData(object = x, assay = assayn, layer = "scale.data")
     if (isTRUE(x = all.equal(
       target = dim(x = assays[["counts"]]),
       current = dim(x = scaledata_a))
@@ -1377,7 +1404,9 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       )
     }
   }
-  for (dr in .FilterObjects(object = x, classes.keep = "DimReduc")) {
+
+  # convert reductions
+  for (dr in good_reducs) {
     assay.used <- DefaultAssay(object = x[[dr]])
     swap.exp <- assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name
     if (swap.exp) {
@@ -1462,11 +1491,26 @@ Cells.SCTModel <- function(x, ...) {
 #' @export
 #'
 Cells.SCTAssay <- function(x, layer = NA, ...) {
-  layer <- layer %||% levels(x = x)[1L]
-  if (rlang::is_na(x = layer)) {
-    return(colnames(x = x))
+  # If `layer` is `NA` return all cells in the assay via `colnames`.
+  if (rlang::is_na(layer)) {
+    return(colnames(x))
   }
-  return(Cells(x = components(object = x, model = layer)))
+
+  # If `layer` is `NULL` take the name of the first model in the
+  # assay's `SCTModel.list`.
+  layer <- layer %||% levels(x)[1L]
+
+  # If `layer` is one of the standard layer names, use the underlying matrix
+  # to get the requested cell names.
+  if (layer %in% Layers(x)) {
+    data <- LayerData(x, layer=layer)
+    cells <- colnames(data)
+  } else {
+    # Otherwise, assume that `layer` is the name of an element in `SCTModel.list`.
+    cells <- Cells(components(x, model = layer))
+  }
+
+  return(cells)
 }
 
 #' @rdname Cells
@@ -1689,13 +1733,13 @@ GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
 GetTissueCoordinates.VisiumV1 <- function(
   object,
   scale = 'lowres',
-  cols = c('imagerow', 'imagecol'),
+  cols = c('imagecol', 'imagerow'),
   ...
 ) {
   cols <- cols %||% colnames(x = slot(object = object, name = 'coordinates'))
   if (!is.null(x = scale)) {
     coordinates <- slot(
-      object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
+      object = object, name = 'coordinates')[, c('imagecol', 'imagerow')]
     scale <- match.arg(
       arg = scale, choices = c('spot', 'fiducial', 'hires', 'lowres'))
     scale.use <- ScaleFactors(object = object)[[scale]]
@@ -1716,14 +1760,21 @@ GetTissueCoordinates.VisiumV2 <- function(
   scale = NULL,
   ...
 ) {
-  # make call to GetTissueCoordiantes.FOV
+  # make call to GetTissueCoordinates.FOV
   coordinates <- NextMethod(object, ...)
+  dots <- list(...)
+  which <- dots$which %||% DefaultBoundary(object = object)
+  which <- match.arg(arg = which, choices = names(x = object))
   # do some cleanup of the resulting data.frame to make it play nice
   # with `SpatialPlot` - namely set rownames and re-order the columns so
   # that the actual position values appear first
-  rownames(coordinates) <- coordinates[["cell"]]
-  coordinates <- coordinates[, c("x", "y", "cell")]
 
+  # avoid extra processing for Segmentation objects,
+  # otherwise "duplicate 'row.names' are not allowed" error occurs
+  if (!(inherits(object[[which]], "Segmentation"))) {
+    rownames(coordinates) <- coordinates[["cell"]]
+  }
+  coordinates <- coordinates[, c("x", "y", "cell")]
   if (!is.null(scale)) {
     # scale the coordinates by the specified factor
     scale <- match.arg(scale, choices = c("lowres", "hires"))
@@ -1826,7 +1877,7 @@ Radius.VisiumV1 <- function(object, scale = "lowres", ...) {
 #' @rdname Radius
 #' @concept objects
 #' @concept spatial
-#' @method Radius VisiumV1
+#' @method Radius VisiumV2
 #' @export
 #'
 Radius.VisiumV2 <- Radius.VisiumV1
@@ -2055,7 +2106,7 @@ VariableFeatures.SCTAssay <- function(
   # Is the information already in var.features?
   var.features.existing <- slot(object = object, name = "var.features")
   nfeatures <- nfeatures %||% length(x = var.features.existing) %||% 3000
-  if (is.null(x = layer)) {
+  if (is.null(x = layer) || anyNA(layer)) {
     layer <- levels(x = object)
   }
   if (simplify == TRUE & use.var.features == TRUE & length(var.features.existing) >= nfeatures){
@@ -2116,6 +2167,34 @@ VariableFeatures.SCTAssay <- function(
     names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
   )
   return(features)
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors SlideSeq
+#' @export
+#' @concept spatial
+#'
+ScaleFactors.SlideSeq <- function(object, ...) {
+  # The concept of image scale factors comes from the 10x Visium platform.
+  # Although SlideSeq has no equivalent, we still want to provide the generic
+  # so that the all of our concrete `SpatialImage` classes implement the same
+  # interface, so we'll return an S3 `scalefactors` object with all values set
+  # to 1.
+  return(scalefactors())
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors STARmap
+#' @export
+#' @concept spatial
+#'
+ScaleFactors.STARmap <- function(object, ...) {
+  # The concept of image scale factors comes from the 10x Visium platform.
+  # Although STARmap has no equivalent, we still want to provide the generic
+  # so that the all of our concrete `SpatialImage` classes implement the same
+  # interface, so we'll return an S3 `scalefactors` object with all values set
+  # to 1.
+  return(scalefactors())
 }
 
 #' @rdname ScaleFactors
@@ -2208,7 +2287,8 @@ dim.STARmap <- function(x) {
 #' @export
 #'
 dim.VisiumV1 <- function(x) {
-  return(dim(x = GetImage(object = x)$raster))
+  # Use mode='raw' to avoid grob creation
+  return(dim(x = GetImage(object = x, mode = 'raw'))[1:2])
 }
 
 #' @method dim VisiumV2
@@ -2312,7 +2392,7 @@ merge.SCTAssay <- function(
           X = assays,
           FUN = function(assay) {
       if (inherits(x = assay, what = "SCTAssay")) {
-        return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
+        return(rownames(x = GetAssayData(object = assay, layer= "scale.data")))
       }
     })
     )
@@ -2322,8 +2402,14 @@ merge.SCTAssay <- function(
         if (inherits(x = assays[[assay]], what = "SCTAssay")) {
           parent.environ <- sys.frame(which = parent.call[1])
           seurat.object <- parent.environ$objects[[assay]]
-          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features,
+          residuals <- suppressWarnings(expr = FetchResiduals(object = seurat.object, features = all.features,
                                                                assay = parent.environ$assay, verbose = FALSE))
+          seurat.object <- SetAssayData(
+            object = seurat.object,
+            assay = parent.environ$assay,
+            layer = "scale.data",
+            new.data = residuals
+          )
           return(seurat.object[[parent.environ$assay]])
         }
         return(assays[[assay]])
@@ -2369,7 +2455,7 @@ merge.SCTAssay <- function(
     })
   }
   scale.data <- lapply(X = assays, FUN = function(x) {
-    dat <- GetAssayData(object = x, slot = "scale.data")
+    dat <- GetAssayData(object = x, layer = "scale.data")
     if (ncol(x = dat) == 0) {
       dat <- matrix(ncol = ncol(x = x))
     }
@@ -2398,7 +2484,7 @@ merge.SCTAssay <- function(
     })
   }
   scale.data <- do.call(what = cbind, args = scale.data)
-  combined.assay <- SetAssayData(object = combined.assay, slot = "scale.data", new.data = scale.data)
+  combined.assay <- SetAssayData(object = combined.assay, layer= "scale.data", new.data = scale.data)
   model.list <- unlist(x = lapply(
     X = assays,
     FUN = slot,
@@ -2967,9 +3053,11 @@ PrepVSTResults <- function(vst.res, cell.names) {
     'vst' = vst.res$arguments$res_clip_range,
     'sct' = vst.res$arguments$sct.clip.range
   )
-  median_umi <- NA
+  median_umi <- NA_real_
   # check if a custom scale_factor was provided to vst()
-  if ("scale_factor" %in% names(vst.res$arguments)){
+  if ("scale_factor" %in% names(vst.res$arguments) &&
+      is.numeric(x = vst.res$arguments$scale_factor) &&
+      length(x = vst.res$arguments$scale_factor) == 1L) {
     median_umi <- vst.res$arguments$scale_factor
   }
   if (is.na(median_umi)) {
@@ -3258,11 +3346,11 @@ UpdateSlots <- function(object) {
 #' @importFrom Matrix Matrix
 #
 ValidateDataForMerge <- function(assay, slot) {
-  mat <- GetAssayData(object = assay, slot = slot)
+  mat <- GetAssayData(object = assay, layer = slot)
   if (any(dim(x = mat) == c(0, 0))) {
     slots.to.check <- setdiff(x = c("counts", "data", "scale.data"), y = slot)
     for (ss in slots.to.check) {
-      data.dims <- dim(x = GetAssayData(object = assay, slot = ss))
+      data.dims <- dim(x = GetAssayData(object = assay, layer = ss))
       data.slot <- ss
       if (!any(data.dims == c(0, 0))) {
         break
@@ -3275,7 +3363,7 @@ ValidateDataForMerge <- function(assay, slot) {
       data = 0,
       nrow = data.dims[1],
       ncol = data.dims[2],
-      dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
+      dimnames = dimnames(x = GetAssayData(object = assay, layer= data.slot))
     )
     mat <- as.sparse(x = mat)
   }

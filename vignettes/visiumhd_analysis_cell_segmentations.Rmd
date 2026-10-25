@@ -1,0 +1,451 @@
+---
+title: "Analysis and visualization of Visium HD data with cell segmentations in Seurat"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+  
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+
+# Overview
+
+Traditional methods in spatial transcriptomics use bins typically ranging $2-16 \mu m$ in size to approximate spatial locations of transcripts; however, binning approaches lose single-cell resolution. Released in June 2025, 10x Genomics’ Space Ranger cell segmentation workflow supports nucleus and cell segmentation for Visium HD and Visium HD 3’ H&E samples, allowing transcripts to be assigned at the cell level.
+
+The segmentation approach involves capturing gene expression at subcellular resolution ($\approx 2 \mu m$) and performing nuclei detection and expansion, which enables the delineation of individual cell boundaries. This allows much finer profiling of features, with gene counts reported on a per-cell basis rather than aggregated in $8\times8\mu m$ or $16\times16\mu m$ squares. For more information, see [documentation](https://www.10xgenomics.com/support/software/space-ranger/latest/algorithms-overview/image-processing#cell-segmentation) from 10x.
+
+With Seurat v5.4+, we introduce support for these new high-resolution datasets from Space Ranger, including the ability to:
+
+*   Load, process, and visualize spatial gene expression with segmentation overlays,
+*   Represent cell centroids and polygonal boundaries as distinct datatypes, and
+*   Perform clustering and spatial domain identification at multiple resolutions within the same object.
+
+Together, these developments power segmentation-level spatial transcriptomics analysis in Seurat.
+
+This vignette demonstrates how to use Seurat to analyze Visium HD cell segmentations. The typical analysis pipeline for these data is identical to those introduced in previous spatial vignettes; as such, here we aim to highlight the advantages of performing analyses at the cell level rather than at the spot or bin level, especially for complex and heterogeneous tissue architectures.
+
+- - -
+
+First, we load Seurat and the other packages necessary for this vignette. Core functionality in support of Visium HD cell segmentation data was initially introduced in Seurat v5.4.0 \& SeuratObject v5.3.0.
+
+```{r install}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+```
+
+```{r libraries.for.rmd, echo = FALSE}
+
+library("htmltools")
+library("vembedr")
+
+```
+
+# Load data
+
+In this vignette, we will use a Visium HD dataset of the human kidney (cortex) analyzed with Space Ranger 4.0.1. The data is available for download from the 10x data repository [here](https://www.10xgenomics.com/datasets/visium-hd-cytassist-gene-expression-libraries-human-kidney-ffpe-v4).
+<br/>
+<br/>
+<details>
+  <summary>**How do we set up the data directory?**</summary>
+
+First, create a directory to hold the data.
+
+```{bash data_dir_setup1, eval=FALSE}
+
+mkdir -p visium_hd_human_kidney
+cd visium_hd_human_kidney
+
+```
+
+Then, go to the “Output and supplemental files” tab in the link to the repository above to access the core output files. The “batch download” option gives curl and wget commands to download the data via the terminal.
+
+```{bash data_dir_setup2, eval=FALSE}
+wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz
+
+wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_segmented_outputs.tar.gz
+
+wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_spatial.tar.gz
+
+wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_barcode_mappings.parquet
+
+wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_feature_slice.h5
+
+wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_metrics_summary.csv
+
+wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_molecule_info.h5
+```
+
+Next, extract the binned outputs (expression matrices for $2 \mu m$, $8 \mu m$, and $16 \mu m$ resolution bins), segmented outputs (segmentation-based expression data and segmentation polygons), and spatial data (H&E tissue images and spatial coordinate mappings).
+
+```{bash data_dir_setup3, eval=FALSE}
+
+tar -xzf Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz
+
+tar -xzf Visium_HD_Human_Kidney_FFPE_segmented_outputs.tar.gz
+
+tar -xzf Visium_HD_Human_Kidney_FFPE_spatial.tar.gz
+
+```
+</details>
+<br/>
+<br/>
+After downloading the data, we load it into Seurat using the `Load10X_Spatial()` function. As introduced in previous vignettes, this function reads in the output of the [Space Ranger `count`](https://www.10xgenomics.com/support/software/space-ranger/latest/getting-started/what-is-space-ranger) pipeline. As of Space Ranger 4.0+, the count pipeline also automatically runs the `segment` pipeline for Visium HD and Visium HD 3’ data. We specify which data to load with the `bin.size` argument. By including `"polygons"`, we load the segmentation-based expression data where transcripts are assigned to individual cells based on the nuclei detection and cell boundary expansion method. In this vignette, we also load the $8 \mu m$-binned data for comparison.
+<br/>
+<br/>
+<details>
+  <summary>**More about the `Load10X_Spatial` arguments used here**</summary>
+The image.name argument was also introduced in Seurat v5.4. Currently, users specify either “tissue_lowres_image.png” (default) or “tissue_hires_image.png”. The high-resolution image is 10 times larger, so it is useful for generating higher quality visualizations; however, users should also consider object size & analysis needs when deciding what to load. The documentation for `Load10X_Spatial` provides more details on other arguments that may be of interest to users who want to customize their workflows.
+</details>
+<br/>
+<br/>
+```{r load_data}
+
+path_to_data <- "/brahms/shared/vignette-data/visium_hd_human_kidney"
+
+kidney_obj <- Load10X_Spatial(data.dir = path_to_data,
+                              bin.size = c(8, "polygons"),
+                              image.name = "tissue_hires_image.png")
+
+```
+
+We can inspect the images and their associated assays to verify the data stored in the object:
+
+```{r inspect1}
+
+Images(kidney_obj)
+
+```
+
+```{r inspect2}
+
+kidney_obj[["slice1.008um"]]
+
+```
+
+```{r inspect3}
+
+kidney_obj[["slice1.polygons"]]
+
+```
+
+# Bins vs. segmentations
+
+One of the key advantages of the segmentation approach is the ability to analyze and visualize data at single-cell resolution. Before we plot the data on the whole tissue image, we can first define regions of interest in the tissue image for focused analysis later.
+
+In order to do so, we begin by inspecting the whole tissue image and its coordinate ranges.
+
+```{r plot_coord_ranges, dpi=105, fig.width=7, fig.height=7}
+
+tissue_image <- SpatialDimPlot(kidney_obj,
+                               images = "slice1.008um",
+                               alpha = 0,
+                               image.scale = "hires") +
+                    ggtitle("Tissue image") + NoLegend()
+
+# Define layer to customize axis text
+theme_layer <- theme(axis.text.x = element_text(size = 10, angle = 45),
+                                    axis.text.y = element_text(size = 10),
+                                    axis.title.x = element_text(size = 10),
+                                    axis.title.y = element_text(size = 10))
+
+tissue_image_with_axes <- tissue_image + 
+                              scale_x_continuous(n.breaks = 20) +
+                              scale_y_reverse(n.breaks = 20) +
+                              theme_layer
+
+tissue_image_with_axes
+
+```
+
+The approach we take here is to extract tissue coordinates and subset our data to the same coordinate ranges for direct comparison.^[For a purely visual comparison--without subsetting or creating a new FOV--with ggplot2 v4.0.0+ users can specify the desired `xlim` and `ylim` directly in a `coord_fixed()` layer on the plot of the whole tissue image.] By using [`Crop()`](https://satijalab.github.io/seurat-object/reference/Crop.html), we can define a new zoomed field of view (FOV), stored in the `images` slot.
+
+Here we define two different levels of zoom, based on coordinates from the tissue image above.
+
+For the first level of zoom, we will take a section of $800 \times 400$ pixels, and apply this to the segmented data.
+
+```{r zoom_level1}
+
+zoom1_xlim <- c(2400, 3200)
+zoom1_ylim <- c(3300, 3700)
+
+kidney_obj[["zoom1.polygons"]] <- Crop(object = kidney_obj[["slice1.polygons"]],
+                                              x = zoom1_xlim,
+                                              y = zoom1_ylim,
+                                              scale = "hires")
+```
+
+For the second level of zoom, we will take a smaller section of $400 \times 300$ pixels, and apply this to both the binned and segmented data.
+
+```{r zoom_level2}
+
+zoom2_xlim <- c(2750, 3150)
+zoom2_ylim <- c(3350, 3650)
+
+kidney_obj[["zoom2.polygons"]] <- Crop(object = kidney_obj[["slice1.polygons"]],
+                                              x = zoom2_xlim,
+                                              y = zoom2_ylim,
+                                              scale = "hires")
+
+kidney_obj[["zoom2.008um"]] <- Crop(object = kidney_obj[["slice1.008um"]],
+                                           x = zoom2_xlim,
+                                           y = zoom2_ylim,
+                                           scale = "hires")
+
+```
+
+To see the regions captured in these zooms, we plot just the tissue:
+
+```{r plot_zooms, dpi=105, fig.width=10, fig.height=3}
+
+tissue_image_zoom1 <- SpatialDimPlot(kidney_obj,
+                                     images = "zoom1.polygons",
+                                     alpha = 0,
+                                     image.scale = "hires") +
+                                  ggtitle("Zoom level 1") + NoLegend()
+
+tissue_image_zoom2 <- SpatialDimPlot(kidney_obj,
+                                     images = "zoom2.polygons",
+                                     alpha = 0,
+                                     image.scale = "hires") +
+                                  ggtitle("Zoom level 2") + NoLegend()
+
+tissue_image_zoom1 + tissue_image_zoom2
+
+```
+
+Now, we can take a closer look at how bins and cell segmentations capture spatial information by comparing how they appear when overlaid on the tissue image. Let's use the second level of zoom for this comparison, since it is more focused on a smaller region of the tissue.
+
+When generating a spatial plot of segmented data, `plot_segmentations = TRUE` displays the full boundaries of each segmentation polygon, rather than just the centroids. This allows us to see the actual shape and size of each detected cell.
+
+```{r sdp_zoom_8um_vs_segm, dpi=105, fig.width=8, fig.height=4}
+
+sdp_8um_zoom <- SpatialDimPlot(kidney_obj,
+                               images = "zoom2.008um",
+                               pt.size.factor = 18,
+                               stroke = 0.1,
+                               alpha = 0.6,
+                               image.scale = "hires",
+                               cols = "turquoise4") +
+                    ggtitle("8µm bins") + NoLegend()
+
+sdp_segm_zoom <- SpatialDimPlot(kidney_obj,
+                                images = "zoom2.polygons",
+                                plot_segmentations = TRUE,
+                                stroke = 0.1,
+                                alpha = 0.6,
+                                image.scale = "hires",
+                                cols = "turquoise4") + 
+                      ggtitle("Cell segmentations") + NoLegend()
+
+sdp_8um_zoom + sdp_segm_zoom
+
+```
+
+
+# Cell type annotation with Pan-human Azimuth
+
+We now annotate cell types in the segmentation-level data.
+
+To perform cell type annotation, we use [Pan-human Azimuth](https://satijalab.org/pan_human_azimuth/), a neural network-based classifier trained on a reference scRNA-seq dataset of 23 different types of human tissue. The classifier maps query cells to a hierarchical cell ontology and provides confidence scores for each annotation. The original implementation of this tool is in Python as [panhumanpy](https://github.com/satijalab/panhumanpy).
+
+In R, we can access Pan-human Azimuth through the [AzimuthAPI](https://github.com/satijalab/AzimuthAPI) package:
+
+```{r load_azimuth_api}
+if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
+  remotes::install_github("satijalab/AzimuthAPI")
+}
+
+library(AzimuthAPI)
+```
+
+## Annotating cell segmentations
+
+[`AzimuthAPI::CloudAzimuth()`](https://github.com/satijalab/AzimuthAPI/blob/master/man/CloudAzimuth.Rd) runs Pan-human Azimuth on a Seurat object via a cloud-based API. The object is returned with the results of cell type annotation as added cell-level metadata, and the latent embeddings of the classifier as an added dimensional reduction. For more details, see the Pan-human Azimuth R API [vignette](https://satijalab.org/panhuman_r_vignette).
+
+We set the default assay, normalize the data with standard log-normalization, and then run [`CloudAzimuth()`](https://github.com/satijalab/AzimuthAPI/blob/master/man/CloudAzimuth.Rd).
+
+```{r run_cloud_azimuth, echo=TRUE, results="hide"}
+DefaultAssay(kidney_obj) <- "Spatial.Polygons"
+
+kidney_obj <- NormalizeData(kidney_obj)
+kidney_obj <- CloudAzimuth(kidney_obj,
+                           assay = "Spatial.Polygons",
+                           model_version = "v1")
+```
+
+First, we can inspect how the output of Pan-human Azimuth is stored within the object metadata. Note that the object contains both $8 \mu m$ bins and cell segmentations; after running `CloudAzimuth` above on the `Spatial.Polygons` assay, the Azimuth metadata columns are populated for (only) cell segmentations.
+
+```{r inspect_metadata}
+library(knitr)
+knitr::kable(tail(kidney_obj@meta.data %>% select(4:last_col())))
+```
+
+We see that in addition to cell type annotations organized hierarchically, Pan-human Azimuth provides confidence scores for each annotation; lower confidence scores indicate uncertainty in hierarchy assignments. We can set a confidence threshold to retain only high-confidence annotations for downstream tasks.
+
+```{r filter_highconf}
+
+kidney_obj_hc <- subset(kidney_obj, 
+                        !is.na(final_level_confidence) & final_level_confidence > 0.7)
+
+```
+
+In addition to using the confidence score as a QC metric for annotation accuracy, we also encourage users to examine differentially expressed genes for each annotated cell type with [`AzimuthAPI::make_azimuth_QC_heatmaps()`](https://github.com/satijalab/AzimuthAPI/blob/master/man/make_azimuth_QC_heatmaps.Rd).
+
+For example, we can look at a heatmap for cells annotated within the epithelial cell hierarchy:
+
+```{r make_qc_heatmap, message=FALSE, warning=FALSE, fig.width=10.5, fig.height=10.5, dpi=105}
+
+kidney_azimuth_QC_heatmaps <- make_azimuth_QC_heatmaps(kidney_obj_hc)
+
+kidney_azimuth_QC_heatmaps[["Epithelial cell_1"]]
+
+```
+
+Additionally, the azimuth_embed dimensional reduction layer stores a 128-dimensional reduction of the Pan-human Azimuth embeddings. This is useful in downstream analyses. For example, we can visualize the cell type predictions returned by Pan-human Azimuth in embedding space:
+
+```{r azimuth_dim_reduc, fig.width=5, fig.height=5}
+kidney_obj_hc <- RunUMAP(kidney_obj_hc,
+                         dims = 1:128,
+                         reduction = "azimuth_embed",
+                         reduction.name = "azimuth_umap")
+
+p2 <- DimPlot(kidney_obj_hc,
+              group.by = "final_level_labels",
+              label.size = 2.5,
+              label = TRUE,
+              reduction = "azimuth_umap",
+              repel = TRUE) + NoLegend()
+
+p2
+```
+
+
+# Cell type annotations in spatial context
+
+Next, we can visualize where different cell types are located within the tissue. Mapping the cell type annotations onto the tissue image, we can observe the cell types present in various anatomically distinct regions^[An introduction to the structure of the kidney cortex through an interactive view of normal tissue can be found via the Human Protein Atlas: https://www.proteinatlas.org/learn/dictionary/normal/kidney], such as glomeruli and renal tubules.
+
+Podocytes are highly specialized cells found within the glomeruli of the kidney. We can focus our visualization on only cells annotated as podocytes:
+
+```{r plot_podocyte_annotations, dpi=105, fig.width=10, fig.height=6}
+kidney_segm_pod <- subset(kidney_obj_hc, final_level_labels == "Podocyte")
+
+Idents(kidney_segm_pod) <- "final_level_labels"
+
+pod_annotations_tissue <- SpatialDimPlot(kidney_segm_pod,
+                                         images = "slice1.polygons",
+                                         plot_segmentations = TRUE,
+                                         image.scale = "hires",
+                                         cols = "cyan") + NoLegend()
+
+pod_annotations <- SpatialDimPlot(kidney_segm_pod, 
+                                  images = "slice1.polygons",
+                                  image.alpha = 0,
+                                  plot_segmentations = TRUE, 
+                                  image.scale = "hires",
+                                  cols = "turquoise4") + NoLegend()
+
+pod_annotations_tissue + 
+  pod_annotations + 
+  plot_annotation(title = 'Cells w/ annotation \'Podocyte\'')
+
+```
+
+We can pick out some additional cell types of interest to examine the spatial organization of major kidney cell populations.
+
+```{r plot_select_annotations, dpi=105, fig.width=9, fig.height=6}
+
+cell_types_of_interest <- c("Capillary EC",
+                            "Pericyte",
+                            "Podocyte",
+                            "Renal epithelial cell - distal tubules",
+                            "Renal epithelial cell - Loop of Henle",
+                            "Type A intercalated cell",
+                            "Type B intercalated cell")
+
+kidney_segm_top <- subset(kidney_obj_hc,
+                          final_level_labels %in% cell_types_of_interest)
+
+Idents(kidney_segm_top) <- "final_level_labels"
+
+cell_type_colors <- c("#06d31e", "#006326", "#000000", "#453494", "#ffaf01", "#00fffa", "#1da5f9")
+names(cell_type_colors) <- cell_types_of_interest
+
+full_image_annotated <- SpatialDimPlot(kidney_segm_top,
+                                       images = "slice1.polygons",
+                                       plot_segmentations = TRUE,
+                                       alpha = 0.7,
+                                       stroke = 0.04,
+                                       image.scale = "hires",
+                                       cols = cell_type_colors) +
+                            labs(fill = "Cell type")
+
+full_image_annotated
+```
+
+## High-resolution zoom into tissue regions
+
+Finally, zooming in again, we observe cell types annotated in and around some glomeruli.
+
+```{r plot_select_annotations_zoom, dpi=105, fig.width=12, fig.height=7}
+# Define layers to customize the legend by putting it in three rows below the plot
+legend_guide_layer <- list(theme(legend.position = "bottom",
+                                 legend.text = element_text(size = 12),
+                                 legend.title = element_blank()),
+                           guides(fill = guide_legend(nrow = 3, byrow = TRUE)))
+
+glom_zoom_annotated <- SpatialDimPlot(kidney_segm_top,
+                                      images = "zoom1.polygons",
+                                      group.by = "final_level_labels",
+                                      plot_segmentations = TRUE,
+                                      alpha = 0.7, 
+                                      stroke = 0.1, 
+                                      image.scale = "hires",
+                                      cols = cell_type_colors) +
+                            legend_guide_layer
+
+glom_zoom_annotated
+```
+
+In this section of kidney cortex, which includes several glomeruli surrounded by renal tubules, the predicted cell type annotations align well with the underlying tissue structure. Podocytes are confined to the glomeruli, while endothelial and perivascular cells cluster within capillary-rich regions as expected. Distinct tubular epithelial populations are distributed along surrounding tubules, consistent with the normal spatial organization of nephron segments.
+
+- - -
+
+For more information on spatial analysis workflows, see the other [spatial vignettes](https://satijalab.org/seurat/articles/get_started_v5_new#spatial-analysis) and documentation ([Seurat](https://satijalab.org/seurat/reference/), [SeuratObject](https://satijalab.github.io/seurat-object/reference/index.html)).
+
+# Acknowledgements
+
+We would like to thank Stephen Williams and the Computational Biology team at 10x for their helpful feedback and contributions to the code for loading Visium segmentation data.
+
+<br/>
+<br/>
+<details>
+  <summary>**Session Info**</summary>
+```{r session_info}
+sessionInfo()
+```
+</details>
+<br/>

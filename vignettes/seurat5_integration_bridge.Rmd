@@ -52,6 +52,9 @@ library(Signac)
 library(EnsDb.Hsapiens.v86)
 library(dplyr)
 library(ggplot2)
+library(GenomeInfoDb)
+
+options(future.globals.maxSize = 10 * 1024^3)
 ```
 
 ## Load the bridge, query, and reference datasets
