@@ -13,10 +13,6 @@ AnnoySearchCpp <- function(index_path, query, k, search_k, include_distance, met
     .Call('_Seurat_AnnoySearchCpp', PACKAGE = 'Seurat', index_path, query, k, search_k, include_distance, metric, nthreads)
 }
 
-cppls_cpp <- function(matrix_X, Y, Y_add, ncomp, center, stripped, transpose, w_tol, X_tol) {
-    .Call('_Seurat_cppls_cpp', PACKAGE = 'Seurat', matrix_X, Y, Y_add, ncomp, center, stripped, transpose, w_tol, X_tol)
-}
-
 RunUMISampling <- function(data, sample_val, upsample = FALSE, display_progress = TRUE) {
     .Call('_Seurat_RunUMISampling', PACKAGE = 'Seurat', data, sample_val, upsample, display_progress)
 }
@@ -129,12 +125,16 @@ ScoreHelper <- function(snn, query_pca, query_dists, corrected_nns, k_snn, subtr
     .Call('_Seurat_ScoreHelper', PACKAGE = 'Seurat', snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress, nthreads)
 }
 
-kernelpls_cpp <- function(matrix_X, Y, ncomp, center, stripped, transpose) {
-    .Call('_Seurat_kernelpls_cpp', PACKAGE = 'Seurat', matrix_X, Y, ncomp, center, stripped, transpose)
-}
-
 EigenGramPCA <- function(object, npcs, weight_by_var, nthreads = 1L) {
     .Call('_Seurat_EigenGramPCA', PACKAGE = 'Seurat', object, npcs, weight_by_var, nthreads)
+}
+
+cppls_cpp <- function(matrix_X, Y, Y_add, ncomp, center, stripped, transpose, w_tol, X_tol) {
+    .Call('_Seurat_cppls_cpp', PACKAGE = 'Seurat', matrix_X, Y, Y_add, ncomp, center, stripped, transpose, w_tol, X_tol)
+}
+
+kernelpls_cpp <- function(matrix_X, Y, ncomp, center, stripped, transpose) {
+    .Call('_Seurat_kernelpls_cpp', PACKAGE = 'Seurat', matrix_X, Y, ncomp, center, stripped, transpose)
 }
 
 predict_pls_cpp <- function(matrix_X, B, B0, transpose) {

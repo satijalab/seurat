@@ -68,25 +68,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cppls_cpp
-List cppls_cpp(SEXP matrix_X, Eigen::Map<Eigen::MatrixXd> Y, Eigen::Map<Eigen::MatrixXd> Y_add, int ncomp, bool center, bool stripped, bool transpose, double w_tol, double X_tol);
-RcppExport SEXP _Seurat_cppls_cpp(SEXP matrix_XSEXP, SEXP YSEXP, SEXP Y_addSEXP, SEXP ncompSEXP, SEXP centerSEXP, SEXP strippedSEXP, SEXP transposeSEXP, SEXP w_tolSEXP, SEXP X_tolSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type matrix_X(matrix_XSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type Y_add(Y_addSEXP);
-    Rcpp::traits::input_parameter< int >::type ncomp(ncompSEXP);
-    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
-    Rcpp::traits::input_parameter< bool >::type stripped(strippedSEXP);
-    Rcpp::traits::input_parameter< bool >::type transpose(transposeSEXP);
-    Rcpp::traits::input_parameter< double >::type w_tol(w_tolSEXP);
-    Rcpp::traits::input_parameter< double >::type X_tol(X_tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(cppls_cpp(matrix_X, Y, Y_add, ncomp, center, stripped, transpose, w_tol, X_tol));
-    return rcpp_result_gen;
-END_RCPP
-}
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP _Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {
@@ -486,6 +467,38 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// EigenGramPCA
+List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object, int npcs, bool weight_by_var, int nthreads);
+RcppExport SEXP _Seurat_EigenGramPCA(SEXP objectSEXP, SEXP npcsSEXP, SEXP weight_by_varSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type object(objectSEXP);
+    Rcpp::traits::input_parameter< int >::type npcs(npcsSEXP);
+    Rcpp::traits::input_parameter< bool >::type weight_by_var(weight_by_varSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(EigenGramPCA(object, npcs, weight_by_var, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cppls_cpp
+List cppls_cpp(SEXP matrix_X, Eigen::Map<Eigen::MatrixXd> Y, Eigen::Map<Eigen::MatrixXd> Y_add, int ncomp, bool center, bool stripped, bool transpose, double w_tol, double X_tol);
+RcppExport SEXP _Seurat_cppls_cpp(SEXP matrix_XSEXP, SEXP YSEXP, SEXP Y_addSEXP, SEXP ncompSEXP, SEXP centerSEXP, SEXP strippedSEXP, SEXP transposeSEXP, SEXP w_tolSEXP, SEXP X_tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type matrix_X(matrix_XSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type Y_add(Y_addSEXP);
+    Rcpp::traits::input_parameter< int >::type ncomp(ncompSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< bool >::type stripped(strippedSEXP);
+    Rcpp::traits::input_parameter< bool >::type transpose(transposeSEXP);
+    Rcpp::traits::input_parameter< double >::type w_tol(w_tolSEXP);
+    Rcpp::traits::input_parameter< double >::type X_tol(X_tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(cppls_cpp(matrix_X, Y, Y_add, ncomp, center, stripped, transpose, w_tol, X_tol));
+    return rcpp_result_gen;
+END_RCPP
+}
 // kernelpls_cpp
 List kernelpls_cpp(SEXP matrix_X, Eigen::Map<Eigen::MatrixXd> Y, int ncomp, bool center, bool stripped, bool transpose);
 RcppExport SEXP _Seurat_kernelpls_cpp(SEXP matrix_XSEXP, SEXP YSEXP, SEXP ncompSEXP, SEXP centerSEXP, SEXP strippedSEXP, SEXP transposeSEXP) {
@@ -499,19 +512,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type stripped(strippedSEXP);
     Rcpp::traits::input_parameter< bool >::type transpose(transposeSEXP);
     rcpp_result_gen = Rcpp::wrap(kernelpls_cpp(matrix_X, Y, ncomp, center, stripped, transpose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// EigenGramPCA
-List EigenGramPCA(const Eigen::Map<Eigen::MatrixXd> object, int npcs, bool weight_by_var, int nthreads);
-RcppExport SEXP _Seurat_EigenGramPCA(SEXP objectSEXP, SEXP npcsSEXP, SEXP weight_by_varSEXP, SEXP nthreadsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type object(objectSEXP);
-    Rcpp::traits::input_parameter< int >::type npcs(npcsSEXP);
-    Rcpp::traits::input_parameter< bool >::type weight_by_var(weight_by_varSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(EigenGramPCA(object, npcs, weight_by_var, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -653,7 +653,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 10},
     {"_Seurat_RunModularityClusteringCpp_multi", (DL_FUNC) &_Seurat_RunModularityClusteringCpp_multi, 10},
     {"_Seurat_AnnoySearchCpp", (DL_FUNC) &_Seurat_AnnoySearchCpp, 7},
-    {"_Seurat_cppls_cpp", (DL_FUNC) &_Seurat_cppls_cpp, 9},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
@@ -682,8 +681,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
     {"_Seurat_ScoreHelper", (DL_FUNC) &_Seurat_ScoreHelper, 8},
-    {"_Seurat_kernelpls_cpp", (DL_FUNC) &_Seurat_kernelpls_cpp, 6},
     {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 4},
+    {"_Seurat_cppls_cpp", (DL_FUNC) &_Seurat_cppls_cpp, 9},
+    {"_Seurat_kernelpls_cpp", (DL_FUNC) &_Seurat_kernelpls_cpp, 6},
     {"_Seurat_predict_pls_cpp", (DL_FUNC) &_Seurat_predict_pls_cpp, 4},
     {"_Seurat_SCTResidualStatsAndCorrected", (DL_FUNC) &_Seurat_SCTResidualStatsAndCorrected, 15},
     {"_Seurat_SCTPearsonResidualMatrix", (DL_FUNC) &_Seurat_SCTPearsonResidualMatrix, 16},
