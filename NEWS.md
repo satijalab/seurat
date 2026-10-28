@@ -2,7 +2,7 @@
 
 ### Additions
 
-- Added `ReadAtera` and `LoadAtera` to read 10x Genomics Atera spatial data, including expression and control counts, cell centroids, cell/nucleus segmentations, transcript coordinates, and morphology images
+- Added `ReadAtera` and `LoadAtera` to read 10x Genomics Atera spatial data, including expression and control counts, Azimuth cell type annotations, cell centroids, cell/nucleus segmentations, transcript coordinates, and morphology images
   - Added support for selective gene and feature-type reads, BPCells-backed counts caching, and parallel Atera reads using the active `future::plan()`
 - Added `LoadAteraMolecules`, `LoadAteraSegmentations`, and `LoadAteraCodewords` to load additional transcript coordinates, segmentation polygons, and per-codeword coordinates into existing Atera objects
 
