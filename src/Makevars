@@ -1,12 +1,3 @@
 CXX_STD = CXX17
-PKG_CXXFLAGS = -DRCPP_EIGEN -DEIGEN_PERMANENTLY_DISABLE_STUPID_WARNINGS
 PKG_LIBS += $(shell "$(R_HOME)/bin/Rscript" -e "RcppThread::LdFlags()")
 PKG_LIBS += $(BLAS_LIBS) $(FLIBS)
-
-# Explicit OBJECTS is required because the vendored BPCells sources live in a
-# subdirectory (bpcells/matrixIterators/), which R does not auto-compile.
-# Wildcards keep the top-level fork sources (*.cpp incl. RcppExports.cpp, and the
-# C file valid_pointer.c) building automatically alongside the scSLIDE bridges.
-OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp)) \
-          $(patsubst %.c,%.o,$(wildcard *.c)) \
-          $(patsubst %.cpp,%.o,$(wildcard bpcells/matrixIterators/*.cpp))
