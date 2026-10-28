@@ -4101,6 +4101,35 @@ ReadXenium <- function(
   return(result)
 }
 
+#' Read per-cell Azimuth annotations (\code{azimuth_*} columns of \code{obs})
+#' from \code{cell_feature_matrix.zarr.zip}, if available
+#'
+#' @return A data frame of annotations with formatted cell ids as row names,
+#' or \code{NULL} if the file or any Azimuth columns are absent
+#'
+#' @keywords internal
+#' @noRd
+.AteraReadCellAnnotations <- function(data.dir) {
+  zip.file <- file.path(data.dir, "cell_feature_matrix.zarr.zip")
+  if (!file.exists(zip.file)) {
+    return(NULL)
+  }
+  zidx <- .AteraZipIndex(zip.file)
+  columns <- grep(
+    pattern = "^azimuth_",
+    x = .AteraGroupEntries(zidx, "obs"),
+    value = TRUE
+  )
+  if (length(columns) == 0L) {
+    return(NULL)
+  }
+  con <- file(zip.file, "rb")
+  on.exit(close(con), add = TRUE)
+  obs <- .AteraReadFlatGroup(con, zidx, "obs", columns = c("cell_id", columns))
+  rownames(obs) <- .AteraFormatId(.AteraDecodePackedId(obs$cell_id))
+  obs[, columns, drop = FALSE]
+}
+
 #' Load Atera spatial data
 #'
 #' Read the output of \href{https://www.10xgenomics.com}{10x Genomics} Atera,
@@ -4121,6 +4150,9 @@ ReadXenium <- function(
 #'  \item \dQuote{nucleus_segmentations}: nucleus segmentation boundary
 #'  polygons in micron coordinate space. Cells may have zero, one, or more
 #'  than one nucleus polygon
+#'  \item \dQuote{annotations}: per-cell Azimuth cell type annotations
+#'  (the \code{azimuth_*} columns of \code{cell_feature_matrix.zarr.zip}),
+#'  if available
 #'  \item \dQuote{microns}: transcript molecule coordinates. This is
 #'  optional as transcripts files can be very large.
 #'  \item \dQuote{morphology}: a single channel plane of a
@@ -4198,6 +4230,8 @@ ReadXenium <- function(
 #'  \item \dQuote{\code{segmentations}}/\dQuote{\code{nucleus_segmentations}}:
 #'  a data frame with one row per polygon vertex, in three columns:
 #'  \dQuote{cell}, \dQuote{x}, and \dQuote{y}
+#'  \item \dQuote{\code{annotations}}: a data frame of Azimuth annotations
+#'  with cell ids as row names, or \code{NULL} if none are available
 #'  \item \dQuote{\code{microns}}: a data frame with transcript coordinates
 #'  in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
 #'  \item \dQuote{\code{morphology}}: a list with elements \code{image} (a
@@ -4228,7 +4262,7 @@ ReadAtera <- function(
 ) {
   outs <- match.arg(
     arg = outs,
-    choices = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "microns", "morphology"),
+    choices = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "annotations", "microns", "morphology"),
     several.ok = TRUE
   )
 
@@ -4297,6 +4331,16 @@ ReadAtera <- function(
 
         df
       },
+      'annotations' = {
+        pann <- progressor()
+        pann(message = 'Loading cell annotations', class = 'sticky', amount = 0)
+
+        result <- .AteraReadCellAnnotations(data.dir = data.dir)
+
+        pann(type = 'finish')
+
+        result
+      },
       'microns' = {
         pmicrons <- progressor()
         pmicrons(message = "Loading transcript coordinates", class = 'sticky', amount = 0)
@@ -4358,6 +4402,9 @@ ReadAtera <- function(
 #' coordinates
 #' @param segmentations Which segmentation boundary polygons to load, one
 #' of \dQuote{cell} or \dQuote{nucleus}, or \code{NULL} to load none
+#' @param cell.annotations Whether or not to add Azimuth cell type annotations
+#' (\code{azimuth_*}) to the object's metadata; silently skipped when the
+#' annotations are not available in \code{data.dir}
 #' @param genes Optional character vector of gene names to restrict the
 #' initial \code{molecule.coordinates} load to. When \code{molecule.coordinates
 #' = TRUE}, a lazy, on-disk handle onto the transcript table is always kept
@@ -4412,6 +4459,7 @@ LoadAtera <- function(
   cell.centroids = TRUE,
   molecule.coordinates = FALSE,
   segmentations = NULL,
+  cell.annotations = TRUE,
   genes = NULL,
   feature.types = NULL,
   bpcells.dir = NULL,
@@ -4434,8 +4482,8 @@ LoadAtera <- function(
 
   data <- ReadAtera(
     data.dir = data.dir,
-    outs = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "morphology")[
-      c(TRUE, cell.centroids, isTRUE(segmentations == 'cell'), isTRUE(segmentations == 'nucleus'), morphology.image)
+    outs = c("matrix", "centroids", "segmentations", "nucleus_segmentations", "annotations", "morphology")[
+      c(TRUE, cell.centroids, isTRUE(segmentations == 'cell'), isTRUE(segmentations == 'nucleus'), cell.annotations, morphology.image)
     ],
     mols.qv.threshold = mols.qv.threshold,
     feature.types = feature.types,
@@ -4501,6 +4549,13 @@ LoadAtera <- function(
   coords <- subset(coords, cells = intersect(Cells(atera.obj), Cells(coords)))
 
   atera.obj[[fov]] <- coords
+
+  if (!is.null(data$annotations)) {
+    atera.obj <- AddMetaData(
+      object = atera.obj,
+      metadata = data$annotations[Cells(atera.obj), , drop = FALSE]
+    )
+  }
 
   for (name in single.feature.types) {
     # CreateAssay5Object errors on single-feature layers ("Layers must be

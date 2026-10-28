@@ -25,6 +25,7 @@ LoadAtera(
   cell.centroids = TRUE,
   molecule.coordinates = FALSE,
   segmentations = NULL,
+  cell.annotations = TRUE,
   genes = NULL,
   feature.types = NULL,
   bpcells.dir = NULL,
@@ -46,6 +47,9 @@ LoadAtera(
  \item \dQuote{nucleus_segmentations}: nucleus segmentation boundary
  polygons in micron coordinate space. Cells may have zero, one, or more
  than one nucleus polygon
+ \item \dQuote{annotations}: per-cell Azimuth cell type annotations
+ (the \code{azimuth_*} columns of \code{cell_feature_matrix.zarr.zip}),
+ if available
  \item \dQuote{microns}: transcript molecule coordinates. This is
  optional as transcripts files can be very large.
  \item \dQuote{morphology}: a single channel plane of a
@@ -109,6 +113,10 @@ coordinates}
 \item{segmentations}{Which segmentation boundary polygons to load, one
 of \dQuote{cell} or \dQuote{nucleus}, or \code{NULL} to load none}
 
+\item{cell.annotations}{Whether or not to add Azimuth cell type annotations
+(\code{azimuth_*}) to the object's metadata; silently skipped when the
+annotations are not available in \code{data.dir}}
+
 \item{morphology.image}{Whether to load a single channel plane of a
 \dQuote{morphology_2d} image (eg the DAPI stain), by default at the
 lowest-resolution pyramid level, for use as a background/overview image
@@ -129,6 +137,8 @@ values:
  \item \dQuote{\code{segmentations}}/\dQuote{\code{nucleus_segmentations}}:
  a data frame with one row per polygon vertex, in three columns:
  \dQuote{cell}, \dQuote{x}, and \dQuote{y}
+ \item \dQuote{\code{annotations}}: a data frame of Azimuth annotations
+ with cell ids as row names, or \code{NULL} if none are available
  \item \dQuote{\code{microns}}: a data frame with transcript coordinates
  in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
  \item \dQuote{\code{morphology}}: a list with elements \code{image} (a
