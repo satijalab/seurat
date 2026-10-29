@@ -39,7 +39,7 @@
 #' @return The Seurat object with the corrected data written back to the
 #'   specified assay layer.
 #'
-#' @export
+#' @noRd
 #' @concept batch_correction
 #'
 #'
@@ -588,7 +588,7 @@ CorrectSampleComBat <- function(object,
 #' @importFrom SeuratObject LayerData Embeddings CreateAssay5Object
 #' @importFrom future.apply future_lapply
 #' @importFrom methods slot slot<- new
-#' @export
+#' @noRd
 #' @concept batch_correction
 cellanova_calc_BE <- function(object = NULL, assay = NULL, layer = "scale.data", integrate_key = NULL,
                               features = NULL, control_dict = NULL, reduction = NULL, var_cutoff = 0.9, k_max = 1500, k_select = NULL,
@@ -1035,7 +1035,7 @@ cellanova_calc_BE <- function(object = NULL, assay = NULL, layer = "scale.data",
 #' @param ... Additional arguments
 #'
 #' @return Landmark object with UMAP and correlation data
-#' @export
+#' @noRd
 #' @concept visualization
 #'
 #' @importFrom SeuratObject CreateSeuratObject CreateAssayObject AddMetaData FetchData LayerData
@@ -1134,7 +1134,7 @@ BuildLandmarkObject <- function(
 #' @param ncol Number of columns for faceting
 #' 
 #' @return List of ggplot objects
-#' @export
+#' @noRd
 #' @concept visualization
 #'
 #' @importFrom ggplot2 ggplot aes geom_point facet_wrap scale_color_gradientn theme_minimal theme element_blank element_text labs coord_fixed
@@ -1237,7 +1237,7 @@ PlotLandmarkObject <- function(
 #' @param ... Additional arguments
 #' 
 #' @return List containing plots and optionally landmark object
-#' @export
+#' @noRd
 #' @concept visualization
 #'
 SampleLevelDimPlot <- function(
@@ -1309,7 +1309,7 @@ SampleLevelDimPlot <- function(
 #' @param ... other parameters that are accepted by RunUMAP() or ProjectUMAP()
 #'
 #' @return return a Seurat object that contains a UMAP of the sketched assay and a UMAP of the full data
-#' @export
+#' @noRd
 #' @concept visualization
 #'
 #' @importFrom SeuratObject Neighbors
@@ -1438,7 +1438,7 @@ RunAndProjectUMAP <- function(
 #' @return A \code{\link[ComplexHeatmap]{Heatmap-class}} object, which draws when
 #'   printed. For the horizontal, bottom-placed legend layout use
 #'   \code{ComplexHeatmap::draw(ht, heatmap_legend_side = "bottom")}.
-#' @export
+#' @noRd
 #' @concept visualization
 #'
 #' @importFrom SeuratObject LayerData FetchData DefaultAssay
