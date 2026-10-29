@@ -3,92 +3,104 @@ url: https://satijalab.org/seurat
 destination: docs
 
 template:
+  bootstrap: 5
+  bootswatch: zephyr
+  light-switch: true
+  bslib:
+    primary: "#2C3D50"
+    bg: "#F5F7FA"
+    fg: "#26394B"
+    link-color: "#3B5F82"
+    navbar-bg: "#2C3D50"
   params:
-      bootswatch: flatly
       ganalytics: UA-82807227-1
-  docsearch:
-      api_key: ead918d7fe8467a2fd38e97f5bbe3ecb
-      index_name: seurat
 
 navbar:
   title: "Seurat"
+  structure:
+    right: [search, github, theme]
+  components:
+    theme:
+      icon: fa-moon
+      href: "#"
+      id: theme-toggle
+      aria-label: Switch to dark mode
+    github:
+      icon: fa-github
+      href: https://github.com/satijalab/seurat
+      aria-label: GitHub
   left:
     - text: "Install"
-      href: articles/install_v5.html
+      href: articles/install.html
     - text: "Get started"
-      href: articles/get_started_v5_new.html
+      href: articles/get_started.html
     - text: "Vignettes"
       menu:
-        - text: Introductory Vignettes
+        - text: Core workflows
         - text: "PBMC 3K guided tutorial"
           href: articles/pbmc3k_tutorial.html
-        - text: "Data visualization vignette"
+        - text: "Data visualization"
           href: articles/visualization_vignette.html
-        - text: "SCTransform, v2 regularization"
+        - text: "Normalization with SCTransform"
           href: articles/sctransform_vignette.html
-        - text: "Using Seurat with multi-modal data"
+        - text: "Introduction to multimodal analysis"
           href: articles/multimodal_vignette.html
-        - text: "Seurat v5 Command Cheat Sheet"
+        - text: "Essential commands"
           href: articles/essential_commands.html
         - text: -------
-        - text: Data Integration
+        - text: Data integration
         - text: "Introduction to scRNA-seq integration"
           href: articles/integration_introduction.html
-        - text: "Integrative analysis in Seurat v5"
-          href: articles/seurat5_integration.html
-        - text: "Mapping and annotating query datasets"
+        - text: "Comparing scRNA-seq integration methods"
+          href: articles/integration.html
+        - text: "Reference mapping and cell type annotation"
           href: articles/integration_mapping.html
         - text: -------
-        - text: Multi-assay data
-        - text: "Dictionary Learning for cross-modality integration"
-          href: articles/seurat5_integration_bridge.html
-        - text: "Weighted Nearest Neighbor Analysis"
+        - text: Multimodal analysis
+        - text: "Bridge integration with dictionary learning"
+          href: articles/integration_bridge.html
+        - text: "Weighted nearest neighbor analysis"
           href: articles/weighted_nearest_neighbor_analysis.html
         - text: "Integrating scRNA-seq and scATAC-seq data"
-          href: articles/seurat5_atacseq_integration_vignette.html
+          href: articles/atacseq_integration_vignette.html
         - text: "Multimodal reference mapping"
           href: articles/multimodal_reference_mapping.html
-        - text: "Mixscape Vignette"
+        - text: "Perturbation analysis with Mixscape"
           href: articles/mixscape_vignette.html
         - text: -------
-        - text: Massively scalable analysis
-        - text: "Sketch-based analysis in Seurat v5"
-          href: articles/seurat5_sketch_analysis.html
-        - text: "Sketch integration using a 1 million cell dataset from Parse Biosciences"
+        - text: Large datasets
+        - text: "Sketch-based analysis"
+          href: articles/sketch_analysis.html
+        - text: "Sketch integration of 1 million cells"
           href: articles/ParseBio_sketch_integration.html
-        - text: "Map COVID PBMC datasets to a healthy reference"
+        - text: "Mapping COVID-19 PBMCs to a healthy reference"
           href: articles/COVID_SCTMapping.html
-        - text: "BPCells Interaction"
-          href: articles/seurat5_bpcells_interaction_vignette.html
+        - text: "On-disk analysis with BPCells"
+          href: articles/bpcells_interaction_vignette.html
         - text: -------
         - text: Spatial analysis
-        - text: "Analysis of spatial datasets (Imaging-based)"
-          href: articles/seurat5_spatial_vignette_2.html
-        - text: "Analysis of spatial datasets (Sequencing-based)"
+        - text: "Imaging-based spatial analysis"
+          href: articles/spatial_vignette_2.html
+        - text: "Sequencing-based spatial analysis"
           href: articles/spatial_vignette.html
+        - text: "Visium HD analysis (binned data)"
+          href: articles/visiumhd_analysis_vignette.html
+        - text: "Visium HD analysis (cell segmentations)"
+          href: articles/visiumhd_analysis_cell_segmentations.html
         - text: -------
-        - text: Other
+        - text: Additional workflows
         - text: "Cell-cycle scoring and regression"
           href: articles/cell_cycle_vignette.html
-        - text: "Differential expression testing"
+        - text: "Differential expression and pseudobulk analysis"
           href: articles/de_vignette.html
-        - text: "Demultiplexing with hashtag oligos (HTOs)"
+        - text: "Demultiplexing with cell hashing"
           href: articles/hashing_vignette.html
     - text: Extensions
       href: articles/extensions.html
-    - text: FAQ
-      href: "https://github.com/satijalab/seurat/discussions"
     - text: "News"
       href: articles/announcements.html
     - text: "Reference"
       href: reference/index.html
-    - text: "Archive"
-      href: articles/archive.html
-  right:
-    - icon: fa-home
-      href: ../
-    - icon: fa-github
-      href: https://github.com/satijalab/seurat
 
 reference:
 - title: "Object interaction"
