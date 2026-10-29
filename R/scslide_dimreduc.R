@@ -64,15 +64,6 @@ RunDiffusionMap.default <- function(
     )
   }
 
-  # Check for knn.covertree with a warning instead of error
-  if (!requireNamespace("knn.covertree", quietly = TRUE)) {
-    warning(
-      "Package 'knn.covertree' is not installed. ",
-      "Some advanced distance metrics may not be available.\n",
-      "To install: install.packages('knn.covertree')",
-      call. = FALSE
-    )
-  }
   #
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
@@ -966,10 +957,9 @@ kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
 
   parallel_split <- getFromNamespace("parallel_split", "BPCells")
   iterate_matrix <- getFromNamespace("iterate_matrix", "BPCells")
-  it <- X %>%
-    BPCells::convert_matrix_type("double") %>%
-    parallel_split(threads, n_splits) %>%
-    iterate_matrix()
+  it <- iterate_matrix(
+    parallel_split(BPCells::convert_matrix_type(X, "double"), threads, n_splits)
+  )
 
   result <- kernelpls_cpp(it, Y, as.integer(ncomp), center, stripped, is_transposed)
 
@@ -1129,10 +1119,9 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
 
   parallel_split <- getFromNamespace("parallel_split", "BPCells")
   iterate_matrix <- getFromNamespace("iterate_matrix", "BPCells")
-  it <- X %>%
-    BPCells::convert_matrix_type("double") %>%
-    parallel_split(threads, n_splits) %>%
-    iterate_matrix()
+  it <- iterate_matrix(
+    parallel_split(BPCells::convert_matrix_type(X, "double"), threads, n_splits)
+  )
 
   result <- cppls_cpp(it, Y, Y_add_mat, as.integer(ncomp), center, stripped,
                        is_transposed, as.double(w.tol), as.double(X.tol))
@@ -1450,9 +1439,7 @@ PredictPLS.Seurat <- function(
     dim(B) <- dim(B)[1:2]
     B0 <- as.numeric(Ymeans - crossprod(Xmeans, B))
 
-    it <- newdata %>%
-      BPCells::convert_matrix_type("double") %>%
-      iterate_matrix()
+    it <- iterate_matrix(BPCells::convert_matrix_type(newdata, "double"))
     pred <- predict_pls_cpp(it, B, B0, is_transposed)
 
     rownames(pred) <- sample.names
@@ -1466,9 +1453,7 @@ PredictPLS.Seurat <- function(
       B0 <- as.numeric(Ymeans - crossprod(Xmeans, B))
 
       # Fresh iterator each time (take_unique_xptr consumes the previous one)
-      it <- newdata %>%
-        BPCells::convert_matrix_type("double") %>%
-        iterate_matrix()
+      it <- iterate_matrix(BPCells::convert_matrix_type(newdata, "double"))
       pred[, , i] <- predict_pls_cpp(it, B, B0, is_transposed)
     }
     comp.names <- dimnames(coefficients)[[3]]

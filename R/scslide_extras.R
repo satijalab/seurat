@@ -1137,7 +1137,6 @@ BuildLandmarkObject <- function(
 #' @export
 #' @concept visualization
 #'
-#' @importFrom dplyr %>% arrange slice_sample
 #' @importFrom ggplot2 ggplot aes geom_point facet_wrap scale_color_gradientn theme_minimal theme element_blank element_text labs coord_fixed
 #' @importFrom rlang .data
 #'
@@ -1149,6 +1148,9 @@ PlotLandmarkObject <- function(
     plot.featureplot = FALSE,
     ncol = NULL){
 
+  if (!requireNamespace("dplyr", quietly = TRUE)) {
+    stop("The 'dplyr' package is required for PlotLandmarkObject() but is not installed. Please install it with install.packages('dplyr').")
+  }
   if (!requireNamespace("tidyr", quietly = TRUE)) {
     stop("The 'tidyr' package is required for PlotLandmarkObject() but is not installed. Please install it with install.packages('tidyr').")
   }
@@ -1168,18 +1170,16 @@ PlotLandmarkObject <- function(
   plot_data <- cbind(umap_df, merge_dat)
 
   # Reshape data for faceting (long format)
-  plot_data_long <- plot_data %>%
-    tidyr::pivot_longer(cols = colnames(merge_dat), names_to = "feature", values_to = "expression")
+  plot_data_long <- tidyr::pivot_longer(
+    data = plot_data, cols = colnames(merge_dat), names_to = "feature", values_to = "expression")
 
   # Order cells by expression if requested
   if (order) {
     # Order by absolute value: small to large absolute values (large absolute values on top)
-    plot_data_long <- plot_data_long %>%
-      arrange(abs(.data$expression))
+    plot_data_long <- dplyr::arrange(plot_data_long, abs(.data$expression))
   } else {
     # Random ordering to avoid any bias
-    plot_data_long <- plot_data_long %>%
-      slice_sample(n = nrow(plot_data_long))
+    plot_data_long <- dplyr::slice_sample(plot_data_long, n = nrow(plot_data_long))
   }
 
   if(is.null(x = ncol)) ncol = ncol(merge_dat)

@@ -41,7 +41,6 @@ Depends:
 Imports:
     cluster,
     cowplot,
-    dplyr,
     fastDummies,
     future,
     future.apply,
@@ -96,6 +95,7 @@ Suggests:
     data.table,
     DelayedArray,
     destiny,
+    dplyr,
     enrichR,
     fitdistrplus,
     GenomicRanges,
@@ -104,7 +104,6 @@ Suggests:
     harmony,
     hdf5r,
     IRanges,
-    knn.covertree,
     leidenbase,
     limma,
     lmtest,
