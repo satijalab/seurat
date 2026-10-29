@@ -2,17 +2,18 @@
 
 ### Additions
 
+- Added scSLIDE (Single-cell Sample-Level Integration using Density Estimation) to Seurat, enabling sample-level analysis of single-cell data. `PrepareSampleObject` selects landmark cells and maps every cell to its nearest landmarks, and `GenerateSampleObject` summarizes these per sample into a sample-by-landmark Seurat object for downstream sample-level analysis
+- Added `RunPLS` to compute a partial least squares (PLS) dimensional reduction, whose components capture the variation in expression most predictive of one or more sample- or cell-level responses (supports `plsr`, `cppls` and `spls`). On BPCells on-disk data, `plsr` and `cppls` run directly on the on-disk matrix without loading it into memory, using the thread count set by `setThreads`
+- Updated `LeverageScore` (and so `SketchData`) to scale better on BPCells on-disk data, by computing the random projection in blocks of cells instead of transposing the whole matrix. Results for a given `seed` differ from previous versions
+- `FindVariableFeatures(selection.method = "vst")` on BPCells on-disk data now picks up the thread count set by `setThreads` for the two passes it makes over the matrix, which were always single-threaded; the in-memory sparse path already did this
 - Added `ReadAtera` and `LoadAtera` to read 10x Genomics Atera spatial data, including expression and control counts, Azimuth cell type annotations, cell centroids, cell/nucleus segmentations, transcript coordinates, and morphology images
   - Added support for gene selection when reading molecules, feature-type selection when reading counts, BPCells-backed counts caching, and parallel Atera reads using the active `future::plan()`
 - Added `LoadAteraMolecules`, `LoadAteraSegmentations`, and `LoadAteraCodewords` to load additional transcript coordinates, segmentation polygons, and per-codeword coordinates into existing Atera objects
-- `RunPLS` on BPCells on-disk data now picks up the thread count set by `setThreads` instead of always running single-threaded; the `threads` argument of `RunPLS`, `kernelpls` and `cppls_ondisk` now defaults to `NULL` (meaning "use `getThreads()`") and still accepts an explicit override
-- `FindVariableFeatures(selection.method = "vst")` on BPCells on-disk data now picks up the thread count set by `setThreads` for the two passes it makes over the matrix, which were always single-threaded; the in-memory sparse path already did this
 
 ### Fixes
 
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
-- Sped up `LeverageScore`/`SketchData` on `IterableMatrix` (BPCells) data by computing the random projection in blocks of cells against a dense operand, replacing `transpose_storage_order()` with a grouped sum over cells when the sketching matrix comes from `CountSketch`, and vectorizing `CountSketch`. Leverage scores for a given sketching matrix are unchanged, but `CountSketch` now consumes its random draws differently, so results for a given `seed` will differ from previous versions
-- Fixed `LeverageScore` deleting unrelated files from the session temporary directory, and leaking a full on-disk copy of the input matrix, when run on `IterableMatrix` (BPCells) data
+- Fixed `LeverageScore` on BPCells on-disk data deleting unrelated files from the session temporary directory and leaving behind a full on-disk copy of the input matrix
 - Fixed `LeverageScore` densifying the whole layer when retrying after a failure, and reporting that no zero-variance features were found even when it had removed some
 - Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
 - Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
@@ -25,7 +26,6 @@
 
 - Soft deprecation of `flip.xy` in `LoadXenium`
   - Existing calls with `flip.xy = TRUE` will retain their behavior (requiring SeuratObject >= v5.3.0 to do so)
-- Fixed `LeverageScore` densifying the whole layer when retrying after a failure, and reporting that no zero-variance features were found even when it had removed some. The retry now computes feature variances without leaving the input's storage format, names the features it removed, and reports the error that triggered it
 
 # Seurat 5.6.0 (2026-10-03)
 
