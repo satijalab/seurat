@@ -953,6 +953,11 @@ kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
     rlang::abort(sprintf("ncomp must be less than min(n, p) = %d", min(n, p)))
   }
 
+  # The transpose flag tells C++ whether to swap row/col semantics.
+  # BPCells default (features x samples) needs transpose=TRUE so that C++
+  # treats rows as features and columns as samples.
+  is_transposed <- !X@transpose
+
   if (threads == 0L) {
     threads <- max(parallel::detectCores(logical = FALSE), 1L, na.rm = TRUE)
   }
@@ -960,12 +965,13 @@ kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
   n_splits <- min(threads * 4L, n)
 
   parallel_split <- getFromNamespace("parallel_split", "BPCells")
-  X <- X %>%
+  iterate_matrix <- getFromNamespace("iterate_matrix", "BPCells")
+  it <- X %>%
     BPCells::convert_matrix_type("double") %>%
-    parallel_split(threads, n_splits)
+    parallel_split(threads, n_splits) %>%
+    iterate_matrix()
 
-  result <- .kernelpls_bpcells(X = X, Y = Y, ncomp = ncomp, center = center,
-                               stripped = stripped)
+  result <- kernelpls_cpp(it, Y, as.integer(ncomp), center, stripped, is_transposed)
 
   # Reshape 2D coefficient matrix to 3D array (p x q x ncomp)
   comp_names <- paste(seq_len(ncomp), "comps")
@@ -1113,6 +1119,8 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
     rlang::abort(sprintf("ncomp must be less than min(n, p) = %d", min(n, p)))
   }
 
+  is_transposed <- !X@transpose
+
   if (threads == 0L) {
     threads <- max(parallel::detectCores(logical = FALSE), 1L, na.rm = TRUE)
   }
@@ -1120,13 +1128,14 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
   n_splits <- min(threads * 4L, n)
 
   parallel_split <- getFromNamespace("parallel_split", "BPCells")
-  X <- X %>%
+  iterate_matrix <- getFromNamespace("iterate_matrix", "BPCells")
+  it <- X %>%
     BPCells::convert_matrix_type("double") %>%
-    parallel_split(threads, n_splits)
+    parallel_split(threads, n_splits) %>%
+    iterate_matrix()
 
-  result <- .cppls_bpcells(X = X, Y = Y, Y.add = Y_add_mat, ncomp = ncomp,
-                           center = center, stripped = stripped,
-                           w.tol = as.double(w.tol))
+  result <- cppls_cpp(it, Y, Y_add_mat, as.integer(ncomp), center, stripped,
+                       is_transposed, as.double(w.tol), as.double(X.tol))
 
   # Reshape 2D coefficient matrix to 3D array (p x q x ncomp)
   comp_names <- paste(seq_len(ncomp), "comps")
@@ -1146,312 +1155,6 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
       class(result$Yloadings) <- "loadings"
   }
 
-  result
-}
-
-# The on-disk PLS fits below touch X only through BPCells' public R API
-# (%*% and matrix_stats), so they do not depend on BPCells' C++ internals.
-# X is features x samples (p x n), the BPCells convention, so the PLS
-# predictor matrix is t(X); its products are formed as
-#   X^T M = X %*% M   (p x q)       X r = r %*% X   (n)
-#   X M   = t(X) %*% M (n x k)      X^T v = X %*% v (p)
-# in terms of the n x p predictor. Each product is one pass over the data.
-# Both fits return coefficients as p x (q * ncomp) and fitted.values and
-# residuals as n x (q * ncomp); the callers reshape them to arrays.
-
-# Feature means of X (length p)
-.pls_feature_means <- function(X) {
-  unname(BPCells::matrix_stats(X, row_stats = "mean")$row_stats["mean", ])
-}
-
-# Total variance of the centered predictor, sum(X_centered^2), computed as
-# sum_j Var(j) * (n - 1) from the feature variances
-.pls_total_variance <- function(X) {
-  vars <- BPCells::matrix_stats(X, row_stats = "variance")$row_stats["variance", ]
-  sum(vars) * (ncol(X) - 1)
-}
-
-# Kernel PLS (Dayal & MacGregor, 1997), following pls::kernelpls.fit
-.kernelpls_bpcells <- function(X, Y, ncomp, center, stripped) {
-  n <- ncol(X)
-  p <- nrow(X)
-  q <- ncol(Y)
-  dimnames(Y) <- NULL
-
-  if (center) {
-    Xmeans <- .pls_feature_means(X = X)
-    Ymeans <- colMeans(Y)
-    Y <- Y - rep(Ymeans, each = n)
-  } else {
-    Xmeans <- numeric(p)
-    Ymeans <- numeric(q)
-  }
-
-  # (X - Xmeans)^T Y equals X^T Y, because Y is centered whenever X is
-  XtY <- unname(X %*% Y)
-
-  R <- P <- matrix(0, p, ncomp)
-  tQ <- matrix(0, ncomp, q)
-  tsqs <- numeric(ncomp)
-  if (!stripped) {
-    TT <- U <- matrix(0, n, ncomp)
-    W <- matrix(0, p, ncomp)
-    Xvar <- numeric(ncomp)
-  }
-
-  for (a in seq_len(ncomp)) {
-    prev <- seq_len(a - 1)
-
-    # Loading weight: the dominant left singular vector of XtY
-    if (q == 1) {
-      w <- XtY[, 1]
-    } else if (q < p) {
-      w <- drop(XtY %*% eigen(crossprod(XtY), symmetric = TRUE)$vectors[, 1])
-    } else {
-      w <- eigen(tcrossprod(XtY), symmetric = TRUE)$vectors[, 1]
-    }
-    w.norm <- sqrt(sum(w^2))
-    if (w.norm > 0) w <- w / w.norm
-
-    # Projection: w orthogonalized against the previous X-loadings
-    r <- w - drop(R[, prev, drop = FALSE] %*% crossprod(P[, prev, drop = FALSE], w))
-
-    t.a <- as.numeric(r %*% X)
-    if (center) t.a <- t.a - sum(Xmeans * r)
-    tsq <- sum(t.a^2)
-
-    p.a <- as.numeric(X %*% t.a) / tsq
-    if (center) p.a <- p.a - Xmeans * (sum(t.a) / tsq)
-
-    q.a <- drop(crossprod(XtY, r)) / tsq
-    XtY <- XtY - tcrossprod(tsq * p.a, q.a)
-
-    R[, a] <- r
-    P[, a] <- p.a
-    tQ[a, ] <- q.a
-    tsqs[a] <- tsq
-
-    if (!stripped) {
-      TT[, a] <- t.a
-      W[, a] <- w
-      u <- drop(Y %*% q.a) / sum(q.a^2)
-      if (a > 1) {
-        Tp <- TT[, prev, drop = FALSE]
-        u <- u - drop(Tp %*% (crossprod(Tp, u) / tsqs[prev]))
-      }
-      U[, a] <- u
-      Xvar[a] <- sum(p.a^2) * tsq
-    }
-  }
-
-  # Cumulative coefficients B[, , a] = R[, 1:a] %*% tQ[1:a, ]
-  coefficients <- matrix(0, p, q * ncomp)
-  for (a in seq_len(ncomp)) {
-    k <- seq_len(a)
-    coefficients[, (a - 1) * q + seq_len(q)] <-
-      R[, k, drop = FALSE] %*% tQ[k, , drop = FALSE]
-  }
-  result <- list(coefficients = coefficients, Xmeans = Xmeans, Ymeans = Ymeans)
-
-  if (!stripped) {
-    fitted.values <- residuals <- matrix(0, n, q * ncomp)
-    for (a in seq_len(ncomp)) {
-      k <- seq_len(a)
-      cols <- (a - 1) * q + seq_len(q)
-      fitted.a <- TT[, k, drop = FALSE] %*% tQ[k, , drop = FALSE]
-      residuals[, cols] <- Y - fitted.a
-      fitted.values[, cols] <- fitted.a + rep(Ymeans, each = n)
-    }
-    result <- c(result, list(
-      scores = TT,
-      loadings = P,
-      loading.weights = W,
-      Yscores = U,
-      Yloadings = t(tQ),
-      projection = R,
-      fitted.values = fitted.values,
-      residuals = residuals,
-      Xvar = Xvar,
-      Xtotvar = .pls_total_variance(X = X)
-    ))
-  }
-  result
-}
-
-# Canonical correlation weights, from the internal cancorr() of pls with
-# opt = FALSE. Unlike pls, a rank-0 input gives zero weights and r = 0
-# rather than an error.
-.pls_cancorr <- function(x, y) {
-  nr <- nrow(x)
-  ncx <- ncol(x)
-  ncy <- ncol(y)
-  qx <- qr(x, LAPACK = TRUE)
-  qy <- qr(y, LAPACK = TRUE)
-  qxR <- qr.R(qx)
-  dx <- sum(abs(diag(qxR)) > .Machine$double.eps * 2^floor(log2(abs(qxR[1]))) * max(nr, ncx))
-  qyR <- qr.R(qy)
-  dy <- sum(abs(diag(qyR)) > .Machine$double.eps * 2^floor(log2(abs(qyR[1]))) * max(nr, ncy))
-  if (!dx || !dy) {
-    return(list(A = matrix(0, ncx, 1), r = 0))
-  }
-  dxy <- min(dx, dy)
-  z <- svd(qr.qty(qx, qr.qy(qy, diag(1, nr, dy)))[1:dx, , drop = FALSE],
-           nu = dxy, nv = 0)
-  A <- backsolve((qx$qr)[1:dx, 1:dx, drop = FALSE], z$u) * sqrt(nr - 1)
-  if ((ncx - nrow(A)) > 0) {
-    A <- rbind(A, matrix(0, ncx - nrow(A), dxy))
-  }
-  A[qx$pivot, ] <- A
-  list(A = A, r = max(min(z$d[1], 1), 0))
-}
-
-# CPLS, following pls::cppls.fit with all gammas fixed at 0.5. X is never
-# deflated on disk: each product with the deflated, centered X is formed from
-# one pass over X plus in-memory corrections for the centering and the
-# previous components. pls zeroes the loading weights of variables whose
-# deflated column norm drops below X.tol; that needs an extra pass per
-# component, so it is not done and smallNorm is always empty.
-.cppls_bpcells <- function(X, Y, Y.add, ncomp, center, stripped, w.tol) {
-  n <- ncol(X)
-  p <- nrow(X)
-  q <- ncol(Y)
-  q.full <- q + ncol(Y.add)
-  dimnames(Y) <- dimnames(Y.add) <- NULL
-
-  # pls >= 2.9-0 centers the responses as well as X; the cross-products are
-  # invariant to it because X is centered, but the canonical correlation step
-  # is not. Y itself stays uncentered for the residuals (Y.orig in pls).
-  if (center) {
-    Xmeans <- .pls_feature_means(X = X)
-    Ymeans <- colMeans(Y)
-    Yprim <- Y - rep(Ymeans, each = n)
-    # pls centers cbind(Yprim, Y.add) by its own column means; those of the
-    # first block are already zero
-    if (ncol(Y.add) > 0) {
-      Y.add <- Y.add - rep(colMeans(Y.add), each = n)
-    }
-  } else {
-    Xmeans <- numeric(p)
-    Ymeans <- numeric(q)
-    Yprim <- Y
-  }
-  Y.full <- cbind(Yprim, Y.add)
-
-  # (X - Xmeans)^T Y.full
-  XtY <- unname(X %*% Y.full)
-  if (center) {
-    XtY <- XtY - tcrossprod(Xmeans, colSums(Y.full))
-  }
-
-  W <- P <- matrix(0, p, ncomp)
-  Q <- matrix(0, q, ncomp)
-  TT <- matrix(0, n, ncomp)
-  tsqs <- numeric(ncomp)
-  canonical.correlations <- numeric(ncomp)
-  A.weights <- matrix(0, q.full, ncomp)
-  if (!stripped) {
-    U <- matrix(0, n, ncomp)
-  }
-
-  for (a in seq_len(ncomp)) {
-    prev <- seq_len(a - 1)
-    Tp <- TT[, prev, drop = FALSE]
-    Pp <- P[, prev, drop = FALSE]
-
-    # Z = deflated centered X times XtY
-    Z <- unname(t(X) %*% XtY)
-    if (center) Z <- Z - rep(drop(crossprod(Xmeans, XtY)), each = n)
-    if (a > 1) Z <- Z - Tp %*% crossprod(Pp, XtY)
-
-    cca <- .pls_cancorr(x = Z, y = Yprim)
-    rm(Z)
-    canonical.correlations[a] <- cca$r^2
-    A.weights[, a] <- cca$A[, 1]
-
-    w <- drop(XtY %*% cca$A[, 1])
-    w[abs(w) < w.tol] <- 0
-    w.norm <- sqrt(sum(w^2))
-    if (w.norm > 0) w <- w / w.norm
-
-    # Scores and loadings from the deflated centered X
-    t.a <- as.numeric(w %*% X)
-    if (center) t.a <- t.a - sum(Xmeans * w)
-    if (a > 1) t.a <- t.a - drop(Tp %*% crossprod(Pp, w))
-    tsq <- sum(t.a^2)
-
-    p.a <- as.numeric(X %*% t.a)
-    if (center) p.a <- p.a - Xmeans * sum(t.a)
-    p.a <- p.a / tsq
-    if (a > 1) p.a <- p.a - drop(Pp %*% crossprod(Tp, t.a)) / tsq
-
-    q.a <- drop(crossprod(Yprim, t.a)) / tsq
-
-    # Deflating X by t.a p.a' deflates its cross-product with Y.full by
-    # p.a (t.a' Y.full)
-    XtY <- XtY - tcrossprod(p.a, drop(crossprod(t.a, Y.full)))
-
-    W[, a] <- w
-    TT[, a] <- t.a
-    P[, a] <- p.a
-    Q[, a] <- q.a
-    tsqs[a] <- tsq
-
-    if (!stripped) {
-      u <- drop(Yprim %*% q.a) / sum(q.a^2)
-      if (a > 1) {
-        u <- u - drop(Tp %*% (crossprod(Tp, u) / tsqs[prev]))
-      }
-      U[, a] <- u
-    }
-  }
-
-  # Cumulative coefficients B[, , a] = W_a solve(P_a' W_a) Q_a'
-  PtW <- crossprod(P, W)
-  coefficients <- matrix(0, p, q * ncomp)
-  for (a in seq_len(ncomp)) {
-    k <- seq_len(a)
-    coefficients[, (a - 1) * q + seq_len(q)] <- W[, k, drop = FALSE] %*%
-      solve(PtW[k, k, drop = FALSE], t(Q[, k, drop = FALSE]))
-  }
-  result <- list(
-    coefficients = coefficients,
-    Xmeans = Xmeans,
-    Ymeans = Ymeans,
-    gammas = rep(0.5, ncomp),
-    canonical.correlations = canonical.correlations,
-    A = A.weights,
-    smallNorm = integer(0)
-  )
-
-  if (!stripped) {
-    # The fitted values are X_centered %*% B. The scores come from the
-    # progressively deflated X, so X_centered %*% W = TT %*% (I + L) with
-    # L[j, a] = P[, j]' W[, a] for j < a, which avoids another pass over X.
-    IpL <- diag(ncomp)
-    IpL[upper.tri(IpL)] <- PtW[upper.tri(PtW)]
-    fitted.values <- residuals <- matrix(0, n, q * ncomp)
-    for (a in seq_len(ncomp)) {
-      k <- seq_len(a)
-      cols <- (a - 1) * q + seq_len(q)
-      fitted.a <- TT[, k, drop = FALSE] %*% (IpL[k, k, drop = FALSE] %*%
-        solve(PtW[k, k, drop = FALSE], t(Q[, k, drop = FALSE])))
-      fitted.a <- fitted.a + rep(Ymeans, each = n)
-      fitted.values[, cols] <- fitted.a
-      residuals[, cols] <- Y - fitted.a
-    }
-    result <- c(result, list(
-      scores = TT,
-      loadings = P,
-      loading.weights = W,
-      Yscores = U,
-      Yloadings = Q,
-      projection = W %*% solve(PtW),
-      fitted.values = fitted.values,
-      residuals = residuals,
-      Xvar = colSums(P^2) * tsqs,
-      Xtotvar = .pls_total_variance(X = X)
-    ))
-  }
   result
 }
 
@@ -1688,7 +1391,7 @@ PredictPLS.Seurat <- function(
 }
 
 # Internal helper: predict from PLS model using BPCells IterableMatrix (on-disk)
-# newdata is an IterableMatrix; prediction streams it rather than materialising it.
+# newdata is an IterableMatrix; prediction uses C++ bridge to avoid materialisation.
 .predict_pls_iterable <- function(object, newdata, ncomp) {
   if (!requireNamespace("BPCells", quietly = TRUE)) {
     stop("Package 'BPCells' is required for IterableMatrix prediction but is not installed.")
@@ -1723,7 +1426,8 @@ PredictPLS.Seurat <- function(
     }
   }
 
-  newdata <- BPCells::convert_matrix_type(newdata, "double")
+  # Determine transpose flag (same convention as kernelpls.IterableMatrix)
+  is_transposed <- !newdata@transpose
 
   # Get sample count and names
   n.samples <- ncol(newdata)
@@ -1739,14 +1443,17 @@ PredictPLS.Seurat <- function(
   }
 
   q <- length(Ymeans)
+  iterate_matrix <- getFromNamespace("iterate_matrix", "BPCells")
 
   if (length(ncomp) == 1) {
     B <- coefficients[, , ncomp, drop = FALSE]
     dim(B) <- dim(B)[1:2]
     B0 <- as.numeric(Ymeans - crossprod(Xmeans, B))
 
-    # newdata is features x samples, so this is X_new %*% B + B0
-    pred <- unname(t(newdata) %*% B) + rep(B0, each = n.samples)
+    it <- newdata %>%
+      BPCells::convert_matrix_type("double") %>%
+      iterate_matrix()
+    pred <- predict_pls_cpp(it, B, B0, is_transposed)
 
     rownames(pred) <- sample.names
     colnames(pred) <- names(Ymeans)
@@ -1758,7 +1465,11 @@ PredictPLS.Seurat <- function(
       dim(B) <- dim(B)[1:2]
       B0 <- as.numeric(Ymeans - crossprod(Xmeans, B))
 
-      pred[, , i] <- unname(t(newdata) %*% B) + rep(B0, each = n.samples)
+      # Fresh iterator each time (take_unique_xptr consumes the previous one)
+      it <- newdata %>%
+        BPCells::convert_matrix_type("double") %>%
+        iterate_matrix()
+      pred[, , i] <- predict_pls_cpp(it, B, B0, is_transposed)
     }
     comp.names <- dimnames(coefficients)[[3]]
     if (!is.null(comp.names)) {
