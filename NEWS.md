@@ -8,6 +8,7 @@
 
 ### Fixes
 
+- Fixed `as.Seurat` for `SingleCellExperiment` objects whose alternative experiments lack a requested assay (e.g. spike-ins or ADTs without `logcounts`): the missing assay is skipped with a warning instead of failing with "No data in provided assay"
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
 
 # Seurat 5.6.0 (2026-10-03)
