@@ -90,12 +90,9 @@ Suggests:
     Biobase,
     blosc,
     BPCells,
-    circlize,
-    ComplexHeatmap,
     data.table,
     DelayedArray,
     destiny,
-    dplyr,
     enrichR,
     fitdistrplus,
     GenomicRanges,
@@ -127,7 +124,6 @@ Suggests:
     spls,
     SummarizedExperiment,
     testthat,
-    tidyr,
     VGAM
 LinkingTo: Rcpp (>= 0.11.0), RcppAnnoy (>= 0.0.18), RcppEigen, RcppProgress, RcppThread, RSpectra
 SystemRequirements: GNU make
@@ -155,7 +151,6 @@ Collate:
     'roxygen.R'
     'scslide_de.R'
     'scslide_dimreduc.R'
-    'scslide_extras.R'
     'scslide_sample_level.R'
     'sketching.R'
     'tree.R'
