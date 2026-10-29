@@ -38,17 +38,13 @@ skip_if_pls_uncentered <- function() {
 # Helper: compare an on-disk fit to the pls reference, tolerating per-component
 # sign flips. Yscores are not compared: for components after the first,
 # pls::cppls.fit also projects u_a off its own score t_a, which ours does not.
-# Xtotvar is only compared for centered fits: ours is always the total variance
-# of the centered X, whereas pls uses sum(X^2) when it does not center.
-compare_to_pls <- function(bp, ref, ncomp, center = TRUE, tol = 1e-6) {
+compare_to_pls <- function(bp, ref, ncomp, tol = 1e-6) {
   # Cumulative outputs carry no sign ambiguity
   expect_equal(bp$coefficients, ref$coefficients, tolerance = tol)
   expect_equal(bp$fitted.values, ref$fitted.values, tolerance = tol)
   expect_equal(bp$residuals, ref$residuals, tolerance = tol)
   expect_equal(as.numeric(bp$Xvar), as.numeric(ref$Xvar), tolerance = tol)
-  if (center) {
-    expect_equal(bp$Xtotvar, ref$Xtotvar, tolerance = tol)
-  }
+  expect_equal(bp$Xtotvar, ref$Xtotvar, tolerance = tol)
   if (!is.null(ref$canonical.correlations)) {
     expect_equal(bp$canonical.correlations, ref$canonical.correlations,
                  tolerance = tol)
@@ -103,8 +99,7 @@ for (case in names(kernelpls.cases)) {
       expect_equal(as.numeric(bp$Xmeans), colMeans(d$X), tolerance = 1e-10)
       expect_equal(as.numeric(bp$Ymeans), colMeans(d$Y), tolerance = 1e-10)
     }
-    compare_to_pls(bp, ref, ncomp = cs$ncomp, center = center,
-                   tol = cs$tol %||% 1e-6)
+    compare_to_pls(bp, ref, ncomp = cs$ncomp, tol = cs$tol %||% 1e-6)
   })
 }
 
@@ -146,8 +141,7 @@ for (case in names(cppls.cases)) {
       expect_equal(as.numeric(bp$Ymeans), colMeans(d$Y), tolerance = 1e-10)
     }
     expect_true(all(bp$gammas == 0.5))
-    compare_to_pls(bp, ref, ncomp = cs$ncomp, center = center,
-                   tol = cs$tol %||% 1e-6)
+    compare_to_pls(bp, ref, ncomp = cs$ncomp, tol = cs$tol %||% 1e-6)
   })
 }
 

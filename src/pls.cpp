@@ -92,20 +92,29 @@ struct ConceptualX {
         }
     }
 
-    // Total X variance, Xtotvar = sum(X_centered * X_centered)
-    // = sum(X*X) - n * sum(Xmeans^2)  [since X_centered = X - 1*Xmeans']
-    // = trace(X'X) - n * ||Xmeans||^2
-    // We compute trace(X'X) via variance: Var(j)*(n-1) + n*mean(j)^2 = sum(x_j^2)
-    // Xtotvar = sum_j [Var(j)*(n-1) + n*mean(j)^2] - n * sum_j mean(j)^2
-    //         = sum_j Var(j)*(n-1)
-    double totalVariance(int nobj) {
+    // Total X variance, Xtotvar = sum(X_fit * X_fit), where X_fit is the X the
+    // model is fitted to: centered when center=true, as stored otherwise (as in pls).
+    // Per feature, sum(x_j^2) = Var(j)*(n-1) + n*mean(j)^2, so
+    //   centered:   Xtotvar = sum_j Var(j)*(n-1)
+    //   uncentered: Xtotvar = sum_j [Var(j)*(n-1) + n*mean(j)^2]
+    // The variance pass computes the means too, so both need one pass.
+    double totalVariance(int nobj, bool center) {
+        StatsResult stats;
+        Eigen::ArrayXXd var, mean;
         if (transpose) {
-            StatsResult stats = X->computeMatrixStats(Stats::Variance, Stats::None, user_interrupt);
-            return stats.rowVariance().sum() * (nobj - 1);
+            stats = X->computeMatrixStats(Stats::Variance, Stats::None, user_interrupt);
+            var = stats.rowVariance();
+            mean = stats.rowMean();
         } else {
-            StatsResult stats = X->computeMatrixStats(Stats::None, Stats::Variance, user_interrupt);
-            return stats.colVariance().sum() * (nobj - 1);
+            stats = X->computeMatrixStats(Stats::None, Stats::Variance, user_interrupt);
+            var = stats.colVariance();
+            mean = stats.colMean();
         }
+        double total = var.sum() * (nobj - 1);
+        if (!center) {
+            total += nobj * mean.square().sum();
+        }
+        return total;
     }
 };
 
@@ -267,7 +276,7 @@ KernelPLSResult kernelpls(
             result.fitted_values.block(0, a * nresp, nobj, nresp) = fitted_a;
         }
 
-        result.Xtotvar = cx.totalVariance(nobj);
+        result.Xtotvar = cx.totalVariance(nobj, center);
     }
 
     return result;
@@ -702,7 +711,7 @@ CPPLSResult cppls(
             result.Xvar(a) = P.col(a).squaredNorm() * tsqs(a);
         }
 
-        result.Xtotvar = cx.totalVariance(nobj);
+        result.Xtotvar = cx.totalVariance(nobj, center);
     }
 
     return result;
