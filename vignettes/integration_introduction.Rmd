@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 
 # Introduction to scRNA-seq integration
 
-Integration of single-cell sequencing datasets, for example across experimental batches, donors, or conditions, is often an important step in scRNA-seq workflows. Integrative analysis can help to match shared cell types and states across datasets, which can boost statistical power, and most importantly, facilitate accurate comparative analysis across datasets. In previous versions of Seurat we introduced methods for integrative analysis, including our ‘anchor-based’ integration workflow. Many labs have also published powerful and pioneering methods, including [Harmony](https://portals.broadinstitute.org/harmony/) and [scVI](https://docs.scvi-tools.org/en/stable/index.html), for integrative analysis. Please see our [Integrating scRNA-seq data with multiple tools](https://satijalab.org/seurat/articles/seurat5_integration) vignette.
+Integration of single-cell sequencing datasets, for example across experimental batches, donors, or conditions, is often an important step in scRNA-seq workflows. Integrative analysis can help to match shared cell types and states across datasets, which can boost statistical power, and most importantly, facilitate accurate comparative analysis across datasets. In previous versions of Seurat we introduced methods for integrative analysis, including our ‘anchor-based’ integration workflow. Many labs have also published powerful and pioneering methods, including [Harmony](https://portals.broadinstitute.org/harmony/) and [scVI](https://docs.scvi-tools.org/en/stable/index.html), for integrative analysis. Please see our [Integrating scRNA-seq data with multiple tools](https://satijalab.org/seurat/articles/integration) vignette.
 
 
 # Integration goals
@@ -61,7 +61,7 @@ InstallData('ifnb')
 
 The object contains data from human PBMC from two conditions, interferon-stimulated and control cells (stored in the `stim` column in the object metadata). We will aim to integrate the two conditions together, so that we can jointly identify cell subpopulations across datasets, and then explore how each group differs across conditions
 
-In previous versions of Seurat, we would require the data to be represented as two different Seurat objects. In Seurat v5, we keep all the data in one object, but simply split it into multiple 'layers'. To learn more about layers, check out our [Seurat object interaction vignette](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html#load-data-from-multiple-h5ad-files).
+In previous versions of Seurat, we would require the data to be represented as two different Seurat objects. In Seurat v5, we keep all the data in one object, but simply split it into multiple 'layers'. To learn more about layers, check out our [Seurat object interaction vignette](https://satijalab.org/seurat/articles/bpcells_interaction_vignette.html#load-data-from-multiple-h5ad-files).
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
@@ -177,7 +177,7 @@ p2 + p4
 
 We can now ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. Then we use `FindMarkers()` to find the genes that are different between stimulated and control B cells. Notice that many of the top genes that show up here are the same as the ones we plotted earlier as core interferon response genes. Additionally, genes like CXCL10 which we saw were specific to monocyte and B cell interferon response show up as highly significant in this list as well. 
 
-Please note that p-values obtained from this analysis should be interpreted with caution, as these tests treat each cell as an independent replicate, and ignore inherent correlations between cells originating from the same sample. As discussed [here](https://pubmed.ncbi.nlm.nih.gov/33257685/), DE tests across multiple conditions should expressly utilize multiple samples/replicates, and can be performed after aggregating ('pseudobulking') cells from the same sample and subpopulation together. We do not perform this analysis here, as there is a single replicate in the data, but please see our [vignette comparing healthy and diabetic samples](https://satijalab.org/seurat/articles/parsebio_sketch_integration) as an example for how to perform DE analysis across conditions.
+Please note that p-values obtained from this analysis should be interpreted with caution, as these tests treat each cell as an independent replicate, and ignore inherent correlations between cells originating from the same sample. As discussed [here](https://pubmed.ncbi.nlm.nih.gov/33257685/), DE tests across multiple conditions should expressly utilize multiple samples/replicates, and can be performed after aggregating ('pseudobulking') cells from the same sample and subpopulation together. We do not perform this analysis here, as there is a single replicate in the data, but please see our [vignette comparing healthy and diabetic samples](https://satijalab.org/seurat/articles/ParseBio_sketch_integration) as an example for how to perform DE analysis across conditions.
 
 
 ```{r de.genes}

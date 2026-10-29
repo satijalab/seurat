@@ -1,132 +1,161 @@
-- category: Introduction
+- category: Core workflows
   vignettes:
-    - title: Guided tutorial --- 2,700 PBMCs
+    - title: PBMC 3K guided tutorial
       name: pbmc3k_tutorial
       summary: |
         A basic overview of Seurat that includes an introduction to common analytical workflows.
-      image: pbmc3k_umap.jpg
+      image: assets/pbmc3k_umap.jpg
 
-    - title: Multimodal analysis
+    - title: Introduction to multimodal analysis
       name: multimodal_vignette
       summary: |
-        An introduction to working with multi-modal datasets in Seurat.
-      image: citeseq_plot.jpg
+        An introduction to working with multimodal datasets in Seurat.
+      image: assets/citeseq_plot.jpg
 
-    - title: Analysis of spatial datasets (Sequencing-based)
-      name: spatial_vignette
+    - title: Data visualization
+      name: visualization_vignette
       summary: |
-        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
-      image: spatial_vignette_ttr.jpg
+        An overview of the visualization capabilities within Seurat.
+      image: assets/visualization_vignette.jpg
 
-    - title: Analysis of spatial datasets (Imaging-based)
-      name: spatial_vignette_2
+    - title: Normalization with SCTransform
+      name: sctransform_vignette
       summary: |
-        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERFISH, Xenium, CosMx SMI, and CODEX.
-      image: spatial_vignette_2.jpg
+        Normalize scRNA-seq data and identify variable features with SCTransform.
+      image: assets/sctransform_v2_new.png
 
-- category: Data Integration
+    - title: Essential commands
+      name: essential_commands
+      summary: |
+        Reference list of commonly used commands to store, access, explore, and analyze datasets.
+      image: assets/commands.png
+
+
+- category: Data integration
   vignettes:
     - title: Introduction to scRNA-seq integration
       name: integration_introduction
       summary: |
         An introduction to integrating scRNA-seq datasets in order to identify and compare shared cell types across experiments.
-      image: pbmc_alignment.jpg
+      image: assets/pbmc_alignment.jpg
 
-    - title: Mapping and annotating query datasets
+    - title: Comparing scRNA-seq integration methods
+      name: integration
+      summary: |
+        Integrate scRNA-seq datasets using a variety of computational methods.
+      image: assets/integration.jpg
+
+    - title: Reference mapping and cell type annotation
       name: integration_mapping
       summary: |
         Learn how to map a query scRNA-seq dataset onto a reference in order to automate the annotation and visualization of query cells.
       image: assets/anchorsb_2018.png
 
-    - title: Fast integration using reciprocal PCA (RPCA)
-      name: integration_rpca
+- category: Multimodal analysis
+  vignettes:
+    - title: Bridge integration with dictionary learning
+      name: integration_bridge
       summary: |
-        Identify anchors using the reciprocal PCA (rPCA) workflow, which performs a faster and more conservative integration.
-      image: rpca_integration.jpg
+        Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset in Seurat v5.
+      image: assets/bridge_integration.png
 
-    - title: Tips for integrating large datasets
-      name: integration_large_datasets
+    - title: Weighted nearest neighbor analysis
+      name: weighted_nearest_neighbor_analysis
       summary: |
-        Tips and examples for integrating very large scRNA-seq datasets (including >200,000 cells).
-      image: bm280k_integrated.jpg
+        Analyze multimodal single-cell data with weighted nearest neighbor analysis.
+      image: assets/weighted_nearest_neighbor_analysis.jpg
 
     - title: Integrating scRNA-seq and scATAC-seq data
       name: atacseq_integration_vignette
       summary: |
         Annotate, visualize, and interpret an scATAC-seq experiment using scRNA-seq data from the same biological system.
-      image: atacseq_integration_vignette.jpg
+      image: assets/atacseq_integration_vignette.jpg
 
-    - title: Multimodal Reference Mapping
+    - title: Multimodal reference mapping
       name: multimodal_reference_mapping
       summary: |
         Analyze query data in the context of multimodal reference atlases.
-      image: multimodal_reference_mapping.jpg
+      image: assets/multimodal_reference_mapping.jpg
 
-- category: New Statistical Approaches
-  vignettes:
-    - title: Weighted Nearest Neighbor Analysis
-      name: weighted_nearest_neighbor_analysis
-      summary: |
-        Analyze multimodal single-cell data with weighted nearest neighbor analysis in Seurat v4.
-      image: weighted_nearest_neighbor_analysis.jpg
-
-    - title: Mixscape
+    - title: Perturbation analysis with Mixscape
       name: mixscape_vignette
       summary: |
-        Explore new methods to analyze pooled single-celled perturbation screens.
-      image: mixscape_vignette.jpg
+        Explore new methods to analyze pooled single-cell perturbation screens.
+      image: assets/mixscape_vignette.jpg
 
-    - title: SCTransform
-      name: sctransform_vignette
-      summary: |
-        Examples of how to use the SCTransform wrapper in Seurat.
-      image: assets/sctransform.png
-
-    - title: SCTransform, v2 regularization
-      name: sctransform_v2_vignette
-      summary: |
-        Examples of how to perform normalization, feature selection, integration, and differential expression with an updated version of sctransform.
-      image: assets/sctransform_v2.png
-
-- category: Other
+- category: Large datasets
   vignettes:
-    - title: Visualization
-      name: visualization_vignette
+    - title: Sketch-based analysis
+      name: sketch_analysis
       summary: |
-        An overview of the major visualization functionality within Seurat.
-      image: visualization_vignette.jpg
+        Analyze a 1.3 million cell mouse brain dataset using on-disk capabilities powered by BPCells.
+      image: assets/sketch_1p3.png
 
-    - title: Cell Cycle Regression
+    - title: Sketch integration of 1 million cells
+      name: ParseBio_sketch_integration
+      summary: |
+        Perform sketch integration on a large dataset from Parse Biosciences.
+      image: assets/sketch.png
+
+    - title: Mapping COVID-19 PBMCs to a healthy reference
+      name: COVID_SCTMapping
+      summary: |
+        Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
+      image: assets/COVID_SCTMapping.png
+
+    - title: On-disk analysis with BPCells
+      name: bpcells_interaction_vignette
+      summary: |
+        Load and save large on-disk matrices using BPCells.
+      image: assets/bpcells.png
+
+- category: Spatial analysis
+  vignettes:
+    - title: Imaging-based spatial analysis
+      name: spatial_vignette_2
+      summary: |
+        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERSCOPE, Xenium, CosMx SMI, and CODEX.
+      image: assets/spatial_vignette_2.jpg
+
+    - title: Sequencing-based spatial analysis
+      name: spatial_vignette
+      summary: |
+        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
+      image: assets/spatial_vignette_ttr.png
+
+    - title: Visium HD analysis (binned data)
+      name: visiumhd_analysis_vignette
+      summary: |
+        Learn to explore spatially-resolved transcriptomic data in high-definition from 10x Visium HD.
+      image: assets/spatial_vignette_hd.png
+
+    - title: Visium HD analysis (cell segmentations)
+      name: visiumhd_analysis_cell_segmentations
+      summary: |
+        Learn to explore spatially-resolved transcriptomic data at the single-cell level from 10x Visium HD.
+      image: assets/visium_hd_cell_segm.png
+
+- category: Additional workflows
+  vignettes:
+    - title: Cell-cycle scoring and regression
       name: cell_cycle_vignette
       summary: |
         Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes.
-      image: cell_cycle_vignette.jpg
+      image: assets/cell_cycle_vignette.jpg
 
-    - title: Differential Expression Testing
+    - title: Differential expression and pseudobulk analysis
       name: de_vignette
       summary: |
         Perform differential expression (DE) testing in Seurat using a number of frameworks.
       image: assets/de_vignette.png
 
-    - title: Demultiplex Cell Hashing data
+    - title: Demultiplexing with cell hashing
       name: hashing_vignette
       summary: |
         Learn how to work with data produced with Cell Hashing.
       image: assets/hashing_vignette.png
 
-    - title: Interoperability with Other Analysis Tools
-      name: conversion_vignette
-      summary: |
-        Convert data between formats for different analysis tools.
-      image: assets/conversion_vignette.png
-
-    - title: Parallelization
-      name: future_vignette
-      summary: |
-        Speed up compute-intensive functions with parallelization.
-      image: assets/future_rocket.png
-
-- category: Seurat Wrappers
+- category: SeuratWrappers
   hash: seurat-wrappers
   description: |
     In order to facilitate the use of community tools with Seurat, we provide the Seurat Wrappers package, which contains code to run other analysis tools on Seurat objects. For the initial release, we provide wrappers for a few packages in the table below but would encourage other package developers interested in interfacing with Seurat to check out our contributor guide [here](https://github.com/satijalab/seurat.wrappers/wiki/Submission-Process). <br><br>

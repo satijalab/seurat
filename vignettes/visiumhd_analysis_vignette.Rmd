@@ -127,11 +127,11 @@ p1 | p2
 
 ## Unsupervised clustering
 
-While the standard scRNA-seq clustering workflow can also be applied to spatial datasets, we have observed that when working with Visium HD datasets, the [Seurat v5 sketch clustering workflow](seurat5_sketch_analysis) exhibits improved performance, especially for identifying rare and spatially restricted groups.
+While the standard scRNA-seq clustering workflow can also be applied to spatial datasets, we have observed that when working with Visium HD datasets, the [Seurat v5 sketch clustering workflow](sketch_analysis) exhibits improved performance, especially for identifying rare and spatially restricted groups.
 
 As described in [Hao et al, 2023](https://doi.org/10.1038/s41587-023-01767-y) and [Hie et al, 2019](https://doi.org/10.1016/j.cels.2019.05.003), sketch-based analyses aim to 'subsample' large datasets in a way that preserves rare populations. Here, we sketch the Visium HD dataset, perform clustering on the subsampled cells, and then project the cluster labels back to the full dataset.
 
-Details of the sketching procedure and workflow are described in [Hao et al, 2023](https://doi.org/10.1038/s41587-023-01767-y) and the [Seurat v5 sketch-based analysis vignette](https://satijalab.org/seurat/articles/seurat5_sketch_analysis). Since the full Visium HD dataset fits in memory, we do not use any of the on-disk capabilities of Seurat v5 in this vignette.
+Details of the sketching procedure and workflow are described in [Hao et al, 2023](https://doi.org/10.1038/s41587-023-01767-y) and the [Seurat v5 sketch-based analysis vignette](https://satijalab.org/seurat/articles/sketch_analysis). Since the full Visium HD dataset fits in memory, we do not use any of the on-disk capabilities of Seurat v5 in this vignette.
 
 ```{r sketching}
 # Note that data is already normalized

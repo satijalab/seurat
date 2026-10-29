@@ -434,7 +434,7 @@ In this section of kidney cortex, which includes several glomeruli surrounded by
 
 - - -
 
-For more information on spatial analysis workflows, see the other [spatial vignettes](https://satijalab.org/seurat/articles/get_started_v5_new#spatial-analysis) and documentation ([Seurat](https://satijalab.org/seurat/reference/), [SeuratObject](https://satijalab.github.io/seurat-object/reference/index.html)).
+For more information on spatial analysis workflows, see the other [spatial vignettes](https://satijalab.org/seurat/articles/get_started#spatial-analysis) and documentation ([Seurat](https://satijalab.org/seurat/reference/), [SeuratObject](https://satijalab.github.io/seurat-object/reference/index.html)).
 
 # Acknowledgements
 
