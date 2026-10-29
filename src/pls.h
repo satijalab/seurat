@@ -13,7 +13,7 @@
 
 #include <Eigen/Core>
 
-#include "bpcells/matrixIterators/MatrixIterator.h"
+#include "pls_bpcells.h"
 
 namespace BPCells {
 

@@ -6,8 +6,7 @@
 #include <RcppEigen.h>
 // [[Rcpp::depends(RcppEigen)]]
 
-#include "R_interrupts.h"
-#include "R_xptr_wrapper.h"
+#include "pls_bpcells.h"
 #include "pls.h"
 
 using namespace Rcpp;
