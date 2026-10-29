@@ -67,6 +67,7 @@ Load packages
 
 ```{r load_pacakges}
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 ```
 
 Read in data
@@ -110,7 +111,7 @@ You can read more about working with multi-modal data [here](multimodal_vignette
 
 ```{r hto_assay}
 # Add HTO data as a new assay independent from RNA
-pbmc.hashtag[['HTO']] <- CreateAssayObject(counts = pbmc.htos)
+pbmc.hashtag[['HTO']] <- CreateAssay5Object(counts = pbmc.htos)
 # Normalize HTO data, here we use centered log-ratio (CLR) transformation
 pbmc.hashtag <- NormalizeData(pbmc.hashtag, assay = 'HTO', normalization.method = 'CLR')
 ```
@@ -231,7 +232,7 @@ cells.use <- intersect(rownames(hto12.htos), colnames(hto12.umis))
 
 # Create Seurat object and add HTO data
 hto12 <- CreateSeuratObject(counts = Matrix::Matrix(as.matrix(hto12.umis[, cells.use]), sparse = T), min.features = 300)
-hto12[['HTO']] <- CreateAssayObject(counts = t(x = hto12.htos[colnames(hto12), 1:12]))
+hto12[['HTO']] <- CreateAssay5Object(counts = t(x = hto12.htos[colnames(hto12), 1:12]))
 
 # Normalize data
 hto12 <- NormalizeData(hto12)

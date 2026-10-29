@@ -49,6 +49,7 @@ options(SeuratData.repo.use = "http://seurat.nygenome.org")
 
 ```{r packages, cache=FALSE}
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 library(SeuratData)
 library(cowplot)
 library(dplyr)
@@ -57,6 +58,8 @@ library(dplyr)
 ```{r}
 InstallData("bmcite")
 bm <- LoadData(ds = "bmcite")
+bm[["ADT"]] <- CreateAssay5Object(bm[["ADT"]]$counts)
+bm[["RNA"]] <- CreateAssay5Object(bm[["RNA"]]$counts)
 ```
 
 We first perform pre-processing and dimensional reduction on both assays independently. We use standard normalization, but you can also use SCTransform or any alternative method.

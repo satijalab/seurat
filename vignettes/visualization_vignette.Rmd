@@ -46,10 +46,15 @@ set.seed(seed = 42)
 
 ```{r initialize_object}
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 library(SeuratData)
 library(ggplot2)
 library(patchwork)
 pbmc3k.final <- LoadData("pbmc3k", type = "pbmc3k.final")
+pbmc3k.final[["RNA"]] <- as(pbmc3k.final[["RNA"]], Class = "Assay5")
+pbmc3k.final <- NormalizeData(pbmc3k.final)
+pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
+pbmc3k.final <- ScaleData(pbmc3k.final)
 pbmc3k.final$groups <- sample(c("group1", "group2"), size = ncol(pbmc3k.final), replace = TRUE)
 features <- c("LYZ", "CCL5", "IL32", "PTPRCAP", "FCGR3A", "PF4")
 pbmc3k.final

@@ -41,6 +41,7 @@ We next use the count matrix to create a `Seurat` object. The object serves as a
 ```{r init}
 library(dplyr)
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 library(patchwork)
 
 # Load the PBMC dataset

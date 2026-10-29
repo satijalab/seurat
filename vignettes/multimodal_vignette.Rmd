@@ -48,6 +48,7 @@ First, we load in two count matrices--one for the RNA measurements, and one for 
 
 ```{r load_packages}
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 library(ggplot2)
 library(patchwork)
 ```
@@ -205,7 +206,7 @@ rownames(x = pbmc10k.data[['Antibody Capture']]) <- gsub(
 
 pbmc10k <- CreateSeuratObject(counts = pbmc10k.data[['Gene Expression']], min.cells = 3, min.features = 200)
 pbmc10k <- NormalizeData(pbmc10k)
-pbmc10k[['ADT']] <- CreateAssayObject(pbmc10k.data[['Antibody Capture']][, colnames(x = pbmc10k)])
+pbmc10k[['ADT']] <- CreateAssay5Object(pbmc10k.data[['Antibody Capture']][, colnames(x = pbmc10k)])
 pbmc10k <- NormalizeData(pbmc10k, assay = 'ADT', normalization.method = 'CLR')
 
 plot1 <- FeatureScatter(pbmc10k, feature1 = 'adt_CD19', feature2 = 'adt_CD3', pt.size = 1)
@@ -228,10 +229,10 @@ Seurat also includes additional functionality for the analysis, visualization, a
 
 For more information, please explore the resources below:
 
-* Mapping multi-omic datasets across molecular modalities with bridge integration ([vignette](seurat5_integration_bridge.html))
+* Mapping multi-omic datasets across molecular modalities with bridge integration ([vignette](integration_bridge.html))
 * Defining cellular identity from multimodal data using WNN analysis ([vignette](weighted_nearest_neighbor_analysis.html))
 * Mapping scRNA-seq data onto CITE-seq references ([vignette](multimodal_reference_mapping.html))
-* Analyzing spatial transcriptomics data ([vignettes](get_started_v5_new.html#spatial-analysis))
+* Analyzing spatial transcriptomics data ([vignettes](get_started.html#spatial-analysis))
 * `Signac`: Analysis, interpretation, and exploration of single-cell chromatin datasets ([package](https://stuartlab.org/signac/))
 * `Mixscape`: an analytical toolkit for pooled single-cell genetic screens ([vignette](mixscape_vignette.html))
 
