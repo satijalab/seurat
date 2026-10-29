@@ -1486,17 +1486,18 @@ Read10X_Coordinates <- function(filename, filter.matrix) {
     coordinates[["barcodes"]] <- NULL
 
   } else {
-    # the coordinate mappings must be in a CSV - read it in
+    # the coordinate mappings must be in a CSV - Space Ranger >= 2.0 writes
+    # "tissue_positions.csv" with a header and older versions write
+    # "tissue_positions_list.csv" without one, but files are often renamed
+    # (e.g. on GEO), so detect the header from the content: the second field
+    # (`in_tissue`) of a data row is always 0 or 1
+    first.line <- readLines(con = filename, n = 1L)
+    second.field <- strsplit(x = first.line, split = ",", fixed = TRUE)[[1]][2]
+    has.header <- !trimws(x = gsub(pattern = '"', replacement = '', x = second.field)) %in% c('0', '1')
     coordinates <- read.csv(
         file = filename,
         col.names = col.names,
-        header = ifelse(
-          # assume files calles "tissue_positions.csv" have headers, otherwise
-          # assume they do not (i.e. "tissue_positions_list.csv")
-          test = basename(filename) == "tissue_positions.csv",
-          yes = TRUE,
-          no = FALSE
-        ),
+        header = has.header,
         as.is = TRUE,
         row.names = 1
       )

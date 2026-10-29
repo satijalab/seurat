@@ -74,6 +74,35 @@ test_that("Radius is dispatched for VisiumV2 images", {
   expect_identical(radius, Seurat:::Radius.VisiumV2(image, scale = "lowres"))
 })
 
+test_that("Read10X_Coordinates detects a header regardless of the file name", {
+  original <- file.path(path.to.visium, "spatial", "tissue_positions_list.csv")
+  expected <- Read10X_Coordinates(original, filter.matrix = TRUE)
+  header <- paste(
+    "barcode", "in_tissue", "array_row", "array_col",
+    "pxl_row_in_fullres", "pxl_col_in_fullres",
+    sep = ","
+  )
+  lines <- readLines(original)
+  dir <- tempfile()
+  dir.create(dir)
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  # Space Ranger >= 2.0 output renamed to the older "_list" convention (as is
+  # common for GEO uploads), and a header-less file with the newer name
+  with.header <- file.path(dir, "GSM1_tissue_positions_list.csv")
+  writeLines(c(header, lines), with.header)
+  without.header <- file.path(dir, "tissue_positions.csv")
+  writeLines(lines, without.header)
+  for (filename in c(with.header, without.header)) {
+    for (filter.matrix in c(TRUE, FALSE)) {
+      coordinates <- Read10X_Coordinates(filename, filter.matrix = filter.matrix)
+      expect_true(is.numeric(coordinates$imagerow))
+      expect_true(is.numeric(coordinates$imagecol))
+      expect_equal(nrow(coordinates), if (filter.matrix) nrow(expected) else length(lines))
+    }
+    expect_equal(Read10X_Coordinates(filename, filter.matrix = TRUE), expected)
+  }
+})
+
 test_that("Read10X_Image works as expected", {
   path.to.images <- file.path(path.to.visium, "spatial")
   coordinate.filenames <-  "tissue_positions_list.csv"
