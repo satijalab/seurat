@@ -26,7 +26,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -48,7 +48,9 @@ For this vignette, we use a [dataset of human PBMC profiled with seven different
 ## Layers in the Seurat v5 object
 Seurat v5 assays store data in layers. These layers can store raw, un-normalized counts (`layer='counts'`), normalized data (`layer='data'`), or z-scored/variance-stabilized data (`layer='scale.data'`). We can load in the data, remove low-quality cells, and obtain predicted cell annotations (which will be useful for assessing integration later), using our [Azimuth pipeline](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
 
-```{r installdata, include=FALSE, message=FALSE, warning=FALSE}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r installdata, message=FALSE, warning=FALSE, eval=FALSE}
 InstallData("pbmcref")
 InstallData("pbmcsca")
 ```
@@ -214,7 +216,7 @@ obj <- RunUMAP(obj, dims = 1:30,reduction = 'integrated.dr')
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

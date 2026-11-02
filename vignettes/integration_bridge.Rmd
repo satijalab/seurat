@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
   tidy = "styler",
   tidy.opts = list(width.cutoff = 95),
   warning = FALSE,
-  error = TRUE,
+  error = FALSE,
   message = FALSE,
   fig.width = 8,
   time_it = TRUE
@@ -249,7 +249,7 @@ obj.atac <- RunSVD(obj.atac)
 obj.atac <- RunUMAP(obj.atac, reduction = "lsi", dims = 2:50)
 ```
 
-Now, we visualize the predicted cluster labels on the unsupervised UMAP emebdding. We can see that predicted cluster labels (from the scRNA-seq reference) are concordant with the structure of the scATAC-seq data. However, there are some cell types (i.e. Treg),  that do not appear to separate in unsupervised analysis. These may be prediction errors, or cases where the reference mapping provides additional resolution.
+Now, we visualize the predicted cluster labels on the unsupervised UMAP embedding. We can see that predicted cluster labels (from the scRNA-seq reference) are concordant with the structure of the scATAC-seq data. However, there are some cell types (i.e. Treg),  that do not appear to separate in unsupervised analysis. These may be prediction errors, or cases where the reference mapping provides additional resolution.
 
 ```{r, pbmcdimplots,  message=FALSE, warning=FALSE}
 DimPlot(obj.atac, group.by = "predicted.l2", reduction = "umap", label = FALSE)
@@ -278,7 +278,7 @@ CoveragePlot(
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

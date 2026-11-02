@@ -28,7 +28,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -55,7 +55,7 @@ options(future.globals.maxSize = 10 * 1024^3)
 
 # Mouse Brain: Vizgen MERSCOPE
 
-This dataset was produced using the Vizgen MERSCOPE system, which utilizes the MERFISH technology. The total dataset is available for [public download](https://info.vizgen.com/mouse-brain-data), and contains nine samples (three full coronal slices of the mouse brain, with three biological replicates per slice). The gene panel consists of 483 gene targets, representing known anonical cell type markers, nonsensory G-Protein coupled receptors (GPCRs), and Receptor Tyrosine Kinases (RTKs). In this vignette, we analyze one of the samples - slice 2, replicate 1. The median number of transcripts detected in each cell is 206.
+This dataset was produced using the Vizgen MERSCOPE system, which utilizes the MERFISH technology. The total dataset is available for [public download](https://info.vizgen.com/mouse-brain-data), and contains nine samples (three full coronal slices of the mouse brain, with three biological replicates per slice). The gene panel consists of 483 gene targets, representing known canonical cell type markers, nonsensory G-Protein coupled receptors (GPCRs), and Receptor Tyrosine Kinases (RTKs). In this vignette, we analyze one of the samples - slice 2, replicate 1. The median number of transcripts detected in each cell is 206.
 
 First, we read in the dataset and create a Seurat object.
 
@@ -68,7 +68,7 @@ We use the `LoadVizgen()` function, which we have written to read in the output 
 vizgen.obj <- LoadVizgen(data.dir = "/brahms/hartmana/vignette_data/vizgen/s2r1/", fov = "s2r1")
 ```
 
-The next pieces of information are specific to imaging assays, and is stored in the images slot of the resulting Seurat object:
+The next pieces of information are specific to imaging assays, and are stored in the images slot of the resulting Seurat object:
 
 <details>
 
@@ -127,17 +127,17 @@ DimPlot(vizgen.obj, reduction = "umap")
 ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "polychrome", axes = TRUE)
 ```
 
-You can also customize multiple aspect of the plot, including the color scheme, cell border widths, and size (see below).
+You can also customize multiple aspects of the plot, including the color scheme, cell border widths, and size (see below).
 
 <details>
 
 <summary>**Customizing spatial plots in Seurat**</summary>
 
-The `ImageDimPlot()` and `ImageFeaturePlot()` functions have a few parameters which you can customize individual visualizations. These include:
+The `ImageDimPlot()` and `ImageFeaturePlot()` functions have a few parameters with which you can customize individual visualizations. These include:
 
 -   alpha: Ranges from 0 to 1. Sets the transparency of within-cell coloring.
 -   size: determines the size of points representing cells, if centroids are being plotted
--   cols: Sets the color scheme for the internal shading of each cell. Examples settings are `polychrome`, `glasbey`, `Paired`, `Set3`, and `parade`. Default is the ggplot2 color palette
+-   cols: Sets the color scheme for the internal shading of each cell. Example settings are `polychrome`, `glasbey`, `Paired`, `Set3`, and `parade`. Default is the ggplot2 color palette
 -   shuffle.cols: In some cases the selection of `cols` is more effective when the same colors are assigned to different clusters. Set `shuffle.cols = TRUE` to randomly shuffle the colors in the palette.
 -   border.size: Sets the width of the cell segmentation borders. By default, segmentations are plotted with a border size of 0.3 and centroids are plotted without border.
 -   border.color: Sets the color of the cell segmentation borders
@@ -154,7 +154,7 @@ p2 <- ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "red", cells = WhichCells(vi
 p1 + p2
 ```
 
-We can find markers of individual clusters and visualize their spatial expression pattern. We can color cells based on their quantified expression of an individual gene, using `ImageFeaturePlot()`, which is analagous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. Since MERFISH images individual molecules, we can also visualize the location of individual *molecules*.
+We can find markers of individual clusters and visualize their spatial expression pattern. We can color cells based on their quantified expression of an individual gene, using `ImageFeaturePlot()`, which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. Since MERFISH images individual molecules, we can also visualize the location of individual *molecules*.
 
 ```{r, fig.height=7, fig.width=12}
 p1 <- ImageFeaturePlot(vizgen.obj, features = "Slc17a7")
@@ -251,12 +251,12 @@ Next, we plot the positions of the pan-inhibitory neuron marker Gad1, inhibitory
 ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
 ```
 
-```{r save.img, include=FALSE}
+```{r save.img, include=FALSE, eval=FALSE}
 plot <- ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Gfap"), nmols = 40000, alpha=0.01, dark.background = F, mols.alpha = 0.6) + coord_flip() + scale_x_reverse() + NoLegend()
-ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 5, width = 9, plot = plot)
+ggsave(filename = "spatial_vignette_2.jpg", height = 5, width = 9, plot = plot)
 ```
 
-Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of it's count distribution to improve contrast.
+Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of its count distribution to improve contrast.
 
 ```{r mat.xenium, message=FALSE, warning=FALSE, fig.width=12, fig.height=12}
 ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
@@ -457,7 +457,7 @@ DimPlot(nano.obj)
 
 ## Visualization of cell type and expression localization patterns
 
-As in the previous example, `ImageDimPlot()` plots c ells based on their spatial locations, and colors them based on their assigned cell type. Notice that the basal cell population (tumor cells) is tightly spatially organized, as expected.
+As in the previous example, `ImageDimPlot()` plots cells based on their spatial locations, and colors them based on their assigned cell type. Notice that the basal cell population (tumor cells) is tightly spatially organized, as expected.
 
 ```{r, fig.width=11, fig.height=7}
 ImageDimPlot(nano.obj, fov = "lung5.rep1", axes = TRUE, cols = "glasbey")
@@ -545,7 +545,7 @@ DimPlot(codex.obj, label = TRUE, label.box = TRUE) + NoLegend()
 ImageDimPlot(codex.obj, cols = "parade")
 ```
 
-The expression patters of individual markers clearly denote different cell types and spatial structures, including Lyve1 (lymphatic endothelial cells), CD34 (blood endothelial cells), and CD21 (B cells). As expected, endothelial cells group together into vessels, and B cells are key components of specialized microstructures known as germinal zones. You can read more about protein markers in this dataset, as well as cellular networks in human lynmphatic tissues, in this [preprint](https://www.biorxiv.org/content/10.1101/2021.10.20.465151v1.full).
+The expression patterns of individual markers clearly denote different cell types and spatial structures, including Lyve1 (lymphatic endothelial cells), CD34 (blood endothelial cells), and CD21 (B cells). As expected, endothelial cells group together into vessels, and B cells are key components of specialized microstructures known as germinal zones. You can read more about protein markers in this dataset, as well as cellular networks in human lymphatic tissues, in this [preprint](https://www.biorxiv.org/content/10.1101/2021.10.20.465151v1.full).
 
 ```{r, fig.width=9, fig.height=8}
 p1 <- ImageFeaturePlot(codex.obj, fov = "HBM754.WKLP.262", features = c("CD34", "CD21", "Lyve1"), min.cutoff = "q10", max.cutoff = "q90")
@@ -559,12 +559,12 @@ Each of these datasets represents an opportunity to learn organizing principles 
 
 <summary>**Session Info**</summary>
 
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 
 </details>
 
-```{r save.times, include=FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/spatial_vignette_2.csv")
+```{r save.times, include=FALSE, eval=FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "spatial_vignette_2.csv")
 ```

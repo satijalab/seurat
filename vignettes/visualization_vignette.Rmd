@@ -29,14 +29,16 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 options(SeuratData.repo.use = 'seurat.nygenome.org')
 ```
 
 Here, we demonstrate visualization techniques in Seurat using our previously computed Seurat object from the 2,700 PBMC guided clustering tutorial. You can access the dataset and load it into a Seurat object using [SeuratData](https://github.com/satijalab/seurat-data).
 
-```{r data}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r data, eval=FALSE}
 SeuratData::InstallData("pbmc3k")
 ```
 
@@ -240,7 +242,7 @@ plot1 + plot2
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

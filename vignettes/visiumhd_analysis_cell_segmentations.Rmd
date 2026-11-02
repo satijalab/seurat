@@ -26,7 +26,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -274,11 +274,13 @@ To perform cell type annotation, we use [Pan-human Azimuth](https://satijalab.o
 
 In R, we can access Pan-human Azimuth through the [AzimuthAPI](https://github.com/satijalab/AzimuthAPI) package:
 
-```{r load_azimuth_api}
-if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
-  remotes::install_github("satijalab/AzimuthAPI")
-}
+Install this package before starting the analysis.
 
+```{r load_azimuth_api.install, eval=FALSE}
+remotes::install_github("satijalab/AzimuthAPI")
+```
+
+```{r load_azimuth_api}
 library(AzimuthAPI)
 ```
 
@@ -444,8 +446,8 @@ We would like to thank Stephen Williams and the Computational Biology team at 10
 <br/>
 <details>
   <summary>**Session Info**</summary>
-```{r session_info}
-sessionInfo()
+```{r session_info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>
 <br/>

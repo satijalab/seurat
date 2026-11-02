@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
   warning = FALSE,
   time_it = TRUE,
   fig.width = 9,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -36,7 +36,7 @@ knitr::opts_chunk$set(
 The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents an exciting frontier for single-cell genomics. We have previously highlighted some methods of interest, including [CITE-seq](http://www.nature.com/nmeth/journal/v14/n9/full/nmeth.4380.html), which enables the simultaneous measurements of transcriptomes and cell-surface proteins from the same cell; and the [10x multiome kit](https://www.10xgenomics.com/products/single-cell-multiome-atac-plus-gene-expression), which allows for the paired measurements of cellular transcriptome and chromatin accessibility (i.e scRNA-seq+scATAC-seq). Other modalities that can be measured alongside cellular transcriptomes include genetic perturbations, cellular methylomes, and hashtag oligos (for example, from [Cell Hashing](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1)).
 The field has rapidly expanded over the past few years, and we are excited to see the continued development of new technologies for multimodal single-cell analysis.
 
-We have designed Seurat to enable for the seamless storage, analysis, and exploration of diverse multimodal single-cell datasets. We note that Seurat also enables more advanced techniques for the analysis of multimodal data, in particular the application of our [Weighted Nearest Neighbors (WNN) approach](https://doi.org/10.1016/j.cell.2021.04.048) that enables simultaneous clustering of cells based on a weighted combination of both modalities, and you can explore this functionality [here](weighted_nearest_neighbor_analysis.html).
+We have designed Seurat to enable the seamless storage, analysis, and exploration of diverse multimodal single-cell datasets. We note that Seurat also enables more advanced techniques for the analysis of multimodal data, in particular the application of our [Weighted Nearest Neighbors (WNN) approach](https://doi.org/10.1016/j.cell.2021.04.048) that enables simultaneous clustering of cells based on a weighted combination of both modalities, and you can explore this functionality [here](weighted_nearest_neighbor_analysis.html).
 
 Here we present an introductory workflow for creating a multimodal Seurat object and performing an initial analysis. For example, we demonstrate how to cluster a CITE-seq dataset on the basis of the measured cellular transcriptomes, and subsequently discover cell surface proteins that are enriched in each cluster. 
 
@@ -238,7 +238,7 @@ For more information, please explore the resources below:
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

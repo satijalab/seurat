@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
   warning = FALSE,
   results = 'hold',
   eval = FALSE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -476,7 +476,7 @@ paste("Mouse brain 1.3M assay size:", format(object.size(mousebrain1m[["RNA"]]),
 
 ## Access cell names and metadata
 
-Get cell names. Since Seurat v5 objects don't require all assays to have the same cells, `Cells()` is designed to get cell names of the default assay and `colnames()` is deigned to get cell names across the entire object.
+Get cell names. Since Seurat v5 objects don't require all assays to have the same cells, `Cells()` is designed to get cell names of the default assay and `colnames()` is designed to get cell names across the entire object.
 
 ```{r}
 pbmc3k[["RNAsub"]] <- subset(pbmc3k[["RNA"]], cells = colnames(pbmc3k)[1:100])

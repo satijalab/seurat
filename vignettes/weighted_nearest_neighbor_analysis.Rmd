@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 The simultaneous measurement of multiple modalities, known as multimodal analysis, represents an exciting frontier for single-cell genomics and necessitates new computational methods that can define cellular states based on multiple data types. The varying information content of each modality, even across cells in the same dataset, represents a pressing challenge for the analysis and integration of multimodal datasets. In ([Hao\*, Hao\* et al, Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048)), we introduce 'weighted-nearest neighbor' (WNN) analysis, an unsupervised framework to learn the relative utility of each data type in each cell, enabling an integrative analysis of multiple modalities.  
@@ -55,8 +55,13 @@ library(cowplot)
 library(dplyr)
 ```
 
-```{r}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r, eval=FALSE}
 InstallData("bmcite")
+```
+
+```{r}
 bm <- LoadData(ds = "bmcite")
 bm[["ADT"]] <- CreateAssay5Object(bm[["ADT"]]$counts)
 bm[["RNA"]] <- CreateAssay5Object(bm[["RNA"]]$counts)
@@ -353,7 +358,7 @@ pbmc <- SetAssayData(pbmc, assay = "chromvar", layer = "data", new.data = chromv
 
 Finally, we explore the multimodal dataset to identify key regulators of each cell state. Paired data provides a unique opportunity to identify transcription factors (TFs) that satisfy multiple criteria, helping to narrow down the list of putative regulators to the most likely candidates. We aim to identify TFs whose expression is enriched in multiple cell types in the RNA measurements, but *also* have enriched accessibility for their motifs in the ATAC measurements. 
 
-As an example and positive control, the CCAAT Enhancer Binding Protein (CEBP) family of proteins, including the TF CEBPB, have been repeatedly shown to play important roles in the differentiation and function of myeloid cells including monocytes and dendritic cells. We can see that both the expression of the CEBPB, and the accessibility of the MA0466.2.4 motif (which encodes the binding site for CEBPB), are both enriched in monocytes.
+As an example and positive control, the CCAAT Enhancer Binding Protein (CEBP) family of proteins, including the TF CEBPB, have been repeatedly shown to play important roles in the differentiation and function of myeloid cells including monocytes and dendritic cells. We can see that both the expression of the CEBPB, and the accessibility of the MA0466.2 motif (which encodes the binding site for CEBPB), are both enriched in monocytes.
 
 ```{r CEBPB, fig.width=10}
 #returns MA0466.2
@@ -363,7 +368,7 @@ motif_plot <- FeaturePlot(pbmc, features = motif.name, min.cutoff = 0, cols = c(
 gene_plot | motif_plot
 ```
 
-We'd like to quantify this relationship, and search across all cell types to find similar examples. To do so, we will use the `presto` package to perform fast differential expression. We run two tests: one using gene expression data, and the other using chromVAR motif accessibilities. `presto` calculates a p-value based on the Wilcox rank sum test, which is also the default test in Seurat, and we restrict our search to TFs that return significant results in both tests. 
+We'd like to quantify this relationship, and search across all cell types to find similar examples. To do so, we will use the `presto` package to perform fast differential expression. We run two tests: one using gene expression data, and the other using chromVAR motif accessibilities. `presto` calculates a p-value based on the Wilcoxon rank sum test, which is also the default test in Seurat, and we restrict our search to TFs that return significant results in both tests. 
 
 `presto` also calculates an "AUC" statistic, which reflects the power of each gene (or motif) to serve as a marker of cell type. A maximum AUC value of 1 indicates a perfect marker. Since the AUC statistic is on the same scale for both genes and motifs, we take the average of the AUC values from the two tests, and use this to rank TFs for each cell type:
 
@@ -439,7 +444,7 @@ head(topTFs("Plasma"), 3)
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

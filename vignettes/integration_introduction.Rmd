@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -56,6 +56,11 @@ library(patchwork)
 
 ```{r installdata}
 # install dataset
+```
+
+Install the required SeuratData datasets before starting the analysis.
+
+```{r, eval=FALSE}
 InstallData('ifnb')
 ```
 
@@ -96,7 +101,7 @@ DimPlot(ifnb, reduction = 'umap.unintegrated', group.by=c('stim','seurat_cluster
 
 We now aim to integrate data from the two conditions, so that cells from the same cell type/subpopulation will cluster together. 
 
-We often refer to this procedure as integration/alignment. When aligning two genome sequences together, identification of shared/homologous regions can help to interpret differences between the sequences as well. Similarly for scRNA-seq integration, our goal is not to remove biological differences across conditions, but to learn shared cell types/states in an initial step - specifically because that will enable us to compare control stimulated and control profiles for these individual cell types.
+We often refer to this procedure as integration/alignment. When aligning two genome sequences together, identification of shared/homologous regions can help to interpret differences between the sequences as well. Similarly for scRNA-seq integration, our goal is not to remove biological differences across conditions, but to learn shared cell types/states in an initial step - specifically because that will enable us to compare stimulated and control profiles for these individual cell types.
 
 The Seurat v5 integration procedure aims to return a single dimensional reduction that captures the shared sources of variance across multiple layers, so that cells in a similar biological state will cluster. The method returns a dimensional reduction (i.e. `integrated.cca`) which can be used for visualization and unsupervised clustering analysis. For evaluating performance, we can use cell type labels that are pre-loaded in the `seurat_annotations` metadata column.
 
@@ -128,7 +133,7 @@ DimPlot(ifnb, reduction = "umap", split.by = "stim")
 
 # Identify conserved cell type markers
 
-To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers()` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculated the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
+To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers()` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculate the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
 
 ```{r conserved.markers, warning=FALSE}
 Idents(ifnb) <- "seurat_annotations"
@@ -136,7 +141,7 @@ nk.markers <- FindConservedMarkers(ifnb, ident.1 = "NK", grouping.var = "stim", 
 head(nk.markers)
 ```
 
-You can perform these same analysis on the unsupervised clustering results (stored in `seurat_clusters`), and use these conserved markers to annotate cell types in your dataset.
+You can perform these same analyses on the unsupervised clustering results (stored in `seurat_clusters`), and use these conserved markers to annotate cell types in your dataset.
 
 The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 14 clusters.
 
@@ -150,7 +155,7 @@ markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7
 DotPlot(ifnb, features = markers.to.plot, cols = c('blue', 'red'), dot.scale = 8, split.by = "stim") + RotatedAxis()
 ```
 
-# Identify differential expressed genes across conditions
+# Identify differentially expressed genes across conditions
 
 Now that we've aligned the stimulated and control cells, we can start to do comparative analyses and look at the differences induced by stimulation. 
 
@@ -240,7 +245,7 @@ head(b.interferon.response, n = 15)
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

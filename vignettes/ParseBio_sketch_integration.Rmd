@@ -28,13 +28,13 @@ knitr::opts_chunk$set(
   warning = FALSE,
   fig.width = 10,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
-The recent increase in publicly available single-cell datasets poses a significant challenge for integrative analysis. For example, multiple tissues have now been profiled across dozens of studies, representing hundreds of individuals and millions of cells. In [Hao et al, 2023](https://www.nature.com/articles/s41587-023-01767-y) proposed a dictionary learning based method, atomic sketch integration, could also enable efficient and large-scale integrative analysis. Our procedure enables the integration of large compendiums of datasets without ever needing to load the full scale of data into memory. In [our manuscript](https://www.nature.com/articles/s41587-023-01767-y) we use atomic sketch integration to integrate millions of scRNA-seq from human lung and human PBMC.
+The recent increase in publicly available single-cell datasets poses a significant challenge for integrative analysis. For example, multiple tissues have now been profiled across dozens of studies, representing hundreds of individuals and millions of cells. In [Hao et al, 2023](https://www.nature.com/articles/s41587-023-01767-y), we proposed a dictionary learning based method, atomic sketch integration, that enables efficient and large-scale integrative analysis. Our procedure enables the integration of large compendiums of datasets without ever needing to load the full scale of data into memory. In [our manuscript](https://www.nature.com/articles/s41587-023-01767-y) we use atomic sketch integration to integrate millions of scRNA-seq profiles from human lung and human PBMC.
  
-In this vignette, we demonstrate how to use atomic sketch integration to harmonize scRNA-seq experiments 1M cells, though we have used this procedure to integrate datasets of 10M+ cells as well. We analyze a dataset from Parse Biosciences, in which PBMC from 24 human samples (12 healthy donors, 12 Type-1 diabetes donors), which is available [here](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip).
+In this vignette, we demonstrate how to use atomic sketch integration to harmonize scRNA-seq experiments comprising 1M cells, though we have used this procedure to integrate datasets of 10M+ cells as well. We analyze a dataset from Parse Biosciences, containing PBMCs from 24 human samples (12 healthy donors, 12 Type-1 diabetes donors), which is available [here](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip).
 
 * Sample a representative subset of cells ('atoms') from each dataset
 * Integrate the atoms from each dataset, and define a set of cell states
@@ -68,7 +68,7 @@ object[['RNA']] <- split(object[['RNA']], f = object$sample)
 object <- FindVariableFeatures(object, verbose = FALSE)
 ```
 ## Sample representative cells from each dataset
-Inspired by pioneering work aiming to identify ['sketches'](https://www.sciencedirect.com/science/article/pii/S2405471219301528) of scRNA-seq data, our first step is to sample a representative set of cells from each dataset. We compute a leverage score (estimate of ['statistical leverage'](https://arxiv.org/abs/1109.3843)) for each cell, which helps to identify cells that are likely to be member of rare subpopulations and ensure that these are included in our representative sample. Importantly, the estimation of leverage scores only requires data normalization, can be computed efficiently for sparse datasets, and does not require any intensive computation or dimensional reduction steps.
+Inspired by pioneering work aiming to identify ['sketches'](https://www.sciencedirect.com/science/article/pii/S2405471219301528) of scRNA-seq data, our first step is to sample a representative set of cells from each dataset. We compute a leverage score (estimate of ['statistical leverage'](https://arxiv.org/abs/1109.3843)) for each cell, which helps to identify cells that are likely to be members of rare subpopulations and ensure that these are included in our representative sample. Importantly, the estimation of leverage scores only requires data normalization, can be computed efficiently for sparse datasets, and does not require any intensive computation or dimensional reduction steps.
 We load each object separately, perform basic preprocessing (normalization and variable feature selection), and select and store 5,000 representative cells from each dataset. Since there are 24 datasets, the sketched dataset now contains 120,000 cells. These cells are stored in a new `sketch` assay, and are loaded in-memory.
 ```{r, warning=F, message=F}
 object <- SketchData(object = object, ncells = 5000, method = 'LeverageScore', sketched.assay = 'sketch')
@@ -113,7 +113,7 @@ plot.s1 + plot.s2 + plot_layout(ncol = 1)
 ```
 
 ## Integrate the full datasets
-Now that we have integrated the subset of atoms of each dataset, placing them each in an integrated low-dimensional space, we can now place each cell from each dataset in this space as well. We load the full datasets back in individually, and use the `ProjectIntegration` function to integrate all cells. After this function is run, the `integrated.rpca.full` space now embeds all cells in the dataset.Even though all cells in the dataset have been integrated together, the non-sketched cells are not loaded into memory. Users can still switch between the `sketch` (sketched cells, in-memory) and `RNA` (full dataset, on disk) for analysis. After integration, we can also project cell type labels from the sketched cells onto the full dataset using `ProjectData`.
+Now that we have integrated the subset of atoms of each dataset, placing them each in an integrated low-dimensional space, we can now place each cell from each dataset in this space as well. We load the full datasets back in individually, and use the `ProjectIntegration` function to integrate all cells. After this function is run, the `integrated.rpca.full` space now embeds all cells in the dataset. Even though all cells in the dataset have been integrated together, the non-sketched cells are not loaded into memory. Users can still switch between the `sketch` (sketched cells, in-memory) and `RNA` (full dataset, on disk) for analysis. After integration, we can also project cell type labels from the sketched cells onto the full dataset using `ProjectData`.
 
 ```{r}
 # resplit the sketched cell assay into layers
@@ -174,7 +174,7 @@ ggplot(de_markers, aes(avg_log2FC, -log10(p_val))) + geom_point(size=0.5, alpha=
 
 <details>
   <summary>**Session Info**</summary>
-```{r, eval = TRUE}
-sessionInfo()
+```{r, eval = TRUE, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

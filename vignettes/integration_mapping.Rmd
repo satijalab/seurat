@@ -25,11 +25,10 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   warning = FALSE,
-  error = FALSE,
   message = FALSE,
   fig.width = 8,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -47,7 +46,9 @@ library(SeuratData)
 library(ggplot2)
 ```
 
-```{r install.data, warning=FALSE, message=FALSE}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r install.data, warning=FALSE, message=FALSE, eval=FALSE}
 InstallData('panc8')
 ```
 
@@ -172,7 +173,7 @@ p1 + p2
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

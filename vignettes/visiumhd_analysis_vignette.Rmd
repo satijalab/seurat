@@ -28,7 +28,7 @@ knitr::opts_chunk$set(
   warning = FALSE,
   fig.width = 10,
   time_it = TRUE,
-  error = TRUE,
+  error = FALSE,
   dpi = 150
 )
 ```
@@ -37,7 +37,7 @@ knitr::opts_chunk$set(
 
 We have [previously released support](https://satijalab.org/seurat/articles/spatial_vignette) in Seurat for sequencing-based spatial transcriptomic (ST) technologies, including 10x Visium and SLIDE-seq. With Seurat v5.1+, we introduce support for analyzing data generated with Visium HD technology, which performs profiling at substantially higher spatial resolution than previous versions.
 
-We note that Visium HD data is generated from spatially patterned oligonucleotides labeled in $2 \mu m \times 2 \mu m$ bins. However, since the data from this resolution is sparse, adjacent bins are pooled together to create $8 \mu m$ and $16 \mu m$ resolutions. 10x recommends the use of $8 \mu m$ binned data for analysis, but Seurat supports in the simultaneous loading of multiple binnings, and will store them in a single object as different assays.
+We note that Visium HD data is generated from spatially patterned oligonucleotides labeled in $2 \mu m \times 2 \mu m$ bins. However, since the data from this resolution is sparse, adjacent bins are pooled together to create $8 \mu m$ and $16 \mu m$ resolutions. 10x recommends the use of $8 \mu m$ binned data for analysis, but Seurat supports the simultaneous loading of multiple binnings, and will store them in a single object as different assays.
 
 In this vignette, we provide an overview of some of the spatial workflows that Seurat supports for analyzing Visium HD data, in particular:
   
@@ -244,10 +244,13 @@ In [Singhal et al.](https://www.nature.com/articles/s41588-024-01664-3), the aut
 
 We thank the authors for enabling BANKSY to be compatible with Seurat via the [`SeuratWrappers`](https://github.com/satijalab/seurat-wrappers) framework, which requires separate installation of the BANKSY package:
   
+Install this package before starting the analysis.
+
+```{r banksy.install, eval=FALSE}
+remotes::install_github("prabhakarlab/Banksy@devel")
+```
+
 ```{r banksy}
-if (!requireNamespace("Banksy", quietly = TRUE)) {
-  remotes::install_github("prabhakarlab/Banksy@devel")
-}
 library(SeuratWrappers)
 library(Banksy)
 ```
@@ -305,10 +308,13 @@ Seurat v5 also includes support for [Robust Cell Type Decomposition](https://www
 
 To run RCTD, we first install the `spacexr` package from GitHub which implements RCTD. When running RCTD, we follow the instructions from the [RCTD vignette](https://raw.githack.com/dmcable/spacexr/master/vignettes/spatial-transcriptomics.html).
 
+Install this package before starting the analysis.
+
+```{r load.spacexr.install, eval=FALSE}
+devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+```
+
 ```{r load.spacexr}
-if (!requireNamespace("spacexr", quietly = TRUE)) {
-  devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
-}
 library(spacexr)
 ```
 
@@ -457,7 +463,7 @@ ggplot(neuron_props, aes(x = Var1, y = value, fill = Var2)) +
   labs(x = "Cell type", y = "Proportion", fill = "Layer") +
   theme_classic()
 ```
-<!-- ```{r save.brain, include=F, eval=T}
+<!-- ```{r save.brain, include=F, eval=FALSE}
 saveRDS(object, file='/brahms/lis/visium_hd/final_mouse/vig/0506final.rds')
 ``` -->
 
@@ -546,14 +552,14 @@ object_subset <- ScaleData(object_subset, assay = "Spatial.008um", features=top5
 p <- DoHeatmap(object_subset, assay = "Spatial.008um", features = top5$gene, size = 2.5) + theme(axis.text = element_text(size = 5.5)) + NoLegend()
 p
 ```
-<!-- ```{r save.intestine, include=F, eval=T}
+<!-- ```{r save.intestine, include=F, eval=FALSE}
 saveRDS(object, file='/brahms/lis/visium_hd/intestine/vig/0506final.rds')
 ``` -->
 <br/>
 <br/>
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

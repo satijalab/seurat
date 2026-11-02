@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 options(SeuratData.repo.use = 'seurat.nygenome.org')
 ```
@@ -51,8 +51,15 @@ library(dplyr)
 library(reshape2)
 
 # Download dataset using SeuratData.
-InstallData(ds = "thp1.eccite")
+```
 
+Install the required SeuratData datasets before starting the analysis.
+
+```{r, eval=FALSE}
+InstallData(ds = "thp1.eccite")
+```
+
+```{r}
 # Setup custom theme for plotting.
 custom_theme <- theme(
   plot.title = element_text(size=16, hjust = 0.5), 
@@ -83,7 +90,7 @@ eccite <- NormalizeData(
 
 # RNA-based clustering is driven by confounding sources of variation
 
-Here, we follow the standard Seurat workflow to cluster cells based on their gene expression profiles. We expected to obtain perturbation-specific clusters however we saw that clustering is primarily driven by cell cycle phase and replicate ID. We only observed one perturbation-specific cluster containing cells expression IFNgamma pathway gRNAs.
+Here, we follow the standard Seurat workflow to cluster cells based on their gene expression profiles. We expected to obtain perturbation-specific clusters however we saw that clustering is primarily driven by cell cycle phase and replicate ID. We only observed one perturbation-specific cluster containing cells expressing IFNgamma pathway gRNAs.
 
 ```{r eccite.pp, fig.height = 10, fig.width = 15}
 # Prepare RNA assay for dimensionality reduction: 
@@ -91,7 +98,7 @@ Here, we follow the standard Seurat workflow to cluster cells based on their gen
 DefaultAssay(object = eccite) <- 'RNA'
 eccite <- NormalizeData(object = eccite) %>% FindVariableFeatures() %>% ScaleData()
 
-# Run Principle Component Analysis (PCA) to reduce the dimensionality of the data.
+# Run Principal Component Analysis (PCA) to reduce the dimensionality of the data.
 eccite <- RunPCA(object = eccite)
 
 # Run Uniform Manifold Approximation and Projection (UMAP) to visualize clustering in 2-D.
@@ -312,8 +319,8 @@ VlnPlot(
 p <- VlnPlot(object = eccite, features = "adt_PDL1", idents = c("NT","JAK2","STAT1","IFNGR1","IFNGR2", "IRF1"), group.by = "gene", pt.size = 0.2, sort = T, split.by = "mixscape_class.global", cols = c("coral3","grey79","grey39")) +ggtitle("PD-L1 protein") +theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
 ```
 
-```{r, include=FALSE}
-ggsave(filename = "../output/images/mixscape_vignette.jpg", height = 7, width = 12, plot = p, quality = 50)
+```{r, include=FALSE, eval=FALSE}
+ggsave(filename = "mixscape_vignette.jpg", height = 7, width = 12, plot = p, quality = 50)
 ```
 # Visualizing perturbation responses with Linear Discriminant Analysis (LDA)
 
@@ -369,13 +376,13 @@ p2 <- p+
 p2
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/mixscape_vignette_times.csv")
+```{r save.times, include = FALSE, eval=FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "mixscape_vignette_times.csv")
 ```
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

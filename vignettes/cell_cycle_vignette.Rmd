@@ -25,14 +25,14 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   warning = FALSE,
-  error = TRUE,
+  error = FALSE,
   message = FALSE,
   fig.width = 8,
   time_it = TRUE
 )
 ```
 
-We demonstrate how to mitigate the effects of cell cycle heterogeneity in scRNA-seq data by calculating cell cycle phase scores based on canonical markers, and regressing these out of the data during pre-processing. We demonstrate this on a dataset of murine hematopoietic progenitors ([Nestorowa *et al*., Blood 2016](http://www.bloodjournal.org/content/early/2016/06/30/blood-2016-05-716480?sso-checked=true)).You can download the files needed to run this vignette [here](https://www.dropbox.com/s/3dby3bjsaf5arrw/cell_cycle_vignette_files.zip?dl=1).
+We demonstrate how to mitigate the effects of cell cycle heterogeneity in scRNA-seq data by calculating cell cycle phase scores based on canonical markers, and regressing these out of the data during pre-processing. We demonstrate this on a dataset of murine hematopoietic progenitors ([Nestorowa *et al*., Blood 2016](http://www.bloodjournal.org/content/early/2016/06/30/blood-2016-05-716480?sso-checked=true)). You can download the files needed to run this vignette [here](https://www.dropbox.com/s/3dby3bjsaf5arrw/cell_cycle_vignette_files.zip?dl=1).
 
 ```{r initialize_object, results='hide'}
 library(Seurat)
@@ -133,7 +133,7 @@ DimPlot(marrow)
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

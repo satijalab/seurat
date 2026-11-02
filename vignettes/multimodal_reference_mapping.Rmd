@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -72,8 +72,15 @@ To demonstrate mapping to this multimodal reference, we will use a dataset of 2,
 
 ```{r 3k.load}
 library(SeuratData)
-InstallData('pbmc3k')
+```
 
+Install the required SeuratData datasets before starting the analysis.
+
+```{r, eval=FALSE}
+InstallData('pbmc3k')
+```
+
+```{r}
 pbmc3k <- LoadData('pbmc3k')
 pbmc3k <- UpdateSeuratObject(pbmc3k)
 pbmc3k[['RNA']] <- as(pbmc3k[['RNA']], Class = 'Assay5')
@@ -156,7 +163,7 @@ p2 = DimPlot(pbmc3k, reduction = "ref.umap", group.by = "predicted.celltype.l2",
 p1 + p2
 ```
 
-The reference-mapped dataset helps us identify cell types that were previously blended in an [unsupervised analysis of the query dataset](pbmc3k_tutorial.html). Just a few examples include plasmacytoid dendritic cells (pDC), hematopoietic stem and progenitor cells (HSPC), regulatory T cells (Treg), CD8 Naive T cells, cells, CD56+ NK cells, memory, and naive B cells, and plasmablasts.
+The reference-mapped dataset helps us identify cell types that were previously blended in an [unsupervised analysis of the query dataset](pbmc3k_tutorial.html). Just a few examples include plasmacytoid dendritic cells (pDC), hematopoietic stem and progenitor cells (HSPC), regulatory T cells (Treg), CD8 Naive T cells, CD56+ NK cells, memory and naive B cells, and plasmablasts.
 
 Each prediction is assigned a score between 0 and 1.
 
@@ -164,11 +171,11 @@ Each prediction is assigned a score between 0 and 1.
 FeaturePlot(pbmc3k, features = c("pDC", "CD16 Mono", "Treg"),  reduction = "ref.umap", cols = c("lightgrey", "darkred"), ncol = 3) & theme(plot.title = element_text(size = 10))
 ```
 
-```{r save.img, include=TRUE}
+```{r save.img, include=TRUE, eval=FALSE}
 library(ggplot2)
 plot <- FeaturePlot(pbmc3k, features = "CD16 Mono",  reduction = "ref.umap", cols = c("lightgrey", "darkred"))  + ggtitle("CD16 Mono") + theme(plot.title = element_text(hjust = 0.5, size = 30)) + labs(color = "Prediction Score") +  xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18), legend.title = element_text(size = 25)) 
-ggsave(filename = "../output/images/multimodal_reference_mapping.jpg", height = 7, width = 12, plot = plot, quality = 50)
+ggsave(filename = "multimodal_reference_mapping.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 We can verify our predictions by exploring the expression of canonical marker genes. For example, CLEC4C and LIRA4 have been [reported](https://pubmed.ncbi.nlm.nih.gov/30395816/) as markers of pDC identity, consistent with our predictions. Similarly, if we perform differential expression to identify markers of Tregs, we identify a set of [canonical markers](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4761514/) including RTKN2, CTLA4, FOXP3, and IL2RA.
@@ -228,11 +235,23 @@ This vignette exhibits the same reference-mapping functionality as the PBMC exam
 # Both datasets are available through SeuratData
 library(SeuratData)
 #load reference data
+```
+
+```{r, eval=FALSE}
 InstallData("bmcite")
+```
+
+```{r}
 bm <- LoadData(ds = "bmcite")
 bm[['RNA']] <- as(bm[['RNA']],  Class = 'Assay5')
 #load query data
+```
+
+```{r, eval=FALSE}
 InstallData('hcabm40k')
+```
+
+```{r}
 hcabm40k <- LoadData(ds = "hcabm40k")
 hcabm40k[['RNA']] <- as(hcabm40k[['RNA']],  Class = 'Assay5')
 ```
@@ -282,10 +301,10 @@ bm <- FindNeighbors(
 
 If you want to save and load a cached index for a `Neighbor` object generated with `method = "annoy"` and `cache.index = TRUE`, use the `SaveAnnoyIndex()`/`LoadAnnoyIndex()` functions. Importantly, this index cannot be saved normally to an RDS or RDA file, so it will not persist correctly across R session restarts or `saveRDS`/`readRDS` for the Seurat object containing it. Instead, use `LoadAnnoyIndex()` to add the Annoy index to the `Neighbor` object every time R restarts or you load the reference Seurat object from RDS. The file created by `SaveAnnoyIndex()` can be distributed along with a reference Seurat object, and added to the `Neighbor` object in the reference.
 
-```{r neighbor.demo}
+```{r neighbor.demo, eval=FALSE}
 bm[["spca.annoy.neighbors"]]
-SaveAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "/brahms/shared/vignette-data/reftmp.idx")
-bm[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "/brahms/shared/vignette-data/reftmp.idx")
+SaveAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "reftmp.idx")
+bm[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(object = bm[["spca.annoy.neighbors"]], file = "reftmp.idx")
 ```
 </details>
 
@@ -379,13 +398,13 @@ p5 <- FeaturePlot(hcabm40k, features = c("CD45RA", "CD16", "CD161"), reduction =
 p3 / p4 / p5
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/reference_mapping_times.csv")
+```{r save.times, include = FALSE, eval=FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "reference_mapping_times.csv")
 ```
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

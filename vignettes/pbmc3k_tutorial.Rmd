@@ -26,7 +26,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -34,7 +34,7 @@ knitr::opts_chunk$set(
 
 For this tutorial, we will be analyzing a dataset of Peripheral Blood Mononuclear Cells (PBMC) freely available from 10X Genomics. There are 2,700 single cells that were sequenced on the Illumina NextSeq 500. The raw data can be found [here](https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz).
 
-We start by reading in the data. The `Read10X()` function reads in the output of the [cellranger](https://www.10xgenomics.com/support/software/cell-ranger/latest/getting-started/cr-what-is-cell-ranger) pipeline from 10X, returning a unique molecular identified (UMI) count matrix. The values in this matrix represent the number of molecules for each feature (i.e. gene; row) that are detected in each cell (column). Note that more recent versions of cellranger now also output using the [h5 file format](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/advanced/h5_matrices), which can be read in using the `Read10X_h5()` function in Seurat.
+We start by reading in the data. The `Read10X()` function reads in the output of the [cellranger](https://www.10xgenomics.com/support/software/cell-ranger/latest/getting-started/cr-what-is-cell-ranger) pipeline from 10X, returning a unique molecular identifier (UMI) count matrix. The values in this matrix represent the number of molecules for each feature (i.e. gene; row) that are detected in each cell (column). Note that more recent versions of cellranger now also output using the [h5 file format](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/advanced/h5_matrices), which can be read in using the `Read10X_h5()` function in Seurat.
 
 We next use the count matrix to create a `Seurat` object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. For more information, check out the [docs for SeuratObject](https://satijalab.github.io/seurat-object/index.html) or the [section on object interaction](essential_commands.html#seurat-object-data-access) in our list of essential commands. For example, in Seurat v5, the count matrix is stored in `pbmc[["RNA"]]$counts`.
 
@@ -221,9 +221,9 @@ DimHeatmap(pbmc, dims = 1:15, cells = 500, balanced = TRUE)
 
 To overcome the extensive technical noise in any single feature for scRNA-seq data, Seurat clusters cells based on their PCA scores, with each PC essentially representing a 'metafeature' that combines information across a correlated feature set. The top principal components therefore represent a robust compression of the dataset. However, how many components should we choose to include? 10? 20? 100?
 
-In [Macosko *et al*](https://www.cell.com/fulltext/S0092-8674(15)00549-8), we implemented a resampling test inspired by the JackStraw procedure. While still [available](https://satijalab.org/seurat/reference/jackstraw) in Seurat, this is a slow and computationally expensive procedure, and we is no longer routinely used in single cell analysis.
+In [Macosko *et al*](https://www.cell.com/fulltext/S0092-8674(15)00549-8), we implemented a resampling test inspired by the JackStraw procedure. While still [available](https://satijalab.org/seurat/reference/jackstraw) in Seurat, this is a slow and computationally expensive procedure, and it is no longer routinely used in single cell analysis.
 
-An alternative heuristic method generates an elbow plot: a ranking of principle components based on the percentage of variance explained by each one (`ElbowPlot()` function). In this example, we can observe an 'elbow' around PC9-10, suggesting that the majority of true signal is captured in the first 10 PCs. 
+An alternative heuristic method generates an elbow plot: a ranking of principal components based on the percentage of variance explained by each one (`ElbowPlot()` function). In this example, we can observe an 'elbow' around PC9-10, suggesting that the majority of true signal is captured in the first 10 PCs. 
 
 ```{r elbow_plot, fig.height=6, fig.width=10}
 ElbowPlot(pbmc)
@@ -371,7 +371,7 @@ saveRDS(pbmc, file = "../output/pbmc3k_final.rds")
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

@@ -85,7 +85,7 @@ if (!requireNamespace("pak", quietly = TRUE)) {
 
 pak::pkg_install("Seurat")
 
-# Packages to speed and performance
+# Packages to improve speed and performance
 pak::repo_add(satijalab = "https://satijalab.r-universe.dev", bnprks = "https://bnprks.r-universe.dev")
 pak::pkg_install(c("BPCells", "presto", "glmGamPoi"))
 

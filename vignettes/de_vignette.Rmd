@@ -189,7 +189,7 @@ Finally, we also support many other DE tests using other methods. For completene
 * "bimod" : Likelihood-ratio test for single cell feature expression, (McDavid et al., Bioinformatics, 2013)
 * "roc" : Standard AUC classifier
 * "t" : Student's t-test
-* "poisson" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
+* "poisson" : Likelihood ratio test assuming an underlying Poisson distribution. Use only for UMI-based datasets
 * "negbinom" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
 * "LR" : Uses a logistic regression framework to determine differentially expressed genes. Constructs a logistic regression model predicting group membership based on each feature individually and compares this to a null model with a likelihood ratio test.
 * "MAST" : GLM-framework that treats cellular detection rate as a covariate (Finak et al, Genome Biology, 2015) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/MAST.html))
@@ -205,8 +205,8 @@ head(FindMarkers(ifnb, ident.1 = "CD14 Mono", ident.2 = "CD16 Mono", test.use = 
 
 <details><summary>**Session Info**</summary>
 
-```{r session_info}
-sessionInfo()
+```{r session_info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 
 </details>
