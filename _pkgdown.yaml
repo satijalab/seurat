@@ -51,6 +51,14 @@ navbar:
         - text: "Essential commands"
           href: articles/essential_commands.html
         - text: -------
+        - text: Seurat v6
+        - text: "Sample-level analysis with scSLIDE"
+          href: articles/scSLIDE_COVID19.html
+        - text: "Large-scale sample-level analysis with scSLIDE"
+          href: articles/scSLIDE_SEA_AD.html
+        - text: "RNA fingerprinting"
+          href: articles/rna_fingerprinting.html
+        - text: -------
         - text: Data integration
         - text: "Introduction to scRNA-seq integration"
           href: articles/integration_introduction.html

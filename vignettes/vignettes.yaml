@@ -30,6 +30,25 @@
         Reference list of commonly used commands to store, access, explore, and analyze datasets.
       image: assets/commands.png
 
+- category: Seurat v6
+  vignettes:
+    - title: Sample-level analysis with scSLIDE
+      name: scSLIDE_COVID19
+      summary: |
+        Analyze differences between samples with scSLIDE using a COVID-19 single-cell dataset.
+      image: assets/scslide.png
+
+    - title: Large-scale sample-level analysis with scSLIDE
+      name: scSLIDE_SEA_AD
+      summary: |
+        Apply scSLIDE to a large Alzheimer's disease dataset using on-disk data with BPCells.
+      image: assets/scslide.png
+    
+    - title: RNA fingerprinting
+      name: rna_fingerprinting
+      summary: |
+        Learn perturbation fingerprints, map query cells, and use a precomputed Genome-Wide Perturb-seq reference.
+      image: assets/lic_2025.png
 
 - category: Data integration
   vignettes:
