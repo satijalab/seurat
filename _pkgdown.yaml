@@ -56,7 +56,7 @@ navbar:
           href: articles/scSLIDE_COVID19.html
         - text: "Large-scale sample-level analysis with scSLIDE"
           href: articles/scSLIDE_SEA_AD.html
-        - text: "RNA fingerprinting"
+        - text: "Analyzing perturbation responses with RNA fingerprinting"
           href: articles/rna_fingerprinting.html
         - text: -------
         - text: Data integration

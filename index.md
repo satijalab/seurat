@@ -4,10 +4,10 @@
 
 We are excited to release Seurat v6! To install, please follow the instructions on our [install](articles/install.html) page. This update brings the following new features and functionality:
 
-* **Sample-level analysis with scSLIDE:** Single-cell studies routinely profile large numbers of samples across donors, conditions, and time points, highlighting the need---especially from a translational perspective---to investigate heterogeneity at the sample level rather than focusing solely on cell-to-cell variability. In Seurat v6, we introduce scSLIDE (Single-cell Sample-Level Inference using Density Estimation) (Jiang, et al., _Cell_ 2026), a framework for defining sample-level representations that captures both cell type and cell state variation to enable informative and integrative analyses across samples.
+* **Sample-level analysis with scSLIDE:** Single-cell studies increasingly profile large numbers of samples across donors, conditions, and time points, highlighting the need---especially from a translational perspective---to investigate heterogeneity at the sample level rather than focusing solely on cell-to-cell variability. In Seurat v6, we introduce scSLIDE (Single-cell Sample-Level Inference using Density Estimation) (Jiang et al., _Cell_ 2026), a framework for defining sample-level representations that captures both cell type and cell state variation to enable informative and integrative analyses across samples.
 
-    - Paper: [Reconstructing developmental and disease progression with sample-level embeddings](https://www.cell.com/)
-    - Vignette: **coming soon**\
+    - Paper: [Reconstructing developmental and disease progression with sample-level embeddings](https://doi.org/10.1016/j.cell.2026.10.018)
+    - Vignettes: (1) [Sample-level analysis with scSLIDE](articles/scSLIDE_COVID19.html), (2) [Large-scale sample-level analysis with scSLIDE](articles/scSLIDE_SEA_AD.html)\
 \
 * **Fast, scalable analysis:** Seurat v6 builds on previously introduced sketch-based analysis and BPCells-backed on-disk storage to make large datasets easier to analyze and explore. Performance improvements throughout the core pipeline accelerate normalization, variable feature selection, scaling, SCTransform, PCA, neighbor finding, clustering, UMAP, differential expression, and RPCA/CCA integration. These improvements work with existing workflows, with optional multithreading through `setThreads()` providing additional speedups for supported functions.
 
@@ -15,20 +15,19 @@ We are excited to release Seurat v6! To install, please follow the instructions 
 \
 * **Expanded spatial support for 10x Genomics' Visium HD and Atera platforms:** Seurat supports the analysis of [Visium HD](https://www.10xgenomics.com/platforms/visium/product-family) data at both binned and segmented (~single-cell) resolutions. We also add support for loading [Atera](https://www.10xgenomics.com/platforms/atera) data, including expression matrices, cell boundaries, transcript coordinates, and morphology images. Together, these tools enable the exploration of tissue architecture across sequencing- and imaging-based platforms.
 
-    - Vignette: [Analysis of Visium HD binned data](articles/visiumhd_analysis_vignette.html)
-    - Vignette: [Analysis of Visium HD with cell segmentations](articles/visiumhd_analysis_cell_segmentations.html)\
+    - Vignettes: (1) [Atera workflow](articles/), (2) [Analysis of Visium HD with cell segmentations](articles/visiumhd_analysis_cell_segmentations.html)\
 \
-* **Cell type annotation with Pan-human Azimuth:** Pan-human Azimuth (Sarkar<sup>\*</sup>, Li<sup>\*</sup>, et al., _bioRxiv_ 2026) is a neural network classifier that annotates human single-cell and single-nucleus RNA-seq data, across tissues and technologies, into a consistent and interpretable hierarchical cell typology. The companion `AzimuthAPI` R package allows users to bring these annotations into Seurat workflows by running the model on a Seurat object locally or via the cloud, returning cell type labels, confidence scores, and latent embeddings for downstream analysis.
+* **Cell type annotation with Pan-human Azimuth:** Pan-human Azimuth (Sarkar<sup>\*</sup>, Li<sup>\*</sup>, et al., _bioRxiv_ 2026) is a neural network classifier that annotates human single-cell and single-nucleus RNA-seq data---across tissues and technologies---into a consistent and interpretable hierarchical cell typology. The companion `AzimuthAPI` R package allows users to bring these annotations into Seurat workflows by running the model on a Seurat object locally or via the cloud, returning cell type labels, confidence scores, and latent embeddings for downstream analysis.
 
     - Preprint: [Organism-scale annotation with Pan-human Azimuth](https://www.biorxiv.org/content/10.64898/2026.07.16.738997v1)
     - Website: [Pan-human Azimuth](https://satijalab.org/pan_human_azimuth/)
     - Vignette: [Annotating Visium HD cell segmentations](articles/visiumhd_analysis_cell_segmentations.html#cell-type-annotation-with-pan-human-azimuth)\
 \
-* **Interpreting cellular responses with RNA Fingerprinting:** RNA Fingerprinting (Grabski, et al., _Cell_ 2026) is a statistical framework that maps transcriptional responses in scRNA-seq experiments to reference perturbation dictionaries. The companion R package probabilistically assigns query cells or groups of cells within a Seurat object to candidate perturbations while accounting for uncertainty, allowing users to answer important questions that link observed cellular states to experimentally characterized responses.
+* **Interpreting cellular responses with RNA Fingerprinting:** RNA Fingerprinting (Grabski et al., _Cell_ 2026) is a statistical framework that maps transcriptional responses in scRNA-seq experiments to reference perturbation dictionaries. The companion R package probabilistically assigns query cells or groups of cells within a Seurat object to candidate perturbations while accounting for uncertainty, allowing users to answer important questions that link observed cellular states to experimentally characterized responses.
 
     - Paper: [Mapping transcriptional responses to cellular perturbations with RNA fingerprinting](https://doi.org/10.1016/j.cell.2026.09.017)
     - GitHub: [RNA Fingerprinting](https://github.com/satijalab/rna-fingerprinting)\
-    - Vignette: **coming soon**\
+    - Vignette: [Analyzing perturbation responses with RNA fingerprinting](articles/rna_fingerprinting.html)\
 
 ## **Older announcements**
 

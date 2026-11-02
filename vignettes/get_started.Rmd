@@ -11,9 +11,11 @@ output:
 escape_html <- function(x) {
   as.character(htmltools::htmlEscape(x, attribute = TRUE))
 }
+
 make_href2 <- function(url, text) {
   sprintf('<a href="%s">%s</a>', escape_html(url), escape_html(text))
 }
+
 process_wrapper_entry <- function(dat) {
   data.frame(
     Package = dat$name,
@@ -22,26 +24,40 @@ process_wrapper_entry <- function(dat) {
     Source = make_href2(url = dat$source, text = dat$source)
   )
 }
+
+vignette_entries <- function(vdat, category) {
+  categories <- vapply(vdat, function(x) x$category, character(1))
+  index <- match(category, categories)
+  if (is.na(index)) stop("Unknown vignette category: ", category)
+  vdat[[index]]$vignettes
+}
+
 make_vignette_card_section <- function(vdat, cat) {
   cat('<div class="tutorial-grid">\n')
-  for (entry in vdat[[cat]]$vignettes) {
+  for (entry in vignette_entries(vdat, cat)) {
     link <- if (grepl("^https?://", entry$name)) {
       entry$name
     } else {
       paste0(entry$name, ".html")
     }
+    image <- if (is.null(entry$image)) {
+      ""
+    } else {
+      sprintf('<img class="tutorial-card-image" src="%s" alt="" loading="lazy">',
+              escape_html(entry$image))
+    }
     cat(sprintf(
       paste0(
         '<article class="tutorial-card">',
         '<h3 class="tutorial-card-title"><a href="%s">%s</a></h3>',
-        '<img class="tutorial-card-image" src="%s" alt="" loading="lazy">',
+        '%s',
         '<div class="tutorial-card-body">',
         '<p>%s</p>',
         '<a class="btn btn-primary tutorial-card-link" href="%s">GO',
         '<span class="tutorial-link-context">: %s</span></a>',
         '</div></article>\n'
       ),
-      escape_html(link), escape_html(entry$title), escape_html(entry$image),
+      escape_html(link), escape_html(entry$title), image,
       escape_html(trimws(entry$summary)), escape_html(link), escape_html(entry$title)
     ))
   }
@@ -74,6 +90,7 @@ vdat <- read_yaml(file = "vignettes.yaml")
 }
 [data-bs-theme="dark"] .tutorial-card {
   --tutorial-card-border: var(--seurat-card-border, #879bb3);
+  background: var(--bs-body-bg, #000);
 }
 .tutorial-card-image {
   display: block;
@@ -156,7 +173,15 @@ These tutorials and analysis walkthroughs introduce common workflows in Seurat.
 For new users, we suggest starting with a guided walkthrough of a dataset of 2,700 peripheral blood mononuclear cells (PBMCs) made publicly available by 10X Genomics. This tutorial implements the major components of a standard unsupervised clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-make_vignette_card_section(vdat = vdat, cat = 1)
+make_vignette_card_section(vdat = vdat, cat = "Core workflows")
+```
+
+# Seurat v6 <img src="assets/new_icon.png" class="new-icon" alt=""> {#seurat-v6}
+
+We highlight the new features and improvements introduced in Seurat v6.
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = "Seurat v6")
 ```
 
 # Data integration
@@ -164,7 +189,7 @@ make_vignette_card_section(vdat = vdat, cat = 1)
 We provide methods for integrated analysis of single-cell datasets generated across different conditions, technologies, or species.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-make_vignette_card_section(vdat = vdat, cat = 2)
+make_vignette_card_section(vdat = vdat, cat = "Data integration")
 ```
 
 # Multimodal analysis
@@ -172,7 +197,7 @@ make_vignette_card_section(vdat = vdat, cat = 2)
 We also implement a suite of statistical methods for analyzing multimodal single-cell data. These include methods to integrate modalities that are simultaneously measured in the same cells, modalities that are measured in different cells, and techniques to analyze pooled CRISPR screens.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-make_vignette_card_section(vdat = vdat, cat = 3)
+make_vignette_card_section(vdat = vdat, cat = "Multimodal analysis")
 ```
 
 # Large datasets
@@ -182,7 +207,7 @@ Seurat supports analysis of datasets with millions of cells without loading the 
 The vignettes below demonstrate sketch-based clustering and integration, reference mapping, and working with BPCells.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-make_vignette_card_section(vdat = vdat, cat = 4)
+make_vignette_card_section(vdat = vdat, cat = "Large datasets")
 ```
 
 # Spatial analysis
@@ -190,7 +215,7 @@ make_vignette_card_section(vdat = vdat, cat = 4)
 We provide support for the analysis of data from different spatial technologies, including sequencing-based and imaging-based methods.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-make_vignette_card_section(vdat = vdat, cat = 5)
+make_vignette_card_section(vdat = vdat, cat = "Spatial analysis")
 ```
 
 # Additional workflows
@@ -198,7 +223,7 @@ make_vignette_card_section(vdat = vdat, cat = 5)
 The vignettes below feature other commonly used functionality in Seurat, addressing questions that we frequently receive from users.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-make_vignette_card_section(vdat = vdat, cat = 6)
+make_vignette_card_section(vdat = vdat, cat = "Additional workflows")
 ```
 
 # SeuratWrappers
@@ -207,8 +232,7 @@ In order to facilitate the use of community tools with Seurat, we provide the Se
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 library(knitr)
-cat <- 7
-vignettes <- vdat[[cat]]$vignettes
+vignettes <- vignette_entries(vdat, "SeuratWrappers")
 dat <- data.frame(Package = character(),  Vignette = character(), Reference = character(), Source = character())
 for (v in 1:length(x = vignettes)) {
   dat <- rbind(dat, process_wrapper_entry(vignettes[[v]]))

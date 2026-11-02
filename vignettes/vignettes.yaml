@@ -44,7 +44,7 @@
         Apply scSLIDE to a large Alzheimer's disease dataset using on-disk data with BPCells.
       image: assets/scslide.png
     
-    - title: RNA fingerprinting
+    - title: Analyzing perturbation responses with RNA fingerprinting
       name: rna_fingerprinting
       summary: |
         Learn perturbation fingerprints, map query cells, and use a precomputed Genome-Wide Perturb-seq reference.
