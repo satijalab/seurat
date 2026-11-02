@@ -396,9 +396,6 @@ We provide a wrapper visualization function, `PlotAnnotatedHeatmap()` (which ado
 # Heatmap visualization for DC1 (donors are ordered based on DC1)
 sub_bulk_obj = ScaleData(sub_bulk_obj, features = DEG_DC1)
 
-library(ComplexHeatmap)
-library(circlize)
-
 PlotAnnotatedHeatmap(
     object      = sub_bulk_obj,
     features    = DEG_DC1, 
