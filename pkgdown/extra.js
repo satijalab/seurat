@@ -1,6 +1,5 @@
-// Navbar enhancements for pkgdown.
 (() => {
-  // Keep anchor and sidebar offsets in sync with the actual navbar height.
+  // Keep anchor and sidebar offsets in sync with the actual navbar height
   const setupNavbarHeight = () => {
     const navbar = document.querySelector('.navbar');
     if (!navbar) return;
@@ -15,7 +14,7 @@
     update();
   };
 
-  // Theme toggle: persist the selection and keep its icon and label in sync.
+  // Theme toggle: persist the selection and keep its icon and label in sync
   const setupThemeToggle = () => {
     const link = document.getElementById('theme-toggle');
     if (!link) return;
@@ -49,7 +48,6 @@
     update();
   };
 
-  // Vignette categories: native details controls with mouse-hover support.
   const setupVignetteMenu = () => {
     const menu = document.querySelector('[aria-labelledby="dropdown-vignettes"]');
     if (!menu || menu.querySelector('.vignette-submenu')) return;
@@ -61,7 +59,8 @@
       if (heading) {
         const details = document.createElement('details');
         details.className = 'vignette-submenu';
-        // Named details groups let the browser keep only one category open.
+        details.dataset.category = heading.textContent.trim();
+        // Named details groups let the browser keep only one category open (clicking on a different category will close the current one)
         details.name = 'vignettes';
         const summary = document.createElement('summary');
         summary.className = 'dropdown-item';

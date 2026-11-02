@@ -8,9 +8,12 @@ template:
   light-switch: true
   bslib:
     primary: "#2C3D50"
-    bg: "#F5F7FA"
+    bg: "#FFFFFF"
     fg: "#26394B"
-    link-color: "#3B5F82"
+    link-color: "#18BC9C"
+    link-hover-color: "#18BC9C"
+    link-decoration: none
+    link-hover-decoration: underline
     navbar-bg: "#2C3D50"
   params:
       ganalytics: UA-82807227-1

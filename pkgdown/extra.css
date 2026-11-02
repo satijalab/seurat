@@ -1,39 +1,37 @@
-/* ==========================================================================
-   1. Shared layout tokens
-   ========================================================================== */
 :root {
   --seurat-navbar-height: 0rem; /* Measured by extra.js. */
   --seurat-surface: #fff;
   --seurat-card-border: #8294aa;
 }
 
-/* ==========================================================================
-   2. Theme color overrides
-   ========================================================================== */
+/* Theme colors */
 /* Light mode */
 [data-bs-theme="light"] {
+  --bs-body-bg: #fff;
+  --bs-body-bg-rgb: 255, 255, 255;
   --bs-body-color: var(--bs-emphasis-color);
   --bs-body-color-rgb: var(--bs-emphasis-color-rgb);
   --bs-primary-bg-subtle: #e1e9f2;
   --bs-link-hover-color: rgb(var(--bs-link-hover-color-rgb));
-  --bs-link-hover-color-rgb: 37, 62, 87;
+  --bs-link-hover-color-rgb: 24, 188, 156;
   --bs-tertiary-bg: #edf1f6;
   --bs-border-color: #b2c1d2;
 }
 
 /* Dark mode */
 [data-bs-theme="dark"] {
+  --seurat-navbar-bg: #465260;
   --seurat-surface: var(--bs-tertiary-bg);
   --seurat-card-border: var(--bs-border-color);
   --bs-body-bg: rgb(var(--bs-body-bg-rgb));
-  --bs-body-bg-rgb: 28, 30, 34;
+  --bs-body-bg-rgb: 0, 0, 0;
   --bs-body-color: rgb(var(--bs-body-color-rgb));
   --bs-body-color-rgb: 226, 228, 232;
   --bs-primary-bg-subtle: #303c49;
   --bs-link-color: rgb(var(--bs-link-color-rgb));
-  --bs-link-color-rgb: 159, 195, 229;
+  --bs-link-color-rgb: 24, 188, 156;
   --bs-link-hover-color: rgb(var(--bs-link-hover-color-rgb));
-  --bs-link-hover-color-rgb: 197, 220, 240;
+  --bs-link-hover-color-rgb: 24, 188, 156;
   --bs-secondary-bg: rgb(var(--bs-secondary-bg-rgb));
   --bs-secondary-bg-rgb: 46, 50, 56;
   --bs-tertiary-bg: rgb(var(--bs-tertiary-bg-rgb));
@@ -42,9 +40,9 @@
   --bs-heading-color: var(--bs-emphasis-color);
 }
 
-/* ==========================================================================
-   3. Typography
-   ========================================================================== */
+/* Typography */
+main a:focus, aside a:focus, footer a:focus { text-decoration: underline; }
+
 main h1, main .h1 { font-size: 2.5rem; }
 main h2, main .h2 { font-size: 2rem; }
 main h3, main .h3 { font-size: 1.75rem; }
@@ -54,25 +52,21 @@ main h6, main .h6 { font-size: 0.9rem; }
 
 main h1, main h2, main h3, main h4, main h5, main h6 { font-weight: 500; line-height: 1.25; }
 
-/* ==========================================================================
-   4. Primary buttons
-   ========================================================================== */
-/* Light buttons use Bootstrap defaults; dark buttons reuse the link palette. */
+/* Primary buttons */
+/* Light buttons use Bootstrap defaults; dark buttons reuse the navbar palette */
 [data-bs-theme="dark"] .btn-primary {
-  --bs-btn-bg: var(--bs-link-color);
+  --bs-btn-bg: var(--seurat-navbar-bg);
   --bs-btn-border-color: var(--bs-btn-bg);
-  --bs-btn-color: var(--bs-body-bg);
-  --bs-btn-hover-bg: var(--bs-link-hover-color);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #536170;
   --bs-btn-hover-border-color: var(--bs-btn-hover-bg);
   --bs-btn-hover-color: var(--bs-btn-color);
-  --bs-btn-active-bg: #86accf;
+  --bs-btn-active-bg: #3b4652;
   --bs-btn-active-border-color: var(--bs-btn-active-bg);
   --bs-btn-active-color: var(--bs-btn-color);
 }
 
-/* ==========================================================================
-   5. Navbar and search
-   ========================================================================== */
+/* Navbar and search */
 .navbar {
   position: sticky;
   top: 0;
@@ -85,7 +79,7 @@ main h1, main h2, main h3, main h4, main h5, main h6 { font-weight: 500; line-he
   --bs-navbar-toggler-border-color: rgb(255 255 255 / 50%);
 }
 
-[data-bs-theme="dark"] .navbar { background-color: #465260; border-bottom: thin solid #687584; }
+[data-bs-theme="dark"] .navbar { background-color: var(--seurat-navbar-bg); border-bottom: thin solid #687584; }
 
 [data-bs-theme="dark"] .navbar .nav-item.active .nav-link,
 [data-bs-theme="dark"] .navbar .nav-link.active { background: transparent; }
@@ -113,9 +107,37 @@ main h1, main h2, main h3, main h4, main h5, main h6 { font-weight: 500; line-he
 
 .navbar .dropdown-item, .navbar .dropdown-header { font-size: 1rem; }
 
-/* ==========================================================================
-   6. Navbar dropdowns, badge, and icons
-   ========================================================================== */
+/* Add icon to highlight Seurat v6 on the getting started page and in the vignette menu */
+
+main h2:has(> .new-icon),
+body:has(main .new-icon) #toc a[href="#seurat-v6"] {
+  display: flex;
+  align-items: center;
+}
+
+.new-icon,
+body:has(main .new-icon) #toc a[href="#seurat-v6"]::after,
+.vignette-submenu[data-category="Seurat v6"] > summary::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 0.94em;
+  height: 0.85em;
+  margin-inline-start: 0.4em;
+  background: url("articles/assets/new_icon.png") center / contain no-repeat;
+}
+
+.vignette-submenu[data-category="Seurat v6"] > summary {
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.vignette-submenu[data-category="Seurat v6"] > summary::before { order: 1; }
+.vignette-submenu[data-category="Seurat v6"] > summary::after {
+  order: 2;
+  margin-inline-start: auto;
+}
+
+/* Navbar dropdowns, badge, and icons */
 .navbar .dropdown-menu {
   --bs-dropdown-bg: var(--seurat-surface);
   --bs-dropdown-link-hover-color: var(--bs-link-hover-color);
@@ -142,16 +164,14 @@ main h1, main h2, main h3, main h4, main h5, main h6 { font-weight: 500; line-he
   font-weight: 600;
 }
 
-/* Keep icon colors consistent for links and buttons, including focused controls. */
+/* Keep icon colors consistent for links and buttons, including focused controls */
 .navbar .nav-link > .fa, .navbar .nav-link > .fab {
   color: var(--bs-navbar-active-color);
   font-size: 1.25em;
   vertical-align: middle;
 }
 
-/* ==========================================================================
-   7. Page content and table of contents
-   ========================================================================== */
+/* Page content and table of contents */
 .seurat-banner {
   display: block;
   width: 100%;
@@ -169,9 +189,7 @@ html, body { scroll-padding-top: calc(var(--seurat-navbar-height) + 1rem); }
 
 #toc { top: calc(var(--seurat-navbar-height) + 1rem); max-height: calc(100vh - var(--seurat-navbar-height) - 2rem); }
 
-/* ==========================================================================
-   8. Vignette menu and submenus
-   ========================================================================== */
+/* Vignette menu and submenus */
 .navbar [aria-labelledby="dropdown-vignettes"],
 .navbar.navbar-expand-lg .vignette-submenu > .dropdown-menu {
   padding: 0.25rem 0;
@@ -252,9 +270,7 @@ html, body { scroll-padding-top: calc(var(--seurat-navbar-height) + 1rem); }
   .vignette-submenu[open] > summary::after { transform: rotate(90deg); }
 }
 
-/* ==========================================================================
-   9. Content width and responsive columns
-   ========================================================================== */
+/* Content width and responsive columns */
 body > .container,
 .navbar > .container {
   width: calc(100% - 2rem);
@@ -265,9 +281,7 @@ body > .container,
 
 body > .container > .row { --bs-gutter-x: 2rem; justify-content: flex-start; }
 
-/* ==========================================================================
-   10. Desktop and mobile layout
-   ========================================================================== */
+/* Desktop and mobile layout */
 @media (min-width: 62em) {
   body > .container > .row > main { width: 75%; max-width: none; }
 
