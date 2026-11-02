@@ -74,7 +74,7 @@ All methods emphasize clear, attractive, and interpretable visualizations, and w
 
 If you use Seurat in your research, please consider citing:
 
-* [Seurat v6] [Jiang, et al., Cell 2026](https://www.cell.com/)
+* [Seurat v6] [Jiang, et al., Cell 2026](https://doi.org/10.1016/j.cell.2026.10.018)
 * [Seurat v5] [Hao, et al., Nature Biotechnology 2023](https://www.nature.com/articles/s41587-023-01767-y)
 * [Seurat v4] [Hao<sup>\*</sup>, Hao<sup>\*</sup>, et al., Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048)
 * [Seurat v3] [Stuart<sup>\*</sup>, Butler<sup>\*</sup>, et al., Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)
