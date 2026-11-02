@@ -1,0 +1,384 @@
+---
+title: "Applying scSLIDE to large-scale single-cell data"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+# Introduction
+
+This vignette demonstrates how to perform **scSLIDE sample-level analysis** on large-scale single-cell datasets using the [Seurat–BPCells infrastructure](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette). Developed by [Benjamin Parks](https://github.com/bnprks/BPCells), BPCells enables efficient storage and processing of large scRNA-seq and scATAC-seq datasets while minimizing memory usage. As an example, we use a publicly available [single-nucleus RNA-seq (snRNA-seq) dataset of Alzheimer's disease from the Allen Institute](https://www.nature.com/articles/s41593-024-01774-5).
+
+# Setup and Library Loading
+
+First, we will load all necessary packages and set up the working environment. 
+
+```{r, include = FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE,
+  error = TRUE
+)
+
+.libPaths(c("~/new_R_package", "~/R/"))
+.libPaths()
+
+library(Seurat, lib = "~/scSLIDE_Seurat6")
+library(princurve, lib = "/home/jiangl/R")
+library(ggplot2, lib = "/home/jiangl/new_R_package")
+library(ggridges, lib = "/home/jiangl/new_R_package")
+library(BPCells, lib = "/home/jiangl/R")
+
+# create a file name 
+DATA_NAME = "SEA_AD_atlas_MTG"
+
+```
+
+
+```{r setup, eval=FALSE}
+# make sure you install Seurat from the following branch:
+remotes::install_github(repo = "satijalab/seurat-rewrite@merge_scSLIDE", 
+                       force = TRUE,
+                       INSTALL_opts = "--preclean")
+
+library(SeuratObject)
+library(Seurat)
+library(princurve)
+library(ggplot2)
+library(BPCells)
+
+# create a file name 
+DATA_NAME = "SEA_AD_atlas_MTG"
+```
+
+# Generating on-disk Seurat object from .h5ad file
+
+We will use the SEA-AD snRNA-seq data (~1.4m cells) from [Gabitto et al 2024 Nat. Neurosci.](https://www.nature.com/articles/s41593-024-01774-5) as an example for our workflow. This dataset can be downloaded from the [CZI CELLxGENE data portal](https://cellxgene.cziscience.com/collections/1ca90a2d-2943-483d-b678-b809bf464c30). Several datasets are available at this link; we will use the data collected from the patients' MTG (middle temporal gyrus) region.
+\
+The original file is in the .h5ad [AnnData](https://anndata.readthedocs.io/en/stable/) format. You can load the whole dataset into R using packages such as the [anndata R package](https://cran.r-project.org/web/packages/anndata/readme/README.html), but this is often not memory-efficient. Below, we show how to generate an on-disk Seurat object from the .h5ad file, which we then use for our scSLIDE analyses.
+\
+Note that before proceeding, if your data does not contain cell-type labels and/or has not been properly integrated, you may want to annotate your single-cell .h5ad file using our [Pan-Human Azimuth python tool](https://www.biorxiv.org/content/10.64898/2026.07.16.738997v1.full). It will not only annotate your cells but also compute a cell-type-oriented low-dimensional embedding for them. You can do this by following these [simple instructions](https://satijalab.org/pan_human_azimuth/).
+
+<details><summary style="font-size: 20px;"><strong>Click here to see how to generate an on-disk Seurat object from the SEA-AD .h5ad file</strong></summary>
+
+```{r message = FALSE, results = 'hide', warning = FALSE, eval = FALSE}
+# path to the h5ad file (assuming it has been annotated by the Pan-Human Azimuth python tool)
+file_path = "./SEA_AD_atlas_MTG_ANN.h5ad"
+
+# the path to save the on-disk matrix object (from BPCells)
+ondisk_path = paste0("./", DATA_NAME, "_ondisk/")
+
+# load the count matrix with BPCells
+ondisk.data <- open_matrix_anndata_hdf5(file_path, group = "/X")
+# write this BPCells matrix to disk
+write_matrix_dir(mat = ondisk.data, dir = ondisk_path)
+
+# get necessary components from the original h5ad file
+# feature names
+feature_metadata = schard::h5ad2data.frame(file_path, 'var')
+# metadata
+metadata = schard::h5ad2data.frame(file_path, 'obs')
+# get the pan-human Azimuth embeddings / umap
+ann_embedding = t(schard::h5ad2Matrix(file_path,
+                                      '/obsm/azimuth_embed'))
+
+# now load the on-disk BPCells data 
+ondisk.mat <- open_matrix_dir(dir = ondisk_path)
+
+# rename the rownames/features using gene symbol instead of ENSG IDs
+rownames(ondisk.mat) = feature_metadata$feature_name
+
+# finally, create an on-disk Seurat object and add the metadata; This object links to the `ondisk.mat` BPCells matrix.
+ondisk.object <- CreateSeuratObject(counts = ondisk.mat, meta.data = metadata)
+
+# add low-dim objects to the Seurat object
+# add ann_embeddings 
+rownames(ann_embedding) = colnames(ondisk.object)
+ondisk.object[['azimuth_embed']] = CreateDimReducObject(embeddings = ann_embedding, assay = "RNA", key = "Ann_")
+
+##### Basic QC and preprocessing for the on-disk data
+# nCount and nFeature
+ondisk.object <- subset(ondisk.object, subset = nCount_RNA >= 1000 & nFeature_RNA >= 500)
+# remove cells with discordant ANN_celltype_labels
+ondisk.object <- subset(ondisk.object, subset = full_consistent_hierarchy == TRUE)
+# remove cells with very low final_level prob
+ondisk.object <- subset(ondisk.object, subset = final_level_softmax_prob >= 0.6)
+
+# next we will remove cells from cell types with cell count less than 50
+ct_table = table(ondisk.object$Subclass)
+keep_celltype = names(ct_table)[ct_table >= 50]
+ondisk.object <- subset(ondisk.object, subset = Subclass %in% keep_celltype)
+
+# generate necessary metadata columns 
+ondisk.object$Donor = as.character(ondisk.object$donor_id)
+ondisk.object$dementia = ondisk.object$disease
+# rename the disease 
+ondisk.object$Disease = "HV"
+ondisk.object$Disease[!ondisk.object$ADNC %in% c("Not AD", "Reference")] = "AD"
+ondisk.object$Disease = factor(ondisk.object$Disease, levels = c("HV", "AD"))
+
+# fix the 'Age' and 'Sex' meta-data
+ondisk.object$Sex = ondisk.object$sex
+# Note that those donors labelled with "80 year-old and over human stage" are actually >= 90 years old (cause it is inconsistent with 'Age at death'), so we need to manually fix it.
+ondisk.object$Age = gsub(pattern = "-year-old human stage", replacement = "", ondisk.object$development_stage)
+ondisk.object$Age[ondisk.object$development_stage == "80 year-old and over human stage"] = 90
+ondisk.object$Age = as.numeric(ondisk.object$Age)
+
+# save the object for later use
+saveRDS(ondisk.object, file = paste0("Seurat_obj_1_OnDisk_", DATA_NAME, ".rds"))
+rm(ondisk.object, ann_embedding, metadata, feature_metadata, ondisk.mat, ondisk.data)
+gc()
+```
+
+<p style="text-align: center; margin-top: 20px;">
+<a href="#" onclick="this.closest('details').open = false; return false;">Click here to collapse ▲</a>
+</p>
+</details>
+
+
+# Loading on-disk data and preprocessings
+
+Here, we load the on-disk Seurat object into R and process it just like a regular in-memory object, running normalization and variable feature selection.
+
+```{r message = FALSE, results = 'hide', warning = FALSE, include = FALSE}
+# load the Seurat on-disk object 
+object = readRDS(paste0("/brahms/jiangl/test_ondisk_2025Apr01/Seurat_obj_1_OnDisk_", DATA_NAME, ".rds"))
+
+# basic processing
+object = NormalizeData(object)
+object = FindVariableFeatures(object, nfeatures = 3000)
+```
+
+
+```{r message = FALSE, results = 'hide', warning = FALSE, eval=FALSE}
+# load the Seurat on-disk object 
+object = readRDS(paste0("./Seurat_obj_1_OnDisk_", DATA_NAME, ".rds"))
+
+# basic processing
+object = NormalizeData(object)
+object = FindVariableFeatures(object, nfeatures = 3000)
+```
+
+
+# Prepare the Single-Cell Data for Sample-Level Analysis
+
+To perform all the necessary pre-processing steps, we provide a high-level wrapper function called `PrepareSampleObject()`, which prepares a single-cell Seurat object for downstream sample-level embedding generation. You can read more about this wrapper, and how to break it down into individual steps, in [this vignette]().
+\
+Here we use `setThreads()` for parallelization to reduce the runtime, requesting 4 cores. Note that `setThreads()` is now supported by other core functions in Seurat (version > 5.6).
+
+
+```{r message = FALSE, results = 'hide', warning = FALSE}
+setThreads(n = 4)
+
+object <- PrepareSampleObject(object = object,
+                              assay = "RNA",
+                              add.hvg = T,
+                              group.by.CorTest = "Subclass",
+                              Y = "Disease",
+                              sketch.training = T,
+                              group.by.Sketch = "Donor",
+                              ncells.per.group = 3000,
+                              ncells.landmark = 5000,
+                              ncomp = 20,
+                              pls.function = "cppls",
+                              k.nn = 5,
+                              name.reduction.1 = "azimuth_embed",
+                              dims.reduction.1 = 1:128,
+                              fix.wnn.weights = c(0.5, 0.5),
+                              rm.training.assay = T,
+                              verbose = T)
+```
+
+
+# Sample-Level Object Generation
+
+Once a WNN graph is constructed, we can generate a sample-level density matrix. Given the asymmetric landmark-by-cell WNN graph, scSLIDE aggregates over cells to obtain a landmark-by-sample density matrix (i.e., m landmarks by n samples) by binarizing adjacency (neighbor = 1, else 0) and summing per sample. Each entry in this landmark-by-sample matrix measures the cell density near each landmark for a given donor.
+
+The function `GenerateSampleObject()` builds this sample-level object from the WNN graph specified by `nn.name =`. It can also look up donor-level metadata in the original single-cell object and append it to the sample-level object (optional), and it can apply a Chi-squared normalization (based on the Poisson distribution of a contingency table) to the count matrix (optional; standard log-normalization is also supported).
+
+```{r message = FALSE, results = 'hide', warning = FALSE}
+sample_obj = GenerateSampleObject(object = object,
+                                  sketch.assay = "LANDMARK",
+                                  nn.name = "weighted.nn",
+                                  group.by = "Donor",
+                                  rename.group.by = "Subclass",
+                                  k.nn = 5,
+                                  normalization.method = "ChiSquared",
+                                  add.meta.data = TRUE,
+                                  return.seurat = T,
+                                  new_assay_name = "LMC"
+                                  )
+
+# we can filter out donors with cell count less than 200 (i.e., nCount_LMC = k.nn * cell_count < 1000)
+sample_obj = subset(sample_obj, subset = nCount_LMC >= 1000)
+
+# Center the data
+sample_obj = ScaleData(sample_obj, features = rownames(sample_obj), do.scale = F, do.center = T)
+```
+
+
+# Diffusion Map Analysis
+
+To better infer a trajectory for the sample-level data, instead of standard PCA we perform Diffusion Map (a non-linear, unsupervised dimensional reduction method originally proposed by [Haghverdi et al, Bioinformatics](https://academic.oup.com/bioinformatics/article/31/18/2989/241305) to capture single-cell trajectories).
+
+```{r message = FALSE, results = 'hide', warning = FALSE}
+sample_obj = RunDiffusionMap(sample_obj, assay = "LMC", layer = "scale.data", features = rownames(sample_obj), ncomp = 5)
+```
+
+Visualizing the Diffusion Map components, we can see what appears to be a progression trajectory jointly captured by DC1 and DC2.
+
+```{r fig.width=7, fig.height=6}
+DimPlot(sample_obj, reduction = "DiffMap", group.by = "Disease") 
+```
+
+We can append DC1-3 to the metadata and analyze their relationships with clinical variables.
+
+```{r}
+# Append DC1-3 to the metadata
+sample_obj[['traj_DC1']] = sample_obj@reductions$DiffMap@cell.embeddings[, 1]
+sample_obj[['traj_DC2']] = sample_obj@reductions$DiffMap@cell.embeddings[, 2]
+sample_obj[['traj_DC3']] = sample_obj@reductions$DiffMap@cell.embeddings[, 3]
+```
+
+
+## Principal Curve Fitting
+
+As noted above, the first two DCs appear to represent a joint trajectory. We fit a principal curve to them to infer a single pseudo-trajectory.
+
+```{r message = FALSE, results = 'hide', warning = FALSE, fig.width=7, fig.height=6}
+princurve_res = princurve::principal_curve(sample_obj[['DiffMap']]@cell.embeddings[, 1:2],
+                                           plot = F, maxit = 20, trace = T)
+sample_obj[['traj_overall']] = princurve_res$lambda
+DimPlot(sample_obj, reduction = "DiffMap", group.by = "Disease")  +
+  geom_path(aes(x = princurve_res$s[princurve_res$ord, 1], y = princurve_res$s[princurve_res$ord, 2]))
+```
+
+
+The following plot shows that the principal curve is related to the neuropathological continuous pseudo-progression score (CPS) provided by the [original paper](https://www.nature.com/articles/s41593-024-01774-5). The CPS values were obtained by aggregating various patient-level neuropathological measurements from postmortem brains, and are independent of the scRNA-seq data.
+
+```{r message = FALSE, results = 'hide', warning = FALSE, fig.width=7, fig.height=6}
+mdata <- sample_obj@meta.data
+mdata$bin_traj_overall <- cut(rank(mdata$traj_overall), breaks = 5, labels = paste0("traj-bin_", 1:5))
+# 
+p11 = ggplot(data = mdata) +
+    geom_boxplot(aes(x = bin_traj_overall,
+                     y = `Continuous Pseudo-progression Score`),
+                 outliers = F) +
+    geom_point(aes(x = bin_traj_overall,
+                   y = `Continuous Pseudo-progression Score`,
+                   col = Disease,
+                   shape = Disease),
+               position = position_jitter(width = 0.2, height = 0)) +
+    ggtitle("Pseudo-time vs. CPS") +
+    theme_bw() +
+    theme(title = element_text(hjust = 0.5, size = 15),
+          text = element_text(size = 13),
+          axis.text.x = element_text(hjust = 1, vjust = 1, angle = 45),
+          axis.text = element_text(size = 13)) +
+    xlab("Pseudo-trajectory bins") +
+    ylab("Continuous Pseudo-progression Score")
+
+print(p11)
+```
+
+# Differential Expression Analysis Setup
+
+Finally, we can perform differential expression (DE) analysis to identify differentially expressed genes (DEGs) that change along the pseudo-trajectory we inferred.
+
+First, we obtain the pseudobulked expression data from the original single-cell data:
+
+```{r}
+bulk_obj = AggregateExpression(object, assays = "RNA", group.by = c("Donor", "Subclass"), return.seurat = T)
+
+# Append the metadata to pseudobulked object 
+mdata = object@meta.data[, c("Donor", "Subclass")]
+mdata = mdata[!duplicated(mdata), ]
+rownames(mdata) = paste0(gsub(pattern = "_", replacement = "-", mdata$Donor),
+                         "_",
+                         gsub(pattern = "_", replacement = "-", mdata$Subclass))
+bulk_obj = AddMetaData(bulk_obj, metadata  = mdata)
+
+bulk_obj$nCount_RNA = colSums(x = bulk_obj, slot = "counts")  # nCount_RNA
+bulk_obj$nFeature_RNA = colSums(x = LayerData(object = bulk_obj, layer = "counts") > 0)  # nFeature_RNA
+```
+
+## DE Analysis for different cell types
+
+Then we run the DE analysis one cell type at a time, using "Microglia-PVM" as an example.
+
+```{r}
+sub_bulk_obj = subset(bulk_obj, subset = Subclass == "Microglia-PVM")
+
+# Add metadata from sample-level object to pseudobulk object
+new_mdata = merge(sub_bulk_obj@meta.data[, c("Donor"), drop = F],
+                  sample_obj@meta.data[, c("Donor", "Age", "Sex", "Disease", "traj_overall")],
+                  by = "Donor",
+                  all.x = T,
+                  sort = FALSE)
+sub_bulk_obj = AddMetaData(sub_bulk_obj, metadata = new_mdata)
+sub_bulk_obj$log_count = log10(sub_bulk_obj$nCount_RNA)
+```
+
+We can now run trajectory DE tests.
+
+```{r message = FALSE, results = 'hide', warning = FALSE}
+de_results = TrajDETest(sub_bulk_obj, assay = "RNA", layer = "counts",
+                        traj.var = "traj_overall", latent.vars = c("Age", "Sex", "log_count"))
+
+```
+
+From the DE results, we identify the top up- and down-regulated DEGs for visualization:
+
+```{r}
+de_results$sign = sign(de_results$beta_Traj)
+de_results = de_results[order(de_results$sign, de_results$p_Traj), ]
+
+# omit MT- and other non-coding DEGs for visualization
+de_results = de_results[!grepl("^(MT-|RP)", de_results$gene_ID), ]
+
+# Identify the top up- and down-regulated DEGs for visualization
+DEG_traj_overall = c(de_results$gene_ID[de_results$sign > 0][1:20],
+            de_results$gene_ID[de_results$sign < 0][20:1])
+```
+
+Heatmap visualization for this cell type:
+
+```{r message = FALSE, results = 'hide', warning = FALSE, fig.width=9, fig.height=7}
+# Heatmap visualization for traj_overall (donors are ordered based on traj_overall)
+sub_bulk_obj = ScaleData(sub_bulk_obj, features = DEG_traj_overall)
+
+PlotAnnotatedHeatmap(
+    object      = sub_bulk_obj,
+    features    = DEG_traj_overall, 
+    sort.by     = "traj_overall",
+    anno.var    = "Disease", 
+    anno.colors = list(c("#f8766d", "cornsilk" )),
+    hm.colors   = c("blue", "white", "red")
+)
+
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+
+
