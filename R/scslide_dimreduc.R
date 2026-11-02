@@ -916,7 +916,7 @@ kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
     rlang::abort("ncomp must be a positive integer")
   }
 
-  threads <- as.integer(threads %||% getThreads())
+  threads <- as.integer(threads %||% getThreads(verbose = FALSE))
   if (threads < 0L) rlang::abort("threads must be a non-negative integer")
 
   # Convert factor/character Y to a dummy indicator matrix
@@ -1063,7 +1063,7 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
     rlang::abort("ncomp must be a positive integer")
   }
 
-  threads <- as.integer(threads %||% getThreads())
+  threads <- as.integer(threads %||% getThreads(verbose = FALSE))
   if (threads < 0L) rlang::abort("threads must be a non-negative integer")
 
   # Convert factor/character Y to a dummy indicator matrix

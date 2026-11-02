@@ -493,7 +493,7 @@ VST.IterableMatrix <- function(
     ...
 ) {
   nfeatures <- nrow(x = data)
-  nthreads <- getThreads()
+  nthreads <- getThreads(verbose = FALSE)
   if (isTRUE(x = verbose) && nthreads > 1L) {
     message(
       "Computing feature variances with ", nthreads, " threads; results are ",
