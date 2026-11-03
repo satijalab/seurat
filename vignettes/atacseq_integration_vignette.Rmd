@@ -7,29 +7,43 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r markdown.setup, include=TRUE}
-all_times <- list()  # store the time for each chunk
+```{r markdown.setup, include=TRUE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
+  time_it = TRUE,
+  tidy = FALSE,
   fig.width = 12,
-  tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
   error = FALSE
 )
 options(SeuratData.repo.use = 'seurat.nygenome.org')
+```
+
+```{=html}
+<style>
+.chunk-timing {
+  margin-top: 0;
+}
+:has(+ .chunk-timing),
+.sourceCode:has(+ .chunk-timing) pre {
+  margin-bottom: 0;
+}
+</style>
 ```
 
 Single-cell transcriptomics has transformed our ability to characterize cell states, but deep biological understanding requires more than a taxonomic listing of clusters. As new methods arise to measure distinct cellular modalities, a key analytical challenge is to integrate these datasets to better understand cellular identity and function. For example, users may perform scRNA-seq and scATAC-seq experiments on the same biological system and want to consistently annotate both datasets with the same set of cell type labels. This analysis is particularly challenging as scATAC-seq datasets are difficult to annotate, due to both the sparsity of genomic data collected at single-cell resolution, and the lack of interpretable gene markers in scATAC-seq data.

@@ -426,7 +426,6 @@ library(Seurat)
 library(SeuratData)
 library(BPCells)
 library(dplyr)
-options(Seurat.object.assay.version = "v5")
 ```
 
 ## Load datasets

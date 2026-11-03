@@ -43,8 +43,9 @@ make_vignette_card_section <- function(vdat, cat) {
     image <- if (is.null(entry$image)) {
       ""
     } else {
-      sprintf('<img class="tutorial-card-image" src="%s" alt="" loading="lazy">',
-              escape_html(entry$image))
+      as.character(htmltools::tags$img(
+        class = "tutorial-card-image", src = entry$image, alt = "", loading = "lazy"
+      ))
     }
     cat(sprintf(
       paste0(

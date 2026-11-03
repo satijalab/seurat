@@ -8,28 +8,42 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  time_it = TRUE,
+  tidy = FALSE,
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-  time_it = TRUE,
   error = FALSE
 )
+```
+
+```{=html}
+<style>
+.chunk-timing {
+  margin-top: 0;
+}
+:has(+ .chunk-timing),
+.sourceCode:has(+ .chunk-timing) pre {
+  margin-bottom: 0;
+}
+</style>
 ```
 
 The recent increase in publicly available single-cell datasets poses a significant challenge for integrative analysis. For example, multiple tissues have now been profiled across dozens of studies, representing hundreds of individuals and millions of cells. In [Hao et al, 2023](https://www.nature.com/articles/s41587-023-01767-y), we proposed a dictionary learning based method, atomic sketch integration, that enables efficient and large-scale integrative analysis. Our procedure enables the integration of large compendiums of datasets without ever needing to load the full scale of data into memory. In [our manuscript](https://www.nature.com/articles/s41587-023-01767-y) we use atomic sketch integration to integrate millions of scRNA-seq profiles from human lung and human PBMC.
@@ -43,7 +57,7 @@ In this vignette, we demonstrate how to use atomic sketch integration to harmoni
 * Identify cell-type specific differences between healthy and diabetic patients
 
 Prior to running this vignette, please [install Seurat v5](install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](bpcells_interaction_vignette.html). We also recommend reading the [Sketch-based analysis in Seurat v5](sketch_analysis.html) vignette, which introduces the concept of on-disk and in-memory storage in Seurat v5.
-```{r, warning=F, message=F}
+```{r, warning=FALSE, message=F}
 library(Seurat)
 library(BPCells)
 library(dplyr)
@@ -56,7 +70,7 @@ options(future.globals.maxSize = 5e10)
 ## Create a Seurat object containing data from 24 patients
 We downloaded the original dataset and donor metadata from [Parse Biosciences](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip). While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](bpcells_interaction_vignette.html).
 We create a Seurat object for this dataset. Since the input to `CreateSeuratObject` is a BPCells matrix, the data remains on-disk and is not loaded into memory. After creating the object, we split the dataset into 24 [layers](essential_commands.html#load-datasets), one for each sample (i.e. patient), to facilitate integration.
-```{r, warning=F, message=F}
+```{r, warning=FALSE, message=F}
 parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
 # need to move
 metadata <- readRDS("/brahms/haoy/vignette_data/ParseBio_PBMC_meta.rds")
@@ -70,7 +84,7 @@ object <- FindVariableFeatures(object, verbose = FALSE)
 ## Sample representative cells from each dataset
 Inspired by pioneering work aiming to identify ['sketches'](https://www.sciencedirect.com/science/article/pii/S2405471219301528) of scRNA-seq data, our first step is to sample a representative set of cells from each dataset. We compute a leverage score (estimate of ['statistical leverage'](https://arxiv.org/abs/1109.3843)) for each cell, which helps to identify cells that are likely to be members of rare subpopulations and ensure that these are included in our representative sample. Importantly, the estimation of leverage scores only requires data normalization, can be computed efficiently for sparse datasets, and does not require any intensive computation or dimensional reduction steps.
 We load each object separately, perform basic preprocessing (normalization and variable feature selection), and select and store 5,000 representative cells from each dataset. Since there are 24 datasets, the sketched dataset now contains 120,000 cells. These cells are stored in a new `sketch` assay, and are loaded in-memory.
-```{r, warning=F, message=F}
+```{r, warning=FALSE, message=F}
 object <- SketchData(object = object, ncells = 5000, method = 'LeverageScore', sketched.assay = 'sketch')
 object
 ```

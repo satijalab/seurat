@@ -7,26 +7,42 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
 options(future.globals.maxSize = 1024^3 * 10) # 10 GB
-all_times <- list()  # store the time for each chunk
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
   }
 }))
 knitr::opts_chunk$set(
+  time_it = TRUE,
+  tidy = FALSE,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
   error = FALSE
 )
+```
+
+```{=html}
+<style>
+.chunk-timing {
+  margin-top: 0;
+}
+:has(+ .chunk-timing),
+.sourceCode:has(+ .chunk-timing) pre {
+  margin-bottom: 0;
+}
+</style>
 ```
 The simultaneous measurement of multiple modalities, known as multimodal analysis, represents an exciting frontier for single-cell genomics and necessitates new computational methods that can define cellular states based on multiple data types. The varying information content of each modality, even across cells in the same dataset, represents a pressing challenge for the analysis and integration of multimodal datasets. In ([Hao\*, Hao\* et al, Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048)), we introduce 'weighted-nearest neighbor' (WNN) analysis, an unsupervised framework to learn the relative utility of each data type in each cell, enabling an integrative analysis of multiple modalities.  
 
@@ -49,7 +65,6 @@ options(SeuratData.repo.use = "http://seurat.nygenome.org")
 
 ```{r packages, cache=FALSE}
 library(Seurat)
-options(Seurat.object.assay.version = "v5")
 library(SeuratData)
 library(cowplot)
 library(dplyr)

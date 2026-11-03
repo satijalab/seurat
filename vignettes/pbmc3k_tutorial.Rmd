@@ -7,27 +7,41 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  tidy = FALSE,
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
   error = FALSE
 )
+```
+
+```{=html}
+<style>
+.chunk-timing {
+  margin-top: 0;
+}
+:has(+ .chunk-timing),
+.sourceCode:has(+ .chunk-timing) pre {
+  margin-bottom: 0;
+}
+</style>
 ```
 
 # Set up the Seurat object
@@ -38,10 +52,9 @@ We start by reading in the data. The `Read10X()` function reads in the output of
 
 We next use the count matrix to create a `Seurat` object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. For more information, check out the [docs for SeuratObject](https://satijalab.github.io/seurat-object/index.html) or the [section on object interaction](essential_commands.html#seurat-object-data-access) in our list of essential commands. For example, in Seurat v5, the count matrix is stored in `pbmc[["RNA"]]$counts`.
 
-```{r init}
+```{r init, warning=FALSE}
 library(dplyr)
 library(Seurat)
-options(Seurat.object.assay.version = "v5")
 library(patchwork)
 
 # Load the PBMC dataset
@@ -314,7 +327,7 @@ We include several tools for visualizing marker expression. `VlnPlot()` (shows e
 ```{r markerplots, fig.height=5, fig.width=10}
 VlnPlot(pbmc, features = c("MS4A1", "CD79A"))
 # you can plot raw counts as well
-VlnPlot(pbmc, features = c("NKG7", "PF4"), slot = 'counts', log = TRUE)
+VlnPlot(pbmc, features = c("NKG7", "PF4"), layer = 'counts', log = TRUE)
 ```
 
 ```{r, fig.height=8, fig.width=10}

@@ -9,30 +9,45 @@ date: 'Compiled: `r Sys.Date()`'
 ---
 
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = 'styler',
+  time_it = TRUE,
+  tidy = FALSE,
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-  time_it = TRUE,
   error = FALSE
 )
 ```
 
-```{r, warning=F, message=F}
+```{=html}
+<style>
+.chunk-timing {
+  margin-top: 0;
+}
+:has(+ .chunk-timing),
+.sourceCode:has(+ .chunk-timing) pre {
+  margin-bottom: 0;
+}
+</style>
+```
+
+```{r, warning=FALSE, message=F}
 library(Seurat)
 library(BPCells)
 library(dplyr)
