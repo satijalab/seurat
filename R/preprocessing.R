@@ -49,7 +49,7 @@ readMM_fast <- function(file) {
     return(Matrix::readMM(file))
   }
   dt <- data.table::fread(file, header = FALSE, skip = skip,
-    colClasses = c("integer", "integer", "numeric"), quote = "", data.table = FALSE)
+    colClasses = c("integer", "integer", "numeric"), quote = "", blank.lines.skip = TRUE, data.table = FALSE)
   # reject incomplete or extra triplets before constructing the matrix
   if (nrow(dt) != dimensions[3L]) {
     stop(sprintf("MatrixMarket entry count mismatch: header declares %s entries, but read %s triplets.",
@@ -65,10 +65,12 @@ readMM_fast <- function(file) {
 .ReadLoaderTable <- function(file, header = TRUE, sep = ",", skip = 0L,
                              colClasses = NA, check.names = FALSE,
                              select = NULL, ...) {
+  # match read.csv quoting for CSVs
+  table.quote <- if (identical(sep, ",")) "\"" else "\"'"
   if (!is.null(select) || !is.null(names(colClasses))) {
     # read just the header to find available columns (qv may be absent)
     columns <- names(read.table(file, header = header, sep = sep, skip = skip, nrows = 0L, colClasses = "character",
-                                check.names = check.names, comment.char = "", ...))
+                                check.names = check.names, comment.char = "", quote = table.quote, ...))
     # NA lets the reader infer a column's type; explicit classes override it
     classes <- rep(NA_character_, length(columns))
     names(classes) <- columns
@@ -88,10 +90,10 @@ readMM_fast <- function(file) {
       requireNamespace("data.table", quietly = TRUE) &&
       requireNamespace("R.utils", quietly = TRUE)) {
     return(data.table::fread(file, header = header, sep = sep, skip = skip, colClasses = if (identical(colClasses, NA)) NULL else colClasses,
-                              check.names = check.names, keepLeadingZeros = TRUE, data.table = FALSE, ...))
+                              check.names = check.names, keepLeadingZeros = TRUE, blank.lines.skip = TRUE, data.table = FALSE, ...))
   }
   # fall back to base R read.table if optional packages are not available
-  return(read.table(file, header = header, sep = sep, skip = skip, colClasses = colClasses, check.names = check.names, stringsAsFactors = FALSE, comment.char = "", row.names = NULL, ...))
+  return(read.table(file, header = header, sep = sep, skip = skip, colClasses = colClasses, check.names = check.names, stringsAsFactors = FALSE, comment.char = "", row.names = NULL, quote = table.quote, ...))
 }
 
 #' Calculate the Barcode Distribution Inflection
@@ -2618,7 +2620,13 @@ ReadNanostring <- function(
         } else {
           # request only existing columns so optional fields can be absent
           reader <- arrow::ParquetFileReader$create(parquet)
-          selected <- intersect(columns, reader$GetSchema()$names)
+          available <- reader$GetSchema()$names
+          required <- setdiff(columns, c("qv", "segmentation_method"))
+          missing <- setdiff(required, available)
+          if (length(missing)) {
+            stop("Missing required Parquet columns: ", paste(missing, collapse = ", "), call. = FALSE)
+          }
+          selected <- intersect(columns, available)
           as.data.frame(arrow::read_parquet(parquet, col_select = selected))
         }
       }, error = identity)
