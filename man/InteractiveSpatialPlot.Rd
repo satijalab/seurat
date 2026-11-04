@@ -49,4 +49,7 @@ This function requires the
 selected_cells <- InteractiveSpatialPlot(object = brain)
 selected_cells <- InteractiveSpatialPlot(object = brain, overlay_image = FALSE)
 }
+
 }
+\concept{spatial}
+\concept{visualization}

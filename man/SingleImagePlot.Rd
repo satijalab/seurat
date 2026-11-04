@@ -20,16 +20,15 @@ SingleImagePlot(
   border.size = NULL,
   na.value = "grey50",
   dark.background = TRUE,
+  flip_xy = FALSE,
   ...
 )
 }
 \arguments{
 \item{data}{A data frame with at least the following columns:
 \itemize{
- \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
-  plotted on the \emph{y}-axis
- \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
-  plotted on the \emph{x}-axis
+ \item \dQuote{\code{x}}: Spatially-resolved \emph{x} coordinates
+ \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates
  \item \dQuote{\code{cell}}: Cell name
  \item \dQuote{\code{boundary}}: Segmentation boundary label; when plotting
   multiple segmentation layers, the order of boundary transparency is set by
@@ -61,10 +60,8 @@ vector of colors is provided to \code{cols}}
 \item{molecules}{A data frame with spatially-resolved molecule coordinates;
 should have the following columns:
 \itemize{
- \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
-  plotted on the \emph{y}-axis
- \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
-  plotted on the \emph{x}-axis
+ \item \dQuote{\code{x}}: Spatially-resolved \emph{x} coordinates
+ \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates
  \item \dQuote{\code{molecule}}: Molecule name
 }}
 
@@ -86,6 +83,8 @@ to suppress borders for centroid-based plots}
 
 \item{na.value}{Color value for \code{NA} segmentations when
 using custom scale}
+
+\item{flip_xy}{Exchange x and y axes (default \code{FALSE})}
 
 \item{...}{Ignored}
 }

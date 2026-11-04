@@ -4,12 +4,14 @@
 \alias{Read10X_HD_GeoJson}
 \title{Load 10X Genomics GeoJson}
 \usage{
-Read10X_HD_GeoJson(data.dir, segmentation.type = "cell")
+Read10X_HD_GeoJson(data.dir, segmentation.type = "cell", cells = NULL)
 }
 \arguments{
 \item{data.dir}{Path to the directory containing matrix data}
 
 \item{segmentation.type}{Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used}
+
+\item{cells}{Optional cell barcodes to retain after reading the GeoJSON.}
 }
 \value{
 An \code{sf} object containing polygon segmentations from the GeoJSON provided by 10x, formatted for downstream coordinate retrieval

@@ -21,7 +21,8 @@ SingleSpatialPlot(
   cells.highlight = NULL,
   cols.highlight = c("#DE2D26", "grey50"),
   geom = c("spatial", "interactive", "poly", "poly_starmap"),
-  na.value = "grey50"
+  na.value = "grey50",
+  image.context = NULL
 )
 }
 \arguments{
@@ -74,6 +75,9 @@ unselected cells.}
 functionality}
 
 \item{na.value}{Color for spots with NA values}
+
+\item{image.context}{Optional internal rendering context shared by panels
+using the same image. Defaults to \code{NULL} for standalone calls.}
 }
 \value{
 A ggplot2 object
