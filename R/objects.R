@@ -1774,7 +1774,7 @@ GetTissueCoordinates.VisiumV2 <- function(
   if (!(inherits(object[[which]], "Segmentation"))) {
     rownames(coordinates) <- coordinates[["cell"]]
   }
-  coordinates <- coordinates[, c("x", "y", "cell")]
+  coordinates <- coordinates[, c("x", "y", "cell"), drop = FALSE]
   if (!is.null(scale)) {
     # scale the coordinates by the specified factor
     scale <- match.arg(scale, choices = c("lowres", "hires"))
@@ -1869,7 +1869,7 @@ Radius.VisiumV1 <- function(object, scale = "lowres", ...) {
     match.arg(scale, choices = c("hires", "lowres"))
   ]]
 
-  image.size <- max(dim(GetImage(object, resolution=scale)$raster))
+  image.size <- max(dim(slot(object, "image"))[1:2])
 
   return ((spot.size * scale.factor) / image.size)
 }
@@ -2851,6 +2851,11 @@ setMethod(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+.UseImageCoordinates <- function(object) {
+  .hasSlot(object, "coords_x_orientation") &&
+    identical(slot(object, "coords_x_orientation"), "horizontal")
+}
 
 # Internal AddMetaData defintion
 #

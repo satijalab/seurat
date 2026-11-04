@@ -3976,6 +3976,10 @@ ISpatialFeaturePlot <- function(
 #' selected_cells <- InteractiveSpatialPlot(object = brain)
 #' selected_cells <- InteractiveSpatialPlot(object = brain, overlay_image = FALSE)
 #' }
+#'
+#' @concept spatial
+#' @concept visualization
+#'
 InteractiveSpatialPlot <- function(
   object,
   image = NULL,
@@ -4567,6 +4571,23 @@ SpatialPlot <- function(
   if (!(is.null(x = keep.scale)) && keep.scale == "all") {
     max.feature.value <- max(apply(data, 2, function(x) max(x, na.rm = TRUE)))
   }
+  feature.factors <- vapply(features, function(feature) is.factor(data[, feature]), logical(1L))
+  scale.by.feature <- !is.null(keep.scale) && keep.scale == "feature"
+  feature.max <- if (scale.by.feature) {
+    lapply(seq_along(features), function(j) if (!feature.factors[j]) max(data[, features[j]]) else NULL)
+  } else {
+    NULL
+  }
+  feature.cols <- if (is.null(cols)) {
+    lapply(seq_along(features), function(j) {
+      if (!feature.factors[j]) return(NULL)
+      groups <- levels(data[, features[j]])
+      setNames(hue_pal()(length(groups)), groups)
+    })
+  } else {
+    NULL
+  }
+  image.cache <- vector("list", length(images))
 
   for (i in 1:ncols) {
     plot.idx <- i
@@ -4574,51 +4595,49 @@ SpatialPlot <- function(
     image.use <- object[[images[[image.idx]]]]
 
     is_visium_v2 <- inherits(image.use, "VisiumV2")
-    old_axis_orientation <- (!.hasSlot(image.use, "coords_x_orientation")) || (.hasSlot(image.use, "coords_x_orientation") && (slot(image.use, "coords_x_orientation") != 'horizontal'))
-    
-    if (is_visium_v2 && old_axis_orientation) {
+    if (is_visium_v2 && !.UseImageCoordinates(image.use)) {
       stop(
         "Please run `UpdateSeuratObject` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
         call. = TRUE
       )
     }
 
-    # When plotting segmentations, set the default boundary (temporarily) to segmentations
-    if (plot_segmentations == TRUE && inherits(image.use, "VisiumV2") && 
-        "segmentations" %in% names(image.use)) {
-      db <- DefaultBoundary(image.use)
-      on.exit(DefaultBoundary(image.use) <- db, add = TRUE) # Reset on exit
-      DefaultBoundary(image.use) <- "segmentations"
+    prepared <- image.cache[[image.idx]]
+    if (is.null(prepared)) {
+      coordinates <- if (plot_segmentations == TRUE && is_visium_v2 && "segmentations" %in% names(image.use)) {
+        GetTissueCoordinates(object = image.use, scale = image.scale, which = "segmentations")
+      } else {
+        GetTissueCoordinates(object = image.use, scale = image.scale)
+      }
+      # VisiumV1 coordinates use row names rather than a cell column.
+      if (!("cell" %in% colnames(coordinates))) {
+        coordinates$cell <- rownames(coordinates)
+      }
+      prepared <- list(
+        coordinates = coordinates,
+        index = match(coordinates$cell, rownames(data)),
+        segmentations = is_visium_v2 &&
+          !is.null(image.use@boundaries$segmentations) &&
+          "sf.data" %in% slotNames(image.use@boundaries$segmentations),
+        context = if (inherits(image.use, c("VisiumV1", "VisiumV2"))) .SpatialImageContext(image.use) else NULL
+      )
+      image.cache[[image.idx]] <- prepared
     }
-    coordinates <- GetTissueCoordinates(object = image.use, scale = image.scale)
+    coordinates <- prepared$coordinates
+    idx <- prepared$index
+    has_visium_segm_data <- prepared$segmentations
     highlight.use <- if (facet.highlight) {
       cells.highlight[i]
     } else {
       cells.highlight
     }
     for (j in seq_along(features)) {
-      cols.unset <- is.factor(x = data[, features[j]]) && is.null(x = cols)
-      if (cols.unset) {
-        cols <- hue_pal()(n = length(x = levels(x = data[, features[j]])))
-        names(x = cols) <- levels(x = data[, features[j]])
-      }
+      cols.use <- if (is.null(cols)) feature.cols[[j]] else cols
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], what = "factor") ) {
-        max.feature.value <- max(data[, features[j]])
+      if (scale.by.feature && !feature.factors[j]) {
+        max.feature.value <- feature.max[[j]]
       }
-
-      # Check if object is of type Visium and contains segmentations
-      has_visium_segm_data <- inherits(image.use, "VisiumV2") &&
-                              !is.null(image.use@boundaries$segmentations) &&
-                              "sf.data" %in% slotNames(image.use@boundaries$segmentations)
-
-      # GetTissueCoordinates will not always return a "cell" column (e.g., Visium V1)
-      if (!("cell" %in% colnames(x = coordinates))) {
-        coordinates$cell <- rownames(x = coordinates)
-      }
-
-      idx <- match(coordinates$cell, rownames(x = data))
       plot.data <- cbind(coordinates, data[idx, features[j], drop = FALSE])
 
       plot <- SingleSpatialPlot(
@@ -4627,7 +4646,7 @@ SpatialPlot <- function(
         image.scale = image.scale,
         image.alpha = image.alpha,
         col.by = features[j],
-        cols = cols,
+        cols = cols.use,
         alpha.by = if (is.null(x = group.by)) {
           features[j]
         } else {
@@ -4651,7 +4670,8 @@ SpatialPlot <- function(
         shape = shape,
         stroke = stroke,
         stroke.alpha = stroke.alpha,
-        crop = crop
+        crop = crop,
+        image.context = prepared$context
       )
       if (is.null(x = group.by)) {
         plot <- plot +
@@ -4704,9 +4724,6 @@ SpatialPlot <- function(
 
       plots[[plot.idx]] <- plot
       plot.idx <- plot.idx + ncols
-      if (cols.unset) {
-        cols <- NULL
-      }
     }
   }
 
@@ -6899,6 +6916,66 @@ fortify.Segmentation <- function(model, data, ...) {
 }
 
 
+# Keep the two existing rendering paths' interpolation and transparency
+# behavior, including the raster ordering used by GeomSpatial.
+.SpatialImageGrob <- function(image, image.alpha) {
+  grob <- GetImage(image)
+  if (image.alpha != 1) {
+    grob$raster <- as.raster(matrix(
+      data = alpha(colour = grob$raster, alpha = image.alpha),
+      nrow = nrow(grob$raster), ncol = ncol(grob$raster), byrow = TRUE
+    ))
+  }
+  grob
+}
+
+.SpatialPolygonImageGrob <- function(image, image.alpha) {
+  pixels <- GetImage(object = image, mode = "raw")
+  if (image.alpha < 1) {
+    rgba <- array(NA, dim = c(dim(pixels)[1:2], 4))
+    rgba[, , 1:3] <- pixels
+    rgba[, , 4] <- image.alpha
+    pixels <- rgba
+  }
+  rasterGrob(pixels, width = unit(1, "npc"), height = unit(1, "npc"), interpolate = FALSE)
+}
+
+# Each image gets its own context within a SpatialPlot call. Closures retain
+# only that image, not the Seurat object or expression/coordinate tables.
+# Grobs are prepared on first use so image.alpha = 0 never converts pixels.
+.SpatialImageContext <- function(image) {
+  force(image)
+  spatial <- polygon <- radius <- NULL
+  spatial.alpha <- polygon.alpha <- radius.scale <- NULL
+  radius.ready <- FALSE
+  list(
+    dimensions = dim(slot(image, "image"))[1:2],
+    ggplot4 = packageVersion("ggplot2") >= "4.0.0",
+    radius = function(scale) {
+      if (!radius.ready || !identical(scale, radius.scale)) {
+        radius <<- Radius(object = image, scale = scale)
+        radius.scale <<- scale
+        radius.ready <<- TRUE
+      }
+      radius
+    },
+    spatial = function(alpha) {
+      if (is.null(spatial) || !identical(alpha, spatial.alpha)) {
+        spatial <<- .SpatialImageGrob(image, alpha)
+        spatial.alpha <<- alpha
+      }
+      spatial
+    },
+    polygon = function(alpha) {
+      if (is.null(polygon) || !identical(alpha, polygon.alpha)) {
+        polygon <<- .SpatialPolygonImageGrob(image, alpha)
+        polygon.alpha <<- alpha
+      }
+      polygon
+    }
+  )
+}
+
 #' @importFrom SeuratObject Features Key Keys Molecules
 #'
 .MolsByFOV <- function(object, fov, molecules) {
@@ -7548,7 +7625,7 @@ GeomSpatial <- ggproto(
   "GeomSpatial",
   Geom,
   required_aes = c("x", "y"),
-  extra_params = c("na.rm", "image", "image.alpha", "image.scale", "crop"),
+  extra_params = c("na.rm", "image", "image.alpha", "image.scale", "crop", "image.context"),
   default_aes = aes(
     shape = 21,
     colour = "black",
@@ -7563,8 +7640,8 @@ GeomSpatial <- ggproto(
     data
   },
   draw_key = draw_key_point,
-  draw_panel = function(data, panel_scales, coord, image, image.alpha, image.scale, crop) {
-    img.dim <- dim(image)
+  draw_panel = function(data, panel_scales, coord, image, image.alpha, image.scale, crop, image.context = NULL) {
+    img.dim <- if (is.null(image.context)) dim(image) else image.context$dimensions
 
     # This should be in native units, where
     # Locations and sizes are relative to the x- and yscales for the current viewport.
@@ -7591,7 +7668,11 @@ GeomSpatial <- ggproto(
     )
 
     # Calculate spot size relative to the image size to be consistent across different images and scales
-    spot.radius <- Radius(object = image, scale = image.scale)
+    spot.radius <- if (is.null(image.context)) {
+      Radius(object = image, scale = image.scale)
+    } else {
+      image.context$radius(image.scale)
+    }
     base.point.size <- if (length(spot.radius) == 1L) {
       unit(spot.radius, "npc")
     } else {
@@ -7620,17 +7701,12 @@ GeomSpatial <- ggproto(
     gt <- gTree(vp = canvas_viewport) # empty gTree to add the image and points to
     # Only draw the image if it has a non-zero alpha value, otherwise just draw the points
     if (image.alpha > 0) {
-      img_grob <- GetImage(image)
-      img <- editGrob(grob = img_grob, vp = plot_viewport)
-      if (image.alpha != 1) {
-        img$raster = as.raster(
-          x = matrix(
-            data = alpha(colour = img$raster, alpha = image.alpha),
-            nrow = nrow(x = img$raster),
-            ncol = ncol(x = img$raster),
-            byrow = TRUE)
-        )
+      img_grob <- if (is.null(image.context)) {
+        .SpatialImageGrob(image, image.alpha)
+      } else {
+        image.context$spatial(image.alpha)
       }
+      img <- editGrob(grob = img_grob, vp = plot_viewport)
       gt <- addGrob(gTree = gt, child = img)
     }
     gt <- addGrob(gTree = gt, child = pts)
@@ -7657,6 +7733,7 @@ geom_spatial <-  function(
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE,
+  image.context = NULL,
   ...
 ) {
   layer(
@@ -7673,6 +7750,7 @@ geom_spatial <-  function(
       image.alpha = image.alpha,
       image.scale = image.scale,
       crop = crop,
+      image.context = image.context,
       ...
     )
   )
@@ -9653,6 +9731,8 @@ SingleRasterMap <- function(
 #' @param geom Switch between normal spatial geom and geom to enable hover
 #' functionality
 #' @param na.value Color for spots with NA values
+#' @param image.context Optional internal rendering context shared by panels
+#' using the same image. Defaults to \code{NULL} for standalone calls.
 #'
 #' @return A ggplot2 object
 #'
@@ -9682,13 +9762,14 @@ SingleSpatialPlot <- function(
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
   geom = c('spatial', 'interactive', 'poly', 'poly_starmap'),
-  na.value = 'grey50'
+  na.value = 'grey50',
+  image.context = NULL
 ) {
   geom <- match.arg(arg = geom)
-  image_dim <- dim(image)
+  image_dim <- if (is.null(image.context)) dim(image) else image.context$dimensions
   image.height <- image_dim[1]
   image.width <- image_dim[2]
-  ggplot_version_4 <- packageVersion("ggplot2") >= "4.0.0"
+  ggplot_version_4 <- if (is.null(image.context)) packageVersion("ggplot2") >= "4.0.0" else image.context$ggplot4
 
   # Helper to set coord limits based on image dimensions
   coord_limits <- function() {
@@ -9710,19 +9791,11 @@ SingleSpatialPlot <- function(
     if (image.alpha == 0) {
       return(NULL)
     }
-    image_to_plot <- GetImage(object = image, mode = "raw")
-    if (image.alpha < 1) {
-      rgba_image <- array(data = NA, dim = c(image_dim[1:2], 4))
-      rgba_image[, , 1:3] <- image_to_plot
-      rgba_image[, , 4] <- image.alpha
-      image_to_plot <- rgba_image
+    image.grob <- if (is.null(image.context)) {
+      .SpatialPolygonImageGrob(image, image.alpha)
+    } else {
+      image.context$polygon(image.alpha)
     }
-    image.grob <- rasterGrob(
-      image_to_plot,
-      width = unit(1, "npc"),
-      height = unit(1, "npc"),
-      interpolate = FALSE
-    )
     if (!ggplot_version_4) {
       message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
       return(annotation_custom(
@@ -9790,6 +9863,7 @@ SingleSpatialPlot <- function(
           image = image,
           image.alpha = image.alpha,
           image.scale = image.scale,
+          image.context = image.context,
           crop = crop,
           shape = shape,
           stroke = stroke,
@@ -9802,6 +9876,7 @@ SingleSpatialPlot <- function(
           image = image,
           image.alpha = image.alpha,
           image.scale = image.scale,
+          image.context = image.context,
           crop = crop,
           shape = shape,
           stroke = stroke,
