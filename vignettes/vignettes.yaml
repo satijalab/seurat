@@ -36,13 +36,13 @@
       name: scSLIDE_COVID19
       summary: |
         Analyze differences between samples with scSLIDE using a COVID-19 single-cell dataset.
-      image: assets/scslide.png
+      image: assets/scslide_1.png
 
     - title: Large-scale sample-level analysis with scSLIDE
       name: scSLIDE_SEA_AD
       summary: |
         Apply scSLIDE to a large Alzheimer's disease dataset using on-disk data with BPCells.
-      image: assets/scslide.png
+      image: assets/scslide_2.png
     
     - title: Analyzing perturbation responses with RNA fingerprinting
       name: rna_fingerprinting
