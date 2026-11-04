@@ -2,22 +2,47 @@
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat)
 
 
-# Seurat v5
+# Seurat v6
 
 Seurat is an R toolkit for single-cell genomics, developed and maintained by the [Satija Lab](https://satijalab.org/) at [NYGC](https://www.nygenome.org/).
 
-> We are excited to release Seurat v5! This update introduces new functionality for spatial, multimodal, and scalable single-cell analysis.
->
-> Seurat v5 is backwards-compatible with previous versions, so that users will continue to be able to re-run existing workflows. 
+## Quick links
 
-Installation instructions, documentation, and tutorials can be found at:
+* [Get started with Seurat](https://satijalab.org/seurat/articles/get_started)
+* [Function reference](https://satijalab.org/seurat/reference/index.html)
+* [Changelog](https://satijalab.org/seurat/news/)
 
-* https://satijalab.org/seurat
+## Installation
 
-Seurat can be successfully installed in R on any system (Mac OS X, Linux, Windows).
+Install the latest release from CRAN:
 
-Improvements and new features are added on a regular basis. For the most up-to-date development version, refer to the `main` branch. For the most recent version released on CRAN, refer to the `cran` branch.
+```r
+install.packages("Seurat")
+library(Seurat)
+```
 
-Please post under [Issues](https://github.com/satijalab/seurat/issues) with any bug reports, feature requests, etc., and use [Discussions](https://github.com/satijalab/seurat/discussions) to engage with the wider Seurat community on analysis questions and other topics. [PRs](https://github.com/satijalab/seurat/pulls) are welcome if you would like to contribute.
+Seurat can be successfully installed in R on any system, including macOS, Linux, and Windows.
 
-For a version history/changelog, please see the [NEWS file](https://github.com/satijalab/seurat/blob/main/NEWS.md).
+See the **[installation guide](https://satijalab.org/seurat/articles/install.html)** for details on optional dependencies, Docker containers, and more.
+
+## Development
+
+### Versions
+
+Improvements and new features are added on a regular basis.
+
+- The [`main` branch](https://github.com/satijalab/seurat/tree/main) is the most up-to-date development version (refer to the `NEWS.md` file for details).
+- The [`cran` branch](https://github.com/satijalab/seurat/tree/cran) reflects the most recent version released on CRAN.
+- Full version history is documented in the [changelog](https://satijalab.org/seurat/news/).
+
+## Contributing
+
+- Please use [issues](https://github.com/satijalab/seurat/issues) to submit bug reports or feature requests.
+
+- Please use [discussions](https://github.com/satijalab/seurat/discussions) to ask / answer analysis questions, share ideas, and engage with the wider Seurat community.
+
+- We welcome contributions via [pull requests](https://github.com/satijalab/seurat/pulls)! Please be sure to follow our PR template.
+
+## Code of conduct
+
+We are committed to fostering a welcoming and respectful community. _All participants are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md)._
