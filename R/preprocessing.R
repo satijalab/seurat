@@ -12,23 +12,62 @@ globalVariables(
   package = 'Seurat',
   add = TRUE
 )
-#' read a MatrixMarket file using data.table::fread which is much faster than Matrix:readMM
+#' Read MatrixMarket counts with fread when available
 #'
-#' @param filename Path to MatrixMarket file
-#'
-#' @return Returns a sparse matrix in coordinate format
-#'
+#' @param file Path or connection to a MatrixMarket file
+#' @return A sparse matrix in coordinate format
 #' @author Giulio Genovese, \email{giulio.genovese@gmail.com}
-#''
+#'
+#' @keywords internal
+#' @noRd
+#'
 readMM_fast <- function(file) {
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
-  if (has_dt) {
-    dt <- data.table::fread(file, header = TRUE, skip = 1, colClasses = c("integer", "integer", "numeric"), quote = "", data.table = FALSE)
-    data <- new("dgTMatrix", i = dt[,1] - 1L, j = dt[,2] - 1L, x = dt[,3], Dim = as.integer(c(names(dt)[1], names(dt)[2])))
-  } else {
-    data <- Matrix::readMM(file)
+  if (!has_dt || inherits(file, "connection")) return(Matrix::readMM(file))
+  header <- readLines(file, n = 1L)
+  if (!grepl("^%%MatrixMarket matrix coordinate (integer|real) general[[:space:]]*$",
+    header, ignore.case = TRUE)) return(Matrix::readMM(file))
+  # Handle comments that might appear between the banner and dimensions
+  if (grepl("^[[:space:]]*%", readLines(file, n = 2L)[2L])) {
+    return(Matrix::readMM(file))
   }
-  return(data)
+  dt <- data.table::fread(file, header = TRUE, skip = 1,
+    colClasses = c("integer", "integer", "numeric"), quote = "", data.table = FALSE)
+  new("dgTMatrix", i = dt[, 1] - 1L, j = dt[, 2] - 1L, x = dt[, 3],
+    Dim = as.integer(names(dt)[1:2]))
+}
+
+# Read loader tables with optional fread acceleration, skipping unneeded columns during parsing
+.ReadLoaderTable <- function(file, header = TRUE, sep = ",", skip = 0L,
+                             colClasses = NA, check.names = FALSE,
+                             select = NULL, ...) {
+  if (!is.null(select) || !is.null(names(colClasses))) {
+    # read just the header to find available columns (qv may be absent)
+    columns <- names(read.table(file, header = header, sep = sep, skip = skip, nrows = 0L, colClasses = "character",
+                                check.names = check.names, comment.char = "", ...))
+    # NA lets the reader infer a column's type; explicit classes override it
+    classes <- rep(NA_character_, length(columns))
+    names(classes) <- columns
+    if (is.null(names(colClasses))) {
+      classes[] <- rep(colClasses, length.out = length(columns))
+    } else {
+      # apply named classes only to columns present in this file
+      specified <- intersect(names(colClasses), columns)
+      classes[specified] <- colClasses[specified]
+    }
+    # "NULL" skips unwanted columns while parsing
+    if (!is.null(select)) classes[!columns %in% select] <- "NULL"
+    colClasses <- classes
+  }
+  # fread needs a file path; R.utils provides its gzip support.
+  if (!inherits(file, "connection") &&
+      requireNamespace("data.table", quietly = TRUE) &&
+      requireNamespace("R.utils", quietly = TRUE)) {
+    return(data.table::fread(file, header = header, sep = sep, skip = skip, colClasses = if (identical(colClasses, NA)) NULL else colClasses,
+                              check.names = check.names, keepLeadingZeros = TRUE, data.table = FALSE, ...))
+  }
+  # fall back to base R read.table if optional packages are not available
+  return(read.table(file, header = header, sep = sep, skip = skip, colClasses = colClasses, check.names = check.names, stringsAsFactors = FALSE, comment.char = "", row.names = NULL, ...))
 }
 
 #' Calculate the Barcode Distribution Inflection
@@ -637,7 +676,10 @@ Load10X_Spatial <- function (
     counts.list <- lapply(counts.paths, Read10X_h5, ...)
     # maybe convert Cell identifiers to uppercase
     if (to.upper) {
-      rownames(counts) <- lapply(rownames(counts), toupper)
+      counts.list <- lapply(counts.list, function(counts) {
+        rownames(counts) <- toupper(rownames(counts))
+        counts
+      })
     }
 
     if (is.null(image)) {
@@ -647,8 +689,8 @@ Load10X_Spatial <- function (
         file.path(data.dirs, "spatial"),
         assay = assay.names,
         slice = slice.names,
-        image.name = image.name,
-        MoreArgs = list(filter.matrix = filter.matrix)
+        cells = lapply(counts.list, colnames),
+        MoreArgs = list(filter.matrix = filter.matrix, image.name = image.name)
       )
     } else {
       # make sure any passed images are in a vector
@@ -725,6 +767,7 @@ Load10X_Spatial <- function (
 
     # Read raw counts matrix
     segmentation.counts <- Read10X_h5(seg.counts.path, ...)
+    if (to.upper) rownames(segmentation.counts) <- toupper(rownames(segmentation.counts))
 
     # Holds barcode names
     segmentation.counts.cell.ids <- colnames(segmentation.counts)
@@ -741,8 +784,11 @@ Load10X_Spatial <- function (
       image.dir = file.path(seg.data.dir, "spatial"),
       data.dir = data.dir,
       image.name = image.name,
+      assay = segmentation.assay.name,
+      slice = paste0(slice, ".polygons"),
       segmentation.type = segmentation.type,
-      compact = compact
+      compact = compact,
+      cells = segmentation.counts.cell.ids
     )
 
     # Create a new Seurat object with the raw counts
@@ -842,28 +888,13 @@ LoadSTARmap <- function(
   if (!dir.exists(paths = data.dir)) {
     stop("Cannot find directory ", data.dir, call. = FALSE)
   }
-  counts <- read.csv(
-    file = file.path(data.dir, counts.file),
-    as.is = TRUE,
-    header = FALSE
-  )
-  gene.names <- read.csv(
-    file = file.path(data.dir, gene.file),
-    as.is = TRUE,
-    header = FALSE
-  )
-  qhulls <- read.table(
-    file = file.path(data.dir, qhull.file),
-    sep = '\t',
-    col.names = c('cell', 'y', 'x'),
-    as.is = TRUE
-  )
-  centroids <- read.table(
-    file = file.path(data.dir, centroid.file),
-    sep = '\t',
-    as.is = TRUE,
-    col.names = c('y', 'x')
-  )
+  counts <- .ReadLoaderTable(file.path(data.dir, counts.file), header = FALSE)
+  gene.names <- .ReadLoaderTable(file.path(data.dir, gene.file), header = FALSE,
+    colClasses = "character")
+  qhulls <- .ReadLoaderTable(file.path(data.dir, qhull.file), header = FALSE,
+    sep = "\t", col.names = c("cell", "y", "x"))
+  centroids <- .ReadLoaderTable(file.path(data.dir, centroid.file), header = FALSE,
+    sep = "\t", col.names = c("y", "x"))
   colnames(x = counts) <- gene.names[, 1]
   rownames(x = counts) <- paste0('starmap', seq(1:nrow(x = counts)))
   counts <- as.matrix(x = counts)
@@ -948,14 +979,14 @@ LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
   # load counts matrix and create seurat object
   mtx <- readMM_fast(mtx.file)
   mtx <- as.sparse(mtx)
-  barcodes <- read.csv(barcodes.file, header = FALSE)
-  genes <- read.csv(genes.file, header = FALSE)
+  barcodes <- .ReadLoaderTable(barcodes.file, header = FALSE, sep = "\t", colClasses = "character")
+  genes <- .ReadLoaderTable(genes.file, header = FALSE, sep = "\t", colClasses = "character")
   colnames(mtx) <- barcodes$V1
   rownames(mtx) <- genes$V1
   object <- CreateSeuratObject(counts = mtx, assay = assay)
 
   # load positions of each bead and store in a SlideSeq object in images slot
-  coords <- read.csv(coordinates.file)
+  coords <- .ReadLoaderTable(coordinates.file, colClasses = c("character", "numeric", "numeric"))
   colnames(coords) <- c("cell", "x", "y")
   coords$y <- -coords$y
   rownames(coords) <- coords$cell
@@ -1145,9 +1176,9 @@ Read10X <- function(
     }
     data <- readMM_fast(file = matrix.loc)
     if (has_dt) {
-      cell.barcodes <- as.data.frame(data.table::fread(barcode.loc, header = FALSE))
+      cell.barcodes <- as.data.frame(data.table::fread(barcode.loc, header = FALSE, colClasses = "character"))
     } else {
-      cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
+      cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL, colClasses = 'character')
     }
 
     if (ncol(x = cell.barcodes) > 1) {
@@ -1258,8 +1289,9 @@ Read10X <- function(
 #' @param use.names Label row names with feature names rather than ID numbers.
 #' @param unique.features Make feature names unique (default TRUE)
 #'
-#' @return Returns a sparse matrix with rows and columns labeled. If multiple
-#' genomes are present, returns a list of sparse matrices (one per genome).
+#' @return A sparse matrix with rows and columns labeled. Multiple feature types
+#' return a named list of matrices; legacy multi-genome files return one entry
+#' per genome.
 #'
 #' @export
 #' @concept preprocessing
@@ -1272,6 +1304,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     stop("File not found")
   }
   infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
+  on.exit(infile$close_all(), add = TRUE)
   genomes <- names(x = infile)
   output <- list()
   if (hdf5r::existsGroup(infile, 'matrix')) {
@@ -1296,19 +1329,13 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     features <- infile[[paste0(genome, '/', feature_slot)]][]
     barcodes <- infile[[paste0(genome, '/barcodes')]]
 
+    if (unique.features) features <- make.unique(names = features)
     sparse.mat <- sparseMatrix(
-      i = indices[] + 1,
-      p = indptr[],
-      x = as.numeric(x = counts[]),
-      dims = shp[],
-      repr = "T"
+      i = indices[] + 1, p = indptr[], x = as.numeric(counts[]),
+      dims = shp[], repr = "C"
     )
-    if (unique.features) {
-      features <- make.unique(names = features)
-    }
-    rownames(x = sparse.mat) <- features
-    colnames(x = sparse.mat) <- barcodes[]
-    sparse.mat <- as.sparse(x = sparse.mat)
+    rownames(sparse.mat) <- features
+    colnames(sparse.mat) <- barcodes[]
     # Split v3 multimodal
     if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
@@ -1322,7 +1349,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
         sparse.mat <- sapply(
           X = types.unique,
           FUN = function(x) {
-            return(sparse.mat[which(x = types == x), ])
+            return(sparse.mat[which(x = types == x), , drop = FALSE])
           },
           simplify = FALSE,
           USE.NAMES = TRUE
@@ -1340,7 +1367,6 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     }
     output[[genome]] <- sparse.mat
   }
-  infile$close_all()
   if (length(x = output) == 1) {
     return(output[[genome]])
   } else{
@@ -1359,6 +1385,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue
 #' @param image.type Image type to return, one of: "VisiumV1" or "VisiumV2"
+#' @param cells Optional barcode vector to restrict tissue positions before
+#' collection. \code{NULL} reads all eligible positions.
 #'
 #' @return A \code{\link{VisiumV2}} object
 #'
@@ -1373,7 +1401,8 @@ Read10X_Image <- function(
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE,
-  image.type = "VisiumV2"
+  image.type = "VisiumV2",
+  cells = NULL
 ) {
   # Validate the `image.type` parameter.
   image.type <- match.arg(image.type, choices = c("VisiumV1", "VisiumV2"))
@@ -1400,7 +1429,8 @@ Read10X_Image <- function(
   # Read in the tissue coordinates as a data.frame.
   coordinates <- Read10X_Coordinates(
     filename = Sys.glob(file.path(image.dir, "*tissue_positions*")),
-    filter.matrix
+    filter.matrix = filter.matrix,
+    cells = cells
   )
 
   # Use the `slice` value to populate a Seurat-style identifier for the image.
@@ -1462,72 +1492,39 @@ Read10X_Image <- function(
 
 #' Load 10X Genomics Visium Tissue Positions
 #'
-#' @param filename Path to a \code{tissue_positions_list.csv} file
+#' @param filename Path to a \code{tissue_positions_list.csv},
+#' \code{tissue_positions.csv}, or \code{tissue_positions.parquet} file
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue
 #'
+#' @param cells Optional barcode vector to retain. \code{NULL} reads all
+#' eligible positions. Filters are applied after reading the table.
 #' @return A data.frame
 #'
 #' @export
 #' @concept preprocessing
 #'
-Read10X_Coordinates <- function(filename, filter.matrix) {
-  # output columns names
-  col.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
-
-  # if the coordinate mappings are in a parquet file
+Read10X_Coordinates <- function(filename, filter.matrix, cells = NULL) {
+  if (length(filename) != 1L) stop("filename must identify one tissue positions file")
+  input.names <- c("barcode", "in_tissue", "array_row", "array_col",
+    "pxl_row_in_fullres", "pxl_col_in_fullres")
+  output.names <- c("barcodes", "tissue", "row", "col", "imagerow", "imagecol")
   if (tools::file_ext(filename) == "parquet") {
-    # `arrow` must be installed to read parquet files
-    if (isFALSE(x = requireNamespace('arrow', quietly = TRUE))) {
-      stop("Please install arrow to read parquet files")
-    }
-
-    # read in coordinates and conver the resulting tibble into a data.frame
+    if (!requireNamespace("arrow", quietly = TRUE)) stop("Please install arrow to read parquet files")
     coordinates <- as.data.frame(arrow::read_parquet(filename))
-    # normalize column names for consistency with other datatypes
-    input.col.names <- c(
-      "barcode",
-      "in_tissue",
-      "array_row",
-      "array_col",
-      "pxl_row_in_fullres",
-      "pxl_col_in_fullres"
-    )
-    col.map <- stats::setNames(col.names, input.col.names)
-    colnames(coordinates) <- ifelse(
-      colnames(coordinates) %in% names(col.map),
-      col.map[colnames(coordinates)],
-      colnames(coordinates)
-    )
-
-    # set rownames to "barcodes" then drop the column
-    rownames(coordinates) <- coordinates[["barcodes"]]
-    coordinates[["barcodes"]] <- NULL
-
   } else {
-    # the coordinate mappings must be in a CSV - read it in
-    coordinates <- read.csv(
-        file = filename,
-        col.names = col.names,
-        header = ifelse(
-          # assume files calles "tissue_positions.csv" have headers, otherwise
-          # assume they do not (i.e. "tissue_positions_list.csv")
-          test = basename(filename) == "tissue_positions.csv",
-          yes = TRUE,
-          no = FALSE
-        ),
-        as.is = TRUE,
-        row.names = 1
-      )
+    coordinates <- .ReadLoaderTable(filename,
+      header = basename(filename) == "tissue_positions.csv",
+      col.names = input.names, colClasses = c("character", rep("numeric", 5L)))
   }
-
-  # the `tissue` column should contain a boolean indicating whether or not a
-  # spot sits on top of the the tissue sample - maybe filter spots that do not
-  if (filter.matrix) {
-    coordinates <- coordinates[which(coordinates$tissue == 1), , drop = FALSE]
-  }
-
-  return (coordinates)
+  if (filter.matrix) coordinates <- coordinates[coordinates$in_tissue %in% 1, , drop = FALSE]
+  if (!is.null(cells)) coordinates <- coordinates[coordinates$barcode %in% cells, , drop = FALSE]
+  coordinates <- coordinates[, input.names, drop = FALSE]
+  names(coordinates) <- output.names
+  for (column in output.names[-1L]) coordinates[[column]] <- as.numeric(coordinates[[column]])
+  rownames(coordinates) <- coordinates$barcodes
+  coordinates$barcodes <- NULL
+  coordinates
 }
 
 #' Load 10X Genomics Visium Scale Factors
@@ -1560,7 +1557,8 @@ Read10X_ScaleFactors <- function(filename) {
 #' @param assay Name of assay to associate segmentations to
 #' @param slice Name of the slice to associate the segmentations to
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
-#' @param compact Whether to store segmentations in only the \code{sf.data} slot; see \code{\link{Load10X_Spatial}} for details
+#' @param cells Optional vector of cell barcodes to retain.
+#' @inheritParams Load10X_Spatial
 #'
 #'
 #' @return A VisiumV2 object with segmentations
@@ -1574,13 +1572,13 @@ Read10X_Segmentations <- function (image.dir,
                                    assay = "Spatial.Polygons",
                                    slice = "slice1.polygons",
                                    segmentation.type = "cell",
-                                   compact = TRUE) {
+                                   compact = TRUE,
+                                   cells = NULL) {
 
 
   sf.obj <- Read10X_HD_GeoJson(data.dir = data.dir,
-                                segmentation.type = segmentation.type)
+    segmentation.type = segmentation.type, cells = cells)
 
-  # Create a Segmentation object; populate it based on the coordinates from the sf object
   segmentations <- CreateSegmentation(sf.obj, compact = compact)
 
   # Create a Centroids object; populate it based on the centroids from the sf object
@@ -1623,6 +1621,10 @@ Read10X_Segmentations <- function (image.dir,
 #' The GeoJson has cell IDs as integers (eg 1). They need to be in the format cellid_000000001-1
 #'
 #' @return Vector of formatted cell IDs
+#'
+#' @keywords internal
+#' @noRd
+#'
 Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", digits = 9) {
   format_string <- paste0("%0", as.integer(digits), "d")
 
@@ -1639,23 +1641,23 @@ Format10X_GeoJson_CellID <- function(ids, prefix = "cellid_", suffix = "-1", dig
 #' @param data.dir Path to the directory containing matrix data
 #' @param segmentation.type Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used
 #'
+#' @param cells Optional cell barcodes to retain after reading the GeoJSON.
 #' @return An \code{sf} object containing polygon segmentations from the GeoJSON provided by 10x, formatted for downstream coordinate retrieval
 #'
 #' @export
 #' @concept preprocessing
 #'
-Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell") {
-  segmentation_polygons <- sf::read_sf(file.path(data.dir,"segmented_outputs", paste0(segmentation.type, "_segmentations.geojson")))
+Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell", cells = NULL) {
+  segmentation.type <- match.arg(segmentation.type, c("cell", "nucleus"))
+  path <- file.path(data.dir, "segmented_outputs", paste0(segmentation.type, "_segmentations.geojson"))
+  segmentation_polygons <- sf::read_sf(path)
+  if (!is.null(cells)) {
+    segmentation_polygons <- segmentation_polygons[
+      Format10X_GeoJson_CellID(segmentation_polygons$cell_id) %in% cells, , drop = FALSE]
+  }
 
-  # Restructure sf geometry for downstream compatibility
-  segmentation_polygons$geometry <- sf::st_sfc(lapply(
-    segmentation_polygons$geometry,
-    function(geom) {
-      coords <- geom[[1]]
-      sf::st_polygon(list(coords))
-    }
-  ), crs = sf::st_crs(NA))
-
+  # Space Ranger geometry uses image coordinates, not geographic degrees.
+  sf::st_crs(segmentation_polygons) <- NA
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
   segmentation_polygons
 }
@@ -2072,20 +2074,10 @@ ReadMtx <- function(
     }
     all.files[[i]] <- uri
   }
-  cell.barcodes <- read.table(
-    file = all.files[['barcode list']],
-    header = FALSE,
-    sep = cell.sep,
-    row.names = NULL,
-    skip = skip.cell
-  )
-  feature.names <- read.table(
-    file = all.files[['feature list']],
-    header = FALSE,
-    sep = feature.sep,
-    row.names = NULL,
-    skip = skip.feature
-  )
+  cell.barcodes <- .ReadLoaderTable(all.files[['barcode list']], header = FALSE,
+    sep = cell.sep, skip = skip.cell, colClasses = "character")
+  feature.names <- .ReadLoaderTable(all.files[['feature list']], header = FALSE,
+    sep = feature.sep, skip = skip.feature, colClasses = "character")
   # read barcodes
   bcols <- ncol(x = cell.barcodes)
   if (bcols < cell.column) {
@@ -2574,6 +2566,90 @@ ReadNanostring <- function(
   return(outs)
 }
 
+.SpatialValidateRegion <- function(region) {
+  if (is.null(region)) return(invisible(NULL))
+  if (!is.list(region) || !setequal(names(region), c("x", "y")) ||
+      !all(vapply(region, function(x) is.numeric(x) && length(x) == 2L &&
+        all(is.finite(x)) && x[1L] <= x[2L], logical(1)))) {
+    stop("region must be a list with increasing finite numeric x and y ranges")
+  }
+  invisible(NULL)
+}
+
+.SpatialDecodeStrings <- function(x) {
+  if (!is.list(x)) return(as.character(x))
+  vapply(x, function(value) {
+    if (is.raw(value)) rawToChar(value) else rawToChar(as.raw(strtoi(value, 16L)))
+  }, character(1))
+}
+
+.XeniumReadMolecules <- function(data.dir, genes = NULL, mols.qv.threshold = 20,
+                                 flip.xy = FALSE, region = NULL) {
+  .SpatialValidateRegion(region)
+  if (!is.numeric(mols.qv.threshold) || length(mols.qv.threshold) != 1L ||
+      !is.finite(mols.qv.threshold)) stop("mols.qv.threshold must be a finite number")
+  if (!is.null(genes) && (!is.character(genes) || anyNA(genes))) {
+    stop("genes must be NULL or a character vector without missing values")
+  }
+  parquet <- file.path(data.dir, "transcripts.parquet")
+  csv <- file.path(data.dir, "transcripts.csv.gz")
+  columns <- c("x_location", "y_location", "feature_name", "qv")
+  transcripts <- if (file.exists(parquet) && requireNamespace("arrow", quietly = TRUE)) {
+    reader <- arrow::ParquetFileReader$create(parquet)
+    columns <- intersect(columns, reader$GetSchema()$names)
+    as.data.frame(arrow::read_parquet(parquet, col_select = columns))
+  } else {
+    if (file.exists(parquet) && !file.exists(csv)) {
+      stop("Please install arrow to read transcripts.parquet", call. = FALSE)
+    }
+    .ReadLoaderTable(csv, select = columns,
+      colClasses = c(feature_name = "character"))
+  }
+  transcripts$feature_name <- .SpatialDecodeStrings(transcripts$feature_name)
+  keep <- rep(TRUE, nrow(transcripts))
+  if ("qv" %in% names(transcripts)) keep <- keep & !is.na(transcripts$qv) & transcripts$qv >= mols.qv.threshold
+  if (!is.null(genes)) keep <- keep & transcripts$feature_name %in% genes
+  if (!is.null(region)) {
+    x <- if (flip.xy) transcripts$y_location else transcripts$x_location
+    y <- if (flip.xy) transcripts$x_location else transcripts$y_location
+    keep <- keep & !is.na(x) & !is.na(y) & x >= region$x[1L] & x <= region$x[2L] &
+      y >= region$y[1L] & y <= region$y[2L]
+  }
+  transcripts <- transcripts[keep, , drop = FALSE]
+  x <- as.numeric(transcripts$x_location)
+  y <- as.numeric(transcripts$y_location)
+  data.frame(x = if (flip.xy) y else x, y = if (flip.xy) x else y,
+    gene = .SpatialDecodeStrings(transcripts$feature_name))
+}
+
+
+
+.XeniumReadBoundaries <- function(data.dir, nucleus = FALSE, flip.xy = FALSE, cells = NULL) {
+  name <- if (nucleus) "nucleus_boundaries" else "cell_boundaries"
+  parquet <- file.path(data.dir, paste0(name, ".parquet"))
+  csv <- file.path(data.dir, paste0(name, ".csv.gz"))
+  result <- if (file.exists(parquet) && requireNamespace("arrow", quietly = TRUE)) {
+    as.data.frame(arrow::read_parquet(parquet))
+  } else {
+    .ReadLoaderTable(csv, colClasses = c(cell_id = "character", cell = "character"))
+  }
+  available <- names(result)
+  columns <- vapply(list(c("cell_id", "cell"), c("vertex_x", "x"), c("vertex_y", "y")),
+    function(choices) {
+      found <- intersect(choices, available)
+      if (!length(found)) stop("Missing boundary column: ", choices[1L])
+      found[1L]
+    }, character(1))
+  result <- result[, columns, drop = FALSE]
+  names(result) <- c("cell", if (flip.xy) c("y", "x") else c("x", "y"))
+  result$cell <- .SpatialDecodeStrings(result$cell)
+  if (!is.null(cells)) result <- result[result$cell %in% cells, , drop = FALSE]
+  rownames(result) <- NULL
+  result$x <- as.numeric(result$x)
+  result$y <- as.numeric(result$y)
+  result
+}
+
 #' Read and Load 10x Genomics Xenium in-situ data
 #'
 #' @param data.dir Directory containing all Xenium output files with
@@ -2588,23 +2664,54 @@ ReadNanostring <- function(
 #' @param type Type of cell spatial coordinate matrices to read; choose one
 #' or more of:
 #' \itemize{
-#'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
-#'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
-#'  \item \dQuote{nucleus_segmentations}: nucleus segmentations in pixel coordinate space
+#'  \item \dQuote{centroids}: cell centroids in micron coordinate space
+#'  \item \dQuote{segmentations}: cell segmentations in micron coordinate space
+#'  \item \dQuote{nucleus_segmentations}: nucleus segmentations in micron coordinate space
 #' }
 #' @param mols.qv.threshold Remove transcript molecules with
 #' a QV less than this threshold. QV >= 20 is the standard threshold
 #' used to construct the cell x gene count matrix.
 #'
+#' @param genes Optional gene names to restrict molecule coordinates to.
+#' Counts are unaffected. \code{NULL} loads all genes when molecules are requested.
+#' \code{LoadXenium} accepts source or assay feature names;
+#' \code{ReadXenium} requires source names.
+#' @param region Optional list with \code{x} and \code{y} elements, each an
+#' increasing length-two micron range. Restricts molecule coordinates using
+#' the returned coordinate system, including any \code{flip.xy} transformation.
+#' Counts, centroids, and boundaries are unaffected.
+#' @param cells Optional cell IDs to restrict segmentation boundaries to.
+#' Counts and centroids are unaffected.
+#' @details Molecule tables are read into memory before gene, region, and QV
+#' filters are applied. Parquet files use Arrow; CSV files use data.table.
+#' Legacy transcript tables without a \code{qv} column retain their molecules
+#' without QV filtering. The selected molecule coordinates are stored in memory.
+#'
+#' Use \code{molecule.coordinates = FALSE} to load counts and centroids
+#' without reading transcript coordinates.
+#' \code{LoadXenium} retains its default of immediately loading molecules.
+#' Cell metadata is read once per call for segmentation methods and centroids.
+#'
+#' \code{LoadXenium} labels molecules with assay feature names, e.g.
+#' \code{Under_score} becomes \code{Under-score}. \code{ReadXenium} keeps source names.
+#'
+#' @examples
+#' \dontrun{
+#' xenium <- LoadXenium("xenium_outs", molecule.coordinates = FALSE)
+#' # Select molecules immediately, using micron ranges in the returned axes.
+#' selected <- LoadXenium("xenium_outs", genes = "EPCAM",
+#'   region = list(x = c(100, 500), y = c(200, 600)))
+#' }
+#'
 #' @return \code{ReadXenium}: A list with some combination of the
 #' following values:
 #' \itemize{
-#'  \item \dQuote{\code{matrix}}: a
-#'  \link[Matrix:dgCMatrix-class]{sparse matrix} with expression data; cells
-#'   are columns and features are rows
+#'  \item \dQuote{\code{matrix}}: a named list of expression matrices, one
+#'  per feature type. Matrices are sparse in memory;
+#'  cells are columns and features are rows
 #'  \item \dQuote{\code{centroids}}: a data frame with cell centroid
 #'   coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
-#'  \item \dQuote{\code{pixels}}: a data frame with molecule pixel coordinates
+#'  \item \dQuote{\code{microns}}: a data frame with molecule coordinates
 #'   in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
 #' }
 #'
@@ -2617,16 +2724,19 @@ ReadXenium <- function(
   outs = c("segmentation_method", "matrix", "microns"),
   type = "centroids",
   mols.qv.threshold = 20,
-  flip.xy = F
+  flip.xy = F,
+  genes = NULL,
+  region = NULL,
+  cells = NULL
 ) {
   # Argument checking
-  type <- match.arg(
+  type <- if (length(type)) match.arg(
     arg = type,
     choices = c("centroids", "segmentations", "nucleus_segmentations"),
     several.ok = TRUE
   )
 
-  outs <- match.arg(
+  outs <- if (length(outs)) match.arg(
     arg = outs,
     choices = c("segmentation_method", "matrix", "microns"),
     several.ok = TRUE
@@ -2634,20 +2744,23 @@ ReadXenium <- function(
 
   outs <- c(outs, type)
 
-  has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
-  has_arrow <- requireNamespace("arrow", quietly = TRUE)
-  has_hdf5r <- requireNamespace("hdf5r", quietly = TRUE)
-
-  binary_to_string <- function(arrow_binary) {
-    if(typeof(arrow_binary) == 'list') {
-      unlist(
-        lapply(
-          arrow_binary, function(x) rawToChar(as.raw(strtoi(x, 16L)))
-        )
-      )
+  cell.info <- NULL
+  read.cells <- function() {
+    if (!is.null(cell.info)) return(cell.info)
+    columns <- c("cell_id", if ("centroids" %in% outs) c("x_centroid", "y_centroid"),
+      if ("segmentation_method" %in% outs) "segmentation_method")
+    parquet <- file.path(data.dir, "cells.parquet")
+    value <- if (file.exists(parquet) && requireNamespace("arrow", quietly = TRUE)) {
+      reader <- arrow::ParquetFileReader$create(parquet)
+      columns <- intersect(columns, reader$GetSchema()$names)
+      as.data.frame(arrow::read_parquet(parquet, col_select = columns))
     } else {
-      arrow_binary
+      .ReadLoaderTable(file.path(data.dir, "cells.csv.gz"),
+        select = columns, colClasses = c(cell_id = "character"))
     }
+    value$cell_id <- .SpatialDecodeStrings(value$cell_id)
+    cell.info <<- value
+    value
   }
 
   data <- sapply(outs, function(otype) {
@@ -2657,200 +2770,58 @@ ReadXenium <- function(
         pmtx <- progressor()
         pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
 
+        matrix <- NULL
+        failures <- character()
         for(option in Filter(function(x) x$req, list(
-          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = has_hdf5r),
-          list(filename = "cell_feature_matrix", fn = Read10X, req = TRUE)
+          list(filename = "cell_feature_matrix.h5", fn = Read10X_h5, req = file.exists(file.path(data.dir, "cell_feature_matrix.h5"))),
+          list(filename = "cell_feature_matrix", fn = Read10X, req = dir.exists(file.path(data.dir, "cell_feature_matrix")))
         ))) {
-          matrix <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
-          if(!inherits(matrix, "try-error")) { break }
+          value <- tryCatch(option$fn(file.path(data.dir, option$filename)), error = identity)
+          if (!inherits(value, "error")) {
+            matrix <- value
+            break
+          }
+          failures <- c(failures, paste0(option$filename, ": ", conditionMessage(value)))
         }
 
-        if(!exists('matrix') || inherits(matrix, "try-error")) {
-          stop("Xenium outputs were incomplete: missing cell_feature_matrix")
+        if (is.null(matrix)) {
+          if (length(failures)) {
+            stop("Could not read Xenium count matrix:\n", paste(failures, collapse = "\n"), call. = FALSE)
+          }
+          stop("Xenium outputs were incomplete: missing cell_feature_matrix", call. = FALSE)
         }
 
+        if (!is.list(matrix)) matrix <- list(`Gene Expression` = matrix)
         pmtx(type = "finish")
         matrix
       },
       'segmentation_method' = {
-        psegs <- progressor()
-        psegs(
-          message = 'Loading cell metadata',
-          class = 'sticky',
-          amount = 0
-        )
-
-        col.use <- c(
-          cell_id = 'cell',
-          segmentation_method = 'segmentation_method'
-        )
-
-        for(option in Filter(function(x) x$req, list(
-          list(
-            filename = "cells.parquet",
-            fn = function(x) as.data.frame(arrow::read_parquet(x, col_select = names(col.use))),
-            req = has_arrow
-          ),
-          list(
-            filename = "cells.csv.gz",
-            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE, select = names(col.use)),
-            req = has_dt
-          ),
-          list(filename = "cells.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
-        ))) {
-          cell_seg <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))), silent = TRUE)
-          if(!inherits(cell_seg, "try-error")) { break }
-        }
-
-        if (!exists("cell_seg") || inherits(cell_seg, "try-error")) {
-          warning("cells did not contain a segmentation_method column. Skipping...", call. = FALSE, immediate. = TRUE)
+        value <- tryCatch(read.cells(), error = function(e) {
+          warning("Could not load cell segmentation metadata: ", conditionMessage(e), call. = FALSE)
+          NULL
+        })
+        if (is.null(value)) {
           NULL
         } else {
-          #Attempt to add default segmentation_method if nuclei/cell boundary files are provided
-          message("Cell_seg columns: ", paste(colnames(cell_seg), collapse = ", "))
-          if (!"segmentation_method" %in% colnames(cell_seg)) {
-            message("Adding default segmentation_method = 'cell'")
-            cell_seg$segmentation_method <- "cell"
-          }
-
-          #Try to detect unique cell identifier
-          if (!"cell_id" %in% colnames(cell_seg)) {
-            stop("Missing required column: cell_id")
-          }
-
-          cell_seg <- cell_seg[, c("cell_id", "segmentation_method")]
-          colnames(cell_seg) <- c("cell", "segmentation_method")
-          cell_seg$cell <- binary_to_string(cell_seg$cell)
-
-          psegs(type = "finish")
-
-          data.frame(segmentation_method = cell_seg$segmentation_method, row.names = cell_seg$cell)
+          method <- value$segmentation_method %||% rep("cell", nrow(value))
+          data.frame(segmentation_method = method, row.names = value$cell_id)
         }
       },
       'centroids' = {
-        pcents <- progressor()
-        pcents(
-          message = 'Loading cell centroids',
-          class = 'sticky',
-          amount = 0
-        )
-
-        col.use <- c(
-          x_centroid = letters[24 + flip.xy],
-          y_centroid = letters[25 - flip.xy],
-          cell_id = 'cell'
-        )
-
-        for(option in Filter(function(x) x$req, list(
-          list(
-            filename = "cells.parquet",
-            fn = function(x) as.data.frame(arrow::read_parquet(x, col_select = names(col.use))),
-            req = has_arrow
-          ),
-          list(
-            filename = "cells.csv.gz",
-            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE, select = names(col.use)),
-            req = has_dt
-          ),
-          list(filename = "cells.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
-        ))) {
-          cell_info <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
-          if(!inherits(cell_info, "try-error")) { break }
-        }
-
-        if(!exists('cell_info') || inherits(cell_info, "try-error")) {
-          stop("Xenium outputs were incomplete: missing cells")
-        }
-
-        cell_info$cell_id <- binary_to_string(cell_info$cell_id)
-
-        cell_info <- cell_info[, names(col.use)]
-        colnames(cell_info) <- col.use
-
-        pcents(type = 'finish')
-
-        cell_info
+        value <- read.cells()
+        x <- as.numeric(value$x_centroid)
+        y <- as.numeric(value$y_centroid)
+        data.frame(x = if (flip.xy) y else x, y = if (flip.xy) x else y,
+          cell = value$cell_id)
       },
-      'segmentations' = {
-        psegs <- progressor()
-        psegs(
-          message = 'Loading cell segmentations',
-          class = 'sticky',
-          amount = 0
-        )
-
-        for(option in Filter(function(x) x$req, list(
-          list(
-            filename = "cell_boundaries.parquet",
-            fn = function(x) as.data.frame(arrow::read_parquet(x)),
-            req = has_arrow
-          ),
-          list(
-            filename = "cell_boundaries.csv.gz",
-            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE),
-            req = has_dt
-          ),
-          list(filename = "cell_boundaries.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
-        ))) {
-          cell_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
-          if(!inherits(cell_boundaries_df, "try-error")) { break }
-        }
-
-        if(!exists('cell_boundaries_df') || inherits(cell_boundaries_df, "try-error")) {
-          stop("Xenium outputs were incomplete: missing cell_boundaries")
-        }
-
-        colnames(cell_boundaries_df) <- c(
-          'cell',
-          letters[24 + flip.xy],
-          letters[25 - flip.xy]
-        )
-
-        cell_boundaries_df$cell <- binary_to_string(cell_boundaries_df$cell)
-
-        psegs(type = "finish")
-
-        cell_boundaries_df
-      },
+      'segmentations' = ,
       'nucleus_segmentations' = {
         psegs <- progressor()
-        psegs(
-          message = 'Loading nucleus segmentations',
-          class = 'sticky',
-          amount = 0
-        )
-
-        for(option in Filter(function(x) x$req, list(
-          list(
-            filename = "nucleus_boundaries.parquet",
-            fn = function(x) as.data.frame(arrow::read_parquet(x)),
-            req = has_arrow
-          ),
-          list(
-            filename = "nucleus_boundaries.csv.gz",
-            fn = function(x) data.table::fread(x, data.table = FALSE, stringsAsFactors = FALSE),
-            req = has_dt
-          ),
-          list(filename = "nucleus_boundaries.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
-        ))) {
-          nucleus_boundaries_df <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
-          if(!inherits(nucleus_boundaries_df, "try-error")) { break }
-        }
-
-        if(!exists('nucleus_boundaries_df') || inherits(nucleus_boundaries_df, "try-error")) {
-          stop("Xenium outputs were incomplete: missing nucleus_boundaries")
-        }
-
-        colnames(nucleus_boundaries_df) <- c(
-          'cell',
-          letters[24 + flip.xy],
-          letters[25 - flip.xy]
-        )
-        nucleus_boundaries_df$cell <- binary_to_string(nucleus_boundaries_df$cell)
-
+        psegs(message = 'Loading segmentation boundaries', class = 'sticky', amount = 0)
+        boundaries <- .XeniumReadBoundaries(data.dir,
+          nucleus = otype == "nucleus_segmentations", flip.xy = flip.xy, cells = cells)
         psegs(type = "finish")
-
-        nucleus_boundaries_df
+        boundaries
       },
       'microns' = {
         pmicrons <- progressor()
@@ -2860,42 +2831,8 @@ ReadXenium <- function(
           amount = 0
         )
 
-        col.use = c(
-          x_location = letters[24+flip.xy],
-          y_location = letters[25-flip.xy],
-          feature_name = 'gene'
-        )
-
-        for(option in Filter(function(x) x$req, list(
-          list(
-            filename = "transcripts.parquet",
-            fn = function(x) as.data.frame(arrow::read_parquet(x, col_select = names(col.use))),
-            req = has_arrow
-          ),
-          list(
-            filename = "transcripts.csv.gz",
-            fn = function(x) data.table::fread(x, data.table = FALSE, select = names(col.use), stringsAsFactors = FALSE),
-            req = has_dt
-          ),
-          list(filename = "transcripts.csv.gz", fn = function(x) read.csv(x, stringsAsFactors = FALSE), req = TRUE)
-        ))) {
-          transcripts <- try(suppressWarnings(option$fn(file.path(data.dir, option$filename))))
-          if(!inherits(transcripts, "try-error")) { break }
-        }
-
-        if(!exists('transcripts') || inherits(transcripts, "try-error")) {
-          hint <- ""
-          if(file.exists(file.path(data.dir, "transcripts.parquet"))) {
-            hint <- ". Xenium outputs no longer include `transcripts.csv.gz`. Instead, please install `arrow` to read transcripts.parquet"
-          }
-
-          stop(paste0("Xenium outputs were incomplete: missing transcripts", hint))
-        }
-
-        transcripts <- transcripts[, names(col.use)]
-        colnames(transcripts) <- col.use
-
-        transcripts$gene <- binary_to_string(transcripts$gene)
+        transcripts <- .XeniumReadMolecules(data.dir, genes = genes,
+          mols.qv.threshold = mols.qv.threshold, flip.xy = flip.xy, region = region)
 
         pmicrons(type = 'finish')
 
@@ -4411,6 +4348,9 @@ ReadAtera <- function(
 
 #' @return \code{LoadAtera}: A \code{\link[SeuratObject]{Seurat}} object
 #'
+#' @details Newly loaded Atera FOVs display x horizontally and y increasing
+#' downward in ImageDimPlot and ImageFeaturePlot, keeping stored coordinates unchanged.
+#'
 #' @param data.dir Path to folder containing Atera outputs
 #' @param fov FOV name
 #' @param assay Assay name
@@ -4544,6 +4484,8 @@ LoadAtera <- function(
     }
   )
 
+  slot(coords, "coords_x_orientation") <- "horizontal"
+
   slot.map <- c(
     `Deprecated Codeword` = 'DeprecatedCodeword',
     `Unassigned Codeword` = 'BlankCodeword',
@@ -4621,6 +4563,8 @@ LoadAtera <- function(
 #' @importFrom SeuratObject CreateMolecules
 #'
 #' @export
+#' @concept spatial
+#' @concept preprocessing
 #'
 LoadAteraMolecules <- function(object, genes) {
   handle.info <- Misc(object, slot = 'atera.molecules')
@@ -4679,6 +4623,8 @@ LoadAteraMolecules <- function(object, genes) {
 #' @importFrom SeuratObject Cells CreateSegmentation
 #'
 #' @export
+#' @concept spatial
+#' @concept preprocessing
 #'
 LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell") {
   if (!isTRUE(segmentations %in% c("cell", "nucleus"))) {
@@ -4728,6 +4674,8 @@ LoadAteraSegmentations <- function(object, data.dir, fov, segmentations = "cell"
 #' @importFrom SeuratObject DefaultFOV Misc CreateMolecules
 #'
 #' @export
+#' @concept spatial
+#' @concept preprocessing
 #'
 LoadAteraCodewords <- function(object, data.dir, genes, fov = NULL) {
   fov <- fov %||% DefaultFOV(object = object)
@@ -4790,15 +4738,14 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
   if (!file.exists(paths = coord.file)) {
     stop("Cannot find coord file ", coord.file, call. = FALSE)
   }
+  coordinates <- .ReadLoaderTable(coord.file,
+    check.names = TRUE, colClasses = c("character", "numeric", "numeric"))
+  rownames(coordinates) <- coordinates[[1L]]
+  coordinates <- coordinates[, -1L, drop = FALSE]
   slide.seq <- new(
     Class = 'SlideSeq',
     assay = assay,
-    coordinates = read.csv(
-      file = coord.file,
-      header = TRUE,
-      as.is = TRUE,
-      row.names = 1
-    )
+    coordinates = coordinates
   )
   return(slide.seq)
 }
