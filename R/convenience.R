@@ -184,8 +184,9 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
 #' @param segmentations One of "cell", "nucleus" or NULL (to load either cell
 #' segmentations, nucleus segmentations or neither)
 #' @param flip.xy Swap x and y in the loaded coordinates. Deprecated for
-#' \code{LoadXenium}; existing calls still work. To change only the plot,
-#' use \code{flip_xy = TRUE} in \code{ImageDimPlot} or \code{ImageFeaturePlot}.
+#' \code{LoadXenium}, where \code{flip.xy = TRUE} requires SeuratObject >= 5.3.0.
+#' To change only the plot, use \code{flip_xy = TRUE} in
+#' \code{ImageDimPlot} or \code{ImageFeaturePlot}.
 #'
 #' @details By default, \code{LoadXenium} keeps the original coordinates.
 #' \code{ImageDimPlot} and \code{ImageFeaturePlot} display x horizontally and
@@ -193,7 +194,8 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
 #' in either plotting function to reproduce the old plot layout without
 #' changing stored coordinates.
 #'
-#' The deprecated \code{LoadXenium(flip.xy = TRUE)} still swaps stored
+#' The deprecated \code{LoadXenium(flip.xy = TRUE)} requires SeuratObject >= 5.3.0
+#' to record the axis orientation. With that version or later, it swaps stored
 #' coordinates and retains its previous plotting behavior.
 #' To crop using stored x/y ranges, use
 #' \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.

@@ -50,8 +50,9 @@ immediately. For Xenium, \code{FALSE} skips transcript reads.}
 segmentations, nucleus segmentations or neither)}
 
 \item{flip.xy}{Swap x and y in the loaded coordinates. Deprecated for
-\code{LoadXenium}; existing calls still work. To change only the plot,
-use \code{flip_xy = TRUE} in \code{ImageDimPlot} or \code{ImageFeaturePlot}.}
+\code{LoadXenium}, where \code{flip.xy = TRUE} requires SeuratObject >= 5.3.0.
+To change only the plot, use \code{flip_xy = TRUE} in
+\code{ImageDimPlot} or \code{ImageFeaturePlot}.}
 
 \item{genes}{Optional gene names to restrict molecule coordinates to.
 Counts are unaffected. \code{NULL} loads all genes when molecules are requested.
@@ -107,7 +108,8 @@ y increasing downward, including for older objects. Use \code{flip_xy = TRUE}
 in either plotting function to reproduce the old plot layout without
 changing stored coordinates.
 
-The deprecated \code{LoadXenium(flip.xy = TRUE)} still swaps stored
+The deprecated \code{LoadXenium(flip.xy = TRUE)} requires SeuratObject >= 5.3.0
+to record the axis orientation. With that version or later, it swaps stored
 coordinates and retains its previous plotting behavior.
 To crop using stored x/y ranges, use
 \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
