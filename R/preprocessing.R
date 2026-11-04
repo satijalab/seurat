@@ -1689,15 +1689,12 @@ Read10X_HD_GeoJson <- function(data.dir, segmentation.type = "cell", cells = NUL
   segmentation.type <- match.arg(segmentation.type, c("cell", "nucleus"))
   path <- file.path(data.dir, "segmented_outputs", paste0(segmentation.type, "_segmentations.geojson"))
   segmentation_polygons <- sf::read_sf(path)
-  if (!is.null(cells)) {
-    segmentation_polygons <- segmentation_polygons[
-      Format10X_GeoJson_CellID(segmentation_polygons$cell_id) %in% cells, , drop = FALSE]
-  }
-
-  # Space Ranger geometry uses image coordinates, not geographic degrees.
   sf::st_crs(segmentation_polygons) <- NA
   segmentation_polygons$barcodes <- Format10X_GeoJson_CellID(segmentation_polygons$cell_id)
-  segmentation_polygons
+  if (!is.null(cells)) {
+    segmentation_polygons <- segmentation_polygons[segmentation_polygons$barcodes %in% cells, , drop = FALSE]
+  }
+  return(segmentation_polygons)
 }
 
 
