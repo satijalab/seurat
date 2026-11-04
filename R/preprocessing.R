@@ -23,12 +23,19 @@ globalVariables(
 #'
 readMM_fast <- function(file) {
   # use the original reader for connections, urls, or missing optional dependencies
-  has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
-  if (!has_dt) {
-    message("data.table or R.utils is unavailable; using Matrix::readMM()")
+  if (inherits(file, "connection") || grepl("^[[:alpha:]]+://", file)) {
     return(Matrix::readMM(file))
   }
-  if (inherits(file, "connection") || grepl("^[[:alpha:]]+://", file)) {
+  if (!requireNamespace("data.table", quietly = TRUE)) {
+    message("Using Matrix::readMM(); install data.table for faster reading.")
+    return(Matrix::readMM(file))
+  }
+  # fread recognizes compressed input by extension or by gzip/bzip2 signature
+  signature <- readBin(file, what = "raw", n = 3L)
+  compressed <- grepl("\\.(gz|bgz|bz2)$", file, ignore.case = TRUE) ||
+               identical(signature[1:2], as.raw(c(0x1f, 0x8b))) || identical(signature, charToRaw("BZh"))
+  if (compressed && !requireNamespace("R.utils", quietly = TRUE)) {
+    message("Using Matrix::readMM(); install R.utils for faster reading.")
     return(Matrix::readMM(file))
   }
   con <- gzfile(file, "rt")
@@ -52,15 +59,27 @@ readMM_fast <- function(file) {
   if (length(dimensions) != 3L || anyNA(dimensions) || any(dimensions <= 0L)) {
     return(Matrix::readMM(file))
   }
-  dt <- tryCatch(
-    data.table::fread(file, header = FALSE, skip = skip,
-      colClasses = c("integer", "integer", "numeric"), quote = "", blank.lines.skip = TRUE, data.table = FALSE),
-    warning = function(w) NULL, error = function(e) NULL
-  )
+  dt <- tryCatch(expr = data.table::fread(file,
+                        header = FALSE,
+                        skip = skip,
+                        colClasses = c("integer", "integer", "numeric"),
+                        quote = "",
+                        blank.lines.skip = TRUE,
+                        data.table = FALSE),
+                warning = function(w) w,
+                error = function(e) e)
+  fread.condition <- if (inherits(dt, "condition")) dt else NULL
   # Retry with standard whitespace parsing if fread cannot read all triplets.
   # The connection is positioned just after the dimensions line.
-  if (is.null(dt) || ncol(dt) != 3L || nrow(dt) != dimensions[3L]) {
-    dt <- as.data.frame(scan(con, what = list(integer(), integer(), numeric()), quiet = TRUE))
+  if (!is.null(fread.condition) || is.null(dt) || ncol(dt) != 3L || nrow(dt) != dimensions[3L]) {
+    dt <- tryCatch(
+      as.data.frame(scan(con, what = list(integer(), integer(), numeric()), quiet = TRUE)),
+      error = function(e) {
+        if (is.null(fread.condition)) stop(e)
+        stop(sprintf("MatrixMarket parsing failed: fread: %s; scan: %s",
+          conditionMessage(fread.condition), conditionMessage(e)), call. = FALSE)
+      }
+    )
   }
   # reject incomplete or extra triplets before constructing the matrix
   if (nrow(dt) != dimensions[3L]) {
@@ -68,6 +87,9 @@ readMM_fast <- function(file) {
       dimensions[3L], nrow(dt)), call. = FALSE)
   }
   if (ncol(dt) != 3L) stop("MatrixMarket entries must contain three columns", call. = FALSE)
+  if (anyNA(dt[[1L]]) || anyNA(dt[[2L]]) || any(dt[[1L]] < 1L | dt[[1L]] > dimensions[1L]) || any(dt[[2L]] < 1L | dt[[2L]] > dimensions[2L])) {
+    stop("MatrixMarket indices outside declared dimensions")
+  }
   # sparse matrix slots use zero-based indices; matrixmarket files use one-based indices
   new("dgTMatrix", i = dt[[1L]] - 1L, j = dt[[2L]] - 1L, x = dt[[3L]],
     Dim = as.integer(dimensions[1:2]))
