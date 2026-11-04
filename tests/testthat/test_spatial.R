@@ -521,37 +521,722 @@ test_that("RunMarkVario returns one named entry per feature", {
   }
 })
 
-context("LoadAtera")
+context("Spatial image orientation")
 
-test_that("LoadAtera assembles counts, controls, metadata and aligned spatial cells", {
-  counts <- as.sparse(rbind(GeneA = c(1, 0, 3), GeneB = c(0, 2, 4)))
-  colnames(counts) <- c("101", "102", "103")
-  blank <- counts[1, , drop = FALSE]
-  rownames(blank) <- "Blank"
-  centroids <- data.frame(x = c(30, 10), y = c(3, 1), cell = c("103", "101"))
-  # mock data read
-  local_mocked_bindings(
-    ReadAtera = function(...) list(
-      matrix = list(`Gene Expression` = counts, `Unassigned Codeword` = blank),
-      centroids = centroids, metadata = list(run_name = "test run")
+image_orientation_fixture <- function() {
+  cells <- c("cell-a", "cell-b", "cell-c")
+  counts <- as.sparse(matrix(1:6, nrow = 2, dimnames = list(c("GeneA", "GeneB"), cells)))
+  list(
+    matrix = list(`Gene Expression` = counts),
+    centroids = data.frame(x = c(2, 12, 22), y = c(102, 202, 302), cell = cells),
+    segmentations = data.frame(
+      cell = rep(cells, each = 4),
+      x = rep(c(0, 0, 4, 4), 3) + rep(c(0, 10, 20), each = 4),
+      y = rep(c(100, 104, 104, 100), 3) + rep(c(0, 100, 200), each = 4)
     ),
-    .package = "Seurat"
+    microns = data.frame(x = c(1, 11, 21), y = c(101, 201, 301), gene = "GeneA")
   )
+}
 
-  # LoadAtera uses the mocked data to build the example Seurat object
-  test.case <- LoadAtera(data.dir = "not/used", bpcells.dir = FALSE)
-  cells <- c("101", "103")
+image_orientation_object <- function(fixture, fov = "fov", assay = "Xenium") {
+  object <- CreateSeuratObject(fixture$matrix[["Gene Expression"]], assay = assay)
+  image <- CreateFOV(list(centroids = CreateCentroids(fixture$centroids),
+    segmentations = CreateSegmentation(fixture$segmentations)), assay = assay,
+    molecules = CreateMolecules(fixture$microns))
+  slot(image, "coords_x_orientation") <- "horizontal"
+  object[[fov]] <- image
+  object
+}
 
-  # make sure the loaded object contains the expected cells, counts, and metadata
-  expect_identical(Cells(test.case), cells)
-  expect_equal(LayerData(test.case, assay = "Atera", layer = "counts"), counts[, cells])
-  expect_equal(Misc(test.case, "atera.BlankCodeword"), blank[, cells, drop = FALSE])
-  expect_equal(Misc(test.case, "run_metadata"), list(run_name = "test run"))
-  expect_s4_class(test.case[["fov"]], "FOV")
+test_that("image plots use native axes unless the FOV is explicitly vertical", {
+  fixture <- image_orientation_fixture()
+  fov <- CreateFOV(list(centroids = CreateCentroids(fixture$centroids)))
+  for (orientation in list(character(0), "vertical", "horizontal")) {
+    slot(fov, "coords_x_orientation") <- orientation
+    horizontal <- identical(orientation, "horizontal")
+    expect_identical(Seurat:::.UseImageCoordinates(fov), horizontal)
+    expect_identical(Seurat:::.ImagePlotOrientation(fov),
+      identical(orientation, "vertical"))
+  }
+  # Serialized FOVs created before the slot was added have no slot value.
+  attr(fov, "coords_x_orientation") <- NULL
+  expect_false(Seurat:::.UseImageCoordinates(fov))
+  expect_identical(Seurat:::.ImagePlotOrientation(fov),
+    FALSE)
+})
 
-  # check that the tissue coordinates match the expected cell positions
-  coords <- GetTissueCoordinates(test.case[["fov"]][["centroids"]], full = FALSE)
-  expect_setequal(coords$cell, cells)
-  expect_equal(coords$x[match(cells, coords$cell)], c(10, 30))
-  expect_equal(coords$y[match(cells, coords$cell)], c(1, 3))
+test_that("SingleImagePlot defaults use native image axes", {
+  coordinates <- data.frame(x = 2, y = 102, cell = "cell-a", boundary = "centroids")
+  plot <- SingleImagePlot(coordinates)
+  data <- ggplot2::ggplot_build(plot)$data[[1]]
+  expect_equal(data$x, coordinates$x)
+  expect_equal(data$y, -coordinates$y)
+})
+
+test_that("image plots align boundaries and molecules with native image axes", {
+  fixture <- image_orientation_fixture()
+  for (assay in c("Xenium", "Atera")) {
+    object <- image_orientation_object(fixture, fov = "sample_native_fov", assay = assay)
+    object <- NormalizeData(object, verbose = FALSE)
+    expect_identical(slot(object[["sample_native_fov"]], "coords_x_orientation"), "horizontal")
+    before <- GetTissueCoordinates(object[["sample_native_fov"]], which = "centroids")
+    for (boundary in c("centroids", "segmentations")) {
+      for (fixed in c(FALSE, TRUE)) {
+        plots <- list(
+          ImageDimPlot(object, boundaries = boundary, molecules = "GeneA", mols.cols = c(GeneA = "red"), axes = TRUE, coord.fixed = fixed, combine = FALSE)[[1]],
+          ImageFeaturePlot(object, features = "GeneA", boundaries = boundary, molecules = "GeneA", mols.cols = c(GeneA = "red"), axes = TRUE, coord.fixed = fixed, combine = FALSE)[[1]]
+        )
+        for (plot in plots) {
+          layers <- ggplot2::ggplot_build(plot)$data
+          expect_equal(sort(layers[[1]]$x), sort(plot$data$x))
+          expect_equal(sort(layers[[1]]$y), sort(-plot$data$y))
+          expect_equal(sort(layers[[2]]$x), fixture$microns$x)
+          expect_equal(sort(layers[[2]]$y), sort(-fixture$microns$y))
+        }
+      }
+    }
+    expect_equal(GetTissueCoordinates(object[["sample_native_fov"]], which = "centroids"), before)
+    cropped <- suppressWarnings(Crop(object[["sample_native_fov"]], x = c(10, 14), y = c(200, 204), coords = "tissue"))
+    expect_identical(Cells(cropped), "cell-b")
+    expect_identical(Cells(cropped[["segmentations"]]), "cell-b")
+    expect_equal(FetchData(cropped, vars = "GeneA")$x, 11)
+    Key(cropped) <- "nativecrop_"
+    object[["native_crop"]] <- cropped
+    plot <- ImageDimPlot(object, fov = "native_crop", boundaries = "centroids", combine = FALSE)[[1]]
+    expect_equal(ggplot2::ggplot_build(plot)$data[[1]]$x, 12)
+    expect_equal(ggplot2::ggplot_build(plot)$data[[1]]$y, -202)
+  }
+})
+
+test_that("older FOVs use corrected axes without changing stored coordinates", {
+  fixture <- image_orientation_fixture()
+  for (assay in c("Xenium", "Atera")) {
+    object <- NormalizeData(image_orientation_object(fixture, assay = assay), verbose = FALSE)
+    for (orientation in list(character(0), NULL)) {
+      attr(object@images[["fov"]], "coords_x_orientation") <- orientation
+      before <- GetTissueCoordinates(object[["fov"]], which = "centroids")
+      for (plotter in list(ImageDimPlot, ImageFeaturePlot)) {
+        args <- list(object = object, molecules = "GeneA", mols.cols = c(GeneA = "red"),
+          combine = FALSE, coord.fixed = FALSE)
+        if (identical(plotter, ImageFeaturePlot)) args$features <- "GeneA"
+        plot <- do.call(plotter, args)[[1]]
+        data <- ggplot2::ggplot_build(plot)$data
+        expect_equal(data[[1]]$x, fixture$centroids$x)
+        expect_equal(data[[1]]$y, -fixture$centroids$y)
+        expect_equal(data[[2]]$x, fixture$microns$x)
+        expect_equal(data[[2]]$y, -fixture$microns$y)
+      }
+      expect_equal(GetTissueCoordinates(object[["fov"]], which = "centroids"), before)
+      updated <- suppressMessages(UpdateSeuratObject(object))
+      cropped <- Crop(updated[["fov"]], x = c(10, 14), y = c(200, 204), coords = "tissue")
+      expect_identical(Cells(cropped), "cell-b")
+      expect_identical(Cells(cropped[["segmentations"]]), "cell-b")
+      expect_equal(FetchData(cropped, vars = "GeneA")$x, 11)
+    }
+  }
+})
+
+test_that("flip_xy restores legacy plotting without changing stored coordinates", {
+  object <- NormalizeData(image_orientation_object(image_orientation_fixture()), verbose = FALSE)
+  before <- GetTissueCoordinates(object[["fov"]], which = "centroids")
+  for (plotter in list(ImageDimPlot, ImageFeaturePlot)) {
+    args <- list(object = object, combine = FALSE, flip_xy = TRUE)
+    if (identical(plotter, ImageFeaturePlot)) args$features <- "GeneA"
+    expect_no_warning(plot <- do.call(plotter, args)[[1]])
+    data <- ggplot2::ggplot_build(plot)$data[[1]]
+    expect_equal(data$x, plot$data$y)
+    expect_equal(data$y, plot$data$x)
+    expect_equal(GetTissueCoordinates(object[["fov"]], which = "centroids"), before)
+  }
+})
+
+test_that("split feature plots preserve orientation when adding split labels", {
+  object <- NormalizeData(image_orientation_object(image_orientation_fixture()), verbose = FALSE)
+  object$split <- c("one", "two", "one")
+  for (features in list("GeneA", c("GeneA", "GeneB"))) {
+    for (flip in c(FALSE, TRUE)) {
+      plots <- suppressWarnings(ImageFeaturePlot(object, features = features,
+        split.by = "split", flip_xy = flip, combine = FALSE))
+      for (plot in plots) {
+        data <- ggplot2::ggplot_build(plot)$data[[1]]
+        expect_equal(data$x, if (flip) plot$data$y else plot$data$x)
+        expect_equal(data$y, if (flip) plot$data$x else -plot$data$y)
+      }
+    }
+  }
+})
+
+test_that("mixed FOV plots select orientation separately for each FOV", {
+  fixture <- image_orientation_fixture()
+  object <- NormalizeData(image_orientation_object(fixture, fov = "native_fov"), verbose = FALSE)
+  vertical <- object[["native_fov"]]
+  slot(vertical, "coords_x_orientation") <- "vertical"
+  Key(vertical) <- "verticalfov_"
+  object[["vertical_fov"]] <- vertical
+  for (plotter in list(ImageDimPlot, ImageFeaturePlot)) {
+    args <- list(object = object, fov = c("native_fov", "vertical_fov"), combine = FALSE)
+    if (identical(plotter, ImageFeaturePlot)) args$features <- "GeneA"
+    plots <- do.call(plotter, args)
+    expect_equal(ggplot2::ggplot_build(plots[[1]])$data[[1]]$x, fixture$centroids$x)
+    expect_equal(ggplot2::ggplot_build(plots[[2]])$data[[1]]$x, fixture$centroids$y)
+  }
+})
+
+test_that("overlaid boundaries share native orientation and crop molecules consistently", {
+  fixture <- image_orientation_fixture()
+  object <- NormalizeData(image_orientation_object(fixture, fov = "native_fov"), verbose = FALSE)
+  for (plotter in list(ImageDimPlot, ImageFeaturePlot)) {
+    args <- list(object = object, boundaries = c("centroids", "segmentations"), overlap = TRUE, molecules = "GeneA", mols.cols = c(GeneA = "red"), crop = TRUE, combine = FALSE)
+    if (identical(plotter, ImageFeaturePlot)) args$features <- "GeneA"
+    plot <- do.call(plotter, args)[[1]]
+    data <- ggplot2::ggplot_build(plot)$data
+    expect_equal(sort(data[[1]]$x), sort(plot$data$x))
+    expect_equal(sort(data[[1]]$y), sort(-plot$data$y))
+    expect_equal(sort(data[[2]]$x), fixture$microns$x)
+  }
+})
+
+
+context("Visium plotting performance")
+
+visium_plot_fixture <- function(type = "VisiumV2", polygons = FALSE, rgba = FALSE) {
+  cells <- letters[1:4]
+  coords <- data.frame(x = c(2, 4, 6, 8), y = c(1, 3, 2, 4), cell = cells)
+  pixels <- array(seq_len(8 * 10 * 3) / (8 * 10 * 3), dim = c(8, 10, 3))
+  if (rgba) {
+    pixels <- array(c(pixels, rep(.6, 80)), dim = c(8, 10, 4))
+  }
+  factors <- scalefactors(spot = 2, fiducial = 3, hires = 1, lowres = .5)
+  if (type == "VisiumV1") {
+    image <- new("VisiumV1", image = pixels, scale.factors = factors,
+      coordinates = data.frame(imagecol = coords$x, imagerow = coords$y, row.names = cells),
+      spot.radius = .1, assay = "Spatial", key = "slice_")
+  } else {
+    boundaries <- list(centroids = CreateCentroids(coords))
+    if (polygons) {
+      boundaries$segmentations <- CreateSegmentation(data.frame(
+        x = rep(c(1, 1, 3, 3), 4) + rep(c(0, 2, 4, 6), each = 4),
+        y = rep(c(.5, 1.5, 1.5, .5), 4) + rep(c(0, 2, 1, 3), each = 4),
+        cell = rep(cells, each = 4)
+      ))
+    }
+    image <- new("VisiumV2", image = pixels, scale.factors = factors,
+      boundaries = boundaries, assay = "Spatial", key = "slice_",
+      coords_x_orientation = "horizontal")
+  }
+  counts <- as.sparse(matrix(c(1, 0, 2, 10, 4, 3, 8, 2), nrow = 2,
+    dimnames = list(c("GeneA", "GeneB"), cells)))
+  object <- CreateSeuratObject(counts, assay = "Spatial")
+  object$group1 <- factor(c("a", "b", "b", "a"))
+  object$group2 <- factor(c("x", "x", "y", "y"))
+  Idents(object) <- "group1"
+  object[["slice"]] <- image
+  object
+}
+
+test_that("Visium plotting requires horizontal coordinate orientation", {
+  object <- visium_plot_fixture()
+  for (orientation in list(character(0), "vertical")) {
+    slot(object[["slice"]], "coords_x_orientation") <- orientation
+    expect_error(SpatialFeaturePlot(object, features = "GeneA", slot = "counts"),
+      "Please run `UpdateSeuratObject`", fixed = TRUE)
+  }
+  attr(object@images[["slice"]], "coords_x_orientation") <- NULL
+  expect_error(SpatialFeaturePlot(object, features = "GeneA", slot = "counts"),
+    "Please run `UpdateSeuratObject`", fixed = TRUE)
+})
+
+test_that("Visium radius matches the raster-derived value", {
+  for (type in c("VisiumV1", "VisiumV2")) {
+    for (rgba in c(FALSE, TRUE)) {
+      image <- visium_plot_fixture(type, rgba = rgba)[["slice"]]
+      raster.size <- max(dim(GetImage(image)$raster))
+      for (scale in c("lowres", "hires")) {
+        expect_equal(Radius(image, scale = scale), ScaleFactors(image)$spot * ScaleFactors(image)[[scale]] / raster.size)
+      }
+    }
+  }
+})
+
+test_that("Visium feature panels reuse images and invalidate between plotting calls", {
+  for (type in c("VisiumV1", "VisiumV2")) {
+    for (polygons in if (type == "VisiumV2") c(FALSE, TRUE) else FALSE) {
+      for (opacity in c(0, .4, 1)) {
+        object <- visium_plot_fixture(type, polygons)
+        args <- list(object = object, features = c("GeneA", "GeneB"), slot = "counts",
+          image.alpha = opacity, plot_segmentations = polygons, combine = FALSE)
+        plots <- do.call(SpatialFeaturePlot, args)
+        lapply(plots, ggplot2::ggplotGrob)
+        if (!polygons) {
+          expect_identical(plots[[1]]$layers[[1]]$geom_params$image.context,
+            plots[[2]]$layers[[1]]$geom_params$image.context)
+        }
+        image <- object[["slice"]]
+        image@image[] <- .2
+        object[["slice"]] <- image
+        args$object <- object
+        next.plots <- do.call(SpatialFeaturePlot, args)
+        lapply(next.plots, ggplot2::ggplotGrob)
+        if (opacity > 0) {
+          previous.context <- if (polygons) plots[[1]]$layers[[1]]$geom_params$grob else plots[[1]]$layers[[1]]$geom_params$image.context$spatial(opacity)
+          next.context <- if (polygons) next.plots[[1]]$layers[[1]]$geom_params$grob else next.plots[[1]]$layers[[1]]$geom_params$image.context$spatial(opacity)
+          expect_false(identical(previous.context$raster, next.context$raster))
+        }
+      }
+    }
+  }
+})
+
+test_that("Visium highlight facets render consistent image contexts", {
+  object <- visium_plot_fixture()
+  plots <- SpatialDimPlot(object, cells.highlight = list(first = "a", second = "b"),
+    facet.highlight = TRUE, combine = FALSE)
+  expect_length(plots, 2L)
+  expect_no_error(lapply(plots, ggplot2::ggplotGrob))
+})
+
+test_that("Visium panels use independent image contexts for different slices", {
+  object <- visium_plot_fixture()
+  second <- object[["slice"]]
+  Key(second) <- "slice2_"
+  second@image <- array(.7, dim = c(6, 12, 3))
+  object[["slice2"]] <- second
+  plots <- SpatialFeaturePlot(object, features = c("GeneA", "GeneB"), slot = "counts", crop = FALSE, combine = FALSE)
+  expect_length(plots, 4L)
+  expect_equal(plots[[1]]$layers[[1]]$geom_params$image.context$dimensions, c(8, 10))
+  expect_equal(plots[[2]]$layers[[1]]$geom_params$image.context$dimensions, c(6, 12))
+  expect_equal(plots[[3]]$layers[[1]]$geom_params$image.context$dimensions, c(8, 10))
+  expect_equal(plots[[4]]$layers[[1]]$geom_params$image.context$dimensions, c(6, 12))
+  expect_no_error(lapply(plots, ggplot2::ggplotGrob))
+})
+
+test_that("Visium polygons select boundaries explicitly and retain feature limits", {
+  object <- visium_plot_fixture(polygons = TRUE)
+  before <- DefaultBoundary(object[["slice"]])
+  for (scale in c("feature", "all")) {
+    plots <- SpatialFeaturePlot(object, features = c("GeneA", "GeneB"), slot = "counts",
+      plot_segmentations = TRUE, keep.scale = scale, image.alpha = .4, combine = FALSE)
+    # Standard polygons include a closing vertex for each of the four cells.
+    expect_equal(nrow(plots[[1]]$layers[[2]]$data), 20L)
+    expect_equal(plots[[1]]$scales$get_scales("fill")$limits, c(NA, if (scale == "feature") 8 else 10))
+    expect_equal(plots[[2]]$scales$get_scales("fill")$limits, c(NA, 10))
+    expect_no_error(lapply(plots, ggplot2::ggplotGrob))
+  }
+  expect_identical(DefaultBoundary(object[["slice"]]), before)
+})
+
+
+test_that("FOV cropping dispatches to SeuratObject's method", {
+  expect_identical(getS3method("Crop", "FOV"),
+    get("Crop.FOV", asNamespace("SeuratObject")))
+})
+
+context("Spatial file loading")
+
+write_xenium_large_fixture <- function(.local_envir = parent.frame()) {
+  bundle <- withr::local_tempdir(.local_envir = .local_envir)
+  matrix.dir <- file.path(bundle, "cell_feature_matrix")
+  dir.create(matrix.dir)
+  counts <- Matrix::Matrix(matrix(c(1, 0, 2, 3), nrow = 2,
+    dimnames = list(c("A", "B"), c("cell1", "cell2"))), sparse = TRUE)
+  Matrix::writeMM(counts, file.path(matrix.dir, "matrix.mtx"))
+  write.table(c("cell1", "cell2"), file.path(matrix.dir, "barcodes.tsv"),
+    quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(data.frame(c("idA", "idB"), c("A", "B"), "Gene Expression"),
+    file.path(matrix.dir, "features.tsv"), sep = "\t", quote = FALSE,
+    row.names = FALSE, col.names = FALSE)
+  for (path in list.files(matrix.dir, full.names = TRUE)) {
+    con <- gzfile(paste0(path, ".gz"), "wb")
+    writeBin(readBin(path, "raw", n = file.info(path)$size), con)
+    close(con)
+  }
+  cells <- data.frame(cell_id = c("cell1", "cell2"), x_centroid = c(1, 3),
+    y_centroid = c(4, 6), segmentation_method = "cell")
+  molecules <- data.frame(x_location = c(1, 2, 3, 4, 5),
+    y_location = c(4, 5, 6, 7, 8), feature_name = c("A", "B", "A", "B", "A"),
+    qv = c(10, 20, 30, NA, 40), unused = "unused")
+  for (name in c("cells", "transcripts")) {
+    con <- gzfile(file.path(bundle, paste0(name, ".csv.gz")), "wt")
+    write.csv(if (name == "cells") cells else molecules, con, row.names = FALSE)
+    close(con)
+  }
+  bundle
+}
+
+test_that("Xenium CSV molecules filter genes, QV, and flipped regions", {
+  bundle <- write_xenium_large_fixture()
+  read <- function(...) ReadXenium(bundle, outs = "microns", type = character(), ...)$microns
+  expect_equal(read(genes = "A"), data.frame(x = c(3, 5), y = c(6, 8), gene = "A"))
+  expect_equal(read(genes = "B"), data.frame(x = 2, y = 5, gene = "B"))
+  expect_equal(read(region = list(x = c(2, 3), y = c(5, 6))),
+    data.frame(x = c(2, 3), y = c(5, 6), gene = c("B", "A")))
+  expect_equal(read(flip.xy = TRUE, region = list(x = c(5, 6), y = c(2, 3))),
+    data.frame(x = c(5, 6), y = c(2, 3), gene = c("B", "A")))
+  expect_equal(nrow(read(genes = character())), 0L)
+  expect_equal(nrow(read(genes = "unknown")), 0L)
+  expect_error(read(region = list(x = c(3, 1), y = c(1, 2))), "region")
+  expect_error(read(mols.qv.threshold = NA_real_), "mols.qv.threshold")
+  expect_error(read(genes = NA_character_), "genes")
+})
+
+test_that("Xenium Parquet filters agree with CSV including binary feature names", {
+  skip_if_not_installed("arrow")
+  bundle <- write_xenium_large_fixture()
+  expected <- ReadXenium(bundle, outs = "microns", type = character(), genes = "A")$microns
+  transcripts <- read.csv(gzfile(file.path(bundle, "transcripts.csv.gz")))
+  arrow::write_parquet(transcripts, file.path(bundle, "transcripts.parquet"), chunk_size = 2L)
+  expect_equal(ReadXenium(bundle, outs = "microns", type = character(), genes = "A")$microns, expected)
+  transcripts$feature_name <- lapply(transcripts$feature_name, charToRaw)
+  tab <- arrow::Table$create(transcripts, schema = arrow::schema(
+    x_location = arrow::float64(), y_location = arrow::float64(), feature_name = arrow::binary(),
+    qv = arrow::float64(), unused = arrow::utf8()))
+  arrow::write_parquet(tab, file.path(bundle, "transcripts.parquet"))
+  expect_equal(ReadXenium(bundle, outs = "microns", type = character(), genes = "A")$microns, expected)
+})
+
+test_that("Visium positions filter barcodes and tissue consistently across formats", {
+  skip_if_not_installed("arrow")
+  bundle <- withr::local_tempdir()
+  positions <- data.frame(barcode = c("0001", "0002", "0003"), in_tissue = c(1, 0, 1),
+    array_row = 1:3, array_col = 4:6, pxl_row_in_fullres = 7:9, pxl_col_in_fullres = 10:12)
+  parquet <- file.path(bundle, "tissue_positions.parquet")
+  csv <- file.path(bundle, "tissue_positions.csv")
+  legacy <- file.path(bundle, "tissue_positions_list.csv")
+  arrow::write_parquet(positions, parquet)
+  write.csv(positions, csv, row.names = FALSE)
+  write.table(positions, legacy, sep = ",", row.names = FALSE, col.names = FALSE, quote = FALSE)
+  expected <- data.frame(tissue = 1, row = 3, col = 6, imagerow = 9, imagecol = 12, row.names = "0003")
+  for (path in c(parquet, csv, legacy)) {
+    expect_equal(Read10X_Coordinates(path, TRUE, cells = c("0002", "0003")), expected)
+    expect_equal(nrow(Read10X_Coordinates(path, FALSE)), 3L)
+    expect_equal(nrow(Read10X_Coordinates(path, TRUE, cells = character())), 0L)
+  }
+})
+
+write_xenium_boundaries <- function(bundle) {
+  vertices <- data.frame(cell_id = rep(c("cell1", "cell2"), each = 5L),
+    vertex_x = c(0, 2, 2, 0, 0, 2, 4, 4, 2, 2),
+    vertex_y = c(3, 3, 5, 5, 3, 5, 5, 7, 7, 5), unused = "drop")
+  for (name in c("cell", "nucleus")) {
+    con <- gzfile(file.path(bundle, paste0(name, "_boundaries.csv.gz")), "wt")
+    write.csv(vertices, con, row.names = FALSE)
+    close(con)
+  }
+  vertices
+}
+
+test_that("Xenium boundary readers filter cells and preserve coordinate orientation", {
+  skip_if_not_installed("sf")
+  bundle <- write_xenium_large_fixture()
+  vertices <- write_xenium_boundaries(bundle)
+  for (kind in c("segmentations", "nucleus_segmentations")) {
+    selected <- ReadXenium(bundle, outs = character(), type = kind, cells = "cell2",
+      flip.xy = TRUE)[[kind]]
+    expect_equal(selected$cell, rep("cell2", 5L))
+    expect_equal(range(selected$x), c(5, 7))
+    expect_equal(range(selected$y), c(2, 4))
+  }
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    arrow::write_parquet(vertices, file.path(bundle, "cell_boundaries.parquet"))
+    selected <- ReadXenium(bundle, outs = character(), type = "segmentations", cells = "cell1")$segmentations
+    expect_equal(selected$cell, rep("cell1", 5L))
+    expect_named(selected, c("cell", "x", "y"))
+  }
+})
+
+write_visium_segmentations <- function(bundle) {
+  dir.create(file.path(bundle, "segmented_outputs"), recursive = TRUE)
+  polygons <- sf::st_sf(cell_id = 1:2, geometry = sf::st_sfc(lapply(0:1, function(i) {
+    sf::st_polygon(list(cbind(c(0, 2, 2, 0, 0) + i * 4, c(0, 0, 2, 2, 0))))
+  })))
+  sf::write_sf(polygons, file.path(bundle, "segmented_outputs", "cell_segmentations.geojson"))
+  bundle
+}
+
+test_that("Visium GeoJSON filters cell identifiers", {
+  skip_if_not_installed("sf")
+  bundle <- write_visium_segmentations(withr::local_tempdir())
+  ids <- Format10X_GeoJson_CellID(1:2)
+  all <- Read10X_HD_GeoJson(bundle)
+  expect_equal(all$barcodes, ids)
+  selected <- Read10X_HD_GeoJson(bundle, cells = ids[2L])
+  expect_equal(selected$barcodes, ids[2L])
+  expect_equal(nrow(Read10X_HD_GeoJson(bundle, cells = character())), 0L)
+  expect_equal(nrow(Read10X_HD_GeoJson(bundle, cells = "invalid")), 0L)
+
+})
+
+test_that("10X counts preserve single-feature modalities and protein scaling", {
+  skip_if_not_installed("BPCells")
+  skip_if_not_installed("hdf5r")
+  bundle <- withr::local_tempdir()
+  path <- file.path(bundle, "cell_feature_matrix.h5")
+  matrix <- Matrix::Matrix(matrix(c(1, 2, 10, 3, 4, 20), nrow = 3,
+    dimnames = list(c("Gene", "Gene", "Protein"), c("cell1", "cell2"))), sparse = TRUE)
+  BPCells::write_matrix_10x_hdf5(methods::as(matrix, "IterableMatrix"), path,
+    feature_ids = c("id1", "id2", "id3"),
+    feature_types = c("Gene Expression", "Gene Expression", "Protein Expression"), type = "double")
+  file <- hdf5r::H5File$new(path, "r+")
+  hdf5r::h5attr(file, "protein_scaling_factor") <- 10
+  file$close_all()
+  actual <- suppressMessages(Read10X_h5(path))
+  expect_named(actual, c("Gene Expression", "Protein Expression"))
+  expect_equal(rownames(actual[[1L]]), c("Gene", "Gene.1"))
+  con <- gzfile(file.path(bundle, "cells.csv.gz"), "wt")
+  write.csv(data.frame(cell_id = c("cell1", "cell2"), x_centroid = 1:2,
+    y_centroid = 3:4, segmentation_method = "cell"), con, row.names = FALSE)
+  close(con)
+  object <- suppressMessages(LoadXenium(bundle, molecule.coordinates = FALSE))
+  expect_s4_class(LayerData(object, assay = "ProteinExpression", layer = "counts"), "dgCMatrix")
+  expect_equal(as.matrix(LayerData(object, assay = "ProteinExpression", layer = "counts")),
+    as.matrix(actual[["Protein Expression"]]))
+  expect_equal(as.matrix(actual[[2L]]), matrix(c(1, 2), nrow = 1,
+    dimnames = list("Protein", c("cell1", "cell2"))))
+})
+
+write_xenium_custom_probes <- function(format = c("csv", "parquet")) {
+  format <- match.arg(format)
+  bundle <- write_xenium_large_fixture(.local_envir = parent.frame())
+  probes <- c("Dash-probe", "Under_score", "Pipe|probe", "Control_probe", "Protein_probe")
+  counts <- Matrix::Matrix(matrix(seq_len(10L), 5L,
+    dimnames = list(probes, c("cell1", "cell2"))), sparse = TRUE)
+  types <- c(rep("Gene Expression", 3L), "Negative Control Probe", "Protein Expression")
+  matrix.dir <- file.path(bundle, "cell_feature_matrix")
+  Matrix::writeMM(counts, file.path(matrix.dir, "matrix.mtx"))
+  write.table(data.frame(probes, probes, types), file.path(matrix.dir, "features.tsv"),
+    sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+  for (name in c("matrix.mtx", "features.tsv")) {
+    path <- file.path(matrix.dir, name)
+    con <- gzfile(paste0(path, ".gz"), "wb")
+    writeBin(readBin(path, "raw", n = file.info(path)$size), con)
+    close(con)
+  }
+  transcripts <- data.frame(x_location = seq_along(probes), y_location = seq_along(probes),
+    feature_name = probes, qv = 30)
+  if (format == "parquet") {
+    # Exercise the native HDF5 counts reader and binary Parquet gene names.
+    BPCells::write_matrix_10x_hdf5(methods::as(counts, "IterableMatrix"),
+      file.path(bundle, "cell_feature_matrix.h5"), feature_types = types, type = "double")
+    transcripts$feature_name <- lapply(transcripts$feature_name, charToRaw)
+    arrow::write_parquet(arrow::Table$create(transcripts, schema = arrow::schema(
+      x_location = arrow::int32(), y_location = arrow::int32(),
+      feature_name = arrow::binary(), qv = arrow::float64())), file.path(bundle, "transcripts.parquet"))
+  } else {
+    con <- gzfile(file.path(bundle, "transcripts.csv.gz"), "wt")
+    write.csv(transcripts, con, row.names = FALSE)
+    close(con)
+  }
+  bundle
+}
+
+test_that("Xenium custom-probe molecule names match assays for initial reads", {
+  for (format in c("csv", "parquet")) {
+    if (format == "parquet" && !all(vapply(c("arrow", "BPCells", "hdf5r"),
+      requireNamespace, logical(1), quietly = TRUE))) next
+    bundle <- write_xenium_custom_probes(format)
+    load <- function(...) suppressWarnings(suppressMessages(LoadXenium(bundle, ...)))
+    expected <- c("Dash-probe", "Under-score", "Pipe-probe", "Control-probe", "Protein-probe")
+    eager <- load()
+    expect_s4_class(eager[["ControlProbe"]], "Assay")
+    expect_s4_class(eager[["ProteinExpression"]], "Assay")
+    features <- unlist(lapply(c("Xenium", "ControlProbe", "ProteinExpression"),
+      function(assay) rownames(eager[[assay]])), use.names = FALSE)
+    expect_identical(features, expected)
+    molecules <- GetTissueCoordinates(eager, which = "molecules")
+    expect_setequal(molecules$molecule, features)
+    expect_identical(GetTissueCoordinates(eager, which = "molecules", features = "Under-score")$molecule, "Under-score")
+    raw <- ReadXenium(bundle, outs = "microns", type = character())$microns
+    expect_identical(raw$gene, c("Dash-probe", "Under_score", "Pipe|probe", "Control_probe", "Protein_probe"))
+
+    selected <- load(genes = c("Under-score", "Pipe|probe"))
+    expect_setequal(GetTissueCoordinates(selected[["fov"]], which = "molecules")$molecule,
+      c("Under-score", "Pipe-probe"))
+  }
+})
+
+test_that("Visium segmented loads honor assay, slice, and uppercase settings", {
+  skip_if_not_installed("sf")
+  skip_if_not_installed("hdf5r")
+  skip_if_not_installed("BPCells")
+  bundle <- write_visium_segmentations(withr::local_tempdir())
+  spatial <- file.path(bundle, "segmented_outputs", "spatial")
+  dir.create(spatial)
+  png::writePNG(array(1, dim = c(10, 10, 3)), file.path(spatial, "tissue_lowres_image.png"))
+  jsonlite::write_json(list(tissue_lowres_scalef = 1, tissue_hires_scalef = 1,
+    fiducial_diameter_fullres = 1, spot_diameter_fullres = 1),
+    file.path(spatial, "scalefactors_json.json"), auto_unbox = TRUE)
+  counts <- Matrix::Matrix(matrix(1:4, 2, dimnames = list(c("geneA", "geneB"),
+    Format10X_GeoJson_CellID(1:2))), sparse = TRUE)
+  BPCells::write_matrix_10x_hdf5(methods::as(counts, "IterableMatrix"),
+    file.path(bundle, "segmented_outputs", "filtered_feature_cell_matrix.h5"), type = "double")
+  for (compact in c(FALSE, TRUE)) {
+    object <- Load10X_Spatial(bundle, bin.size = "polygons", assay = "Custom", slice = "section1",
+      to.upper = TRUE, compact = compact)
+    image <- object[["section1.polygons"]]
+    expect_identical(DefaultAssay(image), "Custom.Polygons")
+    expect_identical(Key(image), Key("section1.polygons", quiet = TRUE))
+    expect_identical(rownames(object), c("GENEA", "GENEB"))
+    expect_equal(unname(as.matrix(LayerData(object, layer = "counts"))), unname(as.matrix(counts)))
+    expect_true("segmentations" %in% Boundaries(image))
+    expect_identical(length(slot(image[["segmentations"]], "polygons")) == 0L, compact)
+    expect_s4_class(LayerData(object, layer = "counts"), "dgCMatrix")
+  }
+})
+
+test_that("large Visium selections preserve filtered geometry and identifiers", {
+  skip_if_not_installed("sf")
+  bundle <- withr::local_tempdir()
+  dir.create(file.path(bundle, "segmented_outputs"))
+  geometry <- sf::st_sfc(lapply(seq_len(12000L), function(i) {
+    sf::st_polygon(list(cbind(c(0, 1, 1, 0, 0) + i, c(0, 0, 1, 1, 0))))
+  }))
+  sf::write_sf(sf::st_sf(cell_id = seq_len(12000L), geometry = geometry),
+    file.path(bundle, "segmented_outputs", "cell_segmentations.geojson"))
+  all <- Read10X_HD_GeoJson(bundle)
+  ids <- Format10X_GeoJson_CellID(c(10001:12000, 1:8001))
+  selected <- Read10X_HD_GeoJson(bundle, cells = c(ids, ids[1], "invalid"))
+  keep <- all$barcodes %in% ids
+  expect_identical(selected$barcodes, all$barcodes[keep])
+  expect_equal(sf::st_geometry(selected), sf::st_geometry(all)[keep])
+  expect_equal(selected$cell_id, all$cell_id[keep])
+  expect_true(is.na(sf::st_crs(selected)))
+})
+
+test_that("Xenium count failures report corrupt inputs and allow MEX fallback", {
+  bundle <- withr::local_tempdir()
+  read <- function() ReadXenium(bundle, outs = "matrix", type = character())$matrix
+  expect_error(read(), "missing cell_feature_matrix")
+  writeLines("invalid HDF5", file.path(bundle, "cell_feature_matrix.h5"))
+  dir.create(file.path(bundle, "cell_feature_matrix"))
+  expect_error(read(), "cell_feature_matrix.h5:")
+  expect_error(read(), "cell_feature_matrix:")
+  valid <- write_xenium_large_fixture()
+  file.copy(list.files(file.path(valid, "cell_feature_matrix"), full.names = TRUE),
+    file.path(bundle, "cell_feature_matrix"))
+  expected <- Read10X(file.path(valid, "cell_feature_matrix"))
+  expect_equal(read(), list(`Gene Expression` = expected))
+})
+
+test_that("LoadXenium preserves native coordinates and deprecated calls still swap them", {
+  bundle <- write_xenium_large_fixture()
+  expect_no_warning(native <- suppressMessages(LoadXenium(bundle)))
+  lifecycle::expect_deprecated(
+    flipped <- suppressMessages(LoadXenium(bundle, flip.xy = TRUE)), regexp = "flip.xy")
+  centroids <- GetTissueCoordinates(native[["fov"]], which = "centroids")
+  swapped <- GetTissueCoordinates(flipped[["fov"]], which = "centroids")
+  expect_equal(centroids$x, c(1, 3))
+  expect_equal(centroids$y, c(4, 6))
+  expect_equal(swapped$x, centroids$y)
+  expect_equal(swapped$y, centroids$x)
+  molecules <- GetTissueCoordinates(native[["fov"]], which = "molecules")
+  swapped <- GetTissueCoordinates(flipped[["fov"]], which = "molecules")
+  expect_equal(swapped$x, molecules$y)
+  expect_equal(swapped$y, molecules$x)
+  plot <- ImageDimPlot(flipped, combine = FALSE)[[1]]
+  data <- ggplot2::ggplot_build(plot)$data[[1]]
+  expect_equal(data$x, centroids$x)
+  expect_equal(data$y, centroids$y)
+})
+
+test_that("initial Xenium loading filters molecules by gene and region", {
+  bundle <- write_xenium_large_fixture()
+  for (flip in c(FALSE, TRUE)) {
+    region <- if (flip) list(x = c(5, 6), y = c(2, 3)) else list(x = c(2, 3), y = c(5, 6))
+    lifecycle::expect_deprecated(
+      object <- suppressMessages(LoadXenium(bundle, genes = "A", region = region,
+        flip.xy = flip)), regexp = "flip.xy")
+    molecules <- GetTissueCoordinates(object[["fov"]], which = "molecules")
+    expect_identical(molecules$molecule, "A")
+    expect_equal(molecules$x, if (flip) 6 else 3)
+    expect_equal(molecules$y, if (flip) 3 else 6)
+    expect_length(object@misc, 0L)
+  }
+})
+
+test_that("Xenium can skip transcript reads without retaining molecule state", {
+  bundle <- write_xenium_large_fixture()
+  file.remove(file.path(bundle, "transcripts.csv.gz"))
+  object <- suppressMessages(LoadXenium(bundle, molecule.coordinates = FALSE))
+  expect_length(Molecules(object[["fov"]]), 0L)
+  expect_equal(Cells(object), c("cell1", "cell2"))
+  expect_length(object@misc, 0L)
+})
+
+context("Atera file loading")
+
+write_atera_fixture <- function(bundle = withr::local_tempdir(.local_envir = parent.frame()), multiplier = 1) {
+  skip_if_not_installed("blosc")
+  skip_if_not_installed("data.table")
+  skip_if(Sys.which("zip") == "", "zip executable is required")
+  dir.create(bundle, recursive = TRUE, showWarnings = FALSE)
+  archive <- function(name, populate) {
+    root <- withr::local_tempdir()
+    array <- function(path, values) {
+      folder <- file.path(root, path)
+      dir.create(folder, recursive = TRUE, showWarnings = FALSE)
+      shape <- dim(values) %||% length(values)
+      dtype <- if (is.character(values)) "|O" else if (is.integer(values)) "<i4" else "<f8"
+      bytes <- if (is.character(values)) {
+        c(writeBin(as.integer(length(values)), raw(), endian = "little"),
+          do.call(c, lapply(values, function(value) {
+            value <- charToRaw(enc2utf8(value))
+            c(writeBin(as.integer(length(value)), raw(), endian = "little"), value)
+          })))
+      } else {
+        if (is.matrix(values)) values <- as.vector(t(values))
+        writeBin(values, raw(), endian = "little")
+      }
+      jsonlite::write_json(list(zarr_format = 2L, shape = as.list(shape),
+        chunks = as.list(shape), dtype = dtype, order = "C", fill_value = 0,
+        compressor = list(id = "blosc")), file.path(folder, ".zarray"), auto_unbox = TRUE)
+      key <- paste(rep(0, length(shape)), collapse = ".")
+      writeBin(blosc::blosc_compress(bytes), file.path(folder, key))
+    }
+    populate(array, root)
+    files <- list.files(root, recursive = TRUE, all.files = TRUE, no.. = TRUE)
+    withr::with_dir(root, utils::zip(file.path(bundle, name), files, flags = "-0 -q"))
+  }
+  genes <- c("Under_score", "Pipe|probe", "Empty", "Ctrl_one", "Ctrl|two")
+  archive("csc_cell_feature_matrix.zarr.zip", function(array, root) {
+    array("var/feature_name", genes)
+    array("var/feature_type/categories", c("Gene Expression", "Negative Control Probe"))
+    array("var/feature_type/codes", c(0L, 0L, 0L, 1L, 1L))
+    array("obs/cell_id", 1:2)
+    array("X/indptr", seq.int(0L, 10L, 2L))
+    array("X/indices", rep(0:1, 5L))
+    array("X/data", as.double(1:10) * multiplier)
+  })
+  archive("cells.zarr.zip", function(array, root) {
+    array("cell_id", 1:2)
+    array("cell_summary", matrix(c(1, 2, 3, 4), nrow = 2L, byrow = TRUE))
+    for (kind in 0:1) {
+      path <- paste0("polygon_sets/", kind, "/")
+      array(paste0(path, "cell_index"), 0:1)
+      array(paste0(path, "num_vertices"), c(5L, 5L))
+      array(paste0(path, "vertices"), rbind(c(0, 1, 0, 3, 2, 3, 2, 1, 0, 1),
+        c(2, 3, 2, 5, 4, 5, 4, 3, 2, 3)))
+    }
+  })
+  archive("transcripts.zarr.zip", function(array, root) {
+    jsonlite::write_json(list(gene_names = genes), file.path(root, ".zattrs"))
+    array("grid/0/gene_offset", matrix(c(0L, 1L, 1L, 2L, 2L, 2L, 2L, 3L, 3L, 4L), ncol = 2L, byrow = TRUE))
+    array("grid/0/location", matrix(rep(c(1, 2), 4L), ncol = 2L, byrow = TRUE))
+    array("grid/0/quality_score", rep(30, 4L))
+    array("grid/0/codeword_identity", rep(1L, 4L))
+  })
+  bundle
+}
+
+test_that("Atera reads counts, centroids, controls, and cropped boundaries from archives", {
+  bundle <- write_atera_fixture()
+  object <- suppressWarnings(LoadAtera(bundle, bpcells.dir = FALSE))
+  expect_identical(Cells(object), c("1", "2"))
+  expect_identical(rownames(object), c("Under-score", "Pipe-probe", "Empty"))
+  expect_equal(unname(as.matrix(LayerData(object, layer = "counts"))), matrix(1:6, nrow = 3L, byrow = TRUE))
+  expect_identical(slot(object[["fov"]], "coords_x_orientation"), "horizontal")
+  object <- suppressWarnings(subset(object, cells = "2"))
+  for (kind in c("cell", "nucleus")) {
+    result <- LoadAteraSegmentations(object, bundle, "fov", segmentations = kind)
+    expect_setequal(GetTissueCoordinates(result[["fov"]][["segmentations"]])$cell, "2")
+  }
 })

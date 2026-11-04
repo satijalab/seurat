@@ -279,3 +279,58 @@ test_that("Read10X_Spatial handles missing files properly", {
   expect_error(Load10X_Spatial(data.dir = "."))
   expect_error(Load10X_Spatial(data.dir = "./notadir/"))
 })
+
+test_that("fast MatrixMarket reads match readMM", {
+  skip_if_not_installed("data.table")
+  skip_if_not_installed("R.utils")
+  path <- "../testdata/cr3.0/matrix.mtx.gz"
+  expected <- Matrix::readMM(path)
+  expect_equal(Seurat:::readMM_fast(path), expected)
+  con <- withr::local_connection(gzfile(path, "rt"))
+  expect_equal(Seurat:::readMM_fast(con), expected)
+})
+
+test_that("MatrixMarket comments are accepted by Read10X and ReadMtx", {
+  bundle <- withr::local_tempdir()
+  writeLines(c("%%MatrixMarket matrix coordinate integer general", "% three fields",
+    "% another comment", "2 2 2", "1 1 3", "2 2 4"), file.path(bundle, "matrix.mtx"))
+  writeLines(c("0001", "0002"), file.path(bundle, "barcodes.tsv"))
+  writeLines(c("id1\tA", "id2\tB"), file.path(bundle, "genes.tsv"))
+  expected <- matrix(c(3, 0, 0, 4), 2L, dimnames = list(c("A", "B"), c("0001", "0002")))
+  expect_equal(as.matrix(Read10X(bundle)), expected)
+  expect_equal(as.matrix(ReadMtx(file.path(bundle, "matrix.mtx"),
+    file.path(bundle, "barcodes.tsv"), file.path(bundle, "genes.tsv"))), expected)
+})
+
+test_that("table fallback preserves barcodes and skips unused columns", {
+  path <- withr::local_tempfile(fileext = ".csv.gz")
+  con <- gzfile(path, "wt")
+  writeLines(c("barcode,x,unused", "0001,2,unused"), con)
+  close(con)
+  read <- function() Seurat:::.ReadLoaderTable(path,
+    colClasses = c(barcode = "character"), select = c("barcode", "x", "qv"))
+  expected <- data.frame(barcode = "0001", x = 2L)
+  expect_identical(read(), expected)
+
+  original <- base::requireNamespace
+  for (dependency in c("data.table", "R.utils")) local({
+    testthat::local_mocked_bindings(requireNamespace = function(package, ...) {
+      if (package == dependency) FALSE else original(package, ...)
+    }, .package = "base")
+    expect_identical(read(), expected)
+  })
+})
+
+test_that("transcript projection tolerates missing QV in CSV and Parquet", {
+  bundle <- withr::local_tempdir()
+  transcripts <- data.frame(x_location = c(1, 2), y_location = c(3, 4),
+    feature_name = c("A", "B"), unused = c("large", "column"))
+  con <- gzfile(file.path(bundle, "transcripts.csv.gz"), "wt")
+  write.csv(transcripts, con, row.names = FALSE)
+  close(con)
+  expected <- data.frame(x = 1, y = 3, gene = "A")
+  expect_equal(Seurat:::.XeniumReadMolecules(bundle, genes = "A"), expected)
+  skip_if_not_installed("arrow")
+  arrow::write_parquet(transcripts, file.path(bundle, "transcripts.parquet"))
+  expect_equal(Seurat:::.XeniumReadMolecules(bundle, genes = "A"), expected)
+})
