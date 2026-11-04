@@ -2443,7 +2443,13 @@ PolyFeaturePlot <- function(
 #' \code{patchwork} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
-#' @param flip_xy Flag to flip X and Y axes. Default is FALSE.
+#' @param flip_xy Swap x and y in the plot. \code{FALSE} shows x horizontally
+#' and y increasing downward. \code{TRUE} swaps the axes and restores the old (< v6)
+#' layout, with vertical values increasing upward. \code{NULL} (the default)
+#' uses the FOV's orientation, or \code{FALSE} for older FOVs without this setting.
+#' Stored coordinates do not change. To crop using the original x/y ranges,
+#' use \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
+#' The default \code{Crop()} still expects swapped x/y ranges.
 #'
 #' @return If \code{combine = TRUE}, a \code{patchwork}
 #' ggplot object; otherwise, a list of ggplot objects
@@ -2483,7 +2489,7 @@ ImageDimPlot <- function(
   axes = FALSE,
   combine = TRUE,
   coord.fixed = TRUE,
-  flip_xy = TRUE
+  flip_xy = NULL
 ) {
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
@@ -2542,14 +2548,13 @@ ImageDimPlot <- function(
   ))
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
+  fov.by.plot <- setNames(rep(fov, vapply(seq_along(fov), function(i) {
+    if (isTRUE(overlap[i])) 1L else length(boundaries[[i]])
+  }, integer(1L))), names(pdata))
   for (i in names(x = pdata)) {
-    ul <- unlist(x = strsplit(x = i, split = '_'))
-    img <- paste(ul[1:length(ul)-1], collapse = '_')
+    img <- fov.by.plot[[i]]
     # Apply overlap
-    lyr <- ul[length(ul)]
-    if (is.na(x = lyr)) {
-      lyr <- boundaries[[img]]
-    }
+    lyr <- if (isTRUE(overlap[match(img, fov)])) boundaries[[img]] else substring(i, nchar(img) + 2L)
     # TODO: Apply crop
     pdata[[i]] <- lapply(
       X = lyr,
@@ -2617,7 +2622,8 @@ ImageDimPlot <- function(
   idx <- 1L
   for (group in group.by) {
     for (i in seq_along(along.with = pdata)) {
-      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '_'))[1L]
+      img <- fov.by.plot[[i]]
+      orientation <- .ImagePlotOrientation(object[[img]], flip_xy)
       p <- SingleImagePlot(
         data = pdata[[i]],
         col.by = pdata[[i]] %!NA% group,
@@ -2632,7 +2638,8 @@ ImageDimPlot <- function(
         border.color = border.color,
         border.size = border.size,
         na.value = na.value,
-        dark.background = dark.background
+        dark.background = dark.background,
+        flip_xy = orientation
       )
       if (!is.null(x = split.by)) {
         p <- p + facet_wrap(
@@ -2647,10 +2654,6 @@ ImageDimPlot <- function(
       }
       if (isTRUE(coord.fixed)) {
         p <- p + coord_fixed()
-      }
-      if(!isTRUE(flip_xy) && isTRUE(coord.fixed)){
-        xy_ratio = (max(pdata[[i]]$x) - min(pdata[[i]]$x)) / (max(pdata[[i]]$y) - min(pdata[[i]]$y))
-        p = p + coord_flip() + theme(aspect.ratio = 1/xy_ratio)
       }
       plots[[idx]] <- p
       idx <- idx + 1L
@@ -2721,7 +2724,8 @@ ImageFeaturePlot <- function(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE
+  coord.fixed = TRUE,
+  flip_xy = NULL
 ) {
   cells <- cells %||% Cells(x = object)
   scale <- scale[[1L]]
@@ -2947,23 +2951,13 @@ ImageFeaturePlot <- function(
   ))
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
+  fov.by.plot <- setNames(rep(fov, vapply(seq_along(fov), function(i) {
+    if (isTRUE(overlap[i])) 1L else length(boundaries[[i]])
+  }, integer(1L))), names(pdata))
   for (i in names(x = pdata)) {
-    ul <- unlist(x = strsplit(x = i, split = '_'))
-    # img <- paste(ul[1:length(ul)-1], collapse = '_')
+    img <- fov.by.plot[[i]]
     # Apply overlap
-    # lyr <- ul[length(ul)]
-    if(length(ul) > 1) {
-         img <- paste(ul[1:length(ul)-1], collapse = '_')
-         lyr <- ul[length(ul)]
-    } else if (length(ul) == 1) {
-         img <- ul[1]
-         lyr <- "centroids"
-    } else {
-         stop("the length of ul is 0. please check.")
-    }
-    if (is.na(x = lyr)) {
-      lyr <- boundaries[[img]]
-    }
+    lyr <- if (isTRUE(overlap[match(img, fov)])) boundaries[[img]] else substring(i, nchar(img) + 2L)
     pdata[[i]] <- lapply(
       X = lyr,
       FUN = function(l) {
@@ -3071,7 +3065,8 @@ ImageFeaturePlot <- function(
     }
     for (j in seq_along(along.with = pdata)) {
       key <- names(x = pdata)[j]
-      img <- unlist(x = strsplit(x = key, split = '_'))[1L]
+      img <- fov.by.plot[[j]]
+      orientation <- .ImagePlotOrientation(object[[img]], flip_xy)
       plots[[ident]][[key]] <- vector(
         mode = 'list',
         length = length(x = features) + ifelse(
@@ -3103,7 +3098,8 @@ ImageFeaturePlot <- function(
           alpha = alpha,
           border.color = border.color,
           border.size = border.size,
-          dark.background = dark.background
+          dark.background = dark.background,
+          flip_xy = orientation
         ) +
           CenterTitle() + labs(fill=feature)
         # Remove fill guides for blended plots
@@ -3177,9 +3173,10 @@ ImageFeaturePlot <- function(
       if (isTRUE(x = blend)) {
         plots[[ident]][[key]][[length(x = plots[[ident]][[key]])]] <- blend.key
       } else if (length(x = levels(x = md[[split.by]])) > 1L) {
+        y.scale <- if (orientation) scale_y_continuous else scale_y_reverse
         plots[[ident]][[key]][[y]] <- suppressMessages(
           expr = plots[[ident]][[key]][[y]] +
-            scale_y_continuous(sec.axis = dup_axis(name = ident)) +
+            y.scale(sec.axis = dup_axis(name = ident)) +
             no.right
         )
       }
@@ -6891,6 +6888,17 @@ fortify.Segmentation <- function(model, data, ...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+.ImagePlotOrientation <- function(object, flip_xy = NULL) {
+  if (!is.null(flip_xy) && (!is.logical(flip_xy) || length(flip_xy) != 1L || is.na(flip_xy))) {
+    stop("flip_xy must be NULL, TRUE or FALSE")
+  }
+  # Unmarked FOVs contain native x/y coordinates, just like horizontal FOVs.
+  # Only an explicit vertical flag requests exchanged axes.
+  flip_xy %||% (.hasSlot(object, "coords_x_orientation") &&
+    identical(slot(object, "coords_x_orientation"), "vertical"))
+}
+
+
 #' @importFrom SeuratObject Features Key Keys Molecules
 #'
 .MolsByFOV <- function(object, fov, molecules) {
@@ -9279,10 +9287,8 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #'
 #' @param data A data frame with at least the following columns:
 #' \itemize{
-#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
-#'   plotted on the \emph{y}-axis
-#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
-#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{x}}: Spatially-resolved \emph{x} coordinates
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates
 #'  \item \dQuote{\code{cell}}: Cell name
 #'  \item \dQuote{\code{boundary}}: Segmentation boundary label; when plotting
 #'   multiple segmentation layers, the order of boundary transparency is set by
@@ -9308,10 +9314,8 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @param molecules A data frame with spatially-resolved molecule coordinates;
 #' should have the following columns:
 #' \itemize{
-#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
-#'   plotted on the \emph{y}-axis
-#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
-#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{x}}: Spatially-resolved \emph{x} coordinates
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates
 #'  \item \dQuote{\code{molecule}}: Molecule name
 #' }
 #' @param mols.size Point size for molecules
@@ -9336,6 +9340,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @importFrom ggplot2 geom_point geom_polygon ggplot guides
 #' guide_legend scale_alpha_manual scale_color_manual scale_fill_brewer
 #' scale_fill_manual
+#' @param flip_xy Exchange x and y axes (default \code{FALSE})
 #'
 #' @keywords internal
 #'
@@ -9357,6 +9362,7 @@ SingleImagePlot <- function(
   border.size = NULL,
   na.value = 'grey50',
   dark.background = TRUE,
+  flip_xy = FALSE,
   ...
 ) {
   # Check input data
@@ -9421,12 +9427,15 @@ SingleImagePlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes(
-      x = .data[["y"]],
-      y = .data[["x"]],
+      x = .data[[if (isTRUE(flip_xy)) "y" else "x"]],
+      y = .data[[if (isTRUE(flip_xy)) "x" else "y"]],
       alpha = .data[["boundary"]],
       !!!aes_extra
     )
   )
+  if (!isTRUE(flip_xy)) {
+    plot <- plot + scale_y_reverse()
+  }
   if (!is_na(x = data)) {
     plot <- plot +
       scale_alpha_manual(values = alphas) +
