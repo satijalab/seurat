@@ -2852,11 +2852,6 @@ setMethod(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-.UseImageCoordinates <- function(object) {
-  .hasSlot(object, "coords_x_orientation") &&
-    identical(slot(object, "coords_x_orientation"), "horizontal")
-}
-
 # Internal AddMetaData defintion
 #
 # @param object An object

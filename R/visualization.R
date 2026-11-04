@@ -6906,6 +6906,11 @@ fortify.Segmentation <- function(model, data, ...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+.UseImageCoordinates <- function(object) {
+  .hasSlot(object, "coords_x_orientation") &&
+    identical(slot(object, "coords_x_orientation"), "horizontal")
+}
+
 .ImagePlotOrientation <- function(object, flip_xy = NULL) {
   if (!is.null(flip_xy) && (!is.logical(flip_xy) || length(flip_xy) != 1L || is.na(flip_xy))) {
     stop("flip_xy must be NULL, TRUE or FALSE")
