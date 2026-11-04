@@ -261,7 +261,7 @@ LoadXenium <- function(
   )
 
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
-  # Follow the constructors' actual names without duplicating their rules.
+  # Match transcript labels to the feature names assigned to the expression assay
   feature.map <- stats::setNames(rownames(xenium.obj[[assay]]),
     rownames(data$matrix[["Gene Expression"]]))
 
@@ -274,8 +274,7 @@ LoadXenium <- function(
   }
 
   for(name in intersect(names(slot.map), names(data$matrix))) {
-    constructor <- if (nrow(data$matrix[[name]]) == 1L) CreateAssayObject else CreateAssay5Object
-    control.assay <- constructor(counts = data$matrix[[name]])
+    control.assay <- CreateAssayObject(counts = data$matrix[[name]])
     feature.map <- c(feature.map, stats::setNames(
       rownames(control.assay), rownames(data$matrix[[name]])))
     xenium.obj[[slot.map[name]]] <- control.assay

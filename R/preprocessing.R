@@ -24,7 +24,11 @@ globalVariables(
 readMM_fast <- function(file) {
   # use the original reader for connections, urls, or missing optional dependencies
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
-  if (!has_dt || inherits(file, "connection") || grepl("^[[:alpha:]]+://", file)) {
+  if (!has_dt) {
+    message("data.table or R.utils is unavailable; using Matrix::readMM()")
+    return(Matrix::readMM(file))
+  }
+  if (inherits(file, "connection") || grepl("^[[:alpha:]]+://", file)) {
     return(Matrix::readMM(file))
   }
   con <- gzfile(file, "rt")
@@ -48,8 +52,16 @@ readMM_fast <- function(file) {
   if (length(dimensions) != 3L || anyNA(dimensions) || any(dimensions <= 0L)) {
     return(Matrix::readMM(file))
   }
-  dt <- data.table::fread(file, header = FALSE, skip = skip,
-    colClasses = c("integer", "integer", "numeric"), quote = "", blank.lines.skip = TRUE, data.table = FALSE)
+  dt <- tryCatch(
+    data.table::fread(file, header = FALSE, skip = skip,
+      colClasses = c("integer", "integer", "numeric"), quote = "", blank.lines.skip = TRUE, data.table = FALSE),
+    warning = function(w) NULL, error = function(e) NULL
+  )
+  # Retry with standard whitespace parsing if fread cannot read all triplets.
+  # The connection is positioned just after the dimensions line.
+  if (is.null(dt) || ncol(dt) != 3L || nrow(dt) != dimensions[3L]) {
+    dt <- as.data.frame(scan(con, what = list(integer(), integer(), numeric()), quiet = TRUE))
+  }
   # reject incomplete or extra triplets before constructing the matrix
   if (nrow(dt) != dimensions[3L]) {
     stop(sprintf("MatrixMarket entry count mismatch: header declares %s entries, but read %s triplets.",
@@ -2627,7 +2639,8 @@ ReadNanostring <- function(
             stop("Missing required Parquet columns: ", paste(missing, collapse = ", "), call. = FALSE)
           }
           selected <- intersect(columns, available)
-          as.data.frame(arrow::read_parquet(parquet, col_select = selected))
+          # Arrow reader selects columns by zero-based index
+          as.data.frame(reader$ReadTable(match(selected, available) - 1L))
         }
       }, error = identity)
       if (!inherits(value, "error")) return(value)
