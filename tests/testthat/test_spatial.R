@@ -689,8 +689,10 @@ test_that("Visium polygons select boundaries explicitly and retain feature limit
 context("Spatial file loading")
 
 test_that("STARmap, Curio Seeker, and Slide-seq agree with base file readers", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # compare accelerated spatial loading with base readers for counts and stored coordinates
-  bundle <- withr::local_tempdir()
   writeLines(c("1,2", "3,4"), file.path(bundle, "cell_barcode_count.csv"))
   writeLines(c("GeneA", "GeneB"), file.path(bundle, "genes.csv"))
   writeLines(c("1\t10\t1", "1\t12\t2", "2\t20\t3", "2\t22\t4"),
@@ -724,8 +726,8 @@ test_that("STARmap, Curio Seeker, and Slide-seq agree with base file readers", {
   expect_equal(GetTissueCoordinates(actual[[2]][["Slice"]])$y, c(-12, -24))
 })
 
-write_xenium_fixture <- function(.local_envir = parent.frame()) {
-  bundle <- withr::local_tempdir(.local_envir = .local_envir)
+write_xenium_fixture <- function(bundle) {
+  dir.create(bundle, recursive = TRUE, showWarnings = FALSE)
   matrix.dir <- file.path(bundle, "cell_feature_matrix")
   dir.create(matrix.dir)
   counts <- Matrix::Matrix(matrix(c(1, 0, 2, 3), nrow = 2,
@@ -755,8 +757,11 @@ write_xenium_fixture <- function(.local_envir = parent.frame()) {
 }
 
 test_that("Xenium CSV molecules filter genes, QV, and flipped regions", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check transcript selection by gene, quality score, and region in either coordinate orientation
-  bundle <- write_xenium_fixture()
+  bundle <- write_xenium_fixture(bundle)
   read <- function(...) ReadXenium(bundle, outs = "microns", type = character(), ...)$microns
   expect_equal(read(genes = "A"), data.frame(x = c(3, 5), y = c(6, 8), gene = "A"))
   expect_equal(read(genes = "B"), data.frame(x = 2, y = 5, gene = "B"))
@@ -772,9 +777,12 @@ test_that("Xenium CSV molecules filter genes, QV, and flipped regions", {
 })
 
 test_that("Xenium Parquet filters agree with CSV including binary feature names", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that columnar and text transcript files produce the same filtered molecules
   skip_if_not_installed("arrow")
-  bundle <- write_xenium_fixture()
+  bundle <- write_xenium_fixture(bundle)
   expected <- ReadXenium(bundle, outs = "microns", type = character(), genes = "A")$microns
   transcripts <- read.csv(gzfile(file.path(bundle, "transcripts.csv.gz")))
   arrow::write_parquet(transcripts, file.path(bundle, "transcripts.parquet"), chunk_size = 2L)
@@ -788,8 +796,10 @@ test_that("Xenium Parquet filters agree with CSV including binary feature names"
 })
 
 test_that("Visium positions filter barcodes and tissue consistently across formats", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that supported position file formats retain the same cells and coordinates
-  bundle <- withr::local_tempdir()
   positions <- data.frame(barcode = c("0001", "0002", "0003"), in_tissue = c(1, 0, 1),
     array_row = 1:3, array_col = 4:6, pxl_row_in_fullres = 7:9, pxl_col_in_fullres = 10:12)
   parquet <- file.path(bundle, "tissue_positions.parquet")
@@ -819,9 +829,12 @@ write_xenium_boundaries <- function(bundle) {
 }
 
 test_that("Xenium boundary readers filter cells and preserve coordinate orientation", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check cell selection and coordinate ordering for cell and nucleus boundary files
   skip_if_not_installed("sf")
-  bundle <- write_xenium_fixture()
+  bundle <- write_xenium_fixture(bundle)
   vertices <- write_xenium_boundaries(bundle)
   for (kind in c("segmentations", "nucleus_segmentations")) {
     selected <- ReadXenium(bundle, outs = character(), type = kind, cells = "cell2",
@@ -839,9 +852,12 @@ test_that("Xenium boundary readers filter cells and preserve coordinate orientat
 })
 
 test_that("Xenium retries CSV after Parquet failures and caches cell metadata", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check schema and read failures across xenium tables while reading cell metadata only once
   skip_if_not_installed("arrow")
-  bundle <- write_xenium_fixture()
+  bundle <- write_xenium_fixture(bundle)
   write_xenium_boundaries(bundle)
   read <- function() ReadXenium(bundle, outs = c("segmentation_method", "microns"),
     type = c("centroids", "segmentations", "nucleus_segmentations"))
@@ -877,9 +893,12 @@ write_visium_segmentations <- function(bundle) {
 }
 
 test_that("Visium GeoJSON filters cell identifiers", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that polygon selection uses formatted cell identifiers and handles empty selections
   skip_if_not_installed("sf")
-  bundle <- write_visium_segmentations(withr::local_tempdir())
+  bundle <- write_visium_segmentations(bundle)
   ids <- Format10X_GeoJson_CellID(1:2)
   all <- Read10X_HD_GeoJson(bundle)
   expect_equal(all$barcodes, ids)
@@ -891,9 +910,9 @@ test_that("Visium GeoJSON filters cell identifiers", {
 })
 
 
-write_xenium_custom_probes <- function(format = c("csv", "parquet")) {
+write_xenium_custom_probes <- function(bundle, format = c("csv", "parquet")) {
   format <- match.arg(format)
-  bundle <- write_xenium_fixture(.local_envir = parent.frame())
+  bundle <- write_xenium_fixture(bundle)
   probes <- c("Dash-probe", "Under_score", "Pipe|probe", "Control_probe", "Protein_probe")
   counts <- Matrix::Matrix(matrix(seq_len(10L), 5L,
     dimnames = list(probes, c("cell1", "cell2"))), sparse = TRUE)
@@ -927,12 +946,15 @@ write_xenium_custom_probes <- function(format = c("csv", "parquet")) {
 }
 
 test_that("Xenium custom-probe molecule names match assays for initial reads", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that molecule names match sanitized assay features, including singleton control assays
   for (format in c("csv", "parquet")) {
     if (format == "parquet" && !all(vapply(c("arrow", "BPCells", "hdf5r"),
       requireNamespace, logical(1), quietly = TRUE))) next
-    bundle <- write_xenium_custom_probes(format)
-    load <- function(...) suppressWarnings(suppressMessages(LoadXenium(bundle, ...)))
+    fixture <- write_xenium_custom_probes(file.path(bundle, format), format)
+    load <- function(...) suppressWarnings(suppressMessages(LoadXenium(fixture, ...)))
     expected <- c("Dash-probe", "Under-score", "Pipe-probe", "Control-probe", "Protein-probe")
     eager <- load()
     expect_s4_class(eager[["ControlProbe"]], "Assay")
@@ -943,7 +965,7 @@ test_that("Xenium custom-probe molecule names match assays for initial reads", {
     molecules <- GetTissueCoordinates(eager, which = "molecules")
     expect_setequal(molecules$molecule, features)
     expect_identical(GetTissueCoordinates(eager, which = "molecules", features = "Under-score")$molecule, "Under-score")
-    raw <- ReadXenium(bundle, outs = "microns", type = character())$microns
+    raw <- ReadXenium(fixture, outs = "microns", type = character())$microns
     expect_identical(raw$gene, c("Dash-probe", "Under_score", "Pipe|probe", "Control_probe", "Protein_probe"))
 
     selected <- load(genes = c("Under-score", "Pipe|probe"))
@@ -953,11 +975,14 @@ test_that("Xenium custom-probe molecule names match assays for initial reads", {
 })
 
 test_that("Visium segmented loads honor assay, slice, and uppercase settings", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check custom names and uppercase features while preserving counts and segmentation storage
   skip_if_not_installed("sf")
   skip_if_not_installed("hdf5r")
   skip_if_not_installed("BPCells")
-  bundle <- write_visium_segmentations(withr::local_tempdir())
+  bundle <- write_visium_segmentations(bundle)
   spatial <- file.path(bundle, "segmented_outputs", "spatial")
   dir.create(spatial)
   png::writePNG(array(1, dim = c(10, 10, 3)), file.path(spatial, "tissue_lowres_image.png"))
@@ -984,15 +1009,17 @@ test_that("Visium segmented loads honor assay, slice, and uppercase settings", {
 
 
 test_that("Xenium count failures report corrupt inputs and allow MEX fallback", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that failed count reads identify the input and fall back to a valid matrix directory
-  bundle <- withr::local_tempdir()
   read <- function() ReadXenium(bundle, outs = "matrix", type = character())$matrix
   expect_error(read(), "missing cell_feature_matrix")
   writeLines("invalid HDF5", file.path(bundle, "cell_feature_matrix.h5"))
   dir.create(file.path(bundle, "cell_feature_matrix"))
   expect_error(read(), "cell_feature_matrix.h5:")
   expect_error(read(), "cell_feature_matrix:")
-  valid <- write_xenium_fixture()
+  valid <- write_xenium_fixture(file.path(bundle, "valid"))
   file.copy(list.files(file.path(valid, "cell_feature_matrix"), full.names = TRUE),
     file.path(bundle, "cell_feature_matrix"))
   expected <- Read10X(file.path(valid, "cell_feature_matrix"))
@@ -1000,8 +1027,11 @@ test_that("Xenium count failures report corrupt inputs and allow MEX fallback", 
 })
 
 test_that("LoadXenium preserves native coordinates and deprecated calls still swap them", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check native loading and plotting while retaining the deprecated coordinate swap behavior
-  bundle <- write_xenium_fixture()
+  bundle <- write_xenium_fixture(bundle)
   expect_no_warning(native <- suppressMessages(LoadXenium(bundle)))
   lifecycle::expect_deprecated(
     flipped <- suppressMessages(LoadXenium(bundle, flip.xy = TRUE)), regexp = "flip.xy")
@@ -1038,8 +1068,11 @@ test_that("LoadXenium preserves native coordinates and deprecated calls still sw
 })
 
 test_that("initial Xenium loading filters molecules by gene and region", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that initial molecule loading applies gene and region selection in either orientation
-  bundle <- write_xenium_fixture()
+  bundle <- write_xenium_fixture(bundle)
   for (flip in c(FALSE, TRUE)) {
     region <- if (flip) list(x = c(5, 6), y = c(2, 3)) else list(x = c(2, 3), y = c(5, 6))
     lifecycle::expect_deprecated(
@@ -1054,8 +1087,11 @@ test_that("initial Xenium loading filters molecules by gene and region", {
 })
 
 test_that("Xenium can skip transcript reads without retaining molecule state", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that count and cell loading succeeds without reading or retaining transcripts
-  bundle <- write_xenium_fixture()
+  bundle <- write_xenium_fixture(bundle)
   file.remove(file.path(bundle, "transcripts.csv.gz"))
   object <- suppressMessages(LoadXenium(bundle, molecule.coordinates = FALSE))
   expect_length(Molecules(object[["fov"]]), 0L)
@@ -1064,8 +1100,10 @@ test_that("Xenium can skip transcript reads without retaining molecule state", {
 })
 
 test_that("transcript projection tolerates missing QV in CSV and Parquet", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that transcript projection accepts files without quality scores in either format
-  bundle <- withr::local_tempdir()
   transcripts <- data.frame(x_location = c(1, 2), y_location = c(3, 4),
     feature_name = c("A", "B"), unused = c("large", "column"))
   con <- gzfile(file.path(bundle, "transcripts.csv.gz"), "wt")
@@ -1080,13 +1118,15 @@ test_that("transcript projection tolerates missing QV in CSV and Parquet", {
 
 context("Atera file loading")
 
-write_atera_fixture <- function(bundle = withr::local_tempdir(.local_envir = parent.frame()), multiplier = 1) {
+write_atera_fixture <- function(bundle, multiplier = 1) {
   skip_if_not_installed("blosc")
   skip_if_not_installed("data.table")
   skip_if(Sys.which("zip") == "", "zip executable is required")
   dir.create(bundle, recursive = TRUE, showWarnings = FALSE)
   archive <- function(name, populate) {
-    root <- withr::local_tempdir()
+    root <- tempfile(tmpdir = bundle)
+    dir.create(root)
+    on.exit(unlink(root, recursive = TRUE), add = TRUE)
     array <- function(path, values) {
       folder <- file.path(root, path)
       dir.create(folder, recursive = TRUE, showWarnings = FALSE)
@@ -1110,7 +1150,9 @@ write_atera_fixture <- function(bundle = withr::local_tempdir(.local_envir = par
     }
     populate(array, root)
     files <- list.files(root, recursive = TRUE, all.files = TRUE, no.. = TRUE)
-    withr::with_dir(root, utils::zip(file.path(bundle, name), files, flags = "-0 -q"))
+    previous <- setwd(root)
+    on.exit(setwd(previous), add = TRUE, after = FALSE)
+    utils::zip(file.path(bundle, name), files, flags = "-0 -q")
   }
   genes <- c("Under_score", "Pipe|probe", "Empty", "Ctrl_one", "Ctrl|two")
   archive("csc_cell_feature_matrix.zarr.zip", function(array, root) {
@@ -1144,8 +1186,11 @@ write_atera_fixture <- function(bundle = withr::local_tempdir(.local_envir = par
 }
 
 test_that("Atera reads counts, centroids, controls, and cropped boundaries from archives", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check archive loading, native plot axes, unchanged stored data, and boundary selection
-  bundle <- write_atera_fixture()
+  bundle <- write_atera_fixture(bundle)
   object <- suppressWarnings(LoadAtera(bundle, bpcells.dir = FALSE))
   expect_identical(Cells(object), c("1", "2"))
   expect_identical(rownames(object), c("Under-score", "Pipe-probe", "Empty"))

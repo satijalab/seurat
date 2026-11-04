@@ -281,16 +281,22 @@ test_that("Read10X_Spatial handles missing files properly", {
 })
 
 test_that("fast MatrixMarket reads match readMM", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that accelerated reads and connection fallbacks return the same sparse matrix
   skip_if_not_installed("data.table")
   skip_if_not_installed("R.utils")
   path <- "../testdata/cr3.0/matrix.mtx.gz"
   expected <- Matrix::readMM(path)
   expect_equal(Seurat:::readMM_fast(path), expected)
-  con <- withr::local_connection(gzfile(path, "rt"))
-  expect_equal(Seurat:::readMM_fast(con), expected)
+  con <- gzfile(path, "rt")
+  tryCatch(
+    expect_equal(Seurat:::readMM_fast(con), expected),
+    finally = close(con)
+  )
   # also check real-valued entries without comments
-  path <- withr::local_tempfile(fileext = ".mtx")
+  path <- file.path(bundle, "matrix.mtx")
   writeLines(c("%%MatrixMarket matrix coordinate real general",
     "3 2 2", "1 1 1.5", "2 2 4.25"), path)
   expect_equal(Seurat:::readMM_fast(path), Matrix::readMM(path))
@@ -316,11 +322,13 @@ test_that("Read10X and ReadMtx agree with the original MatrixMarket reader", {
 })
 
 test_that("Read10X and ReadMtx handle comments, entry counts, and whitespace", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check reader equivalence, incomplete counts, and whitespace labels using one fixture
   skip_if_not_installed("data.table")
   skip_if_not_installed("R.utils")
   testthat::local_mocked_bindings(readMM = function(...) stop("unexpected fallback"), .package = "Matrix")
-  bundle <- withr::local_tempdir()
   mtx <- file.path(bundle, "matrix.mtx")
   cells <- file.path(bundle, "barcodes.tsv")
   features <- file.path(bundle, "genes.tsv")
@@ -345,8 +353,11 @@ test_that("Read10X and ReadMtx handle comments, entry counts, and whitespace", {
 })
 
 test_that("table fallback preserves barcodes and skips unused columns", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that optional reader dependencies do not change projected columns or barcode values
-  path <- withr::local_tempfile(fileext = ".csv.gz")
+  path <- file.path(bundle, "table.csv.gz")
   con <- gzfile(path, "wt")
   writeLines(c("barcode,x,unused", "0001,2,unused"), con)
   close(con)
@@ -365,10 +376,12 @@ test_that("table fallback preserves barcodes and skips unused columns", {
 })
 
 test_that("10X counts preserve single-feature modalities and protein scaling", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
   # check that single-feature protein counts retain their dimensions and scaling
   skip_if_not_installed("BPCells")
   skip_if_not_installed("hdf5r")
-  bundle <- withr::local_tempdir()
   path <- file.path(bundle, "cell_feature_matrix.h5")
   matrix <- Matrix::Matrix(matrix(c(1, 2, 10, 3, 4, 20), nrow = 3,
     dimnames = list(c("Gene", "Gene", "Protein"), c("cell1", "cell2"))), sparse = TRUE)
