@@ -12,7 +12,6 @@ SketchDataByGroup(
   sketched.assay = "sketch",
   method = c("Uniform", "LeverageScore"),
   var.name = "leverage.score",
-  cells = NULL,
   over.write = FALSE,
   seed = 123L,
   cast = NULL,
@@ -36,6 +35,7 @@ falls back to standard sketching without grouping. Default is NULL.}
   \item If a named vector with group names: specific number per group
   \item If a named list with group names containing layer vectors: specific number per group per layer
 }
+Without \code{group.by}, this is the number of cells per layer, and names refer to layers.
 Default is 1000.}
 
 \item{sketched.assay}{Sketched assay name. A sketch assay is created or overwritten with the sketch data.
@@ -45,9 +45,6 @@ Default is 'sketch'.}
 Default is 'Uniform'.}
 
 \item{var.name}{A metadata column name to store the leverage scores. Default is 'leverage.score'.}
-
-\item{cells}{A vector that contains the IDs of the cells that the user wants to keep. If this is set,
-these user-defined cells will be directly used to generate the sketch, ignoring group.by parameter.}
 
 \item{over.write}{Whether to overwrite existing column in the metadata. Default is FALSE.}
 

@@ -471,7 +471,7 @@ GenerateSampleObject <- function(
   if(normalization.method == "LogNormalize"){
     landmark_obj <- NormalizeData(landmark_obj, normalization.method = normalization.method, scale.factor = scale.factor)
   } else if(normalization.method == "ChiSquared"){
-    landmark_obj <- NormalizeChiSquared(object = landmark_obj, assay = new_assay_name)
+    landmark_obj <- NormalizeChiSquared(object = landmark_obj, assay = new_assay_name, verbose = verbose)
   }
   #
   return(landmark_obj)
@@ -493,14 +493,13 @@ GenerateSampleObject <- function(
 #'     \item If a named vector with group names: specific number per group
 #'     \item If a named list with group names containing layer vectors: specific number per group per layer
 #'   }
+#'   Without \code{group.by}, this is the number of cells per layer, and names refer to layers.
 #'   Default is 1000.
 #' @param sketched.assay Sketched assay name. A sketch assay is created or overwritten with the sketch data.
 #'   Default is 'sketch'.
 #' @param method Sketching method to use. Can be 'LeverageScore' or 'Uniform'.
 #'   Default is 'Uniform'.
 #' @param var.name A metadata column name to store the leverage scores. Default is 'leverage.score'.
-#' @param cells A vector that contains the IDs of the cells that the user wants to keep. If this is set,
-#'   these user-defined cells will be directly used to generate the sketch, ignoring group.by parameter.
 #' @param over.write Whether to overwrite existing column in the metadata. Default is FALSE.
 #' @param seed A positive integer for the seed of the random number generator. Default is 123.
 #' @param cast The type to cast the resulting assay to. Default is NULL (no
@@ -565,7 +564,6 @@ SketchDataByGroup <- function(
     sketched.assay = 'sketch',
     method = c('Uniform', 'LeverageScore'),
     var.name = "leverage.score",
-    cells = NULL,
     over.write = FALSE,
     seed = 123L,
     cast = NULL,
@@ -594,11 +592,8 @@ SketchDataByGroup <- function(
     var.name <- CheckMetaVarName(object = object, var.name = var.name)
   }
 
-  # If no grouping specified or cells are pre-defined, use original function logic
-  if (!is.null(cells)) {
-    if (verbose && !is.null(cells)) {
-      message("Using pre-defined cells, ignoring group.by parameter")
-    }
+  # If no grouping specified, use original function logic
+  if (is.null(x = group.by)) {
     return(SketchData(
       object = object,
       assay = assay,
@@ -606,7 +601,6 @@ SketchDataByGroup <- function(
       sketched.assay = sketched.assay,
       method = method,
       var.name = var.name,
-      cells = cells,
       over.write = over.write,
       seed = seed,
       cast = cast,

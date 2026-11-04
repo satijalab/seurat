@@ -133,3 +133,30 @@ test_that("FindMultiModalNeighbors still excludes each cell from its own neighbo
   nn.idx <- object[["weighted.nn"]]@nn.idx
   expect_equal(sum(nn.idx == seq_len(length.out = nrow(x = nn.idx))), 0)
 })
+
+test_that("GenerateSampleObject honors verbose during chi-squared normalization", {
+  set.seed(5)
+  embedding.a <- random_embedding(n.cells = 100, n.dims = 10)
+  embedding.b <- random_embedding(n.cells = 100, n.dims = 10)
+  object <- make_nn_object(
+    embedding.a = embedding.a,
+    embedding.b = embedding.b,
+    landmarks = rownames(x = embedding.a)[1:30]
+  )
+  object$Donor <- rep(x = c("donor1", "donor2"), each = 50)
+  object <- run_mmnn(object = object, knn.range = 25)
+  generate <- function(verbose) {
+    return(capture.output(invisible(x = suppressWarnings(suppressMessages(GenerateSampleObject(
+      object = object,
+      nn.name = "weighted.nn",
+      sketch.assay = "LANDMARK",
+      group.by = "Donor",
+      k.nn = 5,
+      normalization.method = "ChiSquared",
+      add.meta.data = FALSE,
+      verbose = verbose
+    ))))))
+  }
+  expect_length(generate(verbose = FALSE), 0)
+  expect_match(paste(generate(verbose = TRUE), collapse = "\n"), "Chi-squared")
+})

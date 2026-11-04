@@ -359,3 +359,82 @@ test_that("LeverageScore and SketchData handle a small matrix", {
     expect_true(all(is.finite(sketched$leverage.score) & sketched$leverage.score >= 0))
   }
 })
+
+
+context("SketchDataByGroup")
+
+test_that("SketchDataByGroup sketches the whole dataset without group.by", {
+  test_case <- build_test_data()
+  for (method in c("Uniform", "LeverageScore")) {
+    result <- suppressWarnings(SketchDataByGroup(
+      object = test_case,
+      assay = "RNA",
+      ncells = 50,
+      sketched.assay = "sketch",
+      method = method,
+      verbose = FALSE
+    ))
+    expect_equal(ncol(x = result[["sketch"]]), 50)
+    expect_equal(DefaultAssay(object = result), "sketch")
+  }
+})
+
+test_that("SketchDataByGroup without group.by samples each layer", {
+  test_case <- build_test_data()
+  groups <- rep(x = c("a", "b"), length.out = ncol(x = test_case))
+  test_case[["RNA"]] <- suppressMessages(split(x = test_case[["RNA"]], f = groups))
+  result <- suppressWarnings(SketchDataByGroup(
+    object = test_case,
+    assay = "RNA",
+    ncells = 10,
+    sketched.assay = "sketch",
+    method = "Uniform",
+    verbose = FALSE
+  ))
+  sketched <- Cells(x = result[["sketch"]])
+  expect_equal(as.vector(x = table(groups[match(sketched, colnames(x = test_case))])), c(10, 10))
+})
+
+test_that("SketchDataByGroup without group.by keeps on-disk data on disk", {
+  skip_if_not_installed("BPCells")
+  loadNamespace("BPCells")
+  test_case <- build_test_data()
+  LayerData(object = test_case[["RNA"]], layer = "data") <- as(
+    object = LayerData(object = test_case[["RNA"]], layer = "data"),
+    Class = "IterableMatrix"
+  )
+  result <- suppressWarnings(SketchDataByGroup(
+    object = test_case,
+    assay = "RNA",
+    ncells = 50,
+    sketched.assay = "sketch",
+    method = "Uniform",
+    verbose = FALSE
+  ))
+  expect_s4_class(LayerData(object = result[["sketch"]], layer = "data"), "IterableMatrix")
+})
+
+test_that("PrepareSampleObject works without group.by.Sketch", {
+  set.seed(42)
+  test_case <- build_test_data()
+  test_case$Disease <- factor(x = rep(x = c("HV", "SEV"), length.out = ncol(x = test_case)))
+  test_case <- ScaleData(object = test_case, verbose = FALSE)
+  test_case <- suppressWarnings(RunPCA(object = test_case, npcs = 5, verbose = FALSE))
+  result <- suppressWarnings(suppressMessages(PrepareSampleObject(
+    object = test_case,
+    assay = "RNA",
+    Y = "Disease",
+    add.hvg = FALSE,
+    ncells.per.group = 60,
+    ncells.landmark = 30,
+    landmark.sketch.method = "Uniform",
+    ncomp = 2,
+    name.reduction.1 = "pca",
+    dims.reduction.1 = 1:5,
+    k.nn = 5,
+    knn.range = 25,
+    verbose = FALSE
+  )))
+  expect_equal(ncol(x = result[["TRAINING"]]), 60)
+  expect_equal(ncol(x = result[["LANDMARK"]]), 30)
+})
