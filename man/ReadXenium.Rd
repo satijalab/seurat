@@ -113,7 +113,8 @@ To crop using stored x/y ranges, use
 \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
 
 Molecule tables are read into memory before gene, region, and QV
-filters are applied. Parquet files use Arrow; CSV files use data.table.
+filters are applied. Parquet files use Arrow, falling back to CSV on failure.
+CSV files use data.table when available.
 Legacy transcript tables without a \code{qv} column retain their molecules
 without QV filtering. The selected molecule coordinates are stored in memory.
 

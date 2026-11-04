@@ -100,7 +100,8 @@ return a list of ggplot objects}
 \item{flip_xy}{Swap x and y in the plot. \code{FALSE} shows x horizontally
 and y increasing downward. \code{TRUE} swaps the axes and restores the old (< v6)
 layout, with vertical values increasing upward. \code{NULL} (the default)
-uses the FOV's orientation, or \code{FALSE} for older FOVs without this setting.
+uses \code{FALSE}, except for objects loaded with the deprecated
+\code{LoadXenium(flip.xy = TRUE)}, which retain their previous plot layout.
 Stored coordinates do not change. To crop using the original x/y ranges,
 use \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
 The default \code{Crop()} still expects swapped x/y ranges.}
