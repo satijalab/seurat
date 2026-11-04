@@ -22,19 +22,43 @@ globalVariables(
 #' @noRd
 #'
 readMM_fast <- function(file) {
+  # use the original reader for connections, urls, or missing optional dependencies
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
-  if (!has_dt || inherits(file, "connection")) return(Matrix::readMM(file))
-  header <- readLines(file, n = 1L)
-  if (!grepl("^%%MatrixMarket matrix coordinate (integer|real) general[[:space:]]*$",
-    header, ignore.case = TRUE)) return(Matrix::readMM(file))
-  # Handle comments that might appear between the banner and dimensions
-  if (grepl("^[[:space:]]*%", readLines(file, n = 2L)[2L])) {
+  if (!has_dt || inherits(file, "connection") || grepl("^[[:alpha:]]+://", file)) {
     return(Matrix::readMM(file))
   }
-  dt <- data.table::fread(file, header = TRUE, skip = 1,
+  con <- gzfile(file, "rt")
+  on.exit(close(con), add = TRUE)
+  header <- readLines(con, n = 1L, warn = FALSE)
+  # accelerate general integer and real matrices; delegate other formats
+  if (length(header) != 1L || !grepl(
+    "^%%MatrixMarket matrix coordinate (integer|real) general[[:space:]]*$",
+    header, ignore.case = TRUE)) return(Matrix::readMM(file))
+  # count header lines, including comments and blanks, so fread starts at the triplets
+  skip <- 1L
+  repeat {
+    line <- readLines(con, n = 1L, warn = FALSE)
+    if (!length(line)) return(Matrix::readMM(file))
+    skip <- skip + 1L
+    if (!grepl("^[[:space:]]*(%|$)", line)) break
+  }
+  # the dimensions line declares the row count, column count, and number of entries
+  dimensions <- tryCatch(scan(text = line, what = integer(), quiet = TRUE), error = function(e) NULL)
+  # delegate empty matrices and unusual dimensions to the standard reader
+  if (length(dimensions) != 3L || anyNA(dimensions) || any(dimensions <= 0L)) {
+    return(Matrix::readMM(file))
+  }
+  dt <- data.table::fread(file, header = FALSE, skip = skip,
     colClasses = c("integer", "integer", "numeric"), quote = "", data.table = FALSE)
-  new("dgTMatrix", i = dt[, 1] - 1L, j = dt[, 2] - 1L, x = dt[, 3],
-    Dim = as.integer(names(dt)[1:2]))
+  # reject incomplete or extra triplets before constructing the matrix
+  if (nrow(dt) != dimensions[3L]) {
+    stop(sprintf("MatrixMarket entry count mismatch: header declares %s entries, but read %s triplets.",
+      dimensions[3L], nrow(dt)), call. = FALSE)
+  }
+  if (ncol(dt) != 3L) stop("MatrixMarket entries must contain three columns", call. = FALSE)
+  # sparse matrix slots use zero-based indices; matrixmarket files use one-based indices
+  new("dgTMatrix", i = dt[[1L]] - 1L, j = dt[[2L]] - 1L, x = dt[[3L]],
+    Dim = as.integer(dimensions[1:2]))
 }
 
 # Read loader tables with optional fread acceleration, skipping unneeded columns during parsing
@@ -59,8 +83,8 @@ readMM_fast <- function(file) {
     if (!is.null(select)) classes[!columns %in% select] <- "NULL"
     colClasses <- classes
   }
-  # fread needs a file path; R.utils provides its gzip support.
-  if (!inherits(file, "connection") &&
+  # fread needs a file path and a nonempty separator; R.utils provides gzip support.
+  if (!identical(sep, "") && !inherits(file, "connection") &&
       requireNamespace("data.table", quietly = TRUE) &&
       requireNamespace("R.utils", quietly = TRUE)) {
     return(data.table::fread(file, header = header, sep = sep, skip = skip, colClasses = if (identical(colClasses, NA)) NULL else colClasses,
