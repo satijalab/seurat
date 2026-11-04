@@ -291,7 +291,7 @@ LoadXenium <- function(
       flip.xy = flip.xy, region = region), feature.map)
   }
 
-  segmentations <- intersect(c("segmentations", "nucleus_segmentations"), names(data))
+  segmentations.key <- intersect(c("segmentations", "nucleus_segmentations"), names(data))
 
   segmentations.data <- Filter(Negate(is.null), list(
     centroids = if(is.null(data$centroids)) {
@@ -299,8 +299,8 @@ LoadXenium <- function(
     } else {
       CreateCentroids(data$centroids)
     },
-    segmentations = if(length(segmentations) > 0) {
-      CreateSegmentation(data[[segmentations]])
+    segmentations = if(length(segmentations.key) > 0) {
+      CreateSegmentation(data[[segmentations.key]])
     } else {
       NULL
     }
@@ -569,11 +569,14 @@ ReadSTARsolo <- function(data.dir, ... ) {
 .SpatialSourceGenes <- function(genes, feature.map) {
   if (is.null(genes)) return(NULL)
   if (!is.character(genes) || anyNA(genes)) stop("genes must be a character vector without missing values")
-  unique(unlist(lapply(genes, function(gene) {
-    if (gene %in% names(feature.map)) return(gene)
-    source <- names(feature.map)[feature.map == gene]
-    if (length(source)) source else gene
-  }), use.names = FALSE)) %||% character()
+  if (!length(genes)) return(character())
+  source.names <- names(feature.map)
+  source.genes <- lapply(genes, function(gene) {
+                      if (gene %in% source.names) return(gene)
+                      source <- source.names[feature.map == gene]
+                      if (length(source)) source else gene
+                  })
+  return(unique(unlist(source.genes, use.names = FALSE)))
 }
 
 # Map molecule labels to assay feature names, leaving unmatched names unchanged.
