@@ -281,6 +281,7 @@ test_that("Read10X_Spatial handles missing files properly", {
 })
 
 test_that("fast MatrixMarket reads match readMM", {
+  # check that accelerated reads and connection fallbacks return the same sparse matrix
   skip_if_not_installed("data.table")
   skip_if_not_installed("R.utils")
   path <- "../testdata/cr3.0/matrix.mtx.gz"
@@ -288,9 +289,32 @@ test_that("fast MatrixMarket reads match readMM", {
   expect_equal(Seurat:::readMM_fast(path), expected)
   con <- withr::local_connection(gzfile(path, "rt"))
   expect_equal(Seurat:::readMM_fast(con), expected)
+  # A file without comments exercises fread rather than the readMM fallback.
+  path <- withr::local_tempfile(fileext = ".mtx")
+  writeLines(c("%%MatrixMarket matrix coordinate real general",
+    "3 2 2", "1 1 1.5", "2 2 4.25"), path)
+  expect_equal(Seurat:::readMM_fast(path), Matrix::readMM(path))
+})
+
+test_that("Read10X and ReadMtx agree with the original MatrixMarket reader", {
+  # compare both loaders with the original reader on plain and compressed input files
+  for (folder in c("../testdata", "../testdata/cr3.0")) {
+    compressed <- grepl("cr3.0$", folder)
+    suffix <- if (compressed) ".gz" else ""
+    mtx <- file.path(folder, paste0("matrix.mtx", suffix))
+    cells <- file.path(folder, paste0("barcodes.tsv", suffix))
+    features <- file.path(folder, paste0(if (compressed) "features.tsv" else "genes.tsv", suffix))
+    actual <- list(Read10X(folder), ReadMtx(mtx, cells, features))
+    expected <- local({
+      testthat::local_mocked_bindings(readMM_fast = Matrix::readMM, .package = "Seurat")
+      list(Read10X(folder), ReadMtx(mtx, cells, features))
+    })
+    expect_equal(actual, expected)
+  }
 })
 
 test_that("MatrixMarket comments are accepted by Read10X and ReadMtx", {
+  # check that matrix comments are accepted and leading zeros in barcodes are preserved
   bundle <- withr::local_tempdir()
   writeLines(c("%%MatrixMarket matrix coordinate integer general", "% three fields",
     "% another comment", "2 2 2", "1 1 3", "2 2 4"), file.path(bundle, "matrix.mtx"))
@@ -303,6 +327,7 @@ test_that("MatrixMarket comments are accepted by Read10X and ReadMtx", {
 })
 
 test_that("table fallback preserves barcodes and skips unused columns", {
+  # check that optional reader dependencies do not change projected columns or barcode values
   path <- withr::local_tempfile(fileext = ".csv.gz")
   con <- gzfile(path, "wt")
   writeLines(c("barcode,x,unused", "0001,2,unused"), con)
@@ -321,16 +346,23 @@ test_that("table fallback preserves barcodes and skips unused columns", {
   })
 })
 
-test_that("transcript projection tolerates missing QV in CSV and Parquet", {
+test_that("10X counts preserve single-feature modalities and protein scaling", {
+  # check that single-feature protein counts retain their dimensions and scaling
+  skip_if_not_installed("BPCells")
+  skip_if_not_installed("hdf5r")
   bundle <- withr::local_tempdir()
-  transcripts <- data.frame(x_location = c(1, 2), y_location = c(3, 4),
-    feature_name = c("A", "B"), unused = c("large", "column"))
-  con <- gzfile(file.path(bundle, "transcripts.csv.gz"), "wt")
-  write.csv(transcripts, con, row.names = FALSE)
-  close(con)
-  expected <- data.frame(x = 1, y = 3, gene = "A")
-  expect_equal(Seurat:::.XeniumReadMolecules(bundle, genes = "A"), expected)
-  skip_if_not_installed("arrow")
-  arrow::write_parquet(transcripts, file.path(bundle, "transcripts.parquet"))
-  expect_equal(Seurat:::.XeniumReadMolecules(bundle, genes = "A"), expected)
+  path <- file.path(bundle, "cell_feature_matrix.h5")
+  matrix <- Matrix::Matrix(matrix(c(1, 2, 10, 3, 4, 20), nrow = 3,
+    dimnames = list(c("Gene", "Gene", "Protein"), c("cell1", "cell2"))), sparse = TRUE)
+  BPCells::write_matrix_10x_hdf5(methods::as(matrix, "IterableMatrix"), path,
+    feature_ids = c("id1", "id2", "id3"),
+    feature_types = c("Gene Expression", "Gene Expression", "Protein Expression"), type = "double")
+  file <- hdf5r::H5File$new(path, "r+")
+  hdf5r::h5attr(file, "protein_scaling_factor") <- 10
+  file$close_all()
+  actual <- suppressMessages(Read10X_h5(path))
+  expect_named(actual, c("Gene Expression", "Protein Expression"))
+  expect_equal(rownames(actual[[1L]]), c("Gene", "Gene.1"))
+  expect_equal(as.matrix(actual[[2L]]), matrix(c(1, 2), nrow = 1,
+    dimnames = list("Protein", c("cell1", "cell2"))))
 })
