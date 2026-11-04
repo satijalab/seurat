@@ -2607,6 +2607,32 @@ ReadNanostring <- function(
   }, character(1))
 }
 
+.XeniumReadTable <- function(data.dir, name, columns = NULL, colClasses = NA) {
+  parquet <- file.path(data.dir, paste0(name, ".parquet"))
+  csv <- file.path(data.dir, paste0(name, ".csv.gz"))
+  if (file.exists(parquet)) {
+    if (requireNamespace("arrow", quietly = TRUE)) {
+      value <- tryCatch({
+        if (is.null(columns)) {
+          as.data.frame(arrow::read_parquet(parquet))
+        } else {
+          # request only existing columns so optional fields can be absent
+          reader <- arrow::ParquetFileReader$create(parquet)
+          selected <- intersect(columns, reader$GetSchema()$names)
+          as.data.frame(arrow::read_parquet(parquet, col_select = selected))
+        }
+      }, error = identity)
+      if (!inherits(value, "error")) return(value)
+      # preserve the parquet error when there is no csv fallback
+      if (!file.exists(csv)) stop(value)
+    } else if (!file.exists(csv)) {
+      stop("Please install arrow to read ", basename(parquet), call. = FALSE)
+    }
+  }
+  # use csv when parquet is missing, arrow is unavailable, or parquet reads fail
+  .ReadLoaderTable(csv, select = columns, colClasses = colClasses)
+}
+
 .XeniumReadMolecules <- function(data.dir, genes = NULL, mols.qv.threshold = 20,
                                  flip.xy = FALSE, region = NULL) {
   .SpatialValidateRegion(region)
@@ -2615,20 +2641,9 @@ ReadNanostring <- function(
   if (!is.null(genes) && (!is.character(genes) || anyNA(genes))) {
     stop("genes must be NULL or a character vector without missing values")
   }
-  parquet <- file.path(data.dir, "transcripts.parquet")
-  csv <- file.path(data.dir, "transcripts.csv.gz")
   columns <- c("x_location", "y_location", "feature_name", "qv")
-  transcripts <- if (file.exists(parquet) && requireNamespace("arrow", quietly = TRUE)) {
-    reader <- arrow::ParquetFileReader$create(parquet)
-    columns <- intersect(columns, reader$GetSchema()$names)
-    as.data.frame(arrow::read_parquet(parquet, col_select = columns))
-  } else {
-    if (file.exists(parquet) && !file.exists(csv)) {
-      stop("Please install arrow to read transcripts.parquet", call. = FALSE)
-    }
-    .ReadLoaderTable(csv, select = columns,
-      colClasses = c(feature_name = "character"))
-  }
+  transcripts <- .XeniumReadTable(data.dir, "transcripts", columns = columns,
+    colClasses = c(feature_name = "character"))
   transcripts$feature_name <- .SpatialDecodeStrings(transcripts$feature_name)
   keep <- rep(TRUE, nrow(transcripts))
   if ("qv" %in% names(transcripts)) keep <- keep & !is.na(transcripts$qv) & transcripts$qv >= mols.qv.threshold
@@ -2650,13 +2665,8 @@ ReadNanostring <- function(
 
 .XeniumReadBoundaries <- function(data.dir, nucleus = FALSE, flip.xy = FALSE, cells = NULL) {
   name <- if (nucleus) "nucleus_boundaries" else "cell_boundaries"
-  parquet <- file.path(data.dir, paste0(name, ".parquet"))
-  csv <- file.path(data.dir, paste0(name, ".csv.gz"))
-  result <- if (file.exists(parquet) && requireNamespace("arrow", quietly = TRUE)) {
-    as.data.frame(arrow::read_parquet(parquet))
-  } else {
-    .ReadLoaderTable(csv, colClasses = c(cell_id = "character", cell = "character"))
-  }
+  result <- .XeniumReadTable(data.dir, name,
+    colClasses = c(cell_id = "character", cell = "character"))
   available <- names(result)
   columns <- vapply(list(c("cell_id", "cell"), c("vertex_x", "x"), c("vertex_y", "y")),
     function(choices) {
@@ -2773,15 +2783,8 @@ ReadXenium <- function(
     if (!is.null(cell.info)) return(cell.info)
     columns <- c("cell_id", if ("centroids" %in% outs) c("x_centroid", "y_centroid"),
       if ("segmentation_method" %in% outs) "segmentation_method")
-    parquet <- file.path(data.dir, "cells.parquet")
-    value <- if (file.exists(parquet) && requireNamespace("arrow", quietly = TRUE)) {
-      reader <- arrow::ParquetFileReader$create(parquet)
-      columns <- intersect(columns, reader$GetSchema()$names)
-      as.data.frame(arrow::read_parquet(parquet, col_select = columns))
-    } else {
-      .ReadLoaderTable(file.path(data.dir, "cells.csv.gz"),
-        select = columns, colClasses = c(cell_id = "character"))
-    }
+    value <- .XeniumReadTable(data.dir, "cells", columns = columns,
+      colClasses = c(cell_id = "character"))
     value$cell_id <- .SpatialDecodeStrings(value$cell_id)
     cell.info <<- value
     value
