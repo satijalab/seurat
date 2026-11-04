@@ -1663,6 +1663,7 @@ MultiModalNN <- function(
   } else {
     reduction_embedding <- object
   }
+  self.query <- is.null(x = query)
   if (is.null(x = query)) {
     query.reduction_embedding <- reduction_embedding
     query <- object
@@ -1706,10 +1707,14 @@ MultiModalNN <- function(
       return (nn_x)
     }
   )
-  # union of rna and adt nn, remove itself from neighobors
+  # union of rna and adt nn, remove itself from neighobors. A cell is only its
+  # own first neighbor when it is queried against itself; with a separate query,
+  # the first neighbor is a real neighbor and must be kept.
   reduction_nn <- lapply(
     X = reduction_nn,
-    FUN = function(x)  Indices(object = x)[, -1]
+    FUN = function(x) {
+      if (self.query) Indices(object = x)[, -1] else Indices(object = x)
+    }
   )
   nn_idx <- lapply(
     X = 1:query.cell.num ,

@@ -864,6 +864,7 @@ FindmmNN <- function(
                                     snn.far.nn = FALSE,
                                     l2.norm = l2.norm,
                                     k.nn = ifelse(20 >= k.nn, 20, k.nn),
+                                    verbose = verbose,
                                     ...)
 
   # prepare for the objects used to search for WNN
@@ -887,7 +888,7 @@ FindmmNN <- function(
                               k.nn = ifelse(20 >= k.nn, 20, k.nn),
                               modality.weight = wnn.weight,
                               knn.range = knn.range,
-                              verbose = T,
+                              verbose = verbose,
                               l2.norm = l2.norm,
                               ...)
   #
