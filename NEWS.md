@@ -21,7 +21,8 @@
 
 ### Deprecations
 
-- Soft deprecation of `flip.xy` in `LoadXenium`; existing calls will retain their behavior
+- Soft deprecation of `flip.xy` in `LoadXenium`
+  - Existing calls with `flip.xy = TRUE` will retain their behavior (requiring SeuratObject >= v5.3.0 to do so)
 
 # Seurat 5.6.0 (2026-10-03)
 
