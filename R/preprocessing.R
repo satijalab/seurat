@@ -4511,8 +4511,6 @@ LoadAtera <- function(
     }
   )
 
-  slot(coords, "coords_x_orientation") <- "horizontal"
-
   slot.map <- c(
     `Deprecated Codeword` = 'DeprecatedCodeword',
     `Unassigned Codeword` = 'BlankCodeword',

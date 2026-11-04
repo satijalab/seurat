@@ -319,8 +319,15 @@ LoadXenium <- function(
     NULL
   }
 
-  if (!is.null(coords)) {
-    slot(coords, "coords_x_orientation") <- if (flip.xy) "vertical" else "horizontal"
+  # preserve legacy plotting only for explicitly flipped Xenium loads
+  # this ensures that plotting functions interpret the flipped coordinates correctly
+  # should be removed once flip.xy is fully deprecated
+  if (!is.null(coords) && flip.xy) {
+    if (!.hasSlot(coords, "coords_x_orientation")) {
+      stop("LoadXenium(flip.xy = TRUE) requires SeuratObject >= 5.3.0. Please update SeuratObject and restart R.",
+        call. = FALSE)
+    }
+    slot(coords, "coords_x_orientation") <- "vertical"
   }
 
   xenium.obj[[fov]] <- coords

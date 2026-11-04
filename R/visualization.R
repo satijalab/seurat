@@ -6909,8 +6909,7 @@ fortify.Segmentation <- function(model, data, ...) {
   if (!is.null(flip_xy) && (!is.logical(flip_xy) || length(flip_xy) != 1L || is.na(flip_xy))) {
     stop("flip_xy must be NULL, TRUE or FALSE")
   }
-  # Unmarked FOVs contain native x/y coordinates, just like horizontal FOVs.
-  # Only an explicit vertical flag requests exchanged axes.
+  # only deprecated Xenium loader flips request legacy axes by default
   flip_xy %||% (.hasSlot(object, "coords_x_orientation") &&
     identical(slot(object, "coords_x_orientation"), "vertical"))
 }
