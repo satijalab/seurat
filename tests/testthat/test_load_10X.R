@@ -289,10 +289,12 @@ test_that("fast MatrixMarket reads match readMM", {
   expect_equal(Seurat:::readMM_fast(path), expected)
   con <- withr::local_connection(gzfile(path, "rt"))
   expect_equal(Seurat:::readMM_fast(con), expected)
-  # A file without comments exercises fread rather than the readMM fallback.
+  # also check real-valued entries without comments
   path <- withr::local_tempfile(fileext = ".mtx")
   writeLines(c("%%MatrixMarket matrix coordinate real general",
     "3 2 2", "1 1 1.5", "2 2 4.25"), path)
+  expect_equal(Seurat:::readMM_fast(path), Matrix::readMM(path))
+  writeLines(c("%%MatrixMarket matrix coordinate real general", "% empty matrix", "3 2 0"), path)
   expect_equal(Seurat:::readMM_fast(path), Matrix::readMM(path))
 })
 
@@ -313,17 +315,33 @@ test_that("Read10X and ReadMtx agree with the original MatrixMarket reader", {
   }
 })
 
-test_that("MatrixMarket comments are accepted by Read10X and ReadMtx", {
-  # check that matrix comments are accepted and leading zeros in barcodes are preserved
+test_that("Read10X and ReadMtx handle comments, entry counts, and whitespace", {
+  # check reader equivalence, incomplete counts, and whitespace labels using one fixture
+  skip_if_not_installed("data.table")
+  skip_if_not_installed("R.utils")
+  testthat::local_mocked_bindings(readMM = function(...) stop("unexpected fallback"), .package = "Matrix")
   bundle <- withr::local_tempdir()
-  writeLines(c("%%MatrixMarket matrix coordinate integer general", "% three fields",
-    "% another comment", "2 2 2", "1 1 3", "2 2 4"), file.path(bundle, "matrix.mtx"))
-  writeLines(c("0001", "0002"), file.path(bundle, "barcodes.tsv"))
-  writeLines(c("id1\tA", "id2\tB"), file.path(bundle, "genes.tsv"))
+  mtx <- file.path(bundle, "matrix.mtx")
+  cells <- file.path(bundle, "barcodes.tsv")
+  features <- file.path(bundle, "genes.tsv")
+  lines <- c("%%MatrixMarket matrix coordinate integer general", "% metadata", "",
+    "% another comment", "2 2 2", "1 1 3", "2 2 4")
+  writeLines(lines, mtx)
+  writeLines(c("0001", "0002"), cells)
+  writeLines(c("id1\tA", "id2\tB"), features)
+  read.mtx <- function(...) ReadMtx(mtx, cells, features, ...)
   expected <- matrix(c(3, 0, 0, 4), 2L, dimnames = list(c("A", "B"), c("0001", "0002")))
   expect_equal(as.matrix(Read10X(bundle)), expected)
-  expect_equal(as.matrix(ReadMtx(file.path(bundle, "matrix.mtx"),
-    file.path(bundle, "barcodes.tsv"), file.path(bundle, "genes.tsv"))), expected)
+  expect_equal(as.matrix(read.mtx()), expected)
+  for (entries in c(3L, 1L)) {
+    writeLines(sub("^2 2 2$", paste("2 2", entries), lines), mtx)
+    expect_error(Read10X(bundle), "entry count mismatch", fixed = TRUE)
+    expect_error(read.mtx(), "entry count mismatch", fixed = TRUE)
+  }
+  writeLines(lines, mtx)
+  writeLines(c("row1   0001", "row2\t0002"), cells)
+  writeLines(c("id1  A", "id2\tB"), features)
+  expect_equal(as.matrix(read.mtx(cell.column = 2, cell.sep = "", feature.sep = "")), expected)
 })
 
 test_that("table fallback preserves barcodes and skips unused columns", {

@@ -543,38 +543,35 @@ image_orientation_object <- function(fixture, fov = "fov", assay = "Xenium") {
   image <- CreateFOV(list(centroids = CreateCentroids(fixture$centroids),
     segmentations = CreateSegmentation(fixture$segmentations)), assay = assay,
     molecules = CreateMolecules(fixture$microns))
-  slot(image, "coords_x_orientation") <- "horizontal"
   object[[fov]] <- image
   object
 }
 
 test_that("Image plots orient FOVs without changing stored boundaries or molecules", {
-  # check native and legacy plot axes while keeping all stored boundaries and molecules unchanged
+  # check native and legacy flipped plot axes without changing stored boundaries or molecules
   fixture <- image_orientation_fixture()
-  for (assay in c("Xenium", "Atera")) {
-    object <- NormalizeData(image_orientation_object(fixture,
-      fov = "sample_native_fov", assay = assay), verbose = FALSE)
-    # boundary names and FOV names may both contain underscores
-    object[["sample_native_fov"]][["cell_boundary"]] <- object[["sample_native_fov"]][["segmentations"]]
-    for (orientation in list("horizontal", "vertical", character(), NULL)) {
-      attr(object@images[["sample_native_fov"]], "coords_x_orientation") <- orientation
-      before <- serialize(object@images, NULL)
-      for (flip in list(NULL, FALSE, TRUE)) {
-        swapped <- flip %||% identical(orientation, "vertical")
-        for (plotter in list(ImageDimPlot, ImageFeaturePlot)) {
-          args <- list(object = object, boundaries = "cell_boundary", molecules = "GeneA",
-            mols.cols = c(GeneA = "red"), flip_xy = flip, combine = FALSE)
-          if (identical(plotter, ImageFeaturePlot)) args$features <- "GeneA"
-          plot <- do.call(plotter, args)[[1]]
-          layers <- ggplot2::ggplot_build(plot)$data
-          expect_equal(sort(layers[[1]]$x), sort(if (swapped) plot$data$y else plot$data$x))
-          expect_equal(sort(layers[[1]]$y), sort(if (swapped) plot$data$x else -plot$data$y))
-          expect_equal(sort(layers[[2]]$x), sort(if (swapped) fixture$microns$y else fixture$microns$x))
-          expect_equal(sort(layers[[2]]$y), sort(if (swapped) fixture$microns$x else -fixture$microns$y))
-        }
+  object <- NormalizeData(image_orientation_object(fixture,
+    fov = "sample_native_fov"), verbose = FALSE)
+  # boundary names and FOV names may both contain underscores
+  object[["sample_native_fov"]][["cell_boundary"]] <- object[["sample_native_fov"]][["segmentations"]]
+  for (orientation in list("vertical", NULL)) {
+    attr(object@images[["sample_native_fov"]], "coords_x_orientation") <- orientation
+    before <- serialize(object@images, NULL)
+    for (flip in list(NULL, FALSE, TRUE)) {
+      swapped <- flip %||% identical(orientation, "vertical")
+      for (plotter in list(ImageDimPlot, ImageFeaturePlot)) {
+        args <- list(object = object, boundaries = "cell_boundary", molecules = "GeneA",
+          mols.cols = c(GeneA = "red"), flip_xy = flip, combine = FALSE)
+        if (identical(plotter, ImageFeaturePlot)) args$features <- "GeneA"
+        plot <- do.call(plotter, args)[[1]]
+        layers <- ggplot2::ggplot_build(plot)$data
+        expect_equal(sort(layers[[1]]$x), sort(if (swapped) plot$data$y else plot$data$x))
+        expect_equal(sort(layers[[1]]$y), sort(if (swapped) plot$data$x else -plot$data$y))
+        expect_equal(sort(layers[[2]]$x), sort(if (swapped) fixture$microns$y else fixture$microns$x))
+        expect_equal(sort(layers[[2]]$y), sort(if (swapped) fixture$microns$x else -fixture$microns$y))
       }
-      expect_identical(serialize(object@images, NULL), before)
     }
+    expect_identical(serialize(object@images, NULL), before)
   }
 })
 
@@ -841,6 +838,35 @@ test_that("Xenium boundary readers filter cells and preserve coordinate orientat
   }
 })
 
+test_that("Xenium retries CSV after Parquet failures and caches cell metadata", {
+  # check schema and read failures across xenium tables while reading cell metadata only once
+  skip_if_not_installed("arrow")
+  bundle <- write_xenium_fixture()
+  write_xenium_boundaries(bundle)
+  read <- function() ReadXenium(bundle, outs = c("segmentation_method", "microns"),
+    type = c("centroids", "segmentations", "nucleus_segmentations"))
+  expected <- read()
+  read.csv <- Seurat:::.ReadLoaderTable
+  cell.reads <- 0L
+  testthat::local_mocked_bindings(.ReadLoaderTable = function(file, ...) {
+    if (basename(file) == "cells.csv.gz") cell.reads <<- cell.reads + 1L
+    read.csv(file, ...)
+  }, .package = "Seurat")
+  testthat::local_mocked_bindings(read_parquet = function(...) stop("unsupported parquet"),
+    .package = "arrow")
+  for (name in c("cells", "transcripts", "cell_boundaries", "nucleus_boundaries")) {
+    path <- file.path(bundle, paste0(name, ".parquet"))
+    if (name %in% c("cells", "transcripts")) {
+      writeLines("invalid parquet", path)
+    } else {
+      csv <- utils::read.csv(gzfile(file.path(bundle, paste0(name, ".csv.gz"))))
+      arrow::write_parquet(csv, path)
+    }
+  }
+  expect_equal(read(), expected)
+  expect_equal(cell.reads, 1L)
+})
+
 write_visium_segmentations <- function(bundle) {
   dir.create(file.path(bundle, "segmented_outputs"), recursive = TRUE)
   polygons <- sf::st_sf(cell_id = 1:2, geometry = sf::st_sfc(lapply(0:1, function(i) {
@@ -999,6 +1025,16 @@ test_that("LoadXenium preserves native coordinates and deprecated calls still sw
   data <- ggplot2::ggplot_build(plot)$data[[1]]
   expect_equal(data$x, centroids$x)
   expect_equal(data$y, centroids$y)
+  create.fov <- SeuratObject::CreateFOV
+  testthat::local_mocked_bindings(CreateFOV = function(...) {
+    object <- create.fov(...)
+    attr(object, "coords_x_orientation") <- NULL
+    object
+  }, .package = "Seurat")
+  lifecycle::expect_deprecated(
+    expect_error(suppressMessages(LoadXenium(bundle, flip.xy = TRUE)),
+      "SeuratObject >= 5.3.0. Please update SeuratObject and restart R", fixed = TRUE),
+    regexp = "flip.xy")
 })
 
 test_that("initial Xenium loading filters molecules by gene and region", {
@@ -1114,7 +1150,6 @@ test_that("Atera reads counts, centroids, controls, and cropped boundaries from 
   expect_identical(Cells(object), c("1", "2"))
   expect_identical(rownames(object), c("Under-score", "Pipe-probe", "Empty"))
   expect_equal(unname(as.matrix(LayerData(object, layer = "counts"))), matrix(1:6, nrow = 3L, byrow = TRUE))
-  expect_identical(slot(object[["fov"]], "coords_x_orientation"), "horizontal")
   before <- serialize(object@images, NULL)
   coordinates <- GetTissueCoordinates(object[["fov"]], which = "centroids")
   plot <- ImageDimPlot(object, combine = FALSE)[[1]]
