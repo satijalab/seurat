@@ -504,7 +504,7 @@ GenerateSampleObject <- function(
 #' @param group.by A metadata column name to group cells by before sketching. If NULL,
 #'   falls back to standard sketching without grouping. Default is NULL.
 #' @param assay Assay name. Default is NULL, in which case the default assay of the object is used.
-#' @param ncells A positive integer, named vector, or list specifying the number of cells to sample.
+#' @param ncells A positive integer, named vector, or named list specifying the number of cells to sample.
 #'   \itemize{
 #'     \item If a single integer: same number of cells sampled from each group and layer
 #'     \item If a named vector with group names: specific number per group
@@ -654,7 +654,12 @@ SketchDataByGroup <- function(
   }
 
   # Process ncells parameter for groups
-  if (length(ncells) == 1) {
+  if (is.list(x = ncells)) {
+    if (is.null(x = names(x = ncells)) || !all(groups %in% names(x = ncells))) {
+      abort(message = "If specified as a list, ncells must contain a named entry for every group")
+    }
+    ncells_per_group <- ncells[groups]
+  } else if (length(ncells) == 1) {
     ncells_per_group <- setNames(rep(ncells, length(groups)), groups)
   } else if (is.null(names(ncells))) {
     if (length(ncells) != length(groups)) {
@@ -729,7 +734,7 @@ SketchDataByGroup <- function(
 
     # Sample cells from each layer within this group
     group_sampled_cells <- c()
-    ncells_group <- ncells_per_group[group]
+    ncells_group <- ncells_per_group[[group]]
 
     for (layer_name in layer.names) {
       layer_cells <- Cells(object[[assay]], layer = layer_name)
@@ -739,7 +744,12 @@ SketchDataByGroup <- function(
       }
 
       # Calculate how many cells to sample from this layer for this group
-      ncells_layer <- min(ncells_group, length(group_layer_cells))
+      ncells_layer <- if (is.null(names(ncells_group))) ncells_group else ncells_group[layer_name]
+      if (anyNA(ncells_layer)) {
+        abort(message = paste0("Please specify ncells for group '", group, "' in layer '", layer_name, "'"))
+      }
+
+      ncells_layer <- min(ncells_layer, length(group_layer_cells))
 
       if (length(group_layer_cells) <= ncells_layer) {
         cells_to_keep <- group_layer_cells
