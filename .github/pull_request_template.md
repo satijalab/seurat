@@ -39,7 +39,8 @@ Closes #
 
 - [ ] Branch is named appropriately (`feat/*`, `fix/*`, `docs/*`)
 - [ ] Code follows Seurat [style guidelines](https://github.com/satijalab/seurat/wiki/Contributor%27s-Guide)
-- [ ] Relevant documentation and/or comments have been updated
+- [ ] Relevant roxygen comments have been updated
+- [ ] Code comments have been added to explain non-obvious logic
 - [ ] `devtools::check()` passes with no errors or warnings
 - [ ] Test case demonstrating new functionality is included
 - [ ] Maintainers are allowed to edit this PR
