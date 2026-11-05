@@ -1631,7 +1631,6 @@ GetImage.STARmap <- function(
   return(NullImage(mode = mode))
 }
 
-#' @importFrom plotly raster2uri
 #' @importFrom grDevices as.raster
 #' @importFrom grid rasterGrob unit
 #'
@@ -1658,16 +1657,19 @@ GetImage.VisiumV1 <- function(
       height = unit(x = 1, units = 'npc')
     ),
     'raster' = as.raster(x = image),
-    'plotly' = list(
-      source = raster2uri(GetImage(object, mode = 'raster')),
-      xref = 'x',
-      yref = 'y',
-      sizex = ncol(x = object),
-      sizey = nrow(x = object),
-      sizing = 'stretch',
-      opacity = 1,
-      layer = 'below'
-    ),
+    'plotly' = {
+      check_installed("plotly", reason = "to create a plotly image")
+      list(
+        source = plotly::raster2uri(GetImage(object, mode = 'raster')),
+        xref = 'x',
+        yref = 'y',
+        sizex = ncol(x = object),
+        sizey = nrow(x = object),
+        sizing = 'stretch',
+        opacity = 1,
+        layer = 'below'
+      )
+    },
     'raw' = image,
     stop("Unknown image mode: ", mode, call. = FALSE)
   )

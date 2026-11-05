@@ -177,8 +177,9 @@ if (is_not_cran_submission) {
     )))
   })
 
-  results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "groups", verbose = FALSE, test.use = 'LR', base = exp(1), pseudocount.use = 1))
   test_that("latent.vars works", {
+    skip_if_not_installed("lmtest")
+    results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "groups", verbose = FALSE, test.use = 'LR', base = exp(1), pseudocount.use = 1))
     expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "fake", verbose = FALSE))
     expect_warning(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "groups", verbose = FALSE))
     expect_equal(nrow(x = results), 222)
@@ -530,8 +531,9 @@ test_that("poisson test works", {
   expect_equal(rownames(x = results)[1], "LYZ")
 })
 
-results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "LR", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 test_that("LR test works", {
+  skip_if_not_installed("lmtest")
+  results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "LR", verbose = FALSE, base = exp(1), pseudocount.use = 1))
   expect_equal(nrow(x = results), 222)
   expect_equal(results["CST3", "p_val"], 3.990707e-16, tolerance = 1e-21)
   expect_equal(results["CST3", "avg_logFC"], -2.57219, tolerance = 1e-6)

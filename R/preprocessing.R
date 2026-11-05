@@ -305,7 +305,6 @@ CalculateBarcodeInflections <- function(
 #'
 #' @importFrom cluster clara
 #' @importFrom Matrix colSums
-#' @importFrom fitdistrplus fitdist
 #' @importFrom stats pnbinom kmeans
 #'
 #' @export
@@ -329,6 +328,7 @@ HTODemux <- function(
   seed = 42,
   verbose = TRUE
 ) {
+  check_installed("fitdistrplus", reason = "to use HTODemux()")
   if (!is.null(x = seed)) {
     set.seed(seed = seed)
   }
@@ -390,7 +390,7 @@ HTODemux <- function(
       object = object,
       idents = levels(x = Idents(object = object))[[which.min(x = average.expression[iter, ])]]
     )]
-    fit <- suppressWarnings(expr = fitdist(data = values.use, distr = "nbinom"))
+    fit <- suppressWarnings(expr = fitdistrplus::fitdist(data = values.use, distr = "nbinom"))
     cutoff <- as.numeric(x = quantile(x = fit, probs = positive.quantile)$quantiles[1])
     discrete[iter, names(x = which(x = values > cutoff))] <- 1
     if (verbose) {
@@ -5507,8 +5507,6 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
 #' @param data Matrix containing the data used as "marks" (e.g. gene expression)
 #' @param ... Arguments passed to markvario
 #'
-#' @importFrom spatstat.explore markvario
-#' @importFrom spatstat.geom ppp
 #'
 #' @export
 #' @concept preprocessing
@@ -5518,7 +5516,8 @@ RunMarkVario <- function(
   data,
   ...
 ) {
-  pp <- ppp(
+  check_installed(c("spatstat.explore", "spatstat.geom"), reason = "to use RunMarkVario()")
+  pp <- spatstat.geom::ppp(
     x = spatial.location[, 1],
     y = spatial.location[, 2],
     xrange = range(spatial.location[, 1]),
@@ -5535,7 +5534,7 @@ RunMarkVario <- function(
       # drop = FALSE so that a chunk holding a single feature stays a matrix
       # and t() keeps one row per cell
       pp[["marks"]] <- as.data.frame(x = t(x = data[x, , drop = FALSE]))
-      chunk <- markvario(X = pp, normalise = TRUE, ...)
+      chunk <- spatstat.explore::markvario(X = pp, normalise = TRUE, ...)
       # markvario() hands back a bare 'fv' for a single mark and a named list
       # of them for several. Keep every chunk a list, so that the unlist()
       # below contributes one entry per feature rather than one per column of
@@ -5548,7 +5547,7 @@ RunMarkVario <- function(
     mv <- unlist(x = mv, recursive = FALSE)
   } else {
     pp[["marks"]] <- as.data.frame(x = t(x = data))
-    mv <- markvario(X = pp, normalise = TRUE, ...)
+    mv <- spatstat.explore::markvario(X = pp, normalise = TRUE, ...)
     if (inherits(x = mv, what = 'fv')) {
       mv <- list(mv)
     }
@@ -7083,7 +7082,7 @@ NormalizeData.V3Matrix <- function(
     stopifnot("'block.size' must be a positive number" =
               length(x = block.size) == 1L && is.numeric(x = block.size) && block.size > 0)
     req_nthreads <- ceiling(length(Cells(x = object)) / block.size)
-    available <- future::availableCores()
+    available <- parallelly::availableCores()
     if (is.na(x = available)) {
       available <- 1L
     }
