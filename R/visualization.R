@@ -9892,7 +9892,7 @@ SingleSpatialPlot <- function(
         x = 0.5,
         y = 0.5
       ) +
-        geom_point(mapping = aes(color = .data[[col.by]])) +
+        geom_point(mapping = aes(color = !!col.by.plot)) +
         xlim(0, ncol(x = image)) +
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)
