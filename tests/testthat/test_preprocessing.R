@@ -346,7 +346,7 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(hvf_info[VariableFeatures(object = object), grep("variance.standardized$", colnames(hvf_info))])))
 })
 
-test_that("VST variable feature ordering is stable with multiple layers", {
+test_that("VST scores and feature selection are stable with multiple layers", {
   skip_if_not(class(object[['RNA']]) == "Assay5")
 
   object.multilayer <- CreateSeuratObject(split(object[["RNA"]], f = rep(c("1", "4"), each = ncol(object) / 2)))
@@ -361,17 +361,21 @@ test_that("VST variable feature ordering is stable with multiple layers", {
   object.multi.thread.4 <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
   setThreads(old.threads, verbose = FALSE)
 
-  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
-  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread.4))
-  expect_identical(
-    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
-    VariableFeatures(object = object.multi.thread[["RNA"]], method = "vst", simplify = FALSE)
-  )
-
-  expect_identical(
-    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
-    VariableFeatures(object = object.multi.thread.4[["RNA"]], method = "vst", simplify = FALSE)
-  )
+  # Nearly tied scores can change order across BLAS implementations.
+  for (actual in list(object.multi.thread, object.multi.thread.4)) {
+    expect_setequal(VariableFeatures(object.single.thread), VariableFeatures(actual))
+    for (layer in Layers(object.single.thread[["RNA"]], search = "counts")) {
+      expect_setequal(
+        VariableFeatures(object.single.thread[["RNA"]], method = "vst", layer = layer),
+        VariableFeatures(actual[["RNA"]], method = "vst", layer = layer)
+      )
+      expect_equal(
+        HVFInfo(actual[["RNA"]], method = "vst", layer = layer),
+        HVFInfo(object.single.thread[["RNA"]], method = "vst", layer = layer),
+        tolerance = 1e-8
+      )
+    }
+  }
 
   for (layer in Layers(object = object.single.thread[["RNA"]], search = "counts")) {
     hvf.info <- HVFInfo(object = object.single.thread[["RNA"]], method = "vst", layer = layer, status = TRUE)
