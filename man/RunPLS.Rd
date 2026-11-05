@@ -134,7 +134,8 @@ Accepted formats:
   \item A numeric matrix (used as-is).
   \item A numeric vector (promoted to a single-column matrix).
 }
-The number of rows must match the number of cells/samples.}
+The number of rows must match the number of cells/samples, and no cell
+can have a missing (\code{NA}) response.}
 
 \item{Y.add}{Additional response variable(s) containing relevant
 information about the observations. Only used for cppls. Accepts the same

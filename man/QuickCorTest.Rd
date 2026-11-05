@@ -29,12 +29,13 @@ QuickCorTest(
 \item{group.by}{A metadata column name to group cells by before cor.test. If NULL,
 falls back to cor.test without grouping. Default is NULL.}
 
-\item{Y}{A metadata column name of responses.}
+\item{Y}{A metadata column name of responses. No cell in 'assay' can have a missing (\code{NA}) response.}
 
 \item{cor.cutoff}{The correlation coefficient cutoff to select the top genes. Default is NULL.}
 
-\item{top.prop}{The proportion of genes to be selected as the top genes, if cor.cutoff is not provided.
-Can be used together with cor.cutoff, and they cannot be NULL at the same time. Default is 0.01, i.e. the most correlated 1\% of genes will be selected.}
+\item{top.prop}{The proportion of genes to be selected as the top genes. Default is 0.01, i.e. the most
+correlated 1\% of genes will be selected. When used together with cor.cutoff, genes must pass both filters;
+set top.prop to NULL to select every gene that passes cor.cutoff. They cannot be NULL at the same time.}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of min.pct cells in each group. Default is 0.1}
 

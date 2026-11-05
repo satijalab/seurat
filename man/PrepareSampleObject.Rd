@@ -46,7 +46,9 @@ See \code{\link{QuickCorTest}} for details. Default is TRUE.}
 \item{group.by.CorTest}{A metadata column name to group cells by before QuickCorTest. If NULL,
 falls back to QuickCorTest without grouping. Default is NULL.}
 
-\item{Y}{A metadata column name of responses. Will also be used as the responses for PLS learning.}
+\item{Y}{A metadata column name of responses. Will also be used as the responses for PLS learning.
+No cell in 'assay' can have a missing (\code{NA}) response, including cells that would not be
+sketched into the training subset.}
 
 \item{sketch.training}{a boolen to specify whether the function performs sketching for the Seurat object to get a training subset for PLS learning
 (the PLS learned from subset will be projected to the full data). For efficiency, it is recommended to do so when the Seurat object is very

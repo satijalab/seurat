@@ -250,6 +250,7 @@ RunDiffusionMap.Seurat <- function(
 # @keywords internal
 .resolve_Y_matrix <- function(Y, expected_nrow = NULL, label = "Y") {
   if (is.null(Y)) return(NULL)
+  .check_Y_missing(Y = Y, label = label)
   if (is.matrix(Y) && is.numeric(Y)) {
     Y_mat <- Y
   } else if (is.numeric(Y) && is.null(dim(Y))) {
@@ -270,6 +271,32 @@ RunDiffusionMap.Seurat <- function(
     ))
   }
   Y_mat
+}
+
+# Stop if any cell has a missing response. Left alone, missing responses give
+# errors far from their cause, dropped cells, wrong genes or NaN embeddings,
+# depending on the path.
+#
+# @param Y A vector, matrix or data.frame of responses, with one row per cell.
+# @param label Label used in the error message (e.g. "Y", "Y.add").
+# @keywords internal
+.check_Y_missing <- function(Y, label = "Y") {
+  is.missing <- is.na(x = Y)
+  n.missing <- if (is.null(x = dim(x = is.missing))) {
+    sum(is.missing)
+  } else {
+    sum(rowSums(x = is.missing) > 0)
+  }
+  if (n.missing > 0) {
+    columns <- if (is.null(x = colnames(x = Y))) {
+      ""
+    } else {
+      paste0(" ('", paste(colnames(x = Y), collapse = "', '"), "')")
+    }
+    stop(label, columns, " has NA for ", n.missing,
+         " cells. Please subset to cells with a response first.", call. = FALSE)
+  }
+  invisible(x = NULL)
 }
 
 # Compute R2 and RMSEP from raw Y and fitted values (no pls model object needed).
@@ -342,7 +369,8 @@ RunDiffusionMap.Seurat <- function(
 #'     \item A numeric matrix (used as-is).
 #'     \item A numeric vector (promoted to a single-column matrix).
 #'   }
-#'   The number of rows must match the number of cells/samples.
+#'   The number of rows must match the number of cells/samples, and no cell
+#'   can have a missing (\code{NA}) response.
 #' @param Y.add Additional response variable(s) containing relevant
 #'   information about the observations. Only used for cppls. Accepts the same
 #'   formats as \code{Y}.
@@ -761,6 +789,7 @@ RunPLS.Seurat <- function(
   cells <- Cells(object[[assay]])
   if (is.character(Y)) {
     Y <- object[[Y]][cells, , drop = FALSE]
+    .check_Y_missing(Y = Y, label = "Y")
   } else if (is.matrix(Y) || is.data.frame(Y) || (is.numeric(Y) && is.null(dim(Y)))) {
     Y <- .resolve_Y_matrix(Y, expected_nrow = length(cells), label = "Y")
     # If rownames exist, reorder to match assay cell order
@@ -779,6 +808,7 @@ RunPLS.Seurat <- function(
   if (!is.null(Y.add)) {
     if (is.character(Y.add)) {
       Y.add <- object[[Y.add]][cells, , drop = FALSE]
+      .check_Y_missing(Y = Y.add, label = "Y.add")
     } else if (is.matrix(Y.add) || is.data.frame(Y.add) || (is.numeric(Y.add) && is.null(dim(Y.add)))) {
       Y.add <- .resolve_Y_matrix(Y.add, expected_nrow = length(cells), label = "Y.add")
       if (!is.null(rownames(Y.add))) {

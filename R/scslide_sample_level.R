@@ -18,6 +18,8 @@
 #' @param group.by.CorTest A metadata column name to group cells by before QuickCorTest. If NULL,
 #'   falls back to QuickCorTest without grouping. Default is NULL.
 #' @param Y A metadata column name of responses. Will also be used as the responses for PLS learning.
+#'   No cell in 'assay' can have a missing (\code{NA}) response, including cells that would not be
+#'   sketched into the training subset.
 #' @param sketch.training a boolen to specify whether the function performs sketching for the Seurat object to get a training subset for PLS learning
 #'  (the PLS learned from subset will be projected to the full data). For efficiency, it is recommended to do so when the Seurat object is very
 #'  large. If the 'assay' being specified for this Seurat object is an on-disk assay, this parameter must be set to TRUE. Default is TRUE.
@@ -104,6 +106,16 @@ PrepareSampleObject <- function(
     name.reduction.1 <- match.arg(arg = name.reduction.1, choices = names(object@reductions))
   }
   pls.function <- match.arg(arg = pls.function)
+  # missing responses would only fail once PLS is reached, and only if the
+  # affected cells happen to be sketched into the training subset
+  .check_Y_missing(
+    Y = if (is.character(x = Y)) {
+      FetchData(object = object, vars = Y, cells = Cells(x = object[[assay]]), clean = FALSE)
+    } else {
+      Y
+    },
+    label = "Y"
+  )
 
   # deprecation shim: 'weighted.nn.name' -> 'nn.name'
   nn.name.supplied <- !missing(nn.name)
@@ -1124,10 +1136,11 @@ NormalizeChiSquared.Seurat <- function(
 #' @param layer The name of the layer to use for cor.test
 #' @param group.by A metadata column name to group cells by before cor.test. If NULL,
 #'   falls back to cor.test without grouping. Default is NULL.
-#' @param Y A metadata column name of responses.
+#' @param Y A metadata column name of responses. No cell in 'assay' can have a missing (\code{NA}) response.
 #' @param cor.cutoff The correlation coefficient cutoff to select the top genes. Default is NULL.
-#' @param top.prop The proportion of genes to be selected as the top genes, if cor.cutoff is not provided.
-#'   Can be used together with cor.cutoff, and they cannot be NULL at the same time. Default is 0.01, i.e. the most correlated 1\% of genes will be selected.
+#' @param top.prop The proportion of genes to be selected as the top genes. Default is 0.01, i.e. the most
+#'   correlated 1\% of genes will be selected. When used together with cor.cutoff, genes must pass both filters;
+#'   set top.prop to NULL to select every gene that passes cor.cutoff. They cannot be NULL at the same time.
 #' @param min.cells the minimum number of cells per group to perform the cor.test. Default is 100. groups with < 100 will be skipped.
 #' @param min.pct only test genes that are detected in a minimum fraction of min.pct cells in each group. Default is 0.1
 #' @param verbose Print progress bars and output
@@ -1169,8 +1182,11 @@ QuickCorTest <- function(
   } else {
     Y <- FetchData(
       object = object,
-      vars = Y
+      vars = Y,
+      cells = Cells(x = object[[assay]]),
+      clean = FALSE
     )
+    .check_Y_missing(Y = Y, label = "Y")
   }
   for(i in 1:ncol(Y)){
     if(is.character(Y[,i])) Y[,i] <- as.factor(Y[,i])
@@ -1260,17 +1276,22 @@ QuickCorTest <- function(
       # Handle both vector (continuous Y) and matrix (categorical Y) cases
       if (is.vector(cor_res)) {
         # For continuous variables, cor_res is a vector
-        n_top <- ceiling(top.prop * length(cor_res))
         abs_cor <- abs(cor_res)
-        idx_slct <- order(abs_cor, decreasing = TRUE)[seq_len(length.out = n_top)]
+        if(is.null(x = top.prop)){
+          idx_slct <- seq_along(along.with = abs_cor)
+        } else {
+          n_top <- ceiling(top.prop * length(cor_res))
+          idx_slct <- order(abs_cor, decreasing = TRUE)[seq_len(length.out = n_top)]
+        }
         if(!is.null(x = cor.cutoff)){
           cutoff_idx <- which(abs_cor >= cor.cutoff)
           idx_slct <- intersect(idx_slct, cutoff_idx)
         }
       } else {
         # For categorical variables, cor_res is a matrix
-        n_top <- ceiling(top.prop * ncol(cor_res))
+        if(!is.null(x = top.prop)) n_top <- ceiling(top.prop * ncol(cor_res))
         idx_slct <- apply(abs(cor_res), 1, function(x) {
+          if(is.null(x = top.prop)) return(which(x >= cor.cutoff))
           a <- order(x, decreasing = TRUE)[seq_len(length.out = n_top)]
           if(!is.null(x = cor.cutoff)){
             b <- which(x >= cor.cutoff)
