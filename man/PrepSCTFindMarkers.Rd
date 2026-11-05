@@ -50,6 +50,7 @@ to \pkg{future}, see
 }
 
 \examples{
+\dontrun{
 data("pbmc_small")
 pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
 pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
@@ -69,6 +70,8 @@ markers_subset <- FindMarkers(
   assay = "SCT",
   recorrect_umi = FALSE
 )
+
+}
 
 }
 \concept{differential_expression}
