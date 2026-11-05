@@ -534,6 +534,9 @@ GenerateSampleObject <- function(
 #'   information about which groups each sketched cell belongs to.
 #'
 #' @details
+#' Normalized or transformed expression must be stored in a layer named
+#' \code{data}, or split layers such as \code{data.batch1}
+#'
 #' When \code{group.by} is specified, the function performs the following steps: \cr
 #' 1. Splits cells into groups based on the metadata column \cr
 #' 2. Calculates leverage scores (if method = 'LeverageScore') within each group \cr
@@ -595,6 +598,14 @@ SketchDataByGroup <- function(
   assay <- assay[1L] %||% DefaultAssay(object = object)
   assay <- match.arg(arg = assay, choices = Assays(object = object))
   method <- match.arg(arg = method)
+  layer.names <- suppressWarnings(Layers(object = object[[assay]], search = 'data'))
+
+  if (length(x = layer.names) == 0L) {
+    abort(message = paste0(
+      "No 'data' layer found. Store normalized or transformed expression in 'data' ",
+      "(or split layers such as 'data.batch1') before running SketchDataByGroup()"
+    ))
+  }
 
   if (sketched.assay == assay) {
     abort(message = "Cannot overwrite existing assays")
@@ -688,7 +699,6 @@ SketchDataByGroup <- function(
   }
 
   leverage.score <- object[[var.name]]
-  layer.names <- Layers(object = object[[assay]], search = 'data')
 
   # Sample cells within each group
   all_sampled_cells <- c()
