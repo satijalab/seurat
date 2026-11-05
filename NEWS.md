@@ -30,6 +30,10 @@
 - Fixed default orientation in `ImageDimPlot` and `ImageFeaturePlot` for FOVs without orientation metadata, including older Xenium/Atera objects: x is horizontal and y increases downward; stored coordinates are unchanged
 - Fixed transcript quality filtering and count reader error reporting in `ReadXenium`
 - Fixed molecule name matching to assay features in `LoadXenium`
+- Reduced data exported to parallel workers by passing selected inputs directly
+  - Per-object inputs in `PrepSCTIntegration`, `FindIntegrationAnchors`, `MapQueryData`, and `BridgeCellsRepresentation`
+  - Feature chunks in `RunMarkVario`
+  - Cell names per field of view for segmentations and cell metadata rows for bounding boxes in `ReadVizgen`
 
 ### Deprecations
 

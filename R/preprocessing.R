@@ -3186,7 +3186,7 @@ ReadXenium <- function(
 #' \code{fill_value}. Set \code{parallel = FALSE} inside tile workers to
 #' decode chunks sequentially without launching nested futures.
 #'
-#' @importFrom future.apply future_lapply
+#' @importFrom future.apply future_lapply future_mapply
 #' @keywords internal
 #' @noRd
 .AteraReadArray <- function(con, zidx, array.path, row.range = NULL, parallel = TRUE) {
@@ -3226,9 +3226,15 @@ ReadXenium <- function(
       .AteraReadEntryRaw(con, zidx, paste0(array.path, "/", ci))
     })
     actual.ns <- vapply(chunk.idx, function(ci) min(csize, n - ci * csize), numeric(1L))
-    decoded <- apply.chunks(seq_along(raw.chunks), function(k) {
-      .AteraDecodeChunk(raw.chunks[[k]], dtype, actual.ns[k], fill.value)
-    })
+    mapply.chunks <- if (parallel) future_mapply else mapply
+    decoded <- mapply.chunks(
+      FUN = .AteraDecodeChunk,
+      raw = raw.chunks,
+      n = actual.ns,
+      MoreArgs = list(dtype = dtype, fill.value = fill.value),
+      SIMPLIFY = FALSE,
+      USE.NAMES = FALSE
+    )
     out <- vector(mode = .AteraDtypeRType(dtype), length = end - start + 1L)
     for (k in seq_along(chunk.idx)) {
       ci <- chunk.idx[k]
@@ -5083,7 +5089,7 @@ ReadVitessce <- function(
 #'   requested by \code{metadata}
 #' }
 #'
-#' @importFrom future.apply future_lapply
+#' @importFrom future.apply future_lapply future_mapply
 #'
 #' @export
 #'
@@ -5319,15 +5325,22 @@ ReadVizgen <- function(
         )
       },
       'segmentations' = {
-        ppoly <- progressor(steps = length(x = unique(x = sp$fov)))
+        fovs <- unique(x = sp$fov)
+        cells.by.fov <- lapply(X = fovs, FUN = function(f) {
+          rownames(x = subset(x = sp, subset = fov == f))
+        })
+        ppoly <- progressor(steps = length(x = fovs))
         ppoly(
           message = "Creating polygon coordinates",
           class = 'sticky',
           amount = 0
         )
-        pg <- future_lapply(
-          X = unique(x = sp$fov),
-          FUN = function(f, ...) {
+        pg <- future_mapply(
+          f = fovs,
+          cells = cells.by.fov,
+          SIMPLIFY = FALSE,
+          USE.NAMES = FALSE,
+          FUN = function(f, cells, ...) {
             fname <- file.path(h5dir, paste0('feature_data_', f, '.hdf5'))
             if (!file.exists(fname)) {
               warning(
@@ -5339,7 +5352,6 @@ ReadVizgen <- function(
             }
             hfile <- hdf5r::H5File$new(filename = fname, mode = 'r')
             on.exit(expr = hfile$close_all())
-            cells <- rownames(x = subset(x = sp, subset = fov == f))
             df <- lapply(
               X = cells,
               FUN = function(x) {
@@ -5377,9 +5389,11 @@ ReadVizgen <- function(
         pbox <- progressor(steps = nrow(x = sp))
         pbox(message = "Creating box coordinates", class = 'sticky', amount = 0)
         bx <- future_lapply(
-          X = rownames(x = sp),
-          FUN = function(cell) {
-            row <- sp[cell, ]
+          X = lapply(X = rownames(x = sp), FUN = function(cell) {
+            sp[cell, , drop = FALSE]
+          }),
+          FUN = function(row) {
+            cell <- rownames(x = row)
             df <- expand.grid(
               x = c(row$min_x, row$max_x),
               y = c(row$min_y, row$max_y),
@@ -5530,10 +5544,12 @@ RunMarkVario <- function(
       x = features,
       f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
     )
-    mv <- future_lapply(X = features, FUN = function(x) {
+    feature.data <- lapply(X = features, FUN = function(x) {
       # drop = FALSE so that a chunk holding a single feature stays a matrix
-      # and t() keeps one row per cell
-      pp[["marks"]] <- as.data.frame(x = t(x = data[x, , drop = FALSE]))
+      data[x, , drop = FALSE]
+    })
+    mv <- future_lapply(X = feature.data, FUN = function(x) {
+      pp[["marks"]] <- as.data.frame(x = t(x = x))
       chunk <- spatstat.explore::markvario(X = pp, normalise = TRUE, ...)
       # markvario() hands back a bare 'fv' for a single mark and a named list
       # of them for several. Keep every chunk a list, so that the unlist()
