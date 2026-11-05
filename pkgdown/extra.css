@@ -120,8 +120,8 @@ body:has(main .new-icon) #toc a[href="#seurat-v6"]::after,
 .vignette-submenu[data-category="Seurat v6"] > summary::before {
   content: "";
   flex: 0 0 auto;
-  width: 0.94em;
-  height: 0.85em;
+  width: 0.5em;
+  height: 0.45em;
   margin-inline-start: 0.4em;
   background: url("articles/assets/new_icon.png") center / contain no-repeat;
 }
