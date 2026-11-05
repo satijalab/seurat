@@ -347,3 +347,112 @@ test_that("RunPLS on a Seurat object with on-disk data accepts integer responses
   expect_equal(fit(Y = "Time", Y.add = "Add"), expected)
   expect_equal(fit(Y = fx$Y.int, Y.add = fx$add.int), expected)
 })
+
+
+# Helper: a normalized and scaled in-memory Seurat object with a v3 or v5 assay,
+# and a numeric response stored as the metadata column "y".
+seurat_fixture <- function(v3 = FALSE, n.genes = 30, n.cells = 40, seed = 1) {
+  set.seed(seed)
+  counts <- matrix(
+    rpois(n = n.genes * n.cells, lambda = 2), nrow = n.genes, ncol = n.cells,
+    dimnames = list(paste0("g", seq_len(n.genes)), paste0("c", seq_len(n.cells)))
+  )
+  counts <- as(counts, "dgCMatrix")
+  assay <- if (v3) {
+    SeuratObject::CreateAssayObject(counts = counts)
+  } else {
+    SeuratObject::CreateAssay5Object(counts = counts)
+  }
+  object <- CreateSeuratObject(counts = assay)
+  object <- NormalizeData(object = object, verbose = FALSE)
+  VariableFeatures(object = object) <- rownames(x = object)
+  object <- ScaleData(object = object, verbose = FALSE)
+  object$y <- rnorm(n = n.cells)
+  object
+}
+
+
+test_that("RunPLS rejects sparse in-memory matrices", {
+  fx <- pls_fixture()
+  sparse <- as(fx$X, "dgCMatrix")
+
+  for (fn in c("plsr", "cppls", "spls")) {
+    expect_error(
+      run_pls(sparse, Y = fx$Y, ncomp = 2, pls.function = fn, verbose = FALSE),
+      "sparse in-memory"
+    )
+  }
+  expect_error(
+    run_pls(
+      seurat_fixture(), Y = "y", ncomp = 2, layer = "data", verbose = FALSE
+    ),
+    "sparse in-memory"
+  )
+})
+
+test_that("RunPLS runs spls on Seurat objects with v3 and v5 assays", {
+  skip_if_not_installed("spls")
+
+  for (v3 in c(FALSE, TRUE)) {
+    object <- run_pls(
+      seurat_fixture(v3 = v3), Y = "y", ncomp = 2, pls.function = "spls",
+      verbose = FALSE
+    )
+    expect_s4_class(object[["pls"]], "DimReduc")
+  }
+})
+
+test_that("RunPLS honors layer on a v3 assay", {
+  skip_if_not_installed("pls")
+
+  object <- seurat_fixture(v3 = TRUE)
+  # the data layer of a v3 assay is sparse unless it has been replaced
+  expect_error(
+    run_pls(object, Y = "y", ncomp = 2, layer = "data", verbose = FALSE),
+    "sparse in-memory"
+  )
+
+  dense <- as.matrix(x = LayerData(object = object[["RNA"]], layer = "data"))
+  object[["RNA"]] <- SetAssayData(
+    object = object[["RNA"]], layer = "data", new.data = dense
+  )
+  on.data <- run_pls(object, Y = "y", ncomp = 2, layer = "data", verbose = FALSE)
+  on.scale <- run_pls(object, Y = "y", ncomp = 2, verbose = FALSE)
+  expected <- run_pls(dense, Y = object$y, ncomp = 2, verbose = FALSE)
+
+  expect_equal(Embeddings(object = on.data[["pls"]]), Embeddings(object = expected))
+  expect_false(isTRUE(all.equal(
+    Embeddings(object = on.data[["pls"]]), Embeddings(object = on.scale[["pls"]])
+  )))
+})
+
+test_that("RunPLS names the in-memory embeddings by cell", {
+  skip_if_not_installed("pls")
+
+  object <- seurat_fixture()
+  expected <- Embeddings(object = run_pls(
+    object, Y = "y", ncomp = 2, verbose = FALSE
+  )[["pls"]])
+  y <- unname(obj = object$y)
+
+  # a response with no names, on a Seurat object
+  for (Y in list(y, matrix(data = y, ncol = 1))) {
+    fit <- run_pls(object, Y = Y, ncomp = 2, verbose = FALSE)
+    expect_equal(Embeddings(object = fit[["pls"]]), expected)
+  }
+
+  # on a bare matrix the rows of Y are matched by position, so names on Y must
+  # not relabel the cells
+  fx <- pls_fixture()
+  Y <- matrix(data = fx$Y, ncol = 1, dimnames = list(rev(x = colnames(x = fx$X)), "y"))
+  fit <- run_pls(fx$X, Y = Y, ncomp = 2, verbose = FALSE)
+  expect_equal(rownames(x = Embeddings(object = fit)), colnames(x = fx$X))
+
+  # a bare matrix with no cell names still runs
+  unnamed <- fx$X
+  colnames(x = unnamed) <- NULL
+  expect_s4_class(
+    run_pls(unnamed, Y = fx$Y, ncomp = 2, verbose = FALSE),
+    "DimReduc"
+  )
+})

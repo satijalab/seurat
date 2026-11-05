@@ -392,6 +392,8 @@ RunDiffusionMap.Seurat <- function(
 #'   \code{0} = auto-detect via \code{parallel::detectCores(logical = FALSE)};
 #'   values \eqn{\ge 1} use that many threads. Ignored for in-memory data.
 #' @param layer The layer in \code{assay} to use when running PLS analysis.
+#'   Sparse in-memory layers, such as an in-memory \code{data} layer, are not
+#'   supported and raise an error.
 #' @param materialize Logical; for on-disk (BPCells) assays only. If \code{TRUE},
 #'   the feature-subsetted matrix is written once to a single contiguous BPCells
 #'   store before PLS, instead of re-streaming a fragmented lazy chain on each of
@@ -451,9 +453,15 @@ RunPLS.default <- function(
     seed.use = 42,
     eta = 0.5,
     save.model = FALSE,
+    threads = NULL,
     ...
 ) {
   pls.function <- match.arg(arg = pls.function)
+  if (inherits(x = object, what = "sparseMatrix")) {
+    stop("RunPLS does not support sparse in-memory matrices. Run ScaleData() ",
+         "and use the scale.data layer, convert the matrix with as.matrix(), ",
+         "or use a BPCells on-disk matrix.", call. = FALSE)
+  }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -498,6 +506,10 @@ RunPLS.default <- function(
     rownames(feature.loadings) <- rownames(object)
     cell.embeddings <- unclass(pls.results$scores)
     colnames(cell.embeddings) <- paste0(reduction.key, 1:ncol(cell.embeddings))
+    # the scores take their row names from Y, which may have none
+    if (!is.null(x = colnames(x = object))) {
+      rownames(cell.embeddings) <- colnames(x = object)
+    }
     # if we are using plsr or cppls, we are able to retrieve the var_explained for each comp
     stdev <- pls.results$Xvar
     # other miscellaneous data might be useful for model selection
@@ -636,6 +648,7 @@ RunPLS.Assay <- function(
     object,
     assay = NULL,
     features = NULL,
+    layer = 'scale.data',
     ncomp = 20,
     Y = NULL,
     Y.add = NULL,
@@ -649,13 +662,17 @@ RunPLS.Assay <- function(
     eta = 0.5,
     save.model = FALSE,
     threads = NULL,
+    materialize = FALSE,
+    materialize.dir = NULL,
+    overwrite = FALSE,
     ...
 ) {
   # Get internal function from Seurat
-  
+
   data.use <- PrepDR(
     object = object,
     features = features,
+    slot = layer,
     verbose = verbose
   )
   reduction.data <- RunPLS(

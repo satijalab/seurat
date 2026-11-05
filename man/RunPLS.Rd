@@ -26,6 +26,7 @@ RunPLS(object, ...)
   seed.use = 42,
   eta = 0.5,
   save.model = FALSE,
+  threads = NULL,
   ...
 )
 
@@ -52,6 +53,7 @@ RunPLS(object, ...)
   object,
   assay = NULL,
   features = NULL,
+  layer = "scale.data",
   ncomp = 20,
   Y = NULL,
   Y.add = NULL,
@@ -65,6 +67,9 @@ RunPLS(object, ...)
   eta = 0.5,
   save.model = FALSE,
   threads = NULL,
+  materialize = FALSE,
+  materialize.dir = NULL,
+  overwrite = FALSE,
   ...
 )
 
@@ -169,7 +174,9 @@ values \eqn{\ge 1} use that many threads. Ignored for in-memory data.}
 
 \item{features}{Features to compute PLS on}
 
-\item{layer}{The layer in \code{assay} to use when running PLS analysis.}
+\item{layer}{The layer in \code{assay} to use when running PLS analysis.
+Sparse in-memory layers, such as an in-memory \code{data} layer, are not
+supported and raise an error.}
 
 \item{materialize}{Logical; for on-disk (BPCells) assays only. If \code{TRUE},
 the feature-subsetted matrix is written once to a single contiguous BPCells
