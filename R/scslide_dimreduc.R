@@ -565,6 +565,7 @@ RunPLS.IterableMatrix <- function(
   ncomp <- min(ncomp, max.ncomp)
 
   Y_mat <- .resolve_Y_matrix(Y, expected_nrow = n.samples, label = "Y")
+  .check_Y_missing(Y = Y.add, label = "Y.add")
   # Metadata columns arrive as a data.frame, which may hold factors. Bare
   # factor/character vectors are left for cppls_ondisk() to expand.
   if (is.data.frame(x = Y.add)) {
