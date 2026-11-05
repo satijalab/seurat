@@ -25,15 +25,19 @@ NormalizeChiSquared(object, ...)
 \method{NormalizeChiSquared}{Seurat}(object, assay = NULL, verbose = TRUE, ...)
 }
 \arguments{
-\item{object}{a count matrix (a landmark-sample density matrix), Assay, StdAssay, or Seurat object}
+\item{object}{a count matrix (a landmark-sample density matrix), Assay, StdAssay, or Seurat object.
+Values must be raw counts (non-negative whole numbers)}
 
 \item{...}{Additional arguments}
 
 \item{verbose}{display progress bar for normalization procedure}
 
-\item{layer}{Layer to use (for StdAssay objects)}
+\item{layer}{Layer to use (for StdAssay objects, and passed on by the Seurat method). It must
+resolve to a single layer whose name starts with "counts"; for split layers, run
+\code{JoinLayers} first or name one layer}
 
-\item{save}{Layer to save results to (for StdAssay objects)}
+\item{save}{Layer to save results to (for StdAssay objects, and passed on by the Seurat method).
+Its name cannot start with "counts"}
 
 \item{assay}{Name of assay to use (for Seurat objects)}
 }

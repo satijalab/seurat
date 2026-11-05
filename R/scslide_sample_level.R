@@ -976,10 +976,14 @@ FindsmNN <- function(
 #' from the expected baseline density values. Positive values indicate higher-than-expected density,
 #' negative values indicate lower-than-expected density.
 #'
-#' @param object a count matrix (a landmark-sample density matrix), Assay, StdAssay, or Seurat object
+#' @param object a count matrix (a landmark-sample density matrix), Assay, StdAssay, or Seurat object.
+#'   Values must be raw counts (non-negative whole numbers)
 #' @param assay Name of assay to use (for Seurat objects)
-#' @param layer Layer to use (for StdAssay objects)
-#' @param save Layer to save results to (for StdAssay objects)
+#' @param layer Layer to use (for StdAssay objects, and passed on by the Seurat method). It must
+#'   resolve to a single layer whose name starts with "counts"; for split layers, run
+#'   \code{JoinLayers} first or name one layer
+#' @param save Layer to save results to (for StdAssay objects, and passed on by the Seurat method).
+#'   Its name cannot start with "counts"
 #' @param verbose display progress bar for normalization procedure
 #' @param ... Additional arguments
 #'
@@ -1012,6 +1016,11 @@ NormalizeChiSquared.default <- function(
   }
   #
   ct_matrix <- object
+  # other values would not fail below, they would give plausible but wrong results
+  if (any(ct_matrix < 0) || any(ct_matrix != round(x = ct_matrix))) {
+    stop("NormalizeChiSquared() requires raw counts (non-negative whole numbers). ",
+         "Please check the 'layer' being used.")
+  }
   # calculate the row sums and column sums
   col_Sums_ct <- SeuratObject::colSums(ct_matrix)
   row_Sums_ct <- SeuratObject::rowSums(ct_matrix)
@@ -1054,9 +1063,28 @@ NormalizeChiSquared.StdAssay <- function(
     verbose = TRUE,
     ...
 ) {
-  # TODO: need to implement the real assay5-based normalization (allows chisqNorm for multiple counts layers)
-  LayerData(object, layer = "data") <- NormalizeChiSquared(
-    object = LayerData(object = object, layer = "counts"),
+  if (startsWith(x = save, prefix = "counts")) {
+    stop("'save' cannot start with 'counts', as this would overwrite raw counts ",
+         "or be mistaken for them, but got: ", save, ".")
+  }
+  olayer <- unique(x = layer)
+  layer <- Layers(object = object, search = olayer)
+  if (length(x = layer) == 0) {
+    stop("No layer matching '", paste(olayer, collapse = ", "), "' was found.")
+  }
+  if (!all(startsWith(x = layer, prefix = "counts"))) {
+    stop("NormalizeChiSquared() requires a layer whose name starts with 'counts', but got: ",
+         paste(layer, collapse = ", "), ".")
+  }
+  # the expected counts depend on the matrix being normalized, so normalizing
+  # layers separately would not match normalizing them together
+  if (length(x = layer) > 1) {
+    stop("NormalizeChiSquared() works on a single layer, but found: ",
+         paste(layer, collapse = ", "), ". Please run JoinLayers() first, or name ",
+         "one layer through 'layer'.")
+  }
+  LayerData(object, layer = save) <- NormalizeChiSquared(
+    object = LayerData(object = object, layer = layer),
     verbose = verbose
   )
   return(object)
@@ -1076,7 +1104,8 @@ NormalizeChiSquared.Seurat <- function(
 
   assay.data <- NormalizeChiSquared(
     object = object[[assay]],
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
