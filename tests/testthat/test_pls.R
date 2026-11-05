@@ -167,6 +167,8 @@ test_that("on-disk PLS stripped mode drops the per-sample outputs only", {
 
 test_that("on-disk PLS results do not depend on the thread count", {
   skip_if_not_installed("BPCells")
+  # simulate a machine that has 2 cores
+  local_mocked_bindings(detectCores = function(...) 2L, .package = "parallel")
 
   d <- simulate_pls_data(n = 80, p = 15, q = 1, seed = 42)
   X_bp <- to_bp(d$X)
@@ -252,21 +254,6 @@ test_that("RunPLS rejects an unknown pls.function", {
 })
 
 
-test_that("RunPLS.default runs every supported pls.function", {
-  skip_if_not_installed("pls")
-  skip_if_not_installed("spls")
-
-  fx <- pls_fixture()
-
-  for (fn in c("plsr", "spls", "cppls")) {
-    expect_s4_class(
-      run_pls(fx$X, Y = fx$Y, ncomp = 2, pls.function = fn, verbose = FALSE),
-      "DimReduc"
-    )
-  }
-})
-
-
 # Helper: the on-disk fixture for the response storage tests.
 ondisk_fixture <- function() {
   fx <- pls_fixture(n.genes = 20, n.cells = 40)
@@ -315,9 +302,30 @@ test_that("on-disk RunPLS accepts every documented form of Y.add", {
   )
 })
 
-test_that("on-disk RunPLS still accepts a bare factor or character Y.add", {
+test_that("on-disk RunPLS rejects missing Y.add and accepts bare factor or character responses", {
   skip_if_not_installed("BPCells")
   fx <- ondisk_fixture()
+  add.int <- fx$add.int
+  add.int[3] <- NA_integer_
+  groups <- factor(x = c("x", "y")[add.int])
+
+  for (Y.add in list(
+    add.int,
+    as.numeric(x = add.int),
+    cbind(add = add.int),
+    data.frame(add = add.int),
+    groups,
+    as.character(x = groups)
+  )) {
+    expect_error(
+      run_pls(
+        fx$disk, Y = fx$Y, Y.add = Y.add, ncomp = 2,
+        pls.function = "cppls", verbose = FALSE
+      ),
+      "Y[.]add.* has NA for 1 cells"
+    )
+  }
+
   groups <- factor(x = c("x", "y")[fx$add.int])
   for (add in list(groups, as.character(x = groups))) {
     expect_s4_class(

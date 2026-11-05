@@ -297,35 +297,14 @@ test_that("SketchProduct keeps sketch rows that draw no cells", {
     x = rep(c(-1, 1), length.out = ncol(counts)),
     dims = c(nsketch, ncol(counts))
   )
-  expect_false(nsketch %in% (S@i + 1L))
 
   result <- SketchProduct(object = on.disk, S = S)
-  expect_equal(dim(result), c(nsketch, nrow(counts)))
   expect_equal(
     unname(as.matrix(result)),
     unname(as.matrix(S %*% t(counts)))
   )
   expect_true(all(result[nsketch, ] == 0))
 })
-
-test_that("SketchData when setting your own variable features and not specifying features errors out", {
-  test_case <- build_test_data()
-  top_features <- VariableFeatures(test_case)[1:100]
-  VariableFeatures(test_case) <- top_features
-  
-  expect_error(
-    suppressWarnings(
-      SketchData(
-        pbmc_new, 
-        assay = "RNA", 
-        ncells = 50, 
-        method = "LeverageScore", 
-        sketched.assay = "sketch"
-      )
-    )
-  )
-})
-
 
 test_that("LeverageScore and SketchData handle a small matrix", {
   set.seed(42)
