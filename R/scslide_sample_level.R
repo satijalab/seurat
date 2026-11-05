@@ -447,7 +447,12 @@ GenerateSampleObject <- function(
 
   # we can now add donor-level meta data to this sample-level object and perform some basic QC and processings
   if(isTRUE(x = add.meta.data)){
-    meta_data <- object@meta.data
+    # only the cells that were grouped above; 'group.by' may not be a meta-data
+    # column, as FetchData also resolves e.g. 'ident'
+    meta_data <- object@meta.data[rownames(x = data), , drop = FALSE]
+    if (!group.by %in% colnames(x = meta_data)) {
+      meta_data[[group.by]] <- data[[group.by]]
+    }
     find_donor_specific_cols <- function(meta_data, donor_col = group.by) {
       # Check each column for within-donor consistency
       donor_specific <- sapply(names(meta_data), function(col_name) {
@@ -460,8 +465,8 @@ GenerateSampleObject <- function(
       return(names(donor_specific)[donor_specific])
     }
 
-    meta_data <- meta_data[, find_donor_specific_cols(meta_data, group.by)]
-    meta_data <- meta_data[!duplicated(meta_data), ]
+    meta_data <- meta_data[, find_donor_specific_cols(meta_data, group.by), drop = FALSE]
+    meta_data <- meta_data[!duplicated(meta_data), , drop = FALSE]
     # rownames(meta_data) <- meta_data[[group.by]]
     rownames(meta_data) <- gsub(pattern = "\\_", replacement = "-", meta_data[[group.by]])
     landmark_obj <- AddMetaData(landmark_obj, metadata = meta_data)
