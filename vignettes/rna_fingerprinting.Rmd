@@ -20,7 +20,7 @@ knitr::knit_hooks$set(time_it = local({
     }
     seconds <- proc.time()[["elapsed"]] - start
     all_times[[options$label]] <<- seconds
-    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
@@ -32,25 +32,15 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{=html}
-<style>
-.chunk-timing {
-  margin-top: 0;
-}
-:has(+ .chunk-timing),
-.sourceCode:has(+ .chunk-timing) pre {
-  margin-bottom: 0;
-}
-</style>
-```
-
 # Overview
 
 RNA fingerprinting ([Grabski et al., _Cell_ 2026](https://doi.org/10.1016/j.cell.2026.09.017)) matches transcriptional responses to a dictionary of perturbation-specific expression patterns. In this vignette, we demonstrate RNA fingerprinting on a Perturb-seq dataset available on GEO under accession number [GSE132080](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE132080). Each targeted gene has five guide RNAs: one perfectly matched guide and four guides with nucleotide mismatches that titrate perturbation strength.
 
-We first learn a dictionary from cells receiving perfectly matched guides and ask whether it can identify the perturbations in cells receiving mismatched guides. We then examine assignments at the gene, guide, and individual-cell levels to understand differences in perturbation strength and heterogeneity. Finally, we map the same dataset to precomputed Genome-Wide Perturb-seq (GWPS) fingerprints, extending the analysis to a larger reference without learning a new dictionary.
+In this vignette, we first learn a dictionary from cells receiving perfectly matched guides and ask whether it can identify the perturbations in cells receiving mismatched guides. We then examine assignments at the gene, guide, and individual-cell levels to understand differences in perturbation strength and heterogeneity. Finally, we map the same dataset to precomputed Genome-Wide Perturb-seq (GWPS) fingerprints, extending the analysis to a larger reference without learning a new dictionary.
 
-# Loading packages and preparing the data
+# Analyzing a new experiment with RNA fingerprinting
+
+## Loading packages and preparing the data
 
 We begin by loading the [`RNAFingerprinting`](https://github.com/satijalab/rna-fingerprinting) R package, Seurat, and other required packages. The final section also requires the [`RNAFingerprintingData`](https://github.com/satijalab/rna-fingerprinting-data) companion package to access the precomputed GWPS dictionary.
 
@@ -86,7 +76,7 @@ jost$gene <- str_extract(jost$guide_identity, "^[^_]+")
 jost$gRNA_id <- sapply(jost$guide_identity, function(x) str_sub(x, -2))
 ```
 
-# Separating reference and query cells
+## Separating reference and query cells
 
 Here, every gene was targeted by 5 different guide RNAs, where the one ending with "00" indicates a perfectly matched sequence, and the rest have titrated strength due to nucleotide mismatches. We split this object into two: one containing only the perfectly matched sequences, and one containing the rest. We also arbitrarily distribute the non-targeting guide RNAs among them.
 
@@ -106,7 +96,7 @@ jost_match <- SCTransform(jost_match, return.only.var.genes = FALSE)
 jost_mismatch <- SCTransform(jost_mismatch, return.only.var.genes = FALSE)
 ```
 
-# Learning a dictionary from perfectly matched guides
+## Learning a dictionary from perfectly matched guides
 
 We will learn fingerprints corresponding to each perturbation in `jost_match`. To start, we need to specify the features that should be used for these fingerprints. We recommend using the `ChooseFeatures` function to automatically select features, but a custom feature set can also be passed in. We provide two options for `ChooseFeatures`:
 
@@ -138,7 +128,7 @@ We can visualize relationships among perturbations by looking at the correlation
 pheatmap(cor(dictionary$fingerprints$Lambdas), treeheight_row = 0, treeheight_col = 0)
 ```
 
-# Identifying perturbations in mismatched-guide cells
+## Identifying perturbations in mismatched-guide cells
 
 With a dictionary learned from perfectly matched guides, we can now ask whether the weaker perturbations recover the same fingerprints.
 
@@ -211,7 +201,7 @@ ExplainMatch(jost_mismatch, query = 'CAD', match = 'CAD', condition_meta = 'gene
              control_class_ref = 'neg', num_genes = 25, include_de = 10)
 ```
 
-# Resolving differences between guides
+## Resolving differences between guides
 
 Pooling cells by target gene can recover a shared response, but it can also hide differences in guide strength.
 
@@ -258,7 +248,7 @@ DoHeatmap(jost_mismatch, gata1_degs, group.by = 'guide_identity2', label = F,
 
 Here, we see that the guide identities in the query that did match indeed show a strong phenotype, whereas the one that didn't match (GATA1_GATA1_-_48645022.23-P1P2_12) does not show the same gene expression pattern.
 
-# Characterizing heterogeneity between individual cells
+## Characterizing heterogeneity between individual cells
 
 Having examined differences between guides, we can also ask whether individual cells show the expected response.
 
