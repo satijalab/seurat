@@ -33,22 +33,22 @@
 - category: Seurat v6
   vignettes:
     - title: Sample-level analysis with scSLIDE
-      name: scSLIDE_COVID19
+      name: scSLIDE_vignette
       summary: |
-        Analyze differences between samples with scSLIDE using a COVID-19 single-cell dataset.
+        Analyze differences between samples with scSLIDE using in-memory COVID-19 data and a large on-disk Alzheimer's disease dataset.
       image: assets/scslide_1.png
 
-    - title: Large-scale sample-level analysis with scSLIDE
-      name: scSLIDE_SEA_AD
-      summary: |
-        Apply scSLIDE to a large Alzheimer's disease dataset using on-disk data with BPCells.
-      image: assets/scslide_2.png
-    
     - title: Analyzing perturbation responses with RNA fingerprinting
       name: rna_fingerprinting
       summary: |
         Learn perturbation fingerprints, map query cells, and use a precomputed Genome-Wide Perturb-seq reference.
       image: assets/lic_2025.png
+
+    - title: Cell type annotation with Pan-human Azimuth
+      name: intro_azimuthapi_vignette
+      summary: |
+        Annotate cell types with Pan-human Azimuth and explore predictions, confidence scores, and embeddings.
+      image: assets/pha_image.png
 
 - category: Data integration
   vignettes:
@@ -153,6 +153,12 @@
       summary: |
         Learn to explore spatially-resolved transcriptomic data at the single-cell level from 10x Visium HD.
       image: assets/visium_hd_cell_segm.png
+
+    - title: Loading and visualizing 10x Atera data
+      name: atera_tutorial
+      summary: |
+        Load and visualize 10x Atera data in Seurat.
+      image: assets/atera_tissue_clustered.png
 
 - category: Additional workflows
   vignettes:
