@@ -289,21 +289,21 @@ RunDiffusionMap.Seurat <- function(
   Y_mean <- matrix(colMeans(Y), nrow = n, ncol = q, byrow = TRUE)
   SST <- colSums((Y - Y_mean)^2)  # length q
 
-  # R2$val layout from pls: 1 x (ncomp+1) x q
-  # [1,1,] = intercept (0 comps), [1,a+1,] = a comps
-  R2_val <- array(NA_real_, dim = c(1, ncomp + 1, q))
-  RMSEP_val <- array(NA_real_, dim = c(1, ncomp + 1, q))
+  # R2$val layout from pls: 1 x q x (ncomp+1)
+  # [1,,1] = intercept (0 comps), [1,,a+1] = a comps
+  R2_val <- array(NA_real_, dim = c(1, q, ncomp + 1))
+  RMSEP_val <- array(NA_real_, dim = c(1, q, ncomp + 1))
 
   # Intercept-only model
-  R2_val[1, 1, ] <- 0
-  RMSEP_val[1, 1, ] <- sqrt(SST / n)
+  R2_val[1, , 1] <- 0
+  RMSEP_val[1, , 1] <- sqrt(SST / n)
 
   for (a in seq_len(ncomp)) {
     fitted_a <- fitted_values[, , a, drop = FALSE]
     dim(fitted_a) <- c(n, q)
     SSE <- colSums((Y - fitted_a)^2)
-    R2_val[1, a + 1, ] <- 1 - SSE / SST
-    RMSEP_val[1, a + 1, ] <- sqrt(SSE / n)
+    R2_val[1, , a + 1] <- 1 - SSE / SST
+    RMSEP_val[1, , a + 1] <- sqrt(SSE / n)
   }
 
   # Set dimnames matching pls convention
@@ -311,13 +311,14 @@ RunDiffusionMap.Seurat <- function(
   resp_names <- colnames(Y)
   if (is.null(resp_names)) resp_names <- paste0("Y", seq_len(q))
 
-  dimnames(R2_val) <- list("train", comp_names, resp_names)
-  dimnames(RMSEP_val) <- list("train", comp_names, resp_names)
+  val_names <- list(estimate = "train", response = resp_names, model = comp_names)
+  dimnames(R2_val) <- val_names
+  dimnames(RMSEP_val) <- val_names
 
-  R2_out <- list(val = R2_val, type = "train")
+  R2_out <- list(val = R2_val, type = "R2", comps = 0:ncomp, cumulative = TRUE)
   class(R2_out) <- "mvrVal"
 
-  RMSEP_out <- list(val = RMSEP_val, type = "train")
+  RMSEP_out <- list(val = RMSEP_val, type = "RMSEP", comps = 0:ncomp, cumulative = TRUE)
   class(RMSEP_out) <- "mvrVal"
 
   list(R2 = R2_out, RMSEP = RMSEP_out)
