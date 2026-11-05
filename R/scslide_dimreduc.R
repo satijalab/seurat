@@ -537,6 +537,11 @@ RunPLS.IterableMatrix <- function(
   ncomp <- min(ncomp, max.ncomp)
 
   Y_mat <- .resolve_Y_matrix(Y, expected_nrow = n.samples, label = "Y")
+  # Metadata columns arrive as a data.frame, which may hold factors. Bare
+  # factor/character vectors are left for cppls_ondisk() to expand.
+  if (is.data.frame(x = Y.add)) {
+    Y.add <- .resolve_Y_matrix(Y.add, expected_nrow = n.samples, label = "Y.add")
+  }
 
   if (pls.function == "cppls") {
     pls.results <- cppls_ondisk(X = object, Y = Y_mat, Y.add = Y.add,
@@ -930,6 +935,8 @@ kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
   if (!is.numeric(Y)) {
     rlang::abort("Y must be numeric (or a factor/character vector for classification)")
   }
+  # The C++ fit maps Y directly, so integer storage would be rejected there
+  storage.mode(x = Y) <- "double"
 
   # BPCells' nrow()/ncol() already account for @transpose, so they always
   # return the user-facing dimensions: nrow = features, ncol = samples.
@@ -1077,6 +1084,8 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
   if (!is.numeric(Y)) {
     rlang::abort("Y must be numeric (or a factor/character vector for classification)")
   }
+  # The C++ fit maps Y directly, so integer storage would be rejected there
+  storage.mode(x = Y) <- "double"
 
   # Handle Y.add
   if (is.null(Y.add)) {
@@ -1090,6 +1099,7 @@ cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
     if (!is.numeric(Y_add_mat)) {
       rlang::abort("Y.add must be numeric (or a factor/character vector)")
     }
+    storage.mode(x = Y_add_mat) <- "double"
     if (nrow(Y_add_mat) != nrow(Y)) {
       rlang::abort(sprintf("nrow(Y.add) (%d) must match nrow(Y) (%d)",
                            nrow(Y_add_mat), nrow(Y)))

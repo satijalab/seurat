@@ -265,3 +265,85 @@ test_that("RunPLS.default runs every supported pls.function", {
     )
   }
 })
+
+
+# Helper: the on-disk fixture for the response storage tests.
+ondisk_fixture <- function() {
+  fx <- pls_fixture(n.genes = 20, n.cells = 40)
+  fx$disk <- as(as(fx$X, "dgCMatrix"), "IterableMatrix")
+  fx$Y.int <- rep(x = 1:8, each = 5)
+  fx$add.int <- rep(x = c(1L, 2L), length.out = 40)
+  fx
+}
+
+test_that("on-disk RunPLS accepts integer responses", {
+  skip_if_not_installed("BPCells")
+  fx <- ondisk_fixture()
+  Y.int.mat <- cbind(a = fx$Y.int, b = rev(x = fx$Y.int))
+  Y.dbl.mat <- Y.int.mat
+  storage.mode(x = Y.dbl.mat) <- "double"
+
+  for (fn in c("plsr", "cppls")) {
+    fit <- function(Y) {
+      Embeddings(object = run_pls(fx$disk, Y = Y, ncomp = 2, pls.function = fn, verbose = FALSE))
+    }
+    expect_equal(fit(Y = fx$Y.int), fit(Y = as.numeric(x = fx$Y.int)))
+    expect_equal(fit(Y = Y.int.mat), fit(Y = Y.dbl.mat))
+  }
+})
+
+test_that("on-disk RunPLS accepts every documented form of Y.add", {
+  skip_if_not_installed("BPCells")
+  fx <- ondisk_fixture()
+  fit <- function(Y.add) {
+    Embeddings(object = run_pls(
+      fx$disk, Y = fx$Y, Y.add = Y.add, ncomp = 2, pls.function = "cppls", verbose = FALSE
+    ))
+  }
+  add.dbl <- as.numeric(x = fx$add.int)
+  expected <- fit(Y.add = add.dbl)
+
+  expect_equal(fit(Y.add = fx$add.int), expected)
+  expect_equal(fit(Y.add = cbind(fx$add.int)), expected)
+  expect_equal(fit(Y.add = data.frame(add = fx$add.int)), expected)
+
+  # A factor column is expanded the same way as in the in-memory path
+  groups <- factor(x = c("x", "y")[fx$add.int])
+  expect_equal(
+    fit(Y.add = data.frame(group = groups)),
+    fit(Y.add = stats::model.matrix(~ . + 0, data = data.frame(group = groups)))
+  )
+})
+
+test_that("on-disk RunPLS still accepts a bare factor or character Y.add", {
+  skip_if_not_installed("BPCells")
+  fx <- ondisk_fixture()
+  groups <- factor(x = c("x", "y")[fx$add.int])
+  for (add in list(groups, as.character(x = groups))) {
+    expect_s4_class(
+      run_pls(fx$disk, Y = fx$Y, Y.add = add, ncomp = 2, pls.function = "cppls", verbose = FALSE),
+      "DimReduc"
+    )
+  }
+})
+
+test_that("RunPLS on a Seurat object with on-disk data accepts integer responses", {
+  skip_if_not_installed("BPCells")
+  fx <- ondisk_fixture()
+  object <- CreateSeuratObject(counts = as(abs(x = round(x = fx$X * 10)), "dgCMatrix"))
+  object <- NormalizeData(object = object, verbose = FALSE)
+  VariableFeatures(object = object) <- rownames(x = object)
+  LayerData(object = object[["RNA"]], layer = "scale.data") <- fx$disk
+  object$Time <- fx$Y.int
+  object$Add <- fx$add.int
+  object$Add.double <- as.numeric(x = fx$add.int)
+
+  fit <- function(Y, Y.add) {
+    Embeddings(object = run_pls(
+      object, Y = Y, Y.add = Y.add, ncomp = 2, pls.function = "cppls", verbose = FALSE
+    )[["pls"]])
+  }
+  expected <- fit(Y = "Time", Y.add = "Add.double")
+  expect_equal(fit(Y = "Time", Y.add = "Add"), expected)
+  expect_equal(fit(Y = fx$Y.int, Y.add = fx$add.int), expected)
+})
