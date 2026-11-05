@@ -393,6 +393,36 @@ test_that("SketchDataByGroup without group.by keeps on-disk data on disk", {
   expect_s4_class(LayerData(object = result[["sketch"]], layer = "data"), "IterableMatrix")
 })
 
+test_that("SketchDataByGroup honors named group sizes", {
+  object <- build_test_data()
+  object$group <- rep(c("a", "b"), length.out = ncol(object))
+  result <- SketchDataByGroup(
+    object, group.by = "group", ncells = c(b = 7, a = 3), verbose = FALSE
+  )
+  cells <- Cells(x = result[["sketch"]])
+  expect_equal(as.vector(table(object[["group"]][cells, 1])), c(3, 7))
+})
+
+test_that("SketchDataByGroup honors per-group layer sizes", {
+  object <- build_test_data()
+  object$group <- rep(c("a", "b"), length.out = ncol(object))
+  object$batch <- rep(c("one", "one", "two", "two"), length.out = ncol(object))
+  object[["RNA"]] <- suppressMessages(split(x = object[["RNA"]], f = object$batch))
+  result <- SketchDataByGroup(
+    object, group.by = "group", verbose = FALSE,
+    ncells = list(b = c(data.two = 8, data.one = 6), a = c(data.two = 5, data.one = 3))
+  )
+  cells <- Cells(x = result[["sketch"]])
+  observed <- table(object[["group"]][cells, 1], object[["batch"]][cells, 1])
+  expect_equal(as.vector(observed), c(3, 6, 5, 8))
+  expect_error(SketchDataByGroup(
+    object, group.by = "group", ncells = list(a = 5), verbose = FALSE
+  ), "every group")
+  expect_error(SketchDataByGroup(
+    object, group.by = "group", ncells = list(a = c(data.one = 5), b = 5), verbose = FALSE
+  ), "Please specify ncells for group 'a' in layer 'data.two'")
+})
+
 test_that("PrepareSampleObject works without group.by.Sketch", {
   set.seed(42)
   test_case <- build_test_data()
