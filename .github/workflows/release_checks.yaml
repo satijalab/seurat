@@ -41,7 +41,7 @@ jobs:
     steps:
       # Pull the latest changes from the repository down to the runner.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Install R and any system dependencies.
       - name: Setup R
