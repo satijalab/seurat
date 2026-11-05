@@ -20,7 +20,7 @@ knitr::knit_hooks$set(time_it = local({
     }
     seconds <- proc.time()[["elapsed"]] - start
     all_times[[options$label]] <<- seconds
-    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
@@ -34,18 +34,6 @@ knitr::opts_chunk$set(
   error = FALSE
 )
 options(SeuratData.repo.use = 'seurat.nygenome.org')
-```
-
-```{=html}
-<style>
-.chunk-timing {
-  margin-top: 0;
-}
-:has(+ .chunk-timing),
-.sourceCode:has(+ .chunk-timing) pre {
-  margin-bottom: 0;
-}
-</style>
 ```
 
 Here, we demonstrate visualization techniques in Seurat using our previously computed Seurat object from the 2,700 PBMC guided clustering tutorial. You can access the dataset and load it into a Seurat object using [SeuratData](https://github.com/satijalab/seurat-data).

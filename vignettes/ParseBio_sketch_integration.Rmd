@@ -21,7 +21,7 @@ knitr::knit_hooks$set(time_it = local({
     }
     seconds <- proc.time()[["elapsed"]] - start
     all_times[[options$label]] <<- seconds
-    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
@@ -32,18 +32,6 @@ knitr::opts_chunk$set(
   fig.width = 10,
   error = FALSE
 )
-```
-
-```{=html}
-<style>
-.chunk-timing {
-  margin-top: 0;
-}
-:has(+ .chunk-timing),
-.sourceCode:has(+ .chunk-timing) pre {
-  margin-bottom: 0;
-}
-</style>
 ```
 
 The recent increase in publicly available single-cell datasets poses a significant challenge for integrative analysis. For example, multiple tissues have now been profiled across dozens of studies, representing hundreds of individuals and millions of cells. In [Hao et al, 2023](https://www.nature.com/articles/s41587-023-01767-y), we proposed a dictionary learning based method, atomic sketch integration, that enables efficient and large-scale integrative analysis. Our procedure enables the integration of large compendiums of datasets without ever needing to load the full scale of data into memory. In [our manuscript](https://www.nature.com/articles/s41587-023-01767-y) we use atomic sketch integration to integrate millions of scRNA-seq profiles from human lung and human PBMC.

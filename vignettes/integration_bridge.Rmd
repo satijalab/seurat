@@ -21,7 +21,7 @@ knitr::knit_hooks$set(time_it = local({
     }
     seconds <- proc.time()[["elapsed"]] - start
     all_times[[options$label]] <<- seconds
-    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
@@ -32,18 +32,6 @@ knitr::opts_chunk$set(
   message = FALSE,
   fig.width = 8
 )
-```
-
-```{=html}
-<style>
-.chunk-timing {
-  margin-top: 0;
-}
-:has(+ .chunk-timing),
-.sourceCode:has(+ .chunk-timing) pre {
-  margin-bottom: 0;
-}
-</style>
 ```
 
 In the same way that read mapping tools have transformed genome sequence analysis, the ability to map new datasets to established references represents an exciting opportunity for the field of single-cell genomics. Along with others in the community, we have developed [tools to map and interpret query datasets](https://satijalab.org/seurat/articles/multimodal_reference_mapping.html), and have also constructed a [set of scRNA-seq datasets for diverse mammalian tissues](http://azimuth.hubmapconsortium.org).

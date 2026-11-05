@@ -21,7 +21,7 @@ knitr::knit_hooks$set(time_it = local({
     }
     seconds <- proc.time()[["elapsed"]] - start
     all_times[[options$label]] <<- seconds
-    sprintf("\n\n<p class=\"chunk-timing\"><small><sup>Elapsed: %.2f s</sup></small></p>\n\n", seconds)
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
@@ -31,18 +31,6 @@ knitr::opts_chunk$set(
   warning = FALSE,
   error = FALSE
 )
-```
-
-```{=html}
-<style>
-.chunk-timing {
-  margin-top: 0;
-}
-:has(+ .chunk-timing),
-.sourceCode:has(+ .chunk-timing) pre {
-  margin-bottom: 0;
-}
-</style>
 ```
 
 Developed in collaboration with the Technology Innovation Group at NYGC, Cell Hashing uses oligo-tagged antibodies against ubiquitously expressed surface proteins to place a "sample barcode" on each single cell, enabling different samples to be multiplexed together and run in a single experiment. For more information, please refer to this [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1).
