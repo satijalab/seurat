@@ -128,4 +128,4 @@ existing reduction (e.g. PCA, via \code{name.reduction.1}) with the PLS embeddin
 neighbor (WNN) workflow (\code{\link{FindmmNN}}). The single-modal path builds the neighbor graph from the PLS
 embedding alone (\code{\link{FindsmNN}}), which is useful when no complementary reduction is available or desired.
 }
-\concept{scSLIDE}
+\concept{sample_level_analysis}

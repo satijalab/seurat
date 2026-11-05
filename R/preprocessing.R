@@ -4638,6 +4638,9 @@ LoadAtera <- function(
 #' @concept spatial
 #' @concept preprocessing
 #'
+#' @concept spatial
+#' @concept preprocessing
+#'
 LoadAteraMolecules <- function(object, genes) {
   handle.info <- Misc(object, slot = 'atera.molecules')
   if (is.null(handle.info)) {
@@ -4695,6 +4698,9 @@ LoadAteraMolecules <- function(object, genes) {
 #' @importFrom SeuratObject Cells CreateSegmentation
 #'
 #' @export
+#' @concept spatial
+#' @concept preprocessing
+#'
 #' @concept spatial
 #' @concept preprocessing
 #'

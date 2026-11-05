@@ -8,6 +8,25 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
+knitr::knit_hooks$set(time_it = local({
+  start <- NULL
+  function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
+    if (before) {
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
+    }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
+  }
+}))
+knitr::opts_chunk$set(time_it = TRUE, error = FALSE, warning = FALSE, tidy = FALSE)
+```
+
 ### Load in the data
 
 This vignette highlights some example workflows for performing differential expression in Seurat. For demonstration purposes, we will be using the interferon-beta stimulated human PBMCs dataset ([ifnb](https://www.nature.com/articles/nbt.4042)) that is available via the [SeuratData](https://github.com/satijalab/seurat-data) package.
@@ -189,7 +208,7 @@ Finally, we also support many other DE tests using other methods. For completene
 * "bimod" : Likelihood-ratio test for single cell feature expression, (McDavid et al., Bioinformatics, 2013)
 * "roc" : Standard AUC classifier
 * "t" : Student's t-test
-* "poisson" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
+* "poisson" : Likelihood ratio test assuming an underlying Poisson distribution. Use only for UMI-based datasets
 * "negbinom" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
 * "LR" : Uses a logistic regression framework to determine differentially expressed genes. Constructs a logistic regression model predicting group membership based on each feature individually and compares this to a null model with a likelihood ratio test.
 * "MAST" : GLM-framework that treats cellular detection rate as a covariate (Finak et al, Genome Biology, 2015) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/MAST.html))
@@ -205,8 +224,8 @@ head(FindMarkers(ifnb, ident.1 = "CD14 Mono", ident.2 = "CD16 Mono", test.use = 
 
 <details><summary>**Session Info**</summary>
 
-```{r session_info}
-sessionInfo()
+```{r session_info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 
 </details>

@@ -58,4 +58,4 @@ sample_obj <- NormalizeChiSquared(sample_obj)
 }
 
 }
-\concept{normalization}
+\concept{sample_level_analysis}

@@ -122,4 +122,4 @@ de_results <- TrajDETest(seurat_obj, traj.var = "pseudotime")
 }
 
 }
-\concept{scSLIDE_DE}
+\concept{sample_level_analysis}

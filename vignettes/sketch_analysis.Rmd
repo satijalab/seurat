@@ -8,31 +8,34 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = 'styler',
+  time_it = TRUE,
+  tidy = FALSE,
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-  time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
  
 ## Intro: Sketch-based analysis in Seurat v5
-As single-cell sequencing technologies continue to improve in scalability in throughput, the generation of datasets spanning a million or more cells is becoming increasingly routine. In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore these exciting datasets. 
+As single-cell sequencing technologies continue to improve in scalability and throughput, the generation of datasets spanning a million or more cells is becoming increasingly routine. In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore these exciting datasets. 
 
 In this vignette, we introduce a sketch-based analysis workflow to analyze a 1.3 million cell dataset of the developing mouse brain, freely available from 10x Genomics. Analyzing datasets of this size with standard workflows can be challenging, slow, and memory-intensive. Here we introduce an alternative workflow that is highly scalable, even to datasets ranging beyond 10 million cells in size.
 Our 'sketch-based' workflow involves three new features in Seurat v5:
@@ -49,7 +52,7 @@ We store sketched cells (in-memory) and the full dataset (on-disk) as two assays
 * Support for 'bit-packing' compression and infrastructure
 
 We demonstrate the on-disk capabilities in Seurat v5 using the [BPCells package](https://github.com/bnprks/BPCells) developed by Ben Parks in the Greenleaf Lab. This package utilizes bit-packing compression and optimized, streaming-compatible C++ code to substantially improve I/O and computational performance when working with on-disk data.
-To run this vignette please install Seurat v5, using the installation instructions found [here](install.html). Additionally, you will need to install the `BPcells` package, using the installation instructions found [here](https://bnprks.github.io/BPCells/#installation).
+To run this vignette please install Seurat v5, using the installation instructions found [here](install.html). Additionally, you will need to install the `BPCells` package, using the installation instructions found [here](https://bnprks.github.io/BPCells/#installation).
 
 ```{r, warning=FALSE, message=FALSE}
 library(Seurat)
@@ -61,7 +64,7 @@ options(future.globals.maxSize = 4e9)
 
 ## Create a Seurat object with a v5 assay for on-disk storage
  
-We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_dir` function from `BPCells`. Note that this function does not load the dataset into memory, but instead, creates a connection to the data stored on-disk. We then store this on-disk representation in the Seurat object. Note that in our [Introduction to on-disk storage vignette](seurat5_bpcells_interaction_vignette.html), we demonstrate how to create this on-disk representation.
+We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_dir` function from `BPCells`. Note that this function does not load the dataset into memory, but instead, creates a connection to the data stored on-disk. We then store this on-disk representation in the Seurat object. Note that in our [Introduction to on-disk storage vignette](bpcells_interaction_vignette.html), we demonstrate how to create this on-disk representation.
 
 ```{r load.obj}
 # Read the Seurat object, which contains 1.3M cells stored on-disk as part of the 'RNA' assay
@@ -203,7 +206,7 @@ FeaturePlot(
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

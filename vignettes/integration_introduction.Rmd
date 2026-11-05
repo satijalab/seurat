@@ -7,33 +7,35 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  time_it = TRUE,
+  tidy = FALSE,
   fig.width = 10,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
 # Introduction to scRNA-seq integration
 
-Integration of single-cell sequencing datasets, for example across experimental batches, donors, or conditions, is often an important step in scRNA-seq workflows. Integrative analysis can help to match shared cell types and states across datasets, which can boost statistical power, and most importantly, facilitate accurate comparative analysis across datasets. In previous versions of Seurat we introduced methods for integrative analysis, including our ‘anchor-based’ integration workflow. Many labs have also published powerful and pioneering methods, including [Harmony](https://portals.broadinstitute.org/harmony/) and [scVI](https://docs.scvi-tools.org/en/stable/index.html), for integrative analysis. Please see our [Integrating scRNA-seq data with multiple tools](https://satijalab.org/seurat/articles/seurat5_integration) vignette.
+Integration of single-cell sequencing datasets, for example across experimental batches, donors, or conditions, is often an important step in scRNA-seq workflows. Integrative analysis can help to match shared cell types and states across datasets, which can boost statistical power, and most importantly, facilitate accurate comparative analysis across datasets. In previous versions of Seurat we introduced methods for integrative analysis, including our ‘anchor-based’ integration workflow. Many labs have also published powerful and pioneering methods, including [Harmony](https://portals.broadinstitute.org/harmony/) and [scVI](https://docs.scvi-tools.org/en/stable/index.html), for integrative analysis. Please see our [Integrating scRNA-seq data with multiple tools](https://satijalab.org/seurat/articles/integration) vignette.
 
 
 # Integration goals
@@ -56,12 +58,17 @@ library(patchwork)
 
 ```{r installdata}
 # install dataset
+```
+
+Install the required SeuratData datasets before starting the analysis.
+
+```{r, eval=FALSE}
 InstallData('ifnb')
 ```
 
 The object contains data from human PBMC from two conditions, interferon-stimulated and control cells (stored in the `stim` column in the object metadata). We will aim to integrate the two conditions together, so that we can jointly identify cell subpopulations across datasets, and then explore how each group differs across conditions
 
-In previous versions of Seurat, we would require the data to be represented as two different Seurat objects. In Seurat v5, we keep all the data in one object, but simply split it into multiple 'layers'. To learn more about layers, check out our [Seurat object interaction vignette](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html#load-data-from-multiple-h5ad-files).
+In previous versions of Seurat, we would require the data to be represented as two different Seurat objects. In Seurat v5, we keep all the data in one object, but simply split it into multiple 'layers'. To learn more about layers, check out our [Seurat object interaction vignette](https://satijalab.org/seurat/articles/bpcells_interaction_vignette.html#load-data-from-multiple-h5ad-files).
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
@@ -96,7 +103,7 @@ DimPlot(ifnb, reduction = 'umap.unintegrated', group.by=c('stim','seurat_cluster
 
 We now aim to integrate data from the two conditions, so that cells from the same cell type/subpopulation will cluster together. 
 
-We often refer to this procedure as integration/alignment. When aligning two genome sequences together, identification of shared/homologous regions can help to interpret differences between the sequences as well. Similarly for scRNA-seq integration, our goal is not to remove biological differences across conditions, but to learn shared cell types/states in an initial step - specifically because that will enable us to compare control stimulated and control profiles for these individual cell types.
+We often refer to this procedure as integration/alignment. When aligning two genome sequences together, identification of shared/homologous regions can help to interpret differences between the sequences as well. Similarly for scRNA-seq integration, our goal is not to remove biological differences across conditions, but to learn shared cell types/states in an initial step - specifically because that will enable us to compare stimulated and control profiles for these individual cell types.
 
 The Seurat v5 integration procedure aims to return a single dimensional reduction that captures the shared sources of variance across multiple layers, so that cells in a similar biological state will cluster. The method returns a dimensional reduction (i.e. `integrated.cca`) which can be used for visualization and unsupervised clustering analysis. For evaluating performance, we can use cell type labels that are pre-loaded in the `seurat_annotations` metadata column.
 
@@ -128,7 +135,7 @@ DimPlot(ifnb, reduction = "umap", split.by = "stim")
 
 # Identify conserved cell type markers
 
-To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers()` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculated the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
+To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers()` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculate the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
 
 ```{r conserved.markers, warning=FALSE}
 Idents(ifnb) <- "seurat_annotations"
@@ -136,7 +143,7 @@ nk.markers <- FindConservedMarkers(ifnb, ident.1 = "NK", grouping.var = "stim", 
 head(nk.markers)
 ```
 
-You can perform these same analysis on the unsupervised clustering results (stored in `seurat_clusters`), and use these conserved markers to annotate cell types in your dataset.
+You can perform these same analyses on the unsupervised clustering results (stored in `seurat_clusters`), and use these conserved markers to annotate cell types in your dataset.
 
 The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 14 clusters.
 
@@ -150,7 +157,7 @@ markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7
 DotPlot(ifnb, features = markers.to.plot, cols = c('blue', 'red'), dot.scale = 8, split.by = "stim") + RotatedAxis()
 ```
 
-# Identify differential expressed genes across conditions
+# Identify differentially expressed genes across conditions
 
 Now that we've aligned the stimulated and control cells, we can start to do comparative analyses and look at the differences induced by stimulation. 
 
@@ -177,7 +184,7 @@ p2 + p4
 
 We can now ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. Then we use `FindMarkers()` to find the genes that are different between stimulated and control B cells. Notice that many of the top genes that show up here are the same as the ones we plotted earlier as core interferon response genes. Additionally, genes like CXCL10 which we saw were specific to monocyte and B cell interferon response show up as highly significant in this list as well. 
 
-Please note that p-values obtained from this analysis should be interpreted with caution, as these tests treat each cell as an independent replicate, and ignore inherent correlations between cells originating from the same sample. As discussed [here](https://pubmed.ncbi.nlm.nih.gov/33257685/), DE tests across multiple conditions should expressly utilize multiple samples/replicates, and can be performed after aggregating ('pseudobulking') cells from the same sample and subpopulation together. We do not perform this analysis here, as there is a single replicate in the data, but please see our [vignette comparing healthy and diabetic samples](https://satijalab.org/seurat/articles/parsebio_sketch_integration) as an example for how to perform DE analysis across conditions.
+Please note that p-values obtained from this analysis should be interpreted with caution, as these tests treat each cell as an independent replicate, and ignore inherent correlations between cells originating from the same sample. As discussed [here](https://pubmed.ncbi.nlm.nih.gov/33257685/), DE tests across multiple conditions should expressly utilize multiple samples/replicates, and can be performed after aggregating ('pseudobulking') cells from the same sample and subpopulation together. We do not perform this analysis here, as there is a single replicate in the data, but please see our [vignette comparing healthy and diabetic samples](https://satijalab.org/seurat/articles/ParseBio_sketch_integration) as an example for how to perform DE analysis across conditions.
 
 
 ```{r de.genes}
@@ -240,7 +247,7 @@ head(b.interferon.response, n = 15)
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

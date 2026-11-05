@@ -3961,6 +3961,9 @@ ISpatialFeaturePlot <- function(
 #' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
 #'
+#' @concept spatial
+#' @concept visualization
+#'
 #' @examples
 #' \dontrun{
 #' selected_cells <- InteractiveSpatialPlot(object = brain)

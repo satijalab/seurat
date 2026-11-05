@@ -64,4 +64,4 @@ This function is essentially a wrapper function that perform the following 2 pro
   \item Seurat:::MultiModalNN
 }
 }
-\concept{multimodal}
+\concept{sample_level_analysis}

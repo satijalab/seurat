@@ -62,12 +62,12 @@
 #'   memory usage when the seurat object is large (e.g., a large on-disk object). Default is FALSE.
 #' @param verbose Print progress and diagnostic messages
 #' @export
-#' @concept scSLIDE
 #' @return return a Seurat object that contains a weighted.nn Neighbor object between the landmark cells and all the other cells.
 #'   the Seurat object will also contain a landmark assay (and a training assay if sketch.training == TRUE).
 #'
 #' @importFrom SeuratObject DefaultAssay DefaultAssay<- Assays VariableFeatures VariableFeatures<- CreateDimReducObject
 #'
+#' @concept sample_level_analysis
 PrepareSampleObject <- function(
     object = NULL,
     assay = NULL,
@@ -300,12 +300,12 @@ PrepareSampleObject <- function(
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
 #' @export
-#' @concept scSLIDE
 #' @return return a Seurat object that contains a count matrix with number of landmark as rows, sample as columns
 #'
 #' @importFrom Matrix sparseMatrix
 #' @importFrom SeuratObject FetchData CreateSeuratObject AddMetaData
 #'
+#' @concept sample_level_analysis
 GenerateSampleObject <- function(
     object,
     nn.name = NULL,
@@ -837,8 +837,8 @@ SketchDataByGroup <- function(
 #' 
 #' @return return a Seurat object that contains a weighted.nn Neighbor object between the landmark cells and all the other cells.
 #' @export
-#' @concept multimodal
 #'
+#' @concept sample_level_analysis
 FindmmNN <- function(
     object,
     sketch.assay = NULL,
@@ -953,10 +953,10 @@ FindmmNN <- function(
 #'
 #' @return return a Seurat object that contains a Neighbor object between the landmark cells and all the other cells.
 #' @export
-#' @concept multimodal
 #'
 #' @importFrom SeuratObject Cells Embeddings
 #'
+#' @concept sample_level_analysis
 FindsmNN <- function(
     object,
     sketch.assay = NULL,
@@ -1021,7 +1021,6 @@ FindsmNN <- function(
 #'
 #' @return Normalized object of the same class as input
 #' @export
-#' @concept normalization
 #'
 #' @examples
 #' \dontrun{
@@ -1031,6 +1030,7 @@ FindsmNN <- function(
 #'
 #' @importFrom SeuratObject LayerData LayerData<-
 #'
+#' @concept sample_level_analysis
 NormalizeChiSquared <- function(object, ...) {
   UseMethod(generic = 'NormalizeChiSquared', object = object)
 }
@@ -1169,7 +1169,6 @@ NormalizeChiSquared.Seurat <- function(
 #'
 #' @return return a list of gene names for the genes that highly correlated with the responses
 #' @export
-#' @concept scSLIDE_DE
 #'
 #' @examples
 #' \dontrun{
@@ -1180,6 +1179,7 @@ NormalizeChiSquared.Seurat <- function(
 #' @importFrom stats model.matrix sd
 #' @importFrom SeuratObject FetchData DefaultAssay Assays LayerData Layers CellsByIdentities Idents<- Cells
 #'
+#' @concept sample_level_analysis
 QuickCorTest <- function(
     object = NULL,
     assay = NULL,

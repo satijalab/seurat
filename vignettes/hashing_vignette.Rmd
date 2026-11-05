@@ -8,32 +8,34 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  time_it = TRUE,
+  tidy = FALSE,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
 Developed in collaboration with the Technology Innovation Group at NYGC, Cell Hashing uses oligo-tagged antibodies against ubiquitously expressed surface proteins to place a "sample barcode" on each single cell, enabling different samples to be multiplexed together and run in a single experiment. For more information, please refer to this [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1).
 
-This vignette will give a brief demonstration on how to work with data produced with Cell Hashing in Seurat. Applied to two datasets, we can successfully demultiplex cells to their the original sample-of-origin, and identify cross-sample doublets.
+This vignette will give a brief demonstration on how to work with data produced with Cell Hashing in Seurat. Applied to two datasets, we can successfully demultiplex cells to their original sample-of-origin, and identify cross-sample doublets.
 
 <div class="panel panel-primary">
   <div class="panel-heading">The demultiplexing function `HTODemux()` implements the following procedure: </div>
@@ -110,7 +112,7 @@ You can read more about working with multi-modal data [here](multimodal_vignette
 
 ```{r hto_assay}
 # Add HTO data as a new assay independent from RNA
-pbmc.hashtag[['HTO']] <- CreateAssayObject(counts = pbmc.htos)
+pbmc.hashtag[['HTO']] <- CreateAssay5Object(counts = pbmc.htos)
 # Normalize HTO data, here we use centered log-ratio (CLR) transformation
 pbmc.hashtag <- NormalizeData(pbmc.hashtag, assay = 'HTO', normalization.method = 'CLR')
 ```
@@ -231,7 +233,7 @@ cells.use <- intersect(rownames(hto12.htos), colnames(hto12.umis))
 
 # Create Seurat object and add HTO data
 hto12 <- CreateSeuratObject(counts = Matrix::Matrix(as.matrix(hto12.umis[, cells.use]), sparse = T), min.features = 300)
-hto12[['HTO']] <- CreateAssayObject(counts = t(x = hto12.htos[colnames(hto12), 1:12]))
+hto12[['HTO']] <- CreateAssay5Object(counts = t(x = hto12.htos[colnames(hto12), 1:12]))
 
 # Normalize data
 hto12 <- NormalizeData(hto12)
@@ -279,7 +281,7 @@ DimPlot(hto12) + NoLegend()
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

@@ -7,36 +7,40 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
+  time_it = TRUE,
+  tidy = FALSE,
   fig.cap = '',
   fig.width = 9,
   fig.height = 7,
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 options(SeuratData.repo.use = 'seurat.nygenome.org')
 ```
 
 Here, we demonstrate visualization techniques in Seurat using our previously computed Seurat object from the 2,700 PBMC guided clustering tutorial. You can access the dataset and load it into a Seurat object using [SeuratData](https://github.com/satijalab/seurat-data).
 
-```{r data}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r data, eval=FALSE}
 SeuratData::InstallData("pbmc3k")
 ```
 
@@ -50,6 +54,10 @@ library(SeuratData)
 library(ggplot2)
 library(patchwork)
 pbmc3k.final <- LoadData("pbmc3k", type = "pbmc3k.final")
+pbmc3k.final[["RNA"]] <- as(pbmc3k.final[["RNA"]], Class = "Assay5")
+pbmc3k.final <- NormalizeData(pbmc3k.final)
+pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
+pbmc3k.final <- ScaleData(pbmc3k.final)
 pbmc3k.final$groups <- sample(c("group1", "group2"), size = ncol(pbmc3k.final), replace = TRUE)
 features <- c("LYZ", "CCL5", "IL32", "PTPRCAP", "FCGR3A", "PF4")
 pbmc3k.final
@@ -235,7 +243,7 @@ plot1 + plot2
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

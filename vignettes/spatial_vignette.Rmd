@@ -8,27 +8,30 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
 options(future.globals.maxSize = 1024^3 * 10) # 10 GB
-all_times <- list()  # store the time for each chunk
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
+  time_it = TRUE,
   tidy = FALSE,
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-  time_it = TRUE,
-  error = TRUE,
+  error = FALSE,
   dpi=150
 )
 ```
@@ -72,7 +75,9 @@ You can download the data from 10x Genomics' dataset repository (Sagittal-Anteri
 
 You can also use our [SeuratData package](https://github.com/satijalab/seurat-data) for easy data access, as demonstrated below. After installing the dataset, you can type `?stxBrain` to learn more.
 
-```{r data.install, message=FALSE, warning=FALSE}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r data.install, message=FALSE, warning=FALSE, eval=FALSE}
 InstallData("stxBrain")
 ```
 
@@ -420,7 +425,7 @@ Here, we will be analyzing a dataset generated using [Slide-seq v2](https://www
 
 You can use our [SeuratData package](https://github.com/satijalab/seurat-data) for easy data access, as demonstrated below. After installing the dataset, you can type ?ssHippo to see the commands used to create the Seurat object.
 
-```{r data.ss.install, message=FALSE, warning=FALSE}
+```{r data.ss.install, message=FALSE, warning=FALSE, eval=FALSE}
 InstallData("ssHippo")
 ```
 
@@ -597,7 +602,7 @@ p1 | p2
 <br/>
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

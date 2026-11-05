@@ -851,6 +851,8 @@ RunPLS.Seurat <- function(
 #' @param X Predictor matrix (or an IterableMatrix).
 #' @param ... Arguments passed to methods.
 #' @export
+#' @keywords internal
+#' @noRd
 kernelpls <- function(X, ...) UseMethod("kernelpls")
 
 #' Kernel Partial Least Squares for IterableMatrix
@@ -903,6 +905,8 @@ kernelpls <- function(X, ...) UseMethod("kernelpls")
 #'
 #' @export
 #' @method kernelpls IterableMatrix
+#' @keywords internal
+#' @noRd
 kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
                                       stripped = FALSE, threads = NULL, ...) {
   if (!requireNamespace("BPCells", quietly = TRUE)) {
@@ -996,6 +1000,8 @@ kernelpls.IterableMatrix <- function(X, Y, ncomp, center = TRUE,
 #' @param X Predictor matrix (or an IterableMatrix).
 #' @param ... Arguments passed to methods.
 #' @export
+#' @keywords internal
+#' @noRd
 cppls_ondisk <- function(X, ...) UseMethod("cppls_ondisk")
 
 #' CPLS (Canonical PLS) for IterableMatrix
@@ -1050,6 +1056,8 @@ cppls_ondisk <- function(X, ...) UseMethod("cppls_ondisk")
 #'
 #' @export
 #' @method cppls_ondisk IterableMatrix
+#' @keywords internal
+#' @noRd
 cppls_ondisk.IterableMatrix <- function(X, Y, Y.add = NULL, ncomp,
                                          center = TRUE, stripped = FALSE,
                                          w.tol = 0, X.tol = 1e-12,
