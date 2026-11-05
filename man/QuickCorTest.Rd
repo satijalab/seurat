@@ -63,4 +63,4 @@ cor_genes <- QuickCorTest(seurat_obj, Y = "pseudotime")
 }
 
 }
-\concept{scSLIDE_DE}
+\concept{sample_level_analysis}

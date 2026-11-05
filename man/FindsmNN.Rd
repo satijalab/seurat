@@ -52,4 +52,4 @@ cells as the reference and all cells as the query. The resulting Neighbor object
 is a drop-in replacement for the \code{weighted.nn} produced by \code{FindmmNN}
 and is consumed by \code{\link{GenerateSampleObject}} in the same way.
 }
-\concept{multimodal}
+\concept{sample_level_analysis}

@@ -69,4 +69,4 @@ return a Seurat object that contains a count matrix with number of landmark as r
 \description{
 Returns summed counts of weighted.nn for each landmark cell within each sample.
 }
-\concept{scSLIDE}
+\concept{sample_level_analysis}

@@ -27,7 +27,6 @@
 #'
 #' @return A data frame with differential expression results
 #' @export
-#' @concept scSLIDE_DE
 #'
 #' @examples
 #' \dontrun{
@@ -39,6 +38,7 @@
 #' @importFrom SeuratObject FetchData DefaultAssay Assays LayerData Layers
 #'
 
+#' @concept sample_level_analysis
 TrajDETest <- function(object, ...) {
   UseMethod(generic = 'TrajDETest', object = object)
 }
@@ -391,6 +391,7 @@ filterByExpr <- function(y, design=NULL, group=NULL, lib.size=NULL, min.count=10
 #' @importFrom SeuratObject LayerData FetchData DefaultAssay
 #' @importFrom stats median
 #'
+#' @concept sample_level_analysis
 PlotAnnotatedHeatmap <- function(
     object,
     features,
