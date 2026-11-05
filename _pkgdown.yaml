@@ -53,11 +53,11 @@ navbar:
         - text: -------
         - text: Seurat v6
         - text: "Sample-level analysis with scSLIDE"
-          href: articles/scSLIDE_COVID19.html
-        - text: "Large-scale sample-level analysis with scSLIDE"
-          href: articles/scSLIDE_SEA_AD.html
+          href: articles/scSLIDE_vignette.html
         - text: "Analyzing perturbation responses with RNA fingerprinting"
           href: articles/rna_fingerprinting.html
+        - text: "Cell type annotation with Pan-human Azimuth"
+          href: articles/intro_azimuthapi_vignette.html
         - text: -------
         - text: Data integration
         - text: "Introduction to scRNA-seq integration"
@@ -98,6 +98,8 @@ navbar:
           href: articles/visiumhd_analysis_vignette.html
         - text: "Visium HD analysis (cell segmentations)"
           href: articles/visiumhd_analysis_cell_segmentations.html
+        - text: "Loading and visualizing 10x Atera data"
+          href: articles/atera_tutorial.html
         - text: -------
         - text: Additional workflows
         - text: "Cell-cycle scoring and regression"
@@ -129,7 +131,7 @@ reference:
 - contents:
   - has_concept("differential_expression")
 
-- title: "Dimensional Reduction"
+- title: "Dimensional reduction"
   desc: "Functions to reduce the dimensionality of datasets"
 - contents:
   - has_concept("dimensional_reduction")
@@ -161,6 +163,11 @@ reference:
       Functions related to the mixscape algorithm
 - contents:
     - has_concept("mixscape")
+
+- title: "Sample-level analysis"
+  desc: "Functions for sample-level analysis with scSLIDE"
+- contents:
+  - has_concept("sample_level_analysis")
 
 - title: "Visualization"
   desc: "Functions for plotting data and adjusting"
