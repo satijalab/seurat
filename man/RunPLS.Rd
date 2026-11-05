@@ -25,7 +25,6 @@ RunPLS(object, ...)
   reduction.key = "PLS_",
   seed.use = 42,
   eta = 0.5,
-  save.model = FALSE,
   threads = NULL,
   ...
 )
@@ -44,7 +43,6 @@ RunPLS(object, ...)
   reduction.key = "PLS_",
   seed.use = 42,
   eta = 0.5,
-  save.model = FALSE,
   threads = NULL,
   ...
 )
@@ -65,7 +63,6 @@ RunPLS(object, ...)
   reduction.key = "PLS_",
   seed.use = 42,
   eta = 0.5,
-  save.model = FALSE,
   threads = NULL,
   materialize = FALSE,
   materialize.dir = NULL,
@@ -89,7 +86,6 @@ RunPLS(object, ...)
   reduction.key = "PLS_",
   seed.use = 42,
   eta = 0.5,
-  save.model = FALSE,
   threads = NULL,
   materialize = FALSE,
   materialize.dir = NULL,
@@ -112,7 +108,6 @@ RunPLS(object, ...)
   reduction.key = "PLS_",
   seed.use = 42,
   eta = 0.5,
-  save.model = FALSE,
   threads = NULL,
   materialize = FALSE,
   materialize.dir = NULL,
@@ -163,8 +158,6 @@ the number for the dimension names.}
 \item{seed.use}{Set a random seed.  Setting NULL will not set a seed.}
 
 \item{eta}{Thresholding parameter that controls the sparsity of the spls method (larger --> sparser). eta should be between 0 and 1.}
-
-\item{save.model}{Logical; if TRUE, save model components (coefficients, Xmeans, Ymeans, feature.mean, feature.sd) into the misc slot for later prediction. The per-gene \code{feature.mean} and \code{feature.sd} are computed from the training \code{data} layer so that \code{PredictPLS} can scale new data into the same coordinate system. Default FALSE.}
 
 \item{threads}{Integer; number of threads for BPCells parallel computation
 (IterableMatrix path only). \code{NULL} (default) uses the package-wide

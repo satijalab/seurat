@@ -515,20 +515,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// predict_pls_cpp
-Eigen::MatrixXd predict_pls_cpp(SEXP matrix_X, Eigen::Map<Eigen::MatrixXd> B, Eigen::Map<Eigen::VectorXd> B0, bool transpose);
-RcppExport SEXP _Seurat_predict_pls_cpp(SEXP matrix_XSEXP, SEXP BSEXP, SEXP B0SEXP, SEXP transposeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type matrix_X(matrix_XSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type B(BSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type B0(B0SEXP);
-    Rcpp::traits::input_parameter< bool >::type transpose(transposeSEXP);
-    rcpp_result_gen = Rcpp::wrap(predict_pls_cpp(matrix_X, B, B0, transpose));
-    return rcpp_result_gen;
-END_RCPP
-}
 // SCTResidualStatsAndCorrected
 List SCTResidualStatsAndCorrected(NumericVector x, IntegerVector i, IntegerVector p, int rows, int cols, NumericVector theta, NumericVector intercept, NumericVector slope, NumericVector log_umi, double target_log_umi, double min_var, double residual_clip_min, double residual_clip_max, int n_threads, bool compute_corrected);
 RcppExport SEXP _Seurat_SCTResidualStatsAndCorrected(SEXP xSEXP, SEXP iSEXP, SEXP pSEXP, SEXP rowsSEXP, SEXP colsSEXP, SEXP thetaSEXP, SEXP interceptSEXP, SEXP slopeSEXP, SEXP log_umiSEXP, SEXP target_log_umiSEXP, SEXP min_varSEXP, SEXP residual_clip_minSEXP, SEXP residual_clip_maxSEXP, SEXP n_threadsSEXP, SEXP compute_correctedSEXP) {
@@ -684,7 +670,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_EigenGramPCA", (DL_FUNC) &_Seurat_EigenGramPCA, 4},
     {"_Seurat_cppls_cpp", (DL_FUNC) &_Seurat_cppls_cpp, 9},
     {"_Seurat_kernelpls_cpp", (DL_FUNC) &_Seurat_kernelpls_cpp, 6},
-    {"_Seurat_predict_pls_cpp", (DL_FUNC) &_Seurat_predict_pls_cpp, 4},
     {"_Seurat_SCTResidualStatsAndCorrected", (DL_FUNC) &_Seurat_SCTResidualStatsAndCorrected, 15},
     {"_Seurat_SCTPearsonResidualMatrix", (DL_FUNC) &_Seurat_SCTPearsonResidualMatrix, 16},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 3},
