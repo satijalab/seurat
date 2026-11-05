@@ -179,11 +179,26 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
 #' a QV less than this threshold. QV >= 20 is the standard threshold
 #' used to construct the cell x gene count matrix.
 #' @param cell.centroids Whether or not to load cell centroids
-#' @param molecule.coordinates Whether or not to load molecule pixel coordinates
+#' @param molecule.coordinates Whether or not to load molecule coordinates
+#' immediately. For Xenium, \code{FALSE} skips transcript reads.
 #' @param segmentations One of "cell", "nucleus" or NULL (to load either cell
 #' segmentations, nucleus segmentations or neither)
-#' @param flip.xy Whether or not to flip the x/y coordinates of the Xenium outputs
-#' to match what is displayed in Xenium Explorer, or fit on your screen better.
+#' @param flip.xy Swap x and y in the loaded coordinates. Deprecated for
+#' \code{LoadXenium}, where \code{flip.xy = TRUE} requires SeuratObject >= 5.3.0.
+#' To change only the plot, use \code{flip_xy = TRUE} in
+#' \code{ImageDimPlot} or \code{ImageFeaturePlot}.
+#'
+#' @details By default, \code{LoadXenium} keeps the original coordinates.
+#' \code{ImageDimPlot} and \code{ImageFeaturePlot} display x horizontally and
+#' y increasing downward, including for older objects. Use \code{flip_xy = TRUE}
+#' in either plotting function to reproduce the old plot layout without
+#' changing stored coordinates.
+#'
+#' The deprecated \code{LoadXenium(flip.xy = TRUE)} requires SeuratObject >= 5.3.0
+#' to record the axis orientation. With that version or later, it swaps stored
+#' coordinates and retains its previous plotting behavior.
+#' To crop using stored x/y ranges, use
+#' \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
 #'
 #' @importFrom SeuratObject Cells CreateCentroids CreateFOV
 #' CreateSegmentation CreateSeuratObject CreateMolecules
@@ -200,8 +215,20 @@ LoadXenium <- function(
   cell.centroids = TRUE,
   molecule.coordinates = TRUE,
   segmentations = NULL,
-  flip.xy = FALSE
+  flip.xy = FALSE,
+  genes = NULL,
+  region = NULL
 ) {
+  if (!missing(flip.xy)) {
+    deprecate_soft(
+      when = "6.0.0",
+      what = "LoadXenium(flip.xy = )",
+      details = paste(
+        "Xenium plots now use the correct orientation without needing to swap stored coordinates.",
+        "For the old layout, set `flip_xy = TRUE` in `ImageDimPlot()` or `ImageFeaturePlot()`."
+      )
+    )
+  }
   if(!is.null(segmentations) && !(segmentations %in% c('nucleus', 'cell'))) {
     stop('segmentations must be NULL or one of "nucleus", "cell"')
   }
@@ -217,14 +244,54 @@ LoadXenium <- function(
     type = c("centroids", "segmentations", "nucleus_segmentations")[
       c(cell.centroids, isTRUE(segmentations == 'cell'), isTRUE(segmentations == 'nucleus'))
     ],
-    outs = c("segmentation_method", "matrix", "microns")[
-      c(cell.centroids || isTRUE(segmentations != 'nucleus'), TRUE, molecule.coordinates && (cell.centroids || !is.null(segmentations)))
+    outs = c("segmentation_method", "matrix")[
+      c(cell.centroids || isTRUE(segmentations != 'nucleus'), TRUE)
     ],
     mols.qv.threshold = mols.qv.threshold,
-    flip.xy = flip.xy
+    flip.xy = flip.xy,
+    genes = genes,
+    region = region
   )
 
-  segmentations <- intersect(c("segmentations", "nucleus_segmentations"), names(data))
+  slot.map <- c(
+    `Blank Codeword` = 'BlankCodeword',
+    `Unassigned Codeword` = 'BlankCodeword',
+    `Negative Control Codeword` = 'ControlCodeword',
+    `Negative Control Probe` = 'ControlProbe',
+    `Genomic Control` = 'GenomicControl',
+    `Protein Expression` = 'ProteinExpression'
+  )
+
+  xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+  # Match transcript labels to the feature names assigned to the expression assay
+  feature.map <- stats::setNames(rownames(xenium.obj[[assay]]),
+    rownames(data$matrix[["Gene Expression"]]))
+
+  if(!is.null(data$metadata)) {
+    Misc(xenium.obj, 'run_metadata') <- data$metadata
+  }
+
+  if(!is.null(data$segmentation_method)) {
+    xenium.obj <- AddMetaData(xenium.obj, data$segmentation_method)
+  }
+
+  for(name in intersect(names(slot.map), names(data$matrix))) {
+    control.assay <- CreateAssayObject(counts = data$matrix[[name]])
+    feature.map <- c(feature.map, stats::setNames(
+      rownames(control.assay), rownames(data$matrix[[name]])))
+    xenium.obj[[slot.map[name]]] <- control.assay
+  }
+
+  # Transcript filters still use names from the source files.
+  feature.map <- feature.map[!duplicated(names(feature.map))]
+  source.genes <- .SpatialSourceGenes(genes, feature.map)
+  if (molecule.coordinates) {
+    data$microns <- .SpatialMapMolecules(.XeniumReadMolecules(data.dir,
+      genes = source.genes, mols.qv.threshold = mols.qv.threshold,
+      flip.xy = flip.xy, region = region), feature.map)
+  }
+
+  segmentations.key <- intersect(c("segmentations", "nucleus_segmentations"), names(data))
 
   segmentations.data <- Filter(Negate(is.null), list(
     centroids = if(is.null(data$centroids)) {
@@ -232,10 +299,8 @@ LoadXenium <- function(
     } else {
       CreateCentroids(data$centroids)
     },
-    segmentations = if(length(segmentations) > 0) {
-      CreateSegmentation(
-        data[[segmentations]]
-      )
+    segmentations = if(length(segmentations.key) > 0) {
+      CreateSegmentation(data[[segmentations.key]])
     } else {
       NULL
     }
@@ -255,27 +320,15 @@ LoadXenium <- function(
     NULL
   }
 
-  slot.map <- c(
-    `Blank Codeword` = 'BlankCodeword',
-    `Unassigned Codeword` = 'BlankCodeword',
-    `Negative Control Codeword` = 'ControlCodeword',
-    `Negative Control Probe` = 'ControlProbe',
-    `Genomic Control` = 'GenomicControl',
-    `Protein Expression` = 'ProteinExpression'
-  )
-
-  xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
-
-  if(!is.null(data$metadata)) {
-    Misc(xenium.obj, 'run_metadata') <- data$metadata
-  }
-
-  if(!is.null(data$segmentation_method)) {
-    xenium.obj <- AddMetaData(xenium.obj, data$segmentation_method)
-  }
-
-  for(name in intersect(names(slot.map), names(data$matrix))) {
-    xenium.obj[[slot.map[name]]] <- CreateAssayObject(counts = data$matrix[[name]])
+  # preserve legacy plotting only for explicitly flipped Xenium loads
+  # this ensures that plotting functions interpret the flipped coordinates correctly
+  # should be removed once flip.xy is fully deprecated
+  if (!is.null(coords) && flip.xy) {
+    if (!.hasSlot(coords, "coords_x_orientation")) {
+      stop("LoadXenium(flip.xy = TRUE) requires SeuratObject >= 5.3.0. Please update SeuratObject and restart R.",
+        call. = FALSE)
+    }
+    slot(coords, "coords_x_orientation") <- "vertical"
   }
 
   xenium.obj[[fov]] <- coords
@@ -509,4 +562,27 @@ ReadSTARsolo <- function(data.dir, ... ) {
   cells <- file.path(data.dir, "barcodes.tsv")
   features <- file.path(data.dir, "features.tsv")
   return(ReadMtx(mtx = mtx, cells = cells, features = features, ...))
+}
+
+# Map requested assay names back to source names for transcript reads.
+# feature.map maps source names to assay names; source names are also accepted.
+.SpatialSourceGenes <- function(genes, feature.map) {
+  if (is.null(genes)) return(NULL)
+  if (!is.character(genes) || anyNA(genes)) stop("genes must be a character vector without missing values")
+  if (!length(genes)) return(character())
+  source.names <- names(feature.map)
+  source.genes <- lapply(genes, function(gene) {
+                      if (gene %in% source.names) return(gene)
+                      source <- source.names[feature.map == gene]
+                      if (length(source)) source else gene
+                  })
+  return(unique(unlist(source.genes, use.names = FALSE)))
+}
+
+# Map molecule labels to assay feature names, leaving unmatched names unchanged.
+.SpatialMapMolecules <- function(molecules, feature.map) {
+  index <- match(molecules$gene, names(feature.map))
+  matched <- !is.na(index)
+  molecules$gene[matched] <- unname(feature.map[index[matched]])
+  molecules
 }

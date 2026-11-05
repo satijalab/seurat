@@ -4,13 +4,17 @@
 \alias{Read10X_Coordinates}
 \title{Load 10X Genomics Visium Tissue Positions}
 \usage{
-Read10X_Coordinates(filename, filter.matrix)
+Read10X_Coordinates(filename, filter.matrix, cells = NULL)
 }
 \arguments{
-\item{filename}{Path to a \code{tissue_positions_list.csv} file}
+\item{filename}{Path to a \code{tissue_positions_list.csv},
+\code{tissue_positions.csv}, or \code{tissue_positions.parquet} file}
 
 \item{filter.matrix}{Filter spot/feature matrix to only include spots that
 have been determined to be over tissue}
+
+\item{cells}{Optional barcode vector to retain. \code{NULL} reads all
+eligible positions. Filters are applied after reading the table.}
 }
 \value{
 A data.frame

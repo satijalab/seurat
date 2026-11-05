@@ -3,12 +3,26 @@
 ### Additions
 
 - Added `ReadAtera` and `LoadAtera` to read 10x Genomics Atera spatial data, including expression and control counts, Azimuth cell type annotations, cell centroids, cell/nucleus segmentations, transcript coordinates, and morphology images
-  - Added support for selective gene and feature-type reads, BPCells-backed counts caching, and parallel Atera reads using the active `future::plan()`
+  - Added support for gene selection when reading molecules, feature-type selection when reading counts, BPCells-backed counts caching, and parallel Atera reads using the active `future::plan()`
 - Added `LoadAteraMolecules`, `LoadAteraSegmentations`, and `LoadAteraCodewords` to load additional transcript coordinates, segmentation polygons, and per-codeword coordinates into existing Atera objects
+  - `LoadAteraMolecules` requires the object to have been loaded with `molecule.coordinates = TRUE`
+- Added gene and region selection to `ReadXenium` and `LoadXenium` for molecule coordinates
+- Default `LoadXenium` and `LoadAtera` calls create FOVs that display x horizontally and y increasing downward
 
 ### Fixes
 
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
+- Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
+- Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
+- Fixed `ImageDimPlot` and `ImageFeaturePlot` with FOV and boundary names containing underscores
+- Fixed default orientation in `ImageDimPlot` and `ImageFeaturePlot` for FOVs without orientation metadata, including older Xenium/Atera objects: x is horizontal and y increases downward; stored coordinates are unchanged
+- Fixed transcript quality filtering and count reader error reporting in `ReadXenium`
+- Fixed molecule name matching to assay features in `LoadXenium`
+
+### Deprecations
+
+- Soft deprecation of `flip.xy` in `LoadXenium`
+  - Existing calls with `flip.xy = TRUE` will retain their behavior (requiring SeuratObject >= v5.3.0 to do so)
 
 # Seurat 5.6.0 (2026-10-03)
 

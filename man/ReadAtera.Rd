@@ -171,5 +171,8 @@ to avoid nested parallelism. Configure the strategy and worker count with
 \code{future::plan(future::multisession, workers = 4)}, or use
 \code{future::plan(future::sequential)} for sequential processing.
 This setting is independent of \code{setThreads()}.
+
+Newly loaded Atera FOVs display x horizontally and y increasing
+downward in ImageDimPlot and ImageFeaturePlot, keeping stored coordinates unchanged.
 }
 \concept{preprocessing}

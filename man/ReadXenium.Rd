@@ -13,7 +13,9 @@ LoadXenium(
   cell.centroids = TRUE,
   molecule.coordinates = TRUE,
   segmentations = NULL,
-  flip.xy = FALSE
+  flip.xy = FALSE,
+  genes = NULL,
+  region = NULL
 )
 
 ReadXenium(
@@ -21,7 +23,10 @@ ReadXenium(
   outs = c("segmentation_method", "matrix", "microns"),
   type = "centroids",
   mols.qv.threshold = 20,
-  flip.xy = F
+  flip.xy = F,
+  genes = NULL,
+  region = NULL,
+  cells = NULL
 )
 }
 \arguments{
@@ -38,13 +43,26 @@ used to construct the cell x gene count matrix.}
 
 \item{cell.centroids}{Whether or not to load cell centroids}
 
-\item{molecule.coordinates}{Whether or not to load molecule pixel coordinates}
+\item{molecule.coordinates}{Whether or not to load molecule coordinates
+immediately. For Xenium, \code{FALSE} skips transcript reads.}
 
 \item{segmentations}{One of "cell", "nucleus" or NULL (to load either cell
 segmentations, nucleus segmentations or neither)}
 
-\item{flip.xy}{Whether or not to flip the x/y coordinates of the Xenium outputs
-to match what is displayed in Xenium Explorer, or fit on your screen better.}
+\item{flip.xy}{Swap x and y in the loaded coordinates. Deprecated for
+\code{LoadXenium}, where \code{flip.xy = TRUE} requires SeuratObject >= 5.3.0.
+To change only the plot, use \code{flip_xy = TRUE} in
+\code{ImageDimPlot} or \code{ImageFeaturePlot}.}
+
+\item{genes}{Optional gene names to restrict molecule coordinates to.
+Counts are unaffected. \code{NULL} loads all genes when molecules are requested.
+\code{LoadXenium} accepts source or assay feature names;
+\code{ReadXenium} requires source names.}
+
+\item{region}{Optional list with \code{x} and \code{y} elements, each an
+increasing length-two micron range. Restricts molecule coordinates using
+the returned coordinate system, including any \code{flip.xy} transformation.
+Counts, centroids, and boundaries are unaffected.}
 
 \item{outs}{Types of molecular outputs to read; choose one or more of:
 \itemize{
@@ -57,10 +75,13 @@ to match what is displayed in Xenium Explorer, or fit on your screen better.}
 \item{type}{Type of cell spatial coordinate matrices to read; choose one
 or more of:
 \itemize{
- \item \dQuote{centroids}: cell centroids in pixel coordinate space
- \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
- \item \dQuote{nucleus_segmentations}: nucleus segmentations in pixel coordinate space
+ \item \dQuote{centroids}: cell centroids in micron coordinate space
+ \item \dQuote{segmentations}: cell segmentations in micron coordinate space
+ \item \dQuote{nucleus_segmentations}: nucleus segmentations in micron coordinate space
 }}
+
+\item{cells}{Optional cell IDs to restrict segmentation boundaries to.
+Counts and centroids are unaffected.}
 }
 \value{
 \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
@@ -68,16 +89,52 @@ or more of:
 \code{ReadXenium}: A list with some combination of the
 following values:
 \itemize{
- \item \dQuote{\code{matrix}}: a
- \link[Matrix:dgCMatrix-class]{sparse matrix} with expression data; cells
-  are columns and features are rows
+ \item \dQuote{\code{matrix}}: a named list of expression matrices, one
+ per feature type. Matrices are sparse in memory;
+ cells are columns and features are rows
  \item \dQuote{\code{centroids}}: a data frame with cell centroid
   coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
- \item \dQuote{\code{pixels}}: a data frame with molecule pixel coordinates
+ \item \dQuote{\code{microns}}: a data frame with molecule coordinates
   in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
 }
 }
 \description{
 Read and Load 10x Genomics Xenium in-situ data
+}
+\details{
+By default, \code{LoadXenium} keeps the original coordinates.
+\code{ImageDimPlot} and \code{ImageFeaturePlot} display x horizontally and
+y increasing downward, including for older objects. Use \code{flip_xy = TRUE}
+in either plotting function to reproduce the old plot layout without
+changing stored coordinates.
+
+The deprecated \code{LoadXenium(flip.xy = TRUE)} requires SeuratObject >= 5.3.0
+to record the axis orientation. With that version or later, it swaps stored
+coordinates and retains its previous plotting behavior.
+To crop using stored x/y ranges, use
+\code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
+
+Molecule tables are read into memory before gene, region, and QV
+filters are applied. Parquet files use Arrow, falling back to CSV on failure.
+CSV files use data.table when available.
+Legacy transcript tables without a \code{qv} column retain their molecules
+without QV filtering. The selected molecule coordinates are stored in memory.
+
+Use \code{molecule.coordinates = FALSE} to load counts and centroids
+without reading transcript coordinates.
+\code{LoadXenium} retains its default of immediately loading molecules.
+Cell metadata is read once per call for segmentation methods and centroids.
+
+\code{LoadXenium} labels molecules with assay feature names, e.g.
+\code{Under_score} becomes \code{Under-score}. \code{ReadXenium} keeps source names.
+}
+\examples{
+\dontrun{
+xenium <- LoadXenium("xenium_outs", molecule.coordinates = FALSE)
+# Select molecules immediately, using micron ranges in the returned axes.
+selected <- LoadXenium("xenium_outs", genes = "EPCAM",
+  region = list(x = c(100, 500), y = c(200, 600)))
+}
+
 }
 \concept{preprocessing}

@@ -11,7 +11,8 @@ Read10X_Segmentations(
   assay = "Spatial.Polygons",
   slice = "slice1.polygons",
   segmentation.type = "cell",
-  compact = TRUE
+  compact = TRUE,
+  cells = NULL
 )
 }
 \arguments{
@@ -27,7 +28,11 @@ Read10X_Segmentations(
 
 \item{segmentation.type}{Which segmentations to load, cell or nucleus. If using nucleus the full matrix from cells is still used}
 
-\item{compact}{Whether to store segmentations in only the \code{sf.data} slot; see \code{\link{Load10X_Spatial}} for details}
+\item{compact}{Whether to store segmentations in \emph{only} the \code{sf.data} slot
+in the corresponding Segmentation object (default TRUE) to save memory and processing time.
+If FALSE, segmentations are also stored in \code{\link[sp]{sp}} format in addition to the \code{sf.data} slot.}
+
+\item{cells}{Optional vector of cell barcodes to retain.}
 }
 \value{
 A VisiumV2 object with segmentations

@@ -35,7 +35,8 @@ ImageFeaturePlot(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE
+  coord.fixed = TRUE,
+  flip_xy = NULL
 )
 }
 \arguments{
@@ -122,6 +123,15 @@ given (first is lowest)}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
+
+\item{flip_xy}{Swap x and y in the plot. \code{FALSE} shows x horizontally
+and y increasing downward. \code{TRUE} swaps the axes and restores the old (< v6)
+layout, with vertical values increasing upward. \code{NULL} (the default)
+uses \code{FALSE}, except for objects loaded with the deprecated
+\code{LoadXenium(flip.xy = TRUE)}, which retain their previous plot layout.
+Stored coordinates do not change. To crop using the original x/y ranges,
+use \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
+The default \code{Crop()} still expects swapped x/y ranges.}
 }
 \value{
 If \code{combine = TRUE}, a \code{patchwork}
