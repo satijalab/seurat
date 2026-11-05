@@ -289,3 +289,37 @@ test_that("SketchData when setting your own variable features and not specifying
     )
   )
 })
+
+
+test_that("LeverageScore and SketchData handle a small matrix", {
+  set.seed(42)
+  counts <- matrix(rpois(5 * 12, lambda = 5), nrow = 5,
+    dimnames = list(paste0("gene", 1:5), paste0("cell", 1:12)))
+  test_case <- NormalizeData(CreateSeuratObject(as.sparse(counts)), verbose = FALSE)
+  data <- LayerData(test_case, layer = "data")
+
+  # irlba uses exact SVD for inputs with fewer than six rows or columns
+  # advisory about requesting most components is expected on these inputs
+  for (small.data in list(data, t(data))) {
+    nv <- min(dim(small.data)) - 1L
+    expected <- rowSums(base::svd(as.matrix(small.data), nu = 0, nv = nv)$v ^ 2)
+    expect_warning(scores <- LeverageScore(small.data, verbose = FALSE), "percentage")
+    expect_equal(scores, expected, tolerance = 1e-12)
+    expect_true(all(is.finite(scores) & scores >= 0))
+  }
+
+  for (ncells in c(4L, ncol(test_case) * 3L)) {
+    expect_warning(sketched <- SketchData(
+      test_case,
+      ncells = ncells,
+      method = "LeverageScore",
+      features = rownames(test_case),
+      sketched.assay = "sketch",
+      verbose = FALSE
+    ), "percentage")
+    expect_true("sketch" %in% Assays(sketched))
+    expect_equal(ncol(sketched[["sketch"]]), min(ncells, ncol(test_case)))
+    expect_true(all(colnames(sketched[["sketch"]]) %in% colnames(test_case)))
+    expect_true(all(is.finite(sketched$leverage.score) & sketched$leverage.score >= 0))
+  }
+})
