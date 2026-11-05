@@ -29,7 +29,7 @@ falls back to standard sketching without grouping. Default is NULL.}
 
 \item{assay}{Assay name. Default is NULL, in which case the default assay of the object is used.}
 
-\item{ncells}{A positive integer, named vector, or list specifying the number of cells to sample.
+\item{ncells}{A positive integer, named vector, or named list specifying the number of cells to sample.
 \itemize{
   \item If a single integer: same number of cells sampled from each group and layer
   \item If a named vector with group names: specific number per group
@@ -75,6 +75,9 @@ within specified groups/categories, which can help with scalability for large da
 maintaining representation across different cell types or conditions.
 }
 \details{
+Normalized or transformed expression must be stored in a layer named
+\code{data}, or split layers such as \code{data.batch1}
+
 When \code{group.by} is specified, the function performs the following steps: \cr
 1. Splits cells into groups based on the metadata column \cr
 2. Calculates leverage scores (if method = 'LeverageScore') within each group \cr

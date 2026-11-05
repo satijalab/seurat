@@ -24,7 +24,6 @@
 - Updated `LeverageScore` (and so `SketchData`) to scale better on BPCells on-disk data, by computing the random projection in blocks of cells instead of transposing the whole matrix. Results for a given `seed` differ from previous versions
 - Fixed `LeverageScore` on BPCells on-disk data deleting unrelated files from the session temporary directory and leaving behind a full on-disk copy of the input matrix
 - Fixed `LeverageScore` densifying the whole layer when retrying after a failure, and reporting that no zero-variance features were found even when it had removed some
-- `FindVariableFeatures(selection.method = "vst")` on BPCells on-disk data now picks up the thread count set by `setThreads` for the two passes it makes over the matrix, which were always single-threaded; the in-memory sparse path already did this
 - Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
 - Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
 - Fixed `ImageDimPlot` and `ImageFeaturePlot` with FOV and boundary names containing underscores
