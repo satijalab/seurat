@@ -10,10 +10,7 @@ src/**/*.so
 src/**/*.dll
 .DS_Store
 *.pdf
-CLAUDE.md
-MERGE_PLAN.md
 docs/
 Rplots.pdf
 revdep/
 Seurat.Rcheck/
-inst/benchmarks

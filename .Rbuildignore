@@ -16,9 +16,6 @@ CODE_OF_CONDUCT.md
 Rplots.pdf
 revdep/
 Seurat.Rcheck/
-^CLAUDE\.md$
-^MERGE_PLAN\.md$
-^\.claude$
 ^src/.*\.o$
 ^src/.*\.so$
 ^src/.*\.dll$
