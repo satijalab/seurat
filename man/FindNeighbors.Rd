@@ -169,8 +169,10 @@ cell and its \code{k.param} nearest neighbors.
 \examples{
 data("pbmc_small")
 pbmc_small
+\dontrun{
 # Compute an SNN on the gene expression level
 pbmc_small <- FindNeighbors(pbmc_small, features = VariableFeatures(object = pbmc_small))
+}
 
 # More commonly, we build the SNN on a dimensionally reduced form of the data
 # such as the first 10 principle components.
