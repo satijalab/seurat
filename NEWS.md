@@ -2,16 +2,28 @@
 
 ### Additions
 
+- Added scSLIDE (Single-cell Sample-Level Inference using Density Estimation) to Seurat, enabling sample-level analysis of single-cell data
+  - Added `PrepareSampleObject` to select landmark cells and map every cell to its nearest landmarks
+  - Added `SketchDataByGroup` to sketch cells within metadata groups using uniform or leverage-score sampling, with configurable cell counts per group and layer
+  - Added `QuickCorTest` to select genes correlated with a response variable, optionally within metadata groups
+  - Added `RunPLS` to compute a partial least squares (PLS) dimensional reduction, whose components capture the variation in expression most predictive of one or more sample- or cell-level responses (supports `plsr`, `cppls` and `spls`)
+  - Added `FindmmNN` and `FindsmNN` to map cells to landmarks using weighted combinations of reductions or a single reduction, respectively
+  - Added `GenerateSampleObject` to summarize landmark assignments per sample into a Seurat object for downstream sample-level analysis
+  - Added `NormalizeChiSquared` to normalize raw landmark-by-sample counts as deviations from expected counts
+  - Added `RunDiffusionMap` to compute a diffusion map reduction with `destiny`, including support for a precomputed distance matrix and eigenvalue-weighted embeddings
+  - Added `TrajDETest` to test expression changes along a continuous trajectory using negative binomial regression with `glmGamPoi`
+  - Added `PlotAnnotatedHeatmap` to display expression heatmaps with cells or samples ordered by metadata variables and optional categorical or continuous annotation bars
 - Added `ReadAtera` and `LoadAtera` to read 10x Genomics Atera spatial data, including expression and control counts, Azimuth cell type annotations, cell centroids, cell/nucleus segmentations, transcript coordinates, and morphology images
   - Added support for gene selection when reading molecules, feature-type selection when reading counts, BPCells-backed counts caching, and parallel Atera reads using the active `future::plan()`
-- Added `LoadAteraMolecules`, `LoadAteraSegmentations`, and `LoadAteraCodewords` to load additional transcript coordinates, segmentation polygons, and per-codeword coordinates into existing Atera objects
-  - `LoadAteraMolecules` requires the object to have been loaded with `molecule.coordinates = TRUE`
+  - Added `LoadAteraMolecules`, `LoadAteraSegmentations`, and `LoadAteraCodewords` to load additional transcript coordinates, segmentation polygons, and per-codeword coordinates into existing Atera objects
 - Added gene and region selection to `ReadXenium` and `LoadXenium` for molecule coordinates
-- Default `LoadXenium` and `LoadAtera` calls create FOVs that display x horizontally and y increasing downward
 
 ### Fixes
 
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
+- Updated `LeverageScore` (and so `SketchData`) to scale better on BPCells on-disk data, by computing the random projection in blocks of cells instead of transposing the whole matrix. Results for a given `seed` differ from previous versions
+- Fixed `LeverageScore` on BPCells on-disk data deleting unrelated files from the session temporary directory and leaving behind a full on-disk copy of the input matrix
+- Fixed `LeverageScore` densifying the whole layer when retrying after a failure, and reporting that no zero-variance features were found even when it had removed some
 - Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
 - Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
 - Fixed `ImageDimPlot` and `ImageFeaturePlot` with FOV and boundary names containing underscores

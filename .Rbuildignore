@@ -16,3 +16,6 @@ CODE_OF_CONDUCT.md
 Rplots.pdf
 revdep/
 Seurat.Rcheck/
+^src/.*\.o$
+^src/.*\.so$
+^src/.*\.dll$
