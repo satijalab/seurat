@@ -6551,6 +6551,12 @@ DarkTheme <- function(...) {
       l = font.margin
     )
   )
+  legend.white.text <- element_text( # remove top & bottom margins
+    colour = 'white',
+    margin = margin(
+      r = font.margin, 
+      l = font.margin)
+  )
   white.line <- element_line(colour = 'white', linewidth = 1)
   no.line <- element_line(linewidth = 0)
   #   Create the dark theme
@@ -6561,6 +6567,7 @@ DarkTheme <- function(...) {
     legend.background = black.background,
     legend.box.background = black.background.no.border,
     legend.key = black.background.no.border,
+    legend.key.height = unit(4, 'mm'),
     strip.background = element_rect(fill = 'grey50', colour = NA),
     #   Set text colors
     plot.title = white.text,
@@ -6568,7 +6575,7 @@ DarkTheme <- function(...) {
     axis.title = white.text,
     axis.text = white.text,
     legend.title = white.text,
-    legend.text = white.text,
+    legend.text = legend.white.text,
     strip.text = white.text,
     #   Set line colors
     axis.line.x = white.line,
