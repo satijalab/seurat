@@ -29,9 +29,9 @@
 - Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
 - Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
 - Fixed `ImageDimPlot` and `ImageFeaturePlot` with FOV and boundary names containing underscores
-- Fixed default orientation in `ImageDimPlot` and `ImageFeaturePlot` for FOVs without orientation metadata, including older Xenium/Atera objects: x is horizontal and y increases downward; stored coordinates are unchanged
+- Fixed default orientation in `ImageDimPlot` and `ImageFeaturePlot` for spatial `FOV`s, including older Xenium/Atera objects: x is horizontal and y increases downward; stored coordinates are unchanged
 - Fixed transcript quality filtering and count reader error reporting in `ReadXenium`
-- Fixed molecule name matching to assay features in `LoadXenium`
+- Fixed `LoadXenium` molecule labels to match assay feature names when underscores or pipes are replaced with dashes
 - Reduced data exported to parallel workers by passing selected inputs directly
   - Per-object inputs in `PrepSCTIntegration`, `FindIntegrationAnchors`, `MapQueryData`, and `BridgeCellsRepresentation`
   - Feature chunks in `RunMarkVario`
