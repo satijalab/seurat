@@ -22,10 +22,10 @@ expect_de_table <- function(results, expected.cols = c("p_val", "avg_logFC", "pc
   expect_true(all(is.finite(results[[grep(pattern = "^avg_", x = colnames(x = results), value = TRUE)[1]]])))
 }
 
-if (is_not_cran_submission) {
-  clr.obj <- suppressWarnings(NormalizeData(pbmc_small, normalization.method = "CLR"))
-  sct.obj <- suppressWarnings(suppressMessages(SCTransform(pbmc_small, vst.flavor = "v1")))
+clr.obj <- suppressWarnings(NormalizeData(pbmc_small, normalization.method = "CLR"))
+sct.obj <- suppressWarnings(suppressMessages(SCTransform(pbmc_small, vst.flavor = "v1")))
 
+if (is_not_cran_submission) {
   markers.0 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1))
   markers.01 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1),pseudocount.use = 1))
   results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 1))
