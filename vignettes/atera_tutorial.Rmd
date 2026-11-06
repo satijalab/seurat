@@ -38,7 +38,7 @@ knitr::opts_chunk$set(
 
 In this tutorial, we analyze an Atera FFPE human kidney dataset with Seurat. We load cell-level counts and spatial coordinates, visualize individual transcripts and codewords, and examine cell boundaries in a selected region. We then use a sketch of the dataset to identify clusters and project the results back to all cells.
 
-We use the publicly available [Atera In Situ Gene Expression, FFPE Human Kidney dataset](https://www.10xgenomics.com/datasets/atera-wta-ffpe-human-nd-kidney) from 10x Genomics. This non-diseased tissue sample was profiled with the Atera Human Whole Transcriptome Assay (WTA) and processed with Atera Onboard Analysis v1.0.4.
+We use the publicly available Atera In Situ Gene Expression, FFPE Human Kidney dataset from 10x Genomics. This non-diseased tissue sample was profiled with the Atera Human Whole Transcriptome Assay (WTA) and processed with Atera Onboard Analysis v1.0.4.
 
 The workflow keeps the full count matrix on disk with BPCells and performs clustering on a smaller sketch of cells. Transcript coordinates are fetched for selected genes, while cell boundaries are loaded only for a cropped region. These choices reduce the memory needed to explore the tissue.
 
@@ -48,7 +48,7 @@ We load the analysis and plotting libraries below and configure parallel process
 
 The `blosc` package is required for reading compressed Zarr arrays.
 
-```{r install-optional-packages, eval=FALSE}
+```{r install-packages, eval=FALSE}
 if (!requireNamespace("blosc", quietly = TRUE)) {
   install.packages("blosc")
 }
@@ -68,24 +68,22 @@ plan(multisession, workers = 8)
 
 We use `LoadAtera()` to create a Seurat object containing the counts, cell centroids, and a handle for fetching transcript coordinates.
 
-Download and extract the data from the [kidney dataset page](https://www.10xgenomics.com/datasets/atera-wta-ffpe-human-nd-kidney) and set `data_dir` accordingly. For more information on the different components of the bundle and their formats, see [documentation from 10x](https://www.10xgenomics.com/support/software/atera-onboard-analysis/latest/analysis/output-understanding-outputs).
+Download and extract the Atera FFPE human kidney dataset from 10x Genomics, and set `data_dir` to the extracted directory. The bundle contains expression matrices, cell boundaries, transcript coordinates, and morphology images.
 
 To keep the analysis practical for large datasets, we store counts on disk with BPCells by specifying a cache directory with `bpcells_dir`. We recommend using a separate cache for each dataset, and reusing that cache for subsequent analyses. Opening an existing cache avoids rebuilding the count matrices, but transcript coordinates are still read separately when requested. Here, we defer segmentations until we select a region of interest and skip morphology images.
 
 ```{r load-atera-data}
 data_dir <- "./atera_kidney"
 bpcells_dir <- "atera-kidney-bpcells"
-atera_obj <- LoadAtera(
-  data.dir = data_dir,
-  fov = "fov",
-  assay = "Atera",
-  cell.centroids = TRUE,
-  molecule.coordinates = TRUE,
-  bpcells.dir = bpcells_dir,
-  segmentations = NULL,
-  cell.annotations = TRUE,
-  morphology.image = FALSE
-)
+atera_obj <- LoadAtera(data.dir = data_dir,
+                      fov = "fov",
+                      assay = "Atera",
+                      cell.centroids = TRUE,
+                      molecule.coordinates = TRUE,
+                      bpcells.dir = bpcells_dir,
+                      segmentations = NULL,
+                      cell.annotations = TRUE,
+                      morphology.image = FALSE)
 
 atera_obj
 ```
@@ -98,13 +96,13 @@ Assays(atera_obj)
 
 ## Cell type annotations
 
-The Atera Onboard Analysis pipeline performs cell type annotation with [Pan-human Azimuth](https://satijalab.org/pan_human_azimuth/) for human samples [by default](https://www.10xgenomics.com/support/software/atera-onboard-analysis/latest/algorithms-overview/algo0_algorithms-overview#gex-analysis).
+The Atera Onboard Analysis pipeline performs cell type annotation with [Pan-human Azimuth](https://satijalab.org/pan_human_azimuth/) for human samples by default.
 
 `LoadAtera()` will add the `azimuth_*` columns from `obs` in `cell_feature_matrix.zarr.zip` to the Seurat object metadata by default if they are available, or if specified via the `cell.annotations` parameter as we did above.
 
 Annotations by themselves can also be requested with `ReadAtera()`; for example: `annotations <- ReadAtera(data.dir = data_dir, outs = "annotations")$annotations`.
 
-```{r verify-cell-annotations}
+```{r verify-cell-labels}
 annotation.columns <- grep("^azimuth_", colnames(atera_obj[[]]), value = TRUE)
 
 tail(atera_obj[[]][, annotation.columns])
@@ -113,11 +111,10 @@ tail(atera_obj[[]][, annotation.columns])
 Below, we see how (broad) cell types are organized within the kidney tissue:
 
 ```{r plot-cell-annotations, fig.width=9, fig.height=7}
-ImageDimPlot(
-  atera_obj,
-  fov = "fov",
-  group.by = "azimuth_broad",
-  size = 0.1) + ggtitle("azimuth_broad")
+ImageDimPlot(atera_obj,
+            fov = "fov",
+            group.by = "azimuth_broad",
+            size = 0.1) + ggtitle("azimuth_broad")
 ```
 
 # Visualize spatial data
@@ -129,17 +126,15 @@ ImageDimPlot(
 We first visualize the number of transcripts and genes detected per cell. Spatial variation in these values can help identify regions worth inspecting more closely, but differences can also reflect cell size and tissue composition. We therefore examine these maps alongside the cell boundaries rather than choosing a single cutoff from the plots alone.
 
 ```{r plot-spatial-qc, fig.width=14, fig.height=7}
-p1 <- ImageFeaturePlot(
-  atera_obj,
-  fov = "fov",
-  features = "nCount_Atera",
-  size = 2) + ggtitle("Transcript counts per cell")
+p1 <- ImageFeaturePlot(atera_obj,
+                      fov = "fov",
+                      features = "nCount_Atera",
+                      size = 1) + ggtitle("Transcript counts per cell")
 
-p2 <- ImageFeaturePlot(
-  atera_obj,
-  fov = "fov",
-  features = "nFeature_Atera",
-  size = 2) + ggtitle("Genes detected per cell")
+p2 <- ImageFeaturePlot(atera_obj,
+                      fov = "fov",
+                      features = "nFeature_Atera",
+                      size = 1) + ggtitle("Genes detected per cell")
 
 p1 + p2
 ```
@@ -148,9 +143,9 @@ p1 + p2
 
 Transcript coordinates are fetched on demand with `LoadAteraMolecules()`. Here, we retrieve coordinates for *PDK1*. Subsequent calls reuse coordinates that have already been loaded.
 
-The [transcript file](https://www.10xgenomics.com/support/software/atera-onboard-analysis/latest/analysis/output-zarr-tx) stores physical coordinates and calibrated quality scores for individual detections. The file contains all decoded transcripts, whereas the cell-feature matrix uses transcripts that pass the default quality value (Q-Score) threshold of Q20 ([10x cell and transcript outputs](https://www.10xgenomics.com/support/software/atera-onboard-analysis/latest/analysis/output-zarr-landing)). `LoadAtera()` defaults to `mols.qv.threshold = 20` for gene-level molecule reads.
+The transcript file stores physical coordinates and calibrated quality scores for individual detections. The file contains all decoded transcripts, whereas the cell-feature matrix uses transcripts that pass the default quality value (Q-Score) threshold of Q20. `LoadAtera()` defaults to `mols.qv.threshold = 20` for gene-level molecule reads.
 
-```{r load-single-gene-molecules}
+```{r load-single-gene}
 gene_name <- "PDK1"
 
 atera_obj <- LoadAteraMolecules(atera_obj, genes = gene_name)
@@ -158,26 +153,24 @@ atera_obj <- LoadAteraMolecules(atera_obj, genes = gene_name)
 
 We overlay the molecules on cell centroids, using orange to distinguish transcripts from the gray tissue background.
 
-```{r plot-single-gene-molecules, fig.width=8, fig.height=7}
-p3 <- ImageDimPlot(
-  atera_obj,
-  fov = "fov",
-  # Only centroids have been loaded; segmentation polygons are not yet available.
-  boundaries = NULL,
-  size = 0.1,
-  cols = "grey80",
-  molecules = gene_name,
-  mols.size = 0.1,
-  mols.cols = "orange",
-  axes = TRUE
-) + ggplot2::ggtitle(paste(gene_name, "transcripts"))
+```{r plot-single-gene, fig.width=8, fig.height=7}
+p3 <- ImageDimPlot(atera_obj,
+                  fov = "fov",
+                  # Only centroids have been loaded; segmentation polygons are not yet available.
+                  boundaries = NULL,
+                  size = 0.1,
+                  cols = "grey80",
+                  molecules = gene_name,
+                  mols.size = 0.1,
+                  mols.cols = "orange",
+                  axes = TRUE) + ggplot2::ggtitle(paste(gene_name, "transcripts"))
 
 p3
 ```
 
 We can also compare the spatial distributions of multiple genes of interest. Let's look at *COL4A5* in addition to *PDK1*, first loading the molecules for both genes.
 
-```{r load-multiple-gene-molecules}
+```{r load-multiple-gene}
 genes <- c("PDK1", "COL4A5")
 
 atera_obj <- LoadAteraMolecules(atera_obj, genes = genes)
@@ -185,18 +178,16 @@ atera_obj <- LoadAteraMolecules(atera_obj, genes = genes)
 
 Next, we can visualize both genes together on the same plot of the tissue. The colors identify which gene each displayed molecule belongs to, so these visualizations help us inspect whether signals occupy similar tissue regions or different cellular neighborhoods. It may be helpful to adjust `mols.size` for the field of view, as larger sizes can obscure spatial detail in dense regions.
 
-```{r plot-multiple-gene-molecules, fig.width=8, fig.height=7}
-p4 <- ImageDimPlot(
-  atera_obj,
-  fov = "fov",
-  boundaries = NULL,
-  size = 0.1,
-  cols = "grey80",
-  molecules = genes,
-  mols.size = 0.1,
-  mols.cols = c("orange", "cyan"),
-  axes = TRUE
-) + ggtitle("Multi-gene transcripts")
+```{r plot-multiple-gene, fig.width=8, fig.height=7}
+p4 <- ImageDimPlot(atera_obj,
+                    fov = "fov",
+                    boundaries = NULL,
+                    size = 0.1,
+                    cols = "grey80",
+                    molecules = genes,
+                    mols.size = 0.1,
+                    mols.cols = c("orange", "cyan"),
+                    axes = TRUE) + ggtitle("Multi-gene transcripts")
 p4
 ```
 
@@ -213,47 +204,41 @@ gene_name <- "COL4A5"
 atera_obj <- LoadAteraCodewords(atera_obj, data.dir = data_dir, genes = gene_name)
 ```
 
-```{r inspect-codeword-labels}
-codeword.labels <- sort(unique(grep(
-  paste0("^", gene_name, "_codeword_"),
-  Misc(atera_obj, "atera.molecules")$cache$gene,
-  value = TRUE
-)))
+```{r inspect-codeword}
+codeword.labels <- sort(unique(grep(paste0("^", gene_name, "_codeword_"),
+                        Misc(atera_obj, "atera.molecules")$cache$gene, value = TRUE)))
+
 cat(length(codeword.labels), "codewords for", gene_name, "\n")
 ```
 
-```{r plot-combined-codewords, fig.width=8, fig.height=7}
+```{r plot-combined, fig.width=8, fig.height=7}
 # Extend the palette if a gene has more codewords.
 palette <- c("orange", "cyan", "magenta", "yellow", "green", "red")
 
-p5 <- ImageDimPlot(
-  atera_obj,
-  fov = "fov",
-  boundaries = NULL,
-  size = 0.1,
-  cols = "grey80",
-  molecules = codeword.labels,
-  mols.size = 0.1,
-  mols.cols = palette[seq_along(codeword.labels)],
-  axes = TRUE
-) + ggtitle(paste(gene_name, "transcripts by codeword"))
+p5 <- ImageDimPlot(atera_obj,
+                  fov = "fov",
+                  boundaries = NULL,
+                  size = 0.1,
+                  cols = "grey80",
+                  molecules = codeword.labels,
+                  mols.size = 0.1,
+                  mols.cols = palette[seq_along(codeword.labels)],
+                  axes = TRUE) + ggtitle(paste(gene_name, "transcripts by codeword"))
 p5
 ```
 
-```{r plot-individual-codewords, fig.width=max(7, 5 * length(codeword.labels)), fig.height=6}
+```{r plot-cell-codewords, fig.width=max(7, 5 * length(codeword.labels)), fig.height=6}
 plots <- lapply(codeword.labels, function(cw) {
-  ImageDimPlot(
-    atera_obj,
-    fov = "fov",
-    boundaries = NULL,
-    size = 0.1,
-    cols = "grey80",
-    molecules = cw,
-    mols.size = 0.1,
-    mols.cols = "orange",
-    axes = TRUE
-  ) + ggtitle(cw)
-})
+                ImageDimPlot(atera_obj,
+                            fov = "fov",
+                            boundaries = NULL,
+                            size = 0.1,
+                            cols = "grey80",
+                            molecules = cw,
+                            mols.size = 0.1,
+                            mols.cols = "orange",
+                            axes = TRUE) + ggtitle(cw) })
+
 p6 <- wrap_plots(plots, ncol = length(plots))
 p6
 ```
@@ -268,23 +253,19 @@ Creating `fov.crop` preserves the original field of view so that we can return t
 
 Loading polygons only for this crop avoids constructing boundaries for every cell in the bundle. Change `crop.x` and `crop.y` when working with another sample; these coordinates select a region of the kidney dataset used here.
 
-```{r crop-and-load-segmentations}
+```{r crop-load}
 crop.x <- c(5000, 5200)
 crop.y <- c(2000, 2200)
 
-atera_obj[["fov.crop"]] <- Crop(
-  atera_obj[["fov"]],
-  x = crop.x,
-  y = crop.y,
-  coords = "tissue"
-)
+atera_obj[["fov.crop"]] <- Crop(atera_obj[["fov"]],
+                                x = crop.x,
+                                y = crop.y,
+                                coords = "tissue")
 
-atera_obj <- LoadAteraSegmentations(
-  atera_obj,
-  data.dir = data_dir,
-  fov = "fov.crop",
-  segmentations = "cell"
-)
+atera_obj <- LoadAteraSegmentations(atera_obj,
+                                    data.dir = data_dir,
+                                    fov = "fov.crop",
+                                    segmentations = "cell")
 
 atera_obj <- LoadAteraMolecules(atera_obj, genes = "COL4A5")
 ```
@@ -292,17 +273,15 @@ atera_obj <- LoadAteraMolecules(atera_obj, genes = "COL4A5")
 We can now visualize transcripts relative to the cell boundaries in this region. The white polygons show cell outlines, while orange points show the selected gene. Looking at their relative positions provides a closer view of the signal than a cell-level expression map alone.
 
 ```{r plot-cropped-molecules, fig.width=7, fig.height=7}
-p7 <- ImageDimPlot(
-  atera_obj,
-  fov = "fov.crop",
-  boundaries = "segmentations",
-  cols = "white",
-  axes = TRUE,
-  molecules = "COL4A5",
-  mols.size = 1,
-  mols.cols = "orange",
-  coord.fixed = TRUE
-)
+p7 <- ImageDimPlot(atera_obj,
+                  fov = "fov.crop",
+                  boundaries = "segmentations",
+                  cols = "white",
+                  axes = TRUE,
+                  molecules = "COL4A5",
+                  mols.size = 1,
+                  mols.cols = "orange",
+                  coord.fixed = TRUE)
 p7
 ```
 
@@ -323,13 +302,11 @@ atera_obj <- NormalizeData(atera_obj)
 
 atera_obj <- FindVariableFeatures(atera_obj)
 
-atera_obj <- SketchData(
-  object = atera_obj,
-  assay = "Atera",
-  ncells = 50000,
-  method = "LeverageScore",
-  sketched.assay = "sketch"
-)
+atera_obj <- SketchData(object = atera_obj,
+                        assay = "Atera",
+                        ncells = 50000,
+                        method = "LeverageScore",
+                        sketched.assay = "sketch")
 ```
 
 We then analyze the sketch by running the standard Seurat workflow.
@@ -338,12 +315,12 @@ We then analyze the sketch by running the standard Seurat workflow.
 DefaultAssay(atera_obj) <- "sketch"
 
 atera_obj <- NormalizeData(atera_obj, verbose = FALSE) %>%
-  FindVariableFeatures(verbose = FALSE) %>%
-  ScaleData(verbose = FALSE) %>%
-  RunPCA(npcs = 20, verbose = FALSE) %>%
-  FindNeighbors(dims = 1:10, verbose = FALSE) %>%
-  FindClusters(verbose = FALSE) %>%
-  RunUMAP(dims = 1:10, return.model = TRUE, verbose = FALSE)
+                FindVariableFeatures(verbose = FALSE) %>%
+                ScaleData(verbose = FALSE) %>%
+                RunPCA(npcs = 20, verbose = FALSE) %>%
+                FindNeighbors(dims = 1:10, verbose = FALSE) %>%
+                FindClusters(verbose = FALSE) %>%
+                RunUMAP(dims = 1:10, return.model = TRUE, verbose = FALSE)
 
 p8 <- DimPlot(atera_obj, group.by = "seurat_clusters", label = TRUE) + NoLegend()
 p8
@@ -355,18 +332,16 @@ p8
 
 The earlier `return.model = TRUE` saves the UMAP model needed for this projection. The resulting reductions are `pca.full` and `full.umap`, which let us visualize all cells using the structure learned from the sketch.
 
-```{r project-sketch-to-all-cells}
-atera_obj <- ProjectData(
-  object = atera_obj,
-  assay = "Atera",
-  sketched.assay = "sketch",
-  sketched.reduction = "pca",
-  full.reduction = "pca.full",
-  dims = 1:10,
-  k.weight = 5,
-  umap.model = "umap",
-  refdata = list(cluster_full = "seurat_clusters")
-)
+```{r project-data}
+atera_obj <- ProjectData(object = atera_obj,
+                        assay = "Atera",
+                        sketched.assay = "sketch",
+                        sketched.reduction = "pca",
+                        full.reduction = "pca.full",
+                        dims = 1:10,
+                        k.weight = 5,
+                        umap.model = "umap",
+                        refdata = list(cluster_full = "seurat_clusters"))
 
 DefaultAssay(atera_obj) <- "Atera"
 ```
@@ -375,45 +350,39 @@ DefaultAssay(atera_obj) <- "Atera"
 
 We view both the projected clusters in UMAP space and their locations across the tissue to examine whether an expression group is localized to a tissue compartment or distributed across the sample.
 
-```{r plot-projected-clusters, fig.width=7, fig.height=6}
-p9 <- DimPlot(
-  atera_obj,
-  reduction = "full.umap",
-  group.by = "cluster_full",
-  label = TRUE) +
-  NoLegend() + ggtitle("All cells, projected UMAP")
+```{r dim-plot, fig.width=7, fig.height=6}
+p9 <- DimPlot(atera_obj,
+              reduction = "full.umap",
+              group.by = "cluster_full",
+              label = TRUE) +
+              NoLegend() + ggtitle("All cells, projected UMAP")
 
 p9
 ```
 
 We can color the same projected UMAP by the cell type annotations from Pan-human Azimuth.
 
-```{r projected-cell-annotations, fig.width=10, fig.height=7}
-DimPlot(
-  atera_obj,
-  reduction = "full.umap",
-  group.by = "azimuth_broad") +
-  ggtitle("All cells, supplied Azimuth broad cell types")
+```{r dim-plot-2, fig.width=10, fig.height=7}
+DimPlot(atera_obj,
+        reduction = "full.umap",
+        group.by = "azimuth_broad") + ggtitle("All cells, supplied Azimuth broad cell types")
 ```
 
 ```{r plot-spatial-clusters, fig.width=9, fig.height=7}
-p10 <- ImageDimPlot(
-  atera_obj,
-  fov = "fov",
-  group.by = "cluster_full",
-  size = 0.1) + ggtitle("Clusters, all cells (centroids only)")
+p10 <- ImageDimPlot(atera_obj,
+                    fov = "fov",
+                    group.by = "cluster_full",
+                    size = 0.1) + ggtitle("Clusters, all cells (centroids only)")
 
 p10
 ```
 
 ```{r plot-cropped-clusters, fig.width=8, fig.height=7}
-p11 <- ImageDimPlot(
-  atera_obj,
-  fov = "fov.crop",
-  group.by = "cluster_full",
-  boundaries = "segmentations",
-  size = 0.1
-) + ggtitle("Clusters, cropped region (with cell boundaries)")
+p11 <- ImageDimPlot(atera_obj,
+                    fov = "fov.crop",
+                    group.by = "cluster_full",
+                    boundaries = "segmentations",
+                    size = 0.1) + ggtitle("Clusters, cropped region (with cell boundaries)")
 
 p11
 ```
@@ -422,9 +391,22 @@ p11
 
 We would like to thank Stephen Williams and the Computational Biology team at 10x for their contributions to the code for loading Atera data.
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("atera_tutorial", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "atera_tutorial_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
-  <summary>**Session info**</summary>
-```{r session_info, cache=FALSE}
+  <summary>**Session Info**</summary>
+
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>
