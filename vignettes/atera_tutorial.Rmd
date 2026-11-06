@@ -68,12 +68,12 @@ plan(multisession, workers = 8)
 
 We use `LoadAtera()` to create a Seurat object containing the counts, cell centroids, and a handle for fetching transcript coordinates.
 
-Download and extract the Atera FFPE human kidney dataset from 10x Genomics, and set `data_dir` to the extracted directory. The bundle contains expression matrices, cell boundaries, transcript coordinates, and morphology images.
+[Download and extract the Atera FFPE human kidney dataset from 10x Genomics](https://www.10xgenomics.com/datasets/atera-wta-ffpe-human-nd-kidney), and set `data_dir` to the extracted directory. The bundle contains expression matrices, cell boundaries, transcript coordinates, and morphology images.
 
 To keep the analysis practical for large datasets, we store counts on disk with BPCells by specifying a cache directory with `bpcells_dir`. We recommend using a separate cache for each dataset, and reusing that cache for subsequent analyses. Opening an existing cache avoids rebuilding the count matrices, but transcript coordinates are still read separately when requested. Here, we defer segmentations until we select a region of interest and skip morphology images.
 
 ```{r load-atera-data}
-data_dir <- "./atera_kidney"
+data_dir <- "/brahms/zhangbr/vignette_data/atera_kidney"
 bpcells_dir <- "atera-kidney-bpcells"
 atera_obj <- LoadAtera(data.dir = data_dir,
                       fov = "fov",

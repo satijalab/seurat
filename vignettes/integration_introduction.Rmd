@@ -56,10 +56,6 @@ library(SeuratData)
 library(patchwork)
 ```
 
-```{r installdata}
-# install dataset
-```
-
 Install the required SeuratData datasets before starting the analysis.
 
 ```{r install-dataset, eval=FALSE}
