@@ -272,6 +272,19 @@ test_that("SketchData when setting your own variable features and specifying fea
   )
 })
 
+test_that("ProjectData preserves factor labels", {
+  set.seed(42)
+  sobj <- build_test_data()
+  sobj <- suppressWarnings(SketchData(sobj, ncells = 50, verbose = FALSE))
+  sobj <- ScaleData(sobj, verbose = FALSE)
+  sobj <- RunPCA(sobj, npcs = 10, verbose = FALSE)
+  sobj$type <- factor(sample(3, ncol(sobj), replace = TRUE))
+  sobj <- ProjectData(sobj, sketched.reduction = "pca", dims = 1:10, full.reduction = "pca.full", 
+                      refdata = list(proj_type = "type"), verbose = FALSE)
+  expect_s3_class(sobj$proj_type, "factor")
+  expect_identical(levels(sobj$proj_type), levels(sobj$type))
+})
+
 context("SketchProduct")
 
 test_that("SketchProduct keeps sketch rows that draw no cells", {
