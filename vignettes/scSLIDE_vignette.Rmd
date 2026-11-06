@@ -130,7 +130,7 @@ object <- PrepareSampleObject(
 `PrepareSampleObject()` streamlines cell-level data preparation through the following steps:
 
 1. **Training subset creation (optional):** Uses uniform sketching to obtain a training subset that balances the number of cells from each sample for PLS
-2. **Landmark cell selection:** Uses [leverage-score sketching](https://satijalab.org/seurat/articles/seurat5_sketch_analysis) to identify a diverse subset of landmark cells that captures the dataset's heterogeneity
+2. **Landmark cell selection:** Uses [leverage-score sketching](https://satijalab.org/seurat/articles/sketch_analysis) to identify a diverse subset of landmark cells that captures the dataset's heterogeneity
 3. **Disease-relevant gene selection (optional):** Identifies additional highly variable genes associated with the phenotype of interest through correlation testing
 4. **Disease-oriented embedding:** Runs PLS to generate an embedding that captures variation relevant to the specified response variable
 5. **Neighbor graph construction:** Builds a [weighted nearest neighbor](https://satijalab.org/seurat/articles/weighted_nearest_neighbor_analysis) (WNN) graph connecting landmark cells to all other cells in the dataset
@@ -514,7 +514,7 @@ gc()
 
 # Part 2: On-disk analysis of a large-scale AD dataset {#part-seaad}
 
-This part demonstrates scSLIDE on a large-scale dataset using the [Seurat–BPCells infrastructure](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette). Developed by [Benjamin Parks](https://github.com/bnprks/BPCells), BPCells enables efficient storage and processing of large scRNA-seq and scATAC-seq datasets while minimizing memory usage. The workflow follows [Part 1](#part-covid), so we focus here on what differs.
+This part demonstrates scSLIDE on a large-scale dataset using the [Seurat–BPCells infrastructure](https://satijalab.org/seurat/articles/bpcells_interaction_vignette). Developed by [Benjamin Parks](https://github.com/bnprks/BPCells), BPCells enables efficient storage and processing of large scRNA-seq and scATAC-seq datasets while minimizing memory usage. The workflow follows [Part 1](#part-covid), so we focus here on what differs.
 
 ```{r seaad-dataset-name}
 # dataset name used in the file paths below
