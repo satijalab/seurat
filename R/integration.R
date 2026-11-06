@@ -7208,7 +7208,9 @@ TransferLablesNN <- function(
   query.label.score <- apply(X = query.label.mat, MARGIN = 1, FUN = max)
   names(query.label) <- names(query.label.score) <- rownames(query.label.mat)
   if (is.factor(reference.labels)) {
-    levels(query.label) <- levels(reference.labels)
+    query.label <- factor(x = query.label,
+                          levels = levels(x = reference.labels),
+                          ordered = is.ordered(x = reference.labels))
   }
   output.list <- list(labels = query.label,
                       scores = query.label.score,
