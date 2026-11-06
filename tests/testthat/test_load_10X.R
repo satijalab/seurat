@@ -36,6 +36,7 @@ path.to.visium <- file.path(path.to.data, "visium")
 path.to.visium.hd <- file.path(path.to.data, "visium_hd")
 
 test_that("Read10X_h5 works as expected", {
+  skip_on_cran()
   skip_if_not_installed("hdf5r")
 
   path.to.counts <- file.path(
@@ -77,8 +78,9 @@ test_that("Radius is dispatched for VisiumV2 images", {
 test_that("Read10X_Image works as expected", {
   path.to.images <- file.path(path.to.visium, "spatial")
   coordinate.filenames <-  "tissue_positions_list.csv"
-  # only test HD the dataset containing a parquet file if `arrow` is installed
-  if (requireNamespace("arrow", quietly = TRUE)) {
+  # Test the optional parquet input off CRAN when arrow is installed.
+  if (isTRUE(as.logical(Sys.getenv("NOT_CRAN"))) &&
+      requireNamespace("arrow", quietly = TRUE)) {
     path.to.images <- c(
       path.to.images,
       file.path(
@@ -179,6 +181,7 @@ test_that("Read10X_Image works as expected", {
 })
 
 test_that("Load10X_Spatial works with SD data", {
+  skip_on_cran()
   skip_if_not_installed("hdf5r")
 
   path.to.counts <- file.path(
@@ -218,6 +221,7 @@ test_that("Load10X_Spatial works with SD data", {
 })
 
 test_that("Load10X_Spatial works with HD data", {
+  skip_on_cran()
   skip_if_not_installed("hdf5r")
   skip_if_not_installed("arrow")
 

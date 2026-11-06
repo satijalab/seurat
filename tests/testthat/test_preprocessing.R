@@ -137,6 +137,7 @@ if (is_not_cran_submission) {
   # Tests for BPCells NormalizeData
   # --------------------------------------------------------------------------------
   test_that("NormalizeData scales properly for BPcells", {
+    skip_on_cran()
     library(Matrix)
     skip_if_not_installed("BPCells")
     library(BPCells)
@@ -152,6 +153,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("LogNormalize normalizes properly for BPCells", {
+    skip_on_cran()
     library(Matrix)
     skip_if_not_installed("BPCells")
     library(BPCells)
@@ -552,6 +554,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("SCTransform v2 works as expected", {
+    skip_on_cran()
     skip_if_not_installed("glmGamPoi")
     object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 
@@ -787,6 +790,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("SCTransform is equivalent for BPcells ", {
+    skip_on_cran()
     skip_if_not_installed("glmGamPoi")
 
     library(Matrix)
@@ -806,6 +810,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("SCTransform preserves BPCells cells when sampling or disabling correction", {
+    skip_on_cran()
     skip_if_not_installed("glmGamPoi")
     skip_if_not_installed("BPCells")
 

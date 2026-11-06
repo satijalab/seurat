@@ -178,6 +178,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("latent.vars works", {
+    skip_on_cran()
     skip_if_not_installed("lmtest")
     results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "groups", verbose = FALSE, test.use = 'LR', base = exp(1), pseudocount.use = 1))
     expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, latent.vars= "fake", verbose = FALSE))
@@ -234,8 +235,10 @@ if (is_not_cran_submission) {
     expect_equal(rownames(x = results)[1], "CST3")
   })
 
-  results <- FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "roc", verbose = FALSE, base = exp(1), pseudocount.use = 1)
   test_that("roc test works", {
+    skip_on_cran()
+    skip_if_not_installed("ROCR")
+    results <- FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "roc", verbose = FALSE, base = exp(1), pseudocount.use = 1)
     expect_equal(nrow(x = results), 222)
     # expect_equal(colnames(x = results), c("myAUC", "avg_diff", "power", "pct.1", "pct.2"))
     expect_equal(colnames(x = results), c("myAUC", "avg_diff", "power", "avg_logFC", "pct.1", "pct.2"))
@@ -259,6 +262,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("FindMarkers with wilcox_limma works", {
+    skip_on_cran()
     skip_if_not_installed("limma")
     markers.0.limma <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, verbose = FALSE, base = exp(1),pseudocount.use = 1,test.use='wilcox_limma'))
     markers.01.limma <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1),pseudocount.use = 1,test.use='wilcox_limma'))
@@ -300,6 +304,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("BPCells FindMarkers gives same results", {
+    skip_on_cran()
     skip_if_not_installed("BPCells")
     library(BPCells)
     library(Matrix)
@@ -532,6 +537,7 @@ test_that("poisson test works", {
 })
 
 test_that("LR test works", {
+  skip_on_cran()
   skip_if_not_installed("lmtest")
   results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "LR", verbose = FALSE, base = exp(1), pseudocount.use = 1))
   expect_equal(nrow(x = results), 222)
@@ -546,132 +552,133 @@ test_that("LR test works", {
 # Tests for FindAllMarkers
 # -------------------------------------------------------------------------------
 
-if (is_not_cran_submission) {
-  test_that("FindAllMarkers works as expected", {
-    pbmc_copy <- pbmc_small
-    Idents(pbmc_copy) <- "orig.ident"
+test_that("FindAllMarkers works as expected", {
+  pbmc_copy <- pbmc_small
+  Idents(pbmc_copy) <- "orig.ident"
 
-    results <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 1)))
-    results.clr <- suppressMessages(suppressWarnings(FindAllMarkers(object = clr.obj, pseudocount.use = 1)))
-    results.sct <- suppressMessages(suppressWarnings(FindAllMarkers(object = sct.obj, pseudocount.use = 1, vst.flavor = "v1")))
-    results.pseudo <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 0.1)))
-    results.gb <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_copy, pseudocount.use = 1, group.by = "RNA_snn_res.1")))
+  results <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 1)))
+  results.clr <- suppressMessages(suppressWarnings(FindAllMarkers(object = clr.obj, pseudocount.use = 1)))
+  results.sct <- suppressMessages(suppressWarnings(FindAllMarkers(object = sct.obj, pseudocount.use = 1, vst.flavor = "v1")))
+  results.pseudo <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 0.1)))
+  results.gb <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_copy, pseudocount.use = 1, group.by = "RNA_snn_res.1")))
 
-    # Check table shape and known marker recovery across assay variants.
-    expect_de_table(results, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
-    expect_gt(nrow(x = results), 200)
-    expect_true("HLA-DPB1" %in% results$gene)
+  # Check table shape and known marker recovery across assay variants.
+  expect_de_table(results, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_gt(nrow(x = results), 200)
+  expect_true("HLA-DPB1" %in% results$gene)
 
-    # CLR normalization
-    expect_de_table(results.clr, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
-    expect_gt(nrow(x = results.clr), 200)
-    expect_true("HLA-DPB1" %in% results.clr$gene)
+  # CLR normalization
+  expect_de_table(results.clr, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_gt(nrow(x = results.clr), 200)
+  expect_true("HLA-DPB1" %in% results.clr$gene)
 
-    # SCT normalization
-    expect_de_table(results.sct, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
-    expect_gt(nrow(x = results.sct), 200)
-    expect_true("HLA-DPB1" %in% results.sct$gene)
+  # SCT normalization
+  expect_de_table(results.sct, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_gt(nrow(x = results.sct), 200)
+  expect_true("HLA-DPB1" %in% results.sct$gene)
 
-    # pseudocount.use = 0.1
-    expect_de_table(results.pseudo, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
-    expect_gt(nrow(x = results.pseudo), 200)
-    expect_true("HLA-DPB1" %in% results.pseudo$gene)
+  # pseudocount.use = 0.1
+  expect_de_table(results.pseudo, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_gt(nrow(x = results.pseudo), 200)
+  expect_true("HLA-DPB1" %in% results.pseudo$gene)
 
-    # Setting `group.by` the group by parameter is equivalent
-    # to setting the object's `Idents` before running `FindAllMarkers`.
-    expect_equal(results.gb, results)
-  })
+  # Setting `group.by` the group by parameter is equivalent
+  # to setting the object's `Idents` before running `FindAllMarkers`.
+  expect_equal(results.gb, results)
+})
 
-  test_that("FindAllMarkers presto path matches per-cluster wilcox path", {
-    skip_if_not_installed("presto")
-    expect_findallmarkers_fast_equal_loop <- function(object, ...) {
-      results.fast <- suppressWarnings(suppressMessages(FindAllMarkers(
-        object = object,
-        verbose = FALSE,
-        ...
-      )))
-      results.loop <- suppressWarnings(suppressMessages(FindAllMarkers(
-        object = object,
-        verbose = FALSE,
-        max.cells.per.ident = ncol(x = object),
-        ...
-      )))
-      expect_equal(results.fast, results.loop)
-    }
-    expect_findallmarkers_fast_equal_loop(pbmc_small, pseudocount.use = 1)
-    expect_findallmarkers_fast_equal_loop(
-      pbmc_small,
-      only.pos = TRUE,
-      pseudocount.use = 1
+test_that("FindAllMarkers presto path matches per-cluster wilcox path", {
+  skip_on_cran()
+  skip_if_not_installed("presto")
+  expect_findallmarkers_fast_equal_loop <- function(object, ...) {
+    results.fast <- suppressWarnings(suppressMessages(FindAllMarkers(
+      object = object,
+      verbose = FALSE,
+      ...
+    )))
+    results.loop <- suppressWarnings(suppressMessages(FindAllMarkers(
+      object = object,
+      verbose = FALSE,
+      max.cells.per.ident = ncol(x = object),
+      ...
+    )))
+    expect_equal(results.fast, results.loop)
+  }
+  expect_findallmarkers_fast_equal_loop(pbmc_small, pseudocount.use = 1)
+  expect_findallmarkers_fast_equal_loop(
+    pbmc_small,
+    only.pos = TRUE,
+    pseudocount.use = 1
+  )
+  expect_findallmarkers_fast_equal_loop(
+    pbmc_small,
+    fc.slot = "counts",
+    pseudocount.use = 1
+  )
+  expect_findallmarkers_fast_equal_loop(
+    pbmc_small,
+    latent.vars = "groups",
+    pseudocount.use = 1
+  )
+  expect_findallmarkers_fast_equal_loop(
+    sct.obj,
+    pseudocount.use = 1,
+    vst.flavor = "v1"
+  )
+})
+test_that("BPCells FindAllMarkers gives same results", {
+  skip_on_cran()
+  skip_if_not_installed("BPCells")
+  library(BPCells)
+  library(Matrix)
+  mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
+  pbmc_small[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
+  pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbp")
+
+  results.bp <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, assay = "RNAbp", pseudocount.use=1)))
+
+  # BPCells should return the same table as the in-memory matrix path
+  expect_de_table(results.bp, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_gt(nrow(x = results.bp), 200)
+  expect_true("HLA-DPB1" %in% results.bp$gene)
+})
+
+test_that("BPCells FindAllMarkers warns for column-major storage", {
+  skip_on_cran()
+  skip_if_not_installed("BPCells")
+  library(BPCells)
+  library(Matrix)
+
+  mat_bpcells_row <- t(as(t(pbmc_small[['RNA']]$counts), "IterableMatrix"))
+  mat_bpcells_col <- BPCells::transpose_storage_order(mat_bpcells_row)
+
+  expect_equal(BPCells::storage_order(mat_bpcells_col), "col")
+
+  pbmc_small[['RNAbpRowMajor']] <- CreateAssay5Object(counts = mat_bpcells_row)
+  pbmc_small[['RNAbpColMajor']] <- CreateAssay5Object(counts = mat_bpcells_col)
+  pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbpRowMajor")
+  pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbpColMajor")
+
+  fam.results.row <- suppressMessages(
+    suppressWarnings(
+      FindAllMarkers(object = pbmc_small, assay = "RNAbpRowMajor", pseudocount.use = 1)
     )
-    expect_findallmarkers_fast_equal_loop(
-      pbmc_small,
-      fc.slot = "counts",
-      pseudocount.use = 1
+  )
+  fam.results.col <- suppressMessages(
+    expect_warning(
+      FindAllMarkers(object = pbmc_small, assay = "RNAbpColMajor", pseudocount.use = 1),
+      regexp = "Column-major order detected"
     )
-    expect_findallmarkers_fast_equal_loop(
-      pbmc_small,
-      latent.vars = "groups",
-      pseudocount.use = 1
-    )
-    expect_findallmarkers_fast_equal_loop(
-      sct.obj,
-      pseudocount.use = 1,
-      vst.flavor = "v1"
-    )
-  })
-  test_that("BPCells FindAllMarkers gives same results", {
-    skip_if_not_installed("BPCells")
-    library(BPCells)
-    library(Matrix)
-    mat_bpcells <- t(as(t(pbmc_small[['RNA']]$counts ), "IterableMatrix"))
-    pbmc_small[['RNAbp']] <- CreateAssay5Object(counts = mat_bpcells)
-    pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbp")
-
-    results.bp <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, assay = "RNAbp", pseudocount.use=1)))
-
-    # BPCells should return the same table as the in-memory matrix path
-    expect_de_table(results.bp, expected.cols = c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
-    expect_gt(nrow(x = results.bp), 200)
-    expect_true("HLA-DPB1" %in% results.bp$gene)
-  })
-
-  test_that("BPCells FindAllMarkers warns for column-major storage", {
-    skip_if_not_installed("BPCells")
-    library(BPCells)
-    library(Matrix)
-
-    mat_bpcells_row <- t(as(t(pbmc_small[['RNA']]$counts), "IterableMatrix"))
-    mat_bpcells_col <- BPCells::transpose_storage_order(mat_bpcells_row)
-
-    expect_equal(BPCells::storage_order(mat_bpcells_col), "col")
-
-    pbmc_small[['RNAbpRowMajor']] <- CreateAssay5Object(counts = mat_bpcells_row)
-    pbmc_small[['RNAbpColMajor']] <- CreateAssay5Object(counts = mat_bpcells_col)
-    pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbpRowMajor")
-    pbmc_small <- NormalizeData(pbmc_small, assay = "RNAbpColMajor")
-
-    fam.results.row <- suppressMessages(
-      suppressWarnings(
-        FindAllMarkers(object = pbmc_small, assay = "RNAbpRowMajor", pseudocount.use = 1)
-      )
-    )
-    fam.results.col <- suppressMessages(
-      expect_warning(
-        FindAllMarkers(object = pbmc_small, assay = "RNAbpColMajor", pseudocount.use = 1),
+  )
+  fm.results.col.2 <- suppressMessages(
+    expect_warning(
+        FindMarkers(object = pbmc_small, assay = "RNAbpColMajor", ident.1 = 0, ident.2 = 1),
         regexp = "Column-major order detected"
-      )
     )
-    fm.results.col.2 <- suppressMessages(
-      expect_warning(
-          FindMarkers(object = pbmc_small, assay = "RNAbpColMajor", ident.1 = 0, ident.2 = 1),
-          regexp = "Column-major order detected"
-      )
-    )
-    expect_equal(fam.results.col$gene, fam.results.row$gene)
-    expect_equal(fam.results.col$cluster, fam.results.row$cluster)
-  })
-}
+  )
+  expect_equal(fam.results.col$gene, fam.results.row$gene)
+  expect_equal(fam.results.col$cluster, fam.results.row$cluster)
+})
 
 test_that("FindAllMarkers applies threshold edge cases consistently", {
   markers <- suppressMessages(suppressWarnings(FindAllMarkers(
@@ -706,113 +713,115 @@ test_that("FindAllMarkers applies threshold edge cases consistently", {
   expect_false(anyNA(filtered$gene))
 })
 
-# Tests for running FindMarkers post integration/transfer
-ref <- pbmc_small
-ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
-query <- CreateSeuratObject(CreateAssayObject(
-  counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], layer = "counts") + rpois(n = ncol(pbmc_small), lambda = 1))
-))
+if (is_not_cran_submission) {
 
-query2 <- CreateSeuratObject(CreateAssayObject(
-  counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], layer = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1))
-))
+  # Tests for running FindMarkers post integration/transfer
+  ref <- pbmc_small
+  ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
+  query <- CreateSeuratObject(CreateAssayObject(
+    counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], layer = "counts") + rpois(n = ncol(pbmc_small), lambda = 1))
+  ))
 
-query.list <- list(query, query2)
-query.list <- lapply(X = query.list, FUN = NormalizeData, verbose = FALSE)
-query.list <- lapply(X = query.list, FUN = FindVariableFeatures, verbose = FALSE, nfeatures = 100)
-query.list <- lapply(X = query.list, FUN = ScaleData, verbose = FALSE)
-query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
+  query2 <- CreateSeuratObject(CreateAssayObject(
+    counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], layer = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1))
+  ))
 
-anchors <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
-object <- suppressWarnings(suppressMessages(IntegrateData(anchorset = anchors,  k.weight = 25, verbose = FALSE)))
-object <- suppressMessages(ScaleData(object, verbose = FALSE))
-object <- suppressMessages(RunPCA(object, verbose = FALSE))
-object <- suppressMessages(FindNeighbors(object = object, verbose = FALSE))
-object <- suppressMessages(FindClusters(object, verbose = FALSE))
-markers <- FindMarkers(object = object, ident.1="0", ident.2="1",pseudocount.use = 1, verbose=FALSE)
+  query.list <- list(query, query2)
+  query.list <- lapply(X = query.list, FUN = NormalizeData, verbose = FALSE)
+  query.list <- lapply(X = query.list, FUN = FindVariableFeatures, verbose = FALSE, nfeatures = 100)
+  query.list <- lapply(X = query.list, FUN = ScaleData, verbose = FALSE)
+  query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
 
-test_that("FindMarkers recognizes log normalization", {
-  expect_equal(markers[1, "p_val"], 1.598053e-14, tolerance = 1e-19)
-  expect_equal(markers[1, "avg_log2FC"], -2.634458, tolerance = 1e-6)
-})
+  anchors <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
+  object <- suppressWarnings(suppressMessages(IntegrateData(anchorset = anchors,  k.weight = 25, verbose = FALSE)))
+  object <- suppressMessages(ScaleData(object, verbose = FALSE))
+  object <- suppressMessages(RunPCA(object, verbose = FALSE))
+  object <- suppressMessages(FindNeighbors(object = object, verbose = FALSE))
+  object <- suppressMessages(FindClusters(object, verbose = FALSE))
+  markers <- FindMarkers(object = object, ident.1="0", ident.2="1",pseudocount.use = 1, verbose=FALSE)
+
+}
 
 # Tests for FindConservedMarkers
 # -------------------------------------------------------------------------------
 
-if (requireNamespace('metap', quietly = TRUE)) {
-  context("FindConservedMarkers")
-  pbmc_small$groups
+context("FindConservedMarkers")
 
+test_that("FindConservedMarkers works", {
+  skip_on_cran()
+  skip_if_not_installed("metap")
   markers <- suppressWarnings(FindConservedMarkers(object = pbmc_small, ident.1 = 0, grouping.var = "groups", verbose = FALSE, base = exp(1), pseudocount.use = 1))
 
   standard.names <- c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj")
+  expect_equal(colnames(x = markers), c(paste0("g2_", standard.names), paste0("g1_", standard.names), "max_pval", "minimump_p_val"))
+  expect_equal(markers[1, "g2_p_val"], 4.983576e-05)
+  expect_equal(markers[1, "g2_avg_logFC"], -4.364959, tolerance = 1e-6)
+  # expect_equal(markers[1, "g2_pct.1"], 0.062)
+  expect_equal(markers[1, "g2_pct.2"], 0.75)
+  expect_equal(markers[1, "g2_p_val_adj"], 0.0114622238)
+  expect_equal(markers[1, "g1_p_val"], 3.946643e-08, tolerance = 1e-13)
+  expect_equal(markers[1, "g1_avg_logFC"], -3.69215, tolerance = 1e-6)
+  expect_equal(markers[1, "g1_pct.1"], 0.10)
+  expect_equal(markers[1, "g1_pct.2"], 0.958)
+  expect_equal(markers[1, "g1_p_val_adj"], 9.077279e-06)
+  expect_equal(markers[1, "max_pval"], 4.983576e-05)
+  expect_equal(markers[1, "minimump_p_val"], 7.893286e-08, tolerance = 1e-13)
+  expect_equal(nrow(markers), 219)
+  expect_equal(rownames(markers)[1], "HLA-DRB1")
+  expect_equal(markers[, "max_pval"], unname(obj = apply(X = markers, MARGIN = 1, FUN = function(x) max(x[c("g1_p_val", "g2_p_val")]))))
+})
 
-  test_that("FindConservedMarkers works", {
-    expect_equal(colnames(x = markers), c(paste0("g2_", standard.names), paste0("g1_", standard.names), "max_pval", "minimump_p_val"))
-    expect_equal(markers[1, "g2_p_val"], 4.983576e-05)
-    expect_equal(markers[1, "g2_avg_logFC"], -4.364959, tolerance = 1e-6)
-    # expect_equal(markers[1, "g2_pct.1"], 0.062)
-    expect_equal(markers[1, "g2_pct.2"], 0.75)
-    expect_equal(markers[1, "g2_p_val_adj"], 0.0114622238)
-    expect_equal(markers[1, "g1_p_val"], 3.946643e-08, tolerance = 1e-13)
-    expect_equal(markers[1, "g1_avg_logFC"], -3.69215, tolerance = 1e-6)
-    expect_equal(markers[1, "g1_pct.1"], 0.10)
-    expect_equal(markers[1, "g1_pct.2"], 0.958)
-    expect_equal(markers[1, "g1_p_val_adj"], 9.077279e-06)
-    expect_equal(markers[1, "max_pval"], 4.983576e-05)
-    expect_equal(markers[1, "minimump_p_val"], 7.893286e-08, tolerance = 1e-13)
-    expect_equal(nrow(markers), 219)
-    expect_equal(rownames(markers)[1], "HLA-DRB1")
-    expect_equal(markers[, "max_pval"], unname(obj = apply(X = markers, MARGIN = 1, FUN = function(x) max(x[c("g1_p_val", "g2_p_val")]))))
-  })
+test_that("FindConservedMarkers names the supplied meta method", {
+  skip_if_not_installed("metap")
+  markers.sumlog <- suppressWarnings(FindConservedMarkers(
+    object = pbmc_small,
+    ident.1 = 0,
+    grouping.var = "groups",
+    meta.method = metap::sumlog,
+    verbose = FALSE,
+    base = exp(1),
+    pseudocount.use = 1
+  ))
+  stored.method <- metap::sumlog
+  markers.stored <- suppressWarnings(FindConservedMarkers(
+    object = pbmc_small,
+    ident.1 = 0,
+    grouping.var = "groups",
+    meta.method = stored.method,
+    verbose = FALSE,
+    base = exp(1),
+    pseudocount.use = 1
+  ))
 
-  test_that("FindConservedMarkers names the supplied meta method", {
-    markers.sumlog <- suppressWarnings(FindConservedMarkers(
-      object = pbmc_small,
-      ident.1 = 0,
-      grouping.var = "groups",
-      meta.method = metap::sumlog,
-      verbose = FALSE,
-      base = exp(1),
-      pseudocount.use = 1
-    ))
-    stored.method <- metap::sumlog
-    markers.stored <- suppressWarnings(FindConservedMarkers(
-      object = pbmc_small,
-      ident.1 = 0,
-      grouping.var = "groups",
-      meta.method = stored.method,
-      verbose = FALSE,
-      base = exp(1),
-      pseudocount.use = 1
-    ))
+  expect_true("sumlog_p_val" %in% colnames(x = markers.sumlog))
+  expect_false("minimump_p_val" %in% colnames(x = markers.sumlog))
+  expect_equal(markers.sumlog, markers.stored)
+})
 
-    expect_true("sumlog_p_val" %in% colnames(x = markers.sumlog))
-    expect_false("minimump_p_val" %in% colnames(x = markers.sumlog))
-    expect_equal(markers.sumlog, markers.stored)
-  })
+test_that("FindConservedMarkers errors when expected", {
+  skip_on_cran()
+  skip_if_not_installed("metap")
+  expect_error(FindConservedMarkers(pbmc_small))
+  expect_error(FindConservedMarkers(pbmc_small, ident.1 = 0))
+  expect_error(FindConservedMarkers(pbmc_small, ident.1 = 0, grouping.var = "groups", meta.method = "minimump"))
+})
 
-  test_that("FindConservedMarkers errors when expected", {
-    expect_error(FindConservedMarkers(pbmc_small))
-    expect_error(FindConservedMarkers(pbmc_small, ident.1 = 0))
-    expect_error(FindConservedMarkers(pbmc_small, ident.1 = 0, grouping.var = "groups", meta.method = "minimump"))
-  })
-
+test_that("FindConservedMarkers handles missing idents in certain groups", {
+  skip_on_cran()
+  skip_if_not_installed("metap")
+  standard.names <- c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj")
   pbmc.test <- pbmc_small
   Idents(object = pbmc.test) <- "RNA_snn_res.1"
   pbmc.test$id.group <- paste0(pbmc.test$RNA_snn_res.1, "_", pbmc.test$groups)
   pbmc.test <- subset(x = pbmc.test, id.group == "0_g1", invert = TRUE)
   markers.missing <- suppressWarnings(FindConservedMarkers(object = pbmc.test, ident.1 = 0, grouping.var = "groups", test.use = "t", verbose = FALSE, base = exp(1), pseudocount.use = 1))
-
-  test_that("FindConservedMarkers handles missing idents in certain groups", {
-    expect_warning(FindConservedMarkers(object = pbmc.test, ident.1 = 0, grouping.var = "groups", test.use = "t"))
-    expect_equal(colnames(x = markers.missing), paste0("g2_", standard.names))
-    expect_equal(markers.missing[1, "g2_p_val"], 1.672911e-13, tolerance = 1e-18)
-    expect_equal(markers.missing[1, "g2_avg_logFC"], -4.796379, tolerance = 1e-6)
-    # expect_equal(markers.missing[1, "g2_pct.1"], 0.062)
-    expect_equal(markers.missing[1, "g2_pct.2"], 0.95)
-    expect_equal(markers.missing[1, "g2_p_val_adj"], 3.847695e-11, tolerance = 1e-16)
-    expect_equal(nrow(markers.missing), 226)
-    expect_equal(rownames(markers.missing)[1], "HLA-DPB1")
-  })
-}
+  expect_warning(FindConservedMarkers(object = pbmc.test, ident.1 = 0, grouping.var = "groups", test.use = "t"))
+  expect_equal(colnames(x = markers.missing), paste0("g2_", standard.names))
+  expect_equal(markers.missing[1, "g2_p_val"], 1.672911e-13, tolerance = 1e-18)
+  expect_equal(markers.missing[1, "g2_avg_logFC"], -4.796379, tolerance = 1e-6)
+  # expect_equal(markers.missing[1, "g2_pct.1"], 0.062)
+  expect_equal(markers.missing[1, "g2_pct.2"], 0.95)
+  expect_equal(markers.missing[1, "g2_p_val_adj"], 3.847695e-11, tolerance = 1e-16)
+  expect_equal(nrow(markers.missing), 226)
+  expect_equal(rownames(markers.missing)[1], "HLA-DPB1")
+})

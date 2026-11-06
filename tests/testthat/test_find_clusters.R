@@ -78,9 +78,12 @@ test_that("Smoke test for `FindClusters`", {
   # Test with igraph method
   expect_warning(FindClusters(test_case, algorithm = 4, leiden_method = "igraph"))
   expect_no_warning(FindClusters(test_case, algorithm = 4, leiden_method = "igraph", random.seed = 1))
-  
-  # Test leidenbase method if available
+})
+
+test_that("FindClusters works with the leidenbase method", {
+  skip_on_cran()
   skip_if_not_installed("leidenbase")
+  test_case <- get_findclusters_test_data()
   expect_warning(FindClusters(test_case, algorithm = 4, leiden_method = "leidenbase"))
   expect_no_warning(FindClusters(test_case, algorithm = 4, leiden_method = "leidenbase", random.seed = 1))
 })

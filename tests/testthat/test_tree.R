@@ -22,6 +22,7 @@ setup_test_data <- function(cluster_resolution) {
 context("BuildClusterTree")
 
 test_that("BuildClusterTree works as expected", {
+    skip_on_cran()
     skip_if_not_installed("ape")
 
     # TODO: this test doesn't really check that the phylogenic trees being

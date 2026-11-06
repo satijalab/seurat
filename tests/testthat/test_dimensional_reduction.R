@@ -283,7 +283,7 @@ test_that("`RunPCA` works as expected", {
 
   # If `BPCells` is installed, add `IterableMatrix` inputs to the set of 
   # equivalent inputs.
-  if (requireNamespace("BPCells", quietly = TRUE)) {
+  if (isTRUE(as.logical(Sys.getenv("NOT_CRAN"))) && requireNamespace("BPCells", quietly = TRUE)) {
     counts_bpcells <- t(as(t(counts), Class = "IterableMatrix"))
     object_bpcells <- create_seurat_obj(counts_bpcells, assay_version = "v5")
     input_bpcells <- create_prep_obj(

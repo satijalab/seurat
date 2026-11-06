@@ -112,6 +112,7 @@ test_that("SpatialFeaturePlot works with multiple layers & images", {
 })
 
 test_that("SpatialFeaturePlot works with multiple overlapping images", {
+  skip_on_cran()
   skip_if_not_installed("sf")
 
   test.case <- test.data.1
@@ -263,6 +264,7 @@ test_that("SpatialDimPlot works with multiple layers/images", {
 })
 
 test_that("SpatialDimPlot works with multiple overlapping images", {
+  skip_on_cran()
   skip_if_not_installed("sf")
   
   test.case <- test.data.1

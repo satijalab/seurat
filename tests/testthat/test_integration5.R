@@ -54,6 +54,7 @@ test.data.std <- create_integration_obj(object = test.data)
 
 if (is_not_cran_submission) {
   test_that("IntegrateLayers works with HarmonyIntegration", {
+    skip_on_cran()
     skip_if_not_installed("harmony")
 
     set.seed(seed = 42)
@@ -392,6 +393,7 @@ if (is_not_cran_submission) {
   test.data.sct <- create_integration_obj(object = test.data, sct = TRUE)
 
   test_that("IntegrateLayers works with HarmonyIntegration & SCTransform", {
+    skip_on_cran()
     skip_if_not_installed("harmony")
 
     set.seed(seed = 42)

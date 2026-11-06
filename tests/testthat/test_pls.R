@@ -83,6 +83,7 @@ kernelpls.cases <- list(
 
 for (case in names(kernelpls.cases)) {
   test_that(paste("on-disk kernelpls matches pls::kernelpls.fit:", case), {
+    skip_on_cran()
     skip_if_not_installed("BPCells")
     skip_if_not_installed("pls")
 
@@ -121,6 +122,7 @@ cppls.cases <- list(
 
 for (case in names(cppls.cases)) {
   test_that(paste("on-disk cppls matches pls::cppls.fit:", case), {
+    skip_on_cran()
     skip_if_not_installed("BPCells")
     skip_if_not_installed("pls")
     cs <- cppls.cases[[case]]
@@ -147,6 +149,7 @@ for (case in names(cppls.cases)) {
 
 
 test_that("on-disk PLS stripped mode drops the per-sample outputs only", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
 
   d <- simulate_pls_data(n = 60, p = 12, q = 1, seed = 55)
@@ -166,6 +169,7 @@ test_that("on-disk PLS stripped mode drops the per-sample outputs only", {
 
 
 test_that("on-disk PLS results do not depend on the thread count", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   # simulate a machine that has 2 cores
   local_mocked_bindings(detectCores = function(...) 2L, .package = "parallel")
@@ -186,6 +190,7 @@ test_that("on-disk PLS results do not depend on the thread count", {
 
 
 test_that("on-disk PLS validates its inputs", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
 
   # X is 10 x 3 (n x p), stored as a 3 x 10 BPCells matrix
@@ -264,6 +269,7 @@ ondisk_fixture <- function() {
 }
 
 test_that("on-disk RunPLS accepts integer responses", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   fx <- ondisk_fixture()
   Y.int.mat <- cbind(a = fx$Y.int, b = rev(x = fx$Y.int))
@@ -280,6 +286,7 @@ test_that("on-disk RunPLS accepts integer responses", {
 })
 
 test_that("on-disk RunPLS accepts every documented form of Y.add", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   fx <- ondisk_fixture()
   fit <- function(Y.add) {
@@ -303,6 +310,7 @@ test_that("on-disk RunPLS accepts every documented form of Y.add", {
 })
 
 test_that("on-disk RunPLS rejects missing Y.add and accepts bare factor or character responses", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   fx <- ondisk_fixture()
   add.int <- fx$add.int
@@ -336,6 +344,7 @@ test_that("on-disk RunPLS rejects missing Y.add and accepts bare factor or chara
 })
 
 test_that("RunPLS on a Seurat object with on-disk data accepts integer responses", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   fx <- ondisk_fixture()
   object <- CreateSeuratObject(counts = as(abs(x = round(x = fx$X * 10)), "dgCMatrix"))
@@ -399,6 +408,7 @@ test_that("RunPLS rejects sparse in-memory matrices", {
 })
 
 test_that("RunPLS runs spls on Seurat objects with v3 and v5 assays", {
+  skip_on_cran()
   skip_if_not_installed("spls")
 
   for (v3 in c(FALSE, TRUE)) {

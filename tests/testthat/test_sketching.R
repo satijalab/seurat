@@ -288,6 +288,7 @@ test_that("ProjectData preserves factor labels", {
 context("SketchProduct")
 
 test_that("SketchProduct keeps sketch rows that draw no cells", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   library(BPCells)
 
@@ -388,6 +389,7 @@ test_that("SketchDataByGroup without group.by samples each layer", {
 })
 
 test_that("SketchDataByGroup without group.by keeps on-disk data on disk", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   loadNamespace("BPCells")
   test_case <- build_test_data()
