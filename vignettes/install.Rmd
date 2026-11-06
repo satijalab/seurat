@@ -1,6 +1,9 @@
 ---
 title: "Installing Seurat"
-output: html_document
+output:
+  html_document:
+    theme: united
+    df_print: kable
 ---
 
 To install Seurat, [R](https://www.r-project.org/) version 4.0 or greater is required. We also recommend installing [RStudio](https://www.rstudio.com/).
@@ -109,6 +112,8 @@ pak::pkg_install("local::/path/to/Seurat_X.X.X.tar.gz")
 # Docker
 
 We provide Docker images for Seurat via [Docker Hub](https://hub.docker.com/r/satijalab/seurat).
+
+_Note: packages in these images may be installed from CRAN or Posit Package Manager (RSPM), which supplies precompiled binaries of CRAN releases._
 
 To pull the latest image from the command line:
 

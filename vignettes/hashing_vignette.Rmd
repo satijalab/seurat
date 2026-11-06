@@ -4,8 +4,7 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-date: 'Compiled: `r Sys.Date()`'
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE, error=FALSE}
@@ -67,13 +66,13 @@ This vignette will give a brief demonstration on how to work with data produced 
 
 Load packages
 
-```{r load_pacakges}
+```{r load-pacakges}
 library(Seurat)
 ```
 
 Read in data
 
-```{r read_Data}
+```{r read-data}
 # Load in the UMI matrix
 pbmc.umis <- readRDS("/brahms/shared/vignette-data/pbmc_umi_mtx.rds")
 
@@ -95,7 +94,7 @@ rownames(pbmc.htos)
 
 Setup Seurat object and add in the HTO data
 
-```{r hashtag_setup}
+```{r hashtag-setup}
 # Setup Seurat object
 pbmc.hashtag <- CreateSeuratObject(counts = Matrix::Matrix(as.matrix(pbmc.umis),sparse = T))
 
@@ -110,7 +109,7 @@ pbmc.hashtag <- ScaleData(pbmc.hashtag, features = VariableFeatures(pbmc.hashtag
 
 You can read more about working with multi-modal data [here](multimodal_vignette.html)
 
-```{r hto_assay}
+```{r hto-assay}
 # Add HTO data as a new assay independent from RNA
 pbmc.hashtag[['HTO']] <- CreateAssay5Object(counts = pbmc.htos)
 # Normalize HTO data, here we use centered log-ratio (CLR) transformation
@@ -121,7 +120,7 @@ pbmc.hashtag <- NormalizeData(pbmc.hashtag, assay = 'HTO', normalization.method 
 
 Here we use the Seurat function `HTODemux()` to assign single cells back to their sample origins.
 
-```{r hashtag_demux, results = FALSE}
+```{r hashtag-demux, results = FALSE}
 # If you have a very large dataset we suggest using k_function = "clara". This is a k-medoid clustering function for large applications
 # You can also play with additional parameters (see documentation for HTODemux()) to adjust the threshold for classification
 # Here we are using the default settings
@@ -132,14 +131,14 @@ pbmc.hashtag <- HTODemux(pbmc.hashtag, assay = "HTO", positive.quantile = 0.99)
 
 Output from running `HTODemux()` is saved in the object metadata. We can visualize how many cells are classified as singlets, doublets and negative/ambiguous cells.
 
-```{r demux_summary}
+```{r demux-summary}
 # Global classification results
 table(pbmc.hashtag$HTO_classification.global)
 ```
 
 Visualize enrichment for selected HTOs with ridge plots
 
-```{r hashtag_ridge, fig.width=9}
+```{r hashtag-ridge, fig.width=9}
 # Group cells based on the max HTO signal
 Idents(pbmc.hashtag) <- 'HTO_maxID'
 RidgePlot(pbmc.hashtag, assay = 'HTO', features = rownames(pbmc.hashtag[['HTO']])[1:2], ncol = 2)
@@ -147,19 +146,19 @@ RidgePlot(pbmc.hashtag, assay = 'HTO', features = rownames(pbmc.hashtag[['HTO']]
 
 Visualize pairs of HTO signals to confirm mutual exclusivity in singlets
 
-```{r hashtag_scatter1, fig.height=8, fig.width=9}
+```{r hashtag-scatter1, fig.height=8, fig.width=9}
 FeatureScatter(pbmc.hashtag, feature1 = 'hto_HTO-A', feature2 = 'hto_HTO-B')
 ```
 
 Compare number of UMIs for singlets, doublets and negative cells
-```{r hashtag_vln, fig.width=10}
+```{r hashtag-vln, fig.width=10}
 Idents(pbmc.hashtag) <- 'HTO_classification.global'
 VlnPlot(pbmc.hashtag, features = 'nCount_RNA', pt.size = 0.1, log = TRUE)
 ```
 
 Generate a two dimensional tSNE embedding for HTOs. Here we are grouping cells by singlets and doublets for simplicity.
 
-```{r hashtag_sub_tsne, fig.width=9}
+```{r hashtag-sub-tsne, fig.width=9}
 #First, we will remove negative cells from the object
 pbmc.hashtag.subset <- subset(pbmc.hashtag, idents = 'Negative', invert = TRUE)
 
@@ -174,14 +173,14 @@ DimPlot(pbmc.hashtag.subset)
 
 Create an HTO heatmap, based on Figure 1C in the Cell Hashing paper. 
 
-```{r hashtag_heatmap, fig.width=12}
+```{r hashtag-heatmap, fig.width=12}
 #To increase the efficiency of plotting, you can subsample cells using the num.cells argument
 HTOHeatmap(pbmc.hashtag, assay = 'HTO', ncells = 5000)
 ```
 
 Cluster and visualize cells using the usual scRNA-seq workflow, and examine for the potential presence of batch effects.
 
-```{r hastag_cluster}
+```{r hastag-cluster}
 # Extract the singlets
 pbmc.singlet <- subset(pbmc.hashtag, idents = 'Singlet')
 
@@ -195,7 +194,7 @@ pbmc.singlet <- ScaleData(pbmc.singlet, features = VariableFeatures(pbmc.singlet
 pbmc.singlet <- RunPCA(pbmc.singlet, features = VariableFeatures(pbmc.singlet))
 ```
 
-```{r hashtag_tsne, fig.width=9}
+```{r hashtag-tsne, fig.width=9}
 # We select the top 10 PCs for clustering and tSNE based on PCElbowPlot
 pbmc.singlet <- FindNeighbors(pbmc.singlet, reduction = 'pca', dims = 1:10)
 pbmc.singlet <- FindClusters(pbmc.singlet, resolution = 0.6, verbose = FALSE)
@@ -221,7 +220,7 @@ DimPlot(pbmc.singlet, group.by = "HTO_classification")
 
 ## Create Seurat object, add HTO data and perform normalization
 
-```{r hto_setup}
+```{r hto-setup}
 # Read in UMI count matrix for RNA
 hto12.umis <- readRDS("/brahms/shared/vignette-data/hto12_umi_mtx.rds")
 
@@ -266,7 +265,7 @@ HTOHeatmap(hto12, assay = "HTO")
   <li> In addition, we see small clusters in between, representing mixed transcriptomes that are correctly annotated as doublets. </li>
   <li> We also see within-cell type doublets, that are (perhaps unsurprisingly) intermixed with singlets of the same cell type </li>
 
-```{r hto_sub_tsne, fig.width=9}
+```{r hto-sub-tsne, fig.width=9}
 # Remove the negative cells
 hto12 <- subset(hto12, idents = 'Negative', invert = TRUE)
 
@@ -279,9 +278,21 @@ DimPlot(hto12) + NoLegend()
 ```
 
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("hashing_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "hashing_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r, cache=FALSE}
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

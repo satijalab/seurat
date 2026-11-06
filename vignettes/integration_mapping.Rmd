@@ -4,8 +4,7 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-date: 'Compiled: `r Sys.Date()`'
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE, error=FALSE}
@@ -50,7 +49,7 @@ library(ggplot2)
 
 Install the required SeuratData datasets before starting the analysis.
 
-```{r install.data, warning=FALSE, message=FALSE, eval=FALSE}
+```{r install-data, warning=FALSE, message=FALSE, eval=FALSE}
 InstallData('panc8')
 ```
 
@@ -94,7 +93,7 @@ Seurat also supports the projection of reference data (or meta data) onto a quer
 
 After finding anchors, we use the `TransferData()` function to classify the query cells based on reference data (a vector of reference cell type labels). `TransferData()` returns a matrix with predicted IDs and prediction scores, which we can add to the query metadata.
 
-```{r label.transfer, warning = FALSE, message = FALSE}
+```{r label-transfer, warning = FALSE, message = FALSE}
 
 # select two technologies for the query datasets
 pancreas.query <- subset(panc8, tech %in% c("fluidigmc1", "celseq"))
@@ -122,7 +121,7 @@ VlnPlot(pancreas.query, c("REG1A", "PPY", "SST", "GHRL", "VWF", "SOX10"), group.
 
 We also enable projection of a query onto the reference UMAP structure. This can be achieved by computing the reference UMAP model and then calling  `MapQuery()` instead of `TransferData()`. 
 
-```{r label.transfer.v4, warning = FALSE, message = FALSE}
+```{r label-transfer-v4, warning = FALSE, message = FALSE}
 pancreas.ref <- RunUMAP(pancreas.ref, dims = 1:30, reduction = "integrated.cca", return.model = TRUE)
 pancreas.query <- MapQuery(
   anchorset = pancreas.anchors, 
@@ -139,7 +138,7 @@ pancreas.query <- MapQuery(
 
 `MapQuery()` is a wrapper around three functions: `TransferData()`, `IntegrateEmbeddings()`, and `ProjectUMAP()`. `TransferData()` is used to transfer cell type labels and impute the ADT values; `IntegrateEmbeddings()` is used to integrate reference with query by correcting the query's projected low-dimensional embeddings; and finally `ProjectUMAP()` is used to project the query data onto the UMAP structure of the reference. The equivalent code for doing this with the intermediate functions is below:
 
-```{r, eval=FALSE}
+```{r transfer-labels, eval=FALSE}
 pancreas.query <- TransferData(
   anchorset = pancreas.anchors, 
   reference = pancreas.ref,
@@ -164,7 +163,7 @@ pancreas.query <- ProjectUMAP(
 
 We can now visualize the query cells alongside our reference.
 
-```{r panc.refdimplots, fig.width=10}
+```{r panc-refdimplots, fig.width=10}
 p1 <- DimPlot(pancreas.ref, reduction = "umap", group.by = "celltype", label = TRUE,
              label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Reference annotations")
 p2 <- DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.celltype", label = TRUE, 
@@ -173,9 +172,21 @@ p1 + p2
 ```
 
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("integration_mapping", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "integration_mapping_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r, cache=FALSE}
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

@@ -4,8 +4,7 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-date: 'Compiled: `r Sys.Date()`'
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 
@@ -35,13 +34,12 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r, warning=FALSE, message=F}
+```{r covid-sctmapping, warning=FALSE, message=F}
 library(Seurat)
 library(BPCells)
 library(dplyr)
 library(patchwork)
 library(ggplot2)
-options(future.globals.maxSize = 1e9)
 ```
 
 
@@ -57,7 +55,7 @@ Prior to running this vignette, please [install Seurat v5](install.html) and see
 We first load the reference (available [here](https://zenodo.org/record/7779017#.ZCMojezMJqs)) and normalize the query Seurat object prepared in the [BPCells interaction vignette](bpcells_interaction_vignette.html). The query object consists of datasets from three different studies constructed using the `CreateSeuratObject` function, which accepts a list of BPCells matrices as input. Within the Seurat object, the three datasets reside in the `RNA` assay in three separate `layers` on-disk.
 
 
-```{r load.data}
+```{r load-data}
 reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
 object <- readRDS("/brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds")
 object <- NormalizeData(object, verbose = FALSE)
@@ -66,7 +64,7 @@ object <- NormalizeData(object, verbose = FALSE)
 ## Mapping
 Using the same code from the [v4 reference mapping vignette](multimodal_reference_mapping.html), we find anchors between the reference and query in the precomputed supervised PCA. We recommend the use of supervised PCA for CITE-seq reference datasets, and demonstrate how to compute this transformation in [v4 reference mapping vignette](multimodal_reference_mapping.html). In Seurat v5, we only need to call `FindTransferAnchors` and `MapQuery` once to map all three datasets as they are all contained within the query object. Furthermore, utilizing the on-disk capabilities of [BPCells](https://github.com/bnprks/BPCells), we map 1.5 million cells without ever loading them all into memory.  
 
-```{r}
+```{r mapping}
 anchor <- FindTransferAnchors(
   reference = reference,
   query = object,
@@ -88,17 +86,17 @@ object <- MapQuery(
 ## Explore the mapping results
 Next, we visualize all cells from the three studies which have been projected into a UMAP-space defined by the reference. Each cell is annotated at two levels of granularity (`predicted.celltype.l1` and `predicted.celltype.l2`). We can compare the differing ontologies used in the original annotations (`cell_type`) to the now harmonized annotations (`predicted.celltype.l2`, for example) that were predicted from reference-mapping. Previously, the lack of standardization prevented us from directly performing integrative analysis across studies, but now we can easily compare.
 
-```{r, fig.width=10, fig.height=6}
+```{r dim-plot, fig.width=10, fig.height=6}
 DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3,  label.size = 3) + NoLegend()
 ```
-```{r, fig.width=10, fig.height=6}
+```{r dim-plot-2, fig.width=10, fig.height=6}
 DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3,  label.size = 3) + NoLegend()
 ```
 
 ## Differential composition analysis
 We utilize our harmonized annotations to identify differences in the proportion of different cell types between healthy individuals and COVID-19 patients. For example, we noticed a reduction in MAIT cells as well as an increase in plasmablasts among COVID-19 patients.
 
-```{r}
+```{r de-composition}
 df_comp <- as.data.frame.matrix(table(object$donor_id, object$predicted.celltype.l2))
 select.donors <- rownames(df_comp)[rowSums(df_comp)> 50]
 df_comp <- df_comp[select.donors, ]
@@ -113,7 +111,7 @@ df_comp_relative$disease <- factor(df_comp_relative$disease, levels = c('normal'
 df_comp_relative <- df_comp_relative[df_comp_relative$disease %in% c('normal','COVID-19'),]
 ```
 
-```{r, fig.width=10, fig.height=4}
+```{r plot-results, fig.width=10, fig.height=4}
 p1 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = MAIT, fill = disease)) +  
   geom_boxplot(outlier.shape  = NA) +
   scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
@@ -140,13 +138,13 @@ p2 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = Plasmablas
 
 p1 + p2 + plot_layout(ncol = 2)
 ```
-```{r, include=FALSE}
+```{r de-composition-2, include=FALSE}
 #saveRDS(object, '/home/lis/seurat-private/output/covid_object.rds')
 ```
 ## Differential expression analysis
 In addition to composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy individuals and COVID-19 donors. We aggregate all cells within the same cell type and donor using the `AggregateExpression` function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
 
-```{r}
+```{r pseudobulk}
 bulk <- AggregateExpression(object,
   return.seurat = TRUE,
   assays  = 'RNA',
@@ -154,7 +152,7 @@ bulk <- AggregateExpression(object,
 )
 ```
 
-```{r} 
+```{r de-expr}
 bulk <- subset(bulk, subset = disease %in% c('normal', 'COVID-19') )
 bulk <- subset(bulk, subset = predicted.celltype.l2 !=  'Doublet')
 bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
@@ -162,7 +160,7 @@ bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
 
 Once a pseudobulk object is created, we can perform cell type-specific differential expression analysis between healthy individuals and COVID-19 donors. Here, we only visualize certain interferon-stimulated genes which are often upregulated during viral infection.
 
-```{r, fig.width=10, fig.height=12}
+```{r violin-plot, fig.width=10, fig.height=12}
 p1 <- VlnPlot(
   object = bulk, features = 'IFI6', group.by = 'predicted.celltype.l2',
   split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
@@ -175,9 +173,21 @@ p3 <- VlnPlot(
 p1 + p2 + p3 + plot_layout(ncol = 1)
 ```
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("COVID_SCTMapping", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "COVID_SCTMapping_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r, cache=FALSE}
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

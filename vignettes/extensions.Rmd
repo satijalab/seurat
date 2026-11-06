@@ -1,6 +1,9 @@
 ---
 title: "Extensions"
-output: html_document
+output:
+  html_document:
+    theme: united
+    df_print: kable
 ---
 
 In addition to the core Seurat package, we recommend installing several other packages that enhance the functionality and utility of Seurat. A brief description of each is listed below with links to more complete documentation.

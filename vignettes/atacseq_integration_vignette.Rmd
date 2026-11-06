@@ -7,7 +7,7 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r markdown.setup, include=TRUE, error=FALSE}
+```{r markdown-setup, include=TRUE, error=FALSE}
 options(warn = 0)
 all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
@@ -57,7 +57,7 @@ library(SeuratData)
 
 Make sure the `pbmcMultiome` dataset from `SeuratData` is installed:
 
-```{r, eval=FALSE}
+```{r install-data, eval=FALSE}
 InstallData('pbmcMultiome')
 ```
 
@@ -69,7 +69,7 @@ library(ggplot2)
 library(cowplot)
 ```
 
-```{r load_data}
+```{r load-data}
 # load both modalities
 pbmc.rna <- LoadData("pbmcMultiome", "pbmc.rna")
 pbmc.atac <- LoadData("pbmcMultiome", "pbmc.atac")
@@ -112,7 +112,7 @@ p1 + p2
 # Identifying anchors between scRNA-seq and scATAC-seq datasets
 
 In order to identify 'anchors' between scRNA-seq and scATAC-seq experiments, we first generate a rough estimate of the transcriptional activity of each gene by quantifying ATAC-seq counts in the 2 kb-upstream region and gene body, using the `GeneActivity()` function in the Signac package. The ensuing gene activity scores from the scATAC-seq data are then used as input for canonical correlation analysis, along with the gene expression quantifications from scRNA-seq. We perform this quantification for all genes identified as being highly variable from the scRNA-seq dataset.
-```{r gene.activity}
+```{r gene-activity}
 # quantify gene activity
 gene.activities <- GeneActivity(pbmc.atac, features = VariableFeatures(pbmc.rna))
 
@@ -125,7 +125,7 @@ pbmc.atac <- NormalizeData(pbmc.atac)
 pbmc.atac <- ScaleData(pbmc.atac, features = rownames(pbmc.atac))
 ```
 
-```{r label.xfer}
+```{r label-xfer}
 # Identify anchors 
 transfer.anchors <- FindTransferAnchors(
   reference = pbmc.rna,
@@ -141,7 +141,7 @@ transfer.anchors <- FindTransferAnchors(
 
 After identifying anchors, we can transfer annotations from the scRNA-seq dataset onto the scATAC-seq cells. The annotations are stored in the `seurat_annotations` field, and are provided as input to the `refdata` parameter. The output will contain a matrix with predictions and confidence scores for each ATAC-seq cell.
 
-```{r transfer.data}
+```{r transfer-data}
 celltype.predictions <- TransferData(
   anchorset = transfer.anchors,
   refdata = pbmc.rna$seurat_annotations,
@@ -163,7 +163,7 @@ In `FindTransferAnchors()`, we typically project the PCA structure from the refe
 After performing transfer, the ATAC-seq cells have predicted annotations (transferred from the scRNA-seq dataset) stored in the `predicted.id` field. Since these cells were measured with the multiome kit, we also have a ground-truth annotation that can be used for evaluation. You can see that the predicted and actual annotations are extremely similar. 
 
 
-```{r viz.label.accuracy}
+```{r viz-label-accuracy}
 pbmc.atac$annotation_correct <- pbmc.atac$predicted.id == pbmc.atac$seurat_annotations
 p1 <- DimPlot(pbmc.atac, group.by = 'predicted.id', label = TRUE) + NoLegend() + ggtitle("Predicted annotation")
 p2 <- DimPlot(pbmc.atac, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("Ground-truth annotation")
@@ -172,7 +172,7 @@ p1 | p2
 
 In this example, the annotation for an scATAC-seq profile is correctly predicted via scRNA-seq integration ~90% of the time. In addition, the `prediction.score.max` field quantifies the uncertainty associated with our predicted annotations. We can see that cells that are correctly annotated are typically associated with high prediction scores (>90%), while cells that are incorrectly annotated are associated with sharply lower prediction scores (<50%). Incorrect assignments also tend to reflect closely related cell types (i.e. Intermediate vs. Naive B cells).
 
-```{r score.viz, fig.height = 5}
+```{r score-viz, fig.height = 5}
 predictions <- table(pbmc.atac$seurat_annotations, pbmc.atac$predicted.id)
 predictions <- predictions / rowSums(predictions) # normalize for number of cells in each cell type
 predictions <- as.data.frame(predictions)
@@ -220,9 +220,21 @@ DimPlot(coembed, group.by = c("orig.ident","seurat_annotations"))
 ```
 
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("atacseq_integration_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "atacseq_integration_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r, cache=FALSE}
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

@@ -49,7 +49,7 @@ library(sctransform)
 
 # Load data and create Seurat object
 
-```{r load_data, warning=FALSE, message=FALSE}
+```{r load-data, warning=FALSE, message=FALSE}
 pbmc_data <- Read10X(data.dir = "/brahms/shared/vignette-data/pbmc3k/filtered_gene_bc_matrices/hg19/")
 pbmc <- CreateSeuratObject(counts = pbmc_data)
 ```
@@ -62,7 +62,7 @@ In Seurat v5, SCT v2 is applied by default. You can revert to v1 by setting `vst
 
 After running `SCTransform()`, transformed data is available in the "SCT" assay, which is set as the default assay. This means that all downstream commands will use the sctransform-normalized data by default.
 
-```{r apply_sct, warning=FALSE, message=FALSE}
+```{r apply-sct, warning=FALSE, message=FALSE}
 # store mitochondrial percentage in object meta data
 pbmc <- PercentageFeatureSet(pbmc, pattern = "^MT-", col.name = 'percent.mt')
 
@@ -138,9 +138,21 @@ FeaturePlot(pbmc, features = c("CD3D", "ISG15", "TCL1A", "FCER2", "XCL1", "FCGR3
 ```
 
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("sctransform_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "sctransform_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r, cache=FALSE}
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

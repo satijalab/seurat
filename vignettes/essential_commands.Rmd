@@ -4,8 +4,6 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-# date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE}
@@ -47,7 +45,7 @@ ifnb <- LoadData('ifnb')
 ```
 
 # Standard `Seurat` workflow
-```{r seurat-standard-workflow-2}
+```{r normalize}
 pbmc <- NormalizeData(object = pbmc)
 pbmc <- FindVariableFeatures(object = pbmc)
 pbmc <- ScaleData(object = pbmc)
@@ -60,7 +58,7 @@ DimPlot(object = pbmc, reduction = 'umap')
 ```
 
 ## SCtransform version
-```{r seurat-standard-workflow}
+```{r sctransform}
 pbmc <- SCTransform(object = pbmc)
 pbmc <- RunPCA(object = pbmc)
 pbmc <- FindNeighbors(object = pbmc, dims = 1:30)
@@ -81,7 +79,7 @@ pbmc <- SCTransform(pbmc) %>%
 # `Seurat` Object Data Access
 
 ## Cell, feature, and layer names
-```{r features_and_cells}
+```{r features-and-cells}
 # Get cell and feature names, and total numbers
 # We show multiple ways to get the same output
 # cell names
@@ -300,7 +298,7 @@ merged_obj[["RNA"]] <- JoinLayers(merged_obj[["RNA"]])
 ## Group cells together, based on multiple categories
 See the [DE vignette](de_vignette.html) for information  on how to add the `donor_id` column to meta data.
 
-```{r, eval=FALSE}
+```{r pseudobulk, eval=FALSE}
 # pseudobulk cells only by cell type
 bulk <- AggregateExpression(ifnb,group.by ='seurat_annotations', return.seurat = TRUE)
 Cells(bulk)
@@ -443,7 +441,7 @@ class(mousebrain1m[["RNA"]])
 
 The `$` and double-bracket `[[]]` symbols can be used as efficient accessor functions for Seurat5 assays.
 
-```{r }
+```{r normalize-2}
 
 # access the counts matrix from the RNA assay
 counts_matrix <- pbmc3k[["RNA"]]$counts
@@ -464,7 +462,7 @@ class(mousebrain1m[["RNA"]]$counts)
 
 Despite the drastic difference in dataset size, the 1.3M cell dataset occupies a small memory footprint thanks to on-disk storage.
 
-```{r}
+```{r 3m-cell-dataset}
 paste("PBMC 3k contains", length(colnames(pbmc3k)), "cells")
 paste("Mouse brain 1.3M contains", length(colnames(mousebrain1m)), "cells")
 
@@ -477,7 +475,7 @@ paste("Mouse brain 1.3M assay size:", format(object.size(mousebrain1m[["RNA"]]),
 
 Get cell names. Since Seurat v5 objects don't require all assays to have the same cells, `Cells()` is designed to get cell names of the default assay and `colnames()` is designed to get cell names across the entire object.
 
-```{r}
+```{r access-cell-names}
 pbmc3k[["RNAsub"]] <- subset(pbmc3k[["RNA"]], cells = colnames(pbmc3k)[1:100])
 DefaultAssay(pbmc3k) <- 'RNAsub'
 length(Cells(pbmc3k))
@@ -486,7 +484,7 @@ length(colnames(pbmc3k))
 
 Access object metadata:
 
-```{r meta}
+```{r metadata-2}
 
 # get all object metadata
 pbmc_metadata <- pbmc3k[[]]
@@ -519,7 +517,7 @@ class(pbmc[["RNA"]])
 
 `CreateAssayObject()` and `CreateAssay5Object()` can be used to create v3 and v5 assays respectively, regardless of the setting in `Seurat.object.assay.version`.
 
-```{r}
+```{r create-v5-assays}
 #create a v3 assay
 assay.v3 <- CreateAssayObject(counts = pbmc.counts)
 
@@ -532,7 +530,7 @@ class(assay.v5)
 
 Assay5 objects are more flexible, and can be used to store only a data layer, with no counts data. This can be used to create Seurat objects that require less space.
 
-```{r}
+```{r create-a-v5-assay}
 # create an assay using only normalized data
 assay.v5 <- CreateAssay5Object(data = log1p(pbmc.counts))
 
@@ -543,7 +541,7 @@ pbmc3k_slim
 
 We can also convert (cast) between `Assay` and `Assay5` objects with `as()`.
 
-```{r}
+```{r create-seurat-object}
 # convert a v5 assay to a v3 assay
 pbmc3k[["RNA3"]] <- as(object = pbmc3k[["RNA"]], Class = "Assay")
 
@@ -555,7 +553,7 @@ pbmc3k[["RNA5"]] <- as(object = pbmc3k[["RNA3"]], Class = "Assay5")
 
 Seurat v5 assays store data in layers. These layers can store raw, un-normalized counts (`layer='counts'`), normalized data (`layer='data'`), or z-scored/variance-stabilized data (`layer='scale.data'`).
 
-```{r}
+```{r working-with-layers}
 # by default, creates an RNA assay with a counts layer
 obj <- CreateSeuratObject(counts = pbmc.counts)
 obj
@@ -599,7 +597,7 @@ Layers(obj[["RNA"]])
 
 ## Accessing additional data
 
-```{r}
+```{r find-features}
 pbmc3k <- FindVariableFeatures(pbmc3k, verbose = FALSE)
 pbmc3k <- ScaleData(pbmc3k,verbose = FALSE)
 pbmc3k <- RunPCA(pbmc3k,verbose = FALSE)

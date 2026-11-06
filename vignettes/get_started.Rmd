@@ -4,7 +4,6 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
 ---
 
 ```{r fxns, include = FALSE}

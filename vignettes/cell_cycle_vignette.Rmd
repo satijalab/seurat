@@ -4,8 +4,7 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-date: 'Compiled: `r Sys.Date()`'
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE, error=FALSE}
@@ -36,7 +35,7 @@ knitr::opts_chunk$set(
 
 We demonstrate how to mitigate the effects of cell cycle heterogeneity in scRNA-seq data by calculating cell cycle phase scores based on canonical markers, and regressing these out of the data during pre-processing. We demonstrate this on a dataset of murine hematopoietic progenitors ([Nestorowa *et al*., Blood 2016](http://www.bloodjournal.org/content/early/2016/06/30/blood-2016-05-716480?sso-checked=true)). You can download the files needed to run this vignette [here](https://www.dropbox.com/s/3dby3bjsaf5arrw/cell_cycle_vignette_files.zip?dl=1).
 
-```{r initialize_object, results='hide'}
+```{r initialize-object, results='hide'}
 library(Seurat)
 
 # Read in the expression matrix
@@ -69,7 +68,7 @@ First, we assign each cell a score, based on its expression of G2/M and S phase 
 
 We assign scores in the `CellCycleScoring()` function, which stores S and G2/M scores in object meta data, along with the predicted classification of each cell in either G2M, S or G1 phase. `CellCycleScoring()` can also set the identity of the Seurat object to the cell-cycle phase by passing `set.ident = TRUE` (the original identities are stored as `old.ident`). Please note that Seurat does not use the discrete classifications (G2M/G1/S) in downstream cell cycle regression. Instead, it uses the quantitative scores for G2M and S phase. However, we provide our predicted classifications in case they are of interest.
 
-```{r cc_score}
+```{r cc-score}
 marrow <- CellCycleScoring(marrow, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
 
 #view cell cycle scores and phase assignments
@@ -95,12 +94,12 @@ For each gene, Seurat models the relationship between gene expression and the S 
 marrow <- ScaleData(marrow, vars.to.regress = c('S.Score', 'G2M.Score'), features = rownames(marrow))
 ```
 
-```{r pca2, message=TRUE}
+```{r pca-regressed, message=TRUE}
 # Now, a PCA on the variable genes no longer returns components associated with cell cycle
 marrow <- RunPCA(marrow, features = VariableFeatures(marrow), nfeatures.print = 10)
 ```
 
-```{r pca3}
+```{r cycle-pca-regressed}
 #When running a PCA on only cell cycle genes, cells no longer separate by cell-cycle phase
 marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
 DimPlot(marrow)
@@ -114,17 +113,17 @@ The procedure above removes all signal associated with cell cycle. In some cases
 
 As an alternative, we suggest regressing out the **difference** between the G2M and S phase scores. This means that signals separating non-cycling cells and cycling cells will be maintained, but differences in cell cycle phase among proliferating cells (which are often uninteresting), will be regressed out of the data
 
-```{r regress_diff, results='hide'}
+```{r regress-diff, results='hide'}
 marrow$CC.Difference <- marrow$S.Score - marrow$G2M.Score
 marrow <- ScaleData(marrow, vars.to.regress = 'CC.Difference', features = rownames(marrow))
 ```
 
-```{r pca4, message=TRUE}
+```{r pca-cycle-diff, message=TRUE}
 #cell cycle effects strongly mitigated in PCA
 marrow <- RunPCA(marrow, features = VariableFeatures(marrow), nfeatures.print = 10)
 ```
 
-```{r pca5}
+```{r cycle-pca-diff}
 #when running a PCA on cell cycle genes, actively proliferating cells remain distinct from G1 cells
 #however, within actively proliferating cells, G2M and S phase cells group together
 marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
@@ -133,9 +132,21 @@ DimPlot(marrow)
 
 
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("cell_cycle_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "cell_cycle_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r, cache=FALSE}
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

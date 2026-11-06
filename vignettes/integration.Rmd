@@ -3,7 +3,7 @@ title: "Integrative analysis in Seurat v5"
 output:
   html_document:
     theme: united
-  pdf_document: default
+    df_print: kable
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
@@ -33,14 +33,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r init}
+```{r libraries}
 library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)
 library(Azimuth)
 library(ggplot2)
 library(patchwork)
-options(future.globals.maxSize = 1e10)
 ```
 
 ## Introduction
@@ -77,7 +76,7 @@ obj <- ScaleData(obj)
 obj <- RunPCA(obj)
 ```
 We can now visualize the results of a standard analysis without integration. Note that cells are grouping both by cell type and by underlying method. While a UMAP analysis is just a visualization of this, clustering this dataset would return predominantly batch-specific clusters. Especially if previous cell-type annotations were not available, this would make downstream analysis extremely challenging.  
-```{r unintegratedUMAP, fig.height=5, fig.width=14}
+```{r unintegrated-umap, fig.height=5, fig.width=14}
 obj <- FindNeighbors(obj, dims=1:30, reduction = 'pca')
 obj <- FindClusters(obj, resolution = 2, cluster.name = "unintegrated_clusters")
 obj <- RunUMAP(obj, dims = 1:30, reduction = 'pca', reduction.name = 'umap.unintegrated')
@@ -198,13 +197,13 @@ obj
 
 Lastly, users can also perform integration using sctransform-normalized data (see our [SCTransform vignette](https://satijalab.org/seurat/articles/sctransform_vignette) for more information), by first running SCTransform normalization, and then setting the `normalization.method` argument in `IntegrateLayers`.
 
-```{r, include=FALSE}
+```{r load-data, include=FALSE}
 obj <- LoadData("pbmcsca")
 obj <- subset(obj, nFeature_RNA > 1000)
 obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
 ```
 
-```{r sct}
+```{r sct-integration}
 obj <- SCTransform(obj)
 obj <- RunPCA(obj, npcs = 30, verbose = F)
 obj <- IntegrateLayers(object = obj, 
@@ -217,9 +216,21 @@ obj <- RunUMAP(obj, dims = 1:30,reduction = 'integrated.dr')
 ```
 
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("integration", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "integration_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r, cache=FALSE}
+```{r session-info, cache=FALSE}
 sessioninfo::session_info(pkgs = "attached")
 ```
 </details>
