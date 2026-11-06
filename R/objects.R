@@ -1207,6 +1207,28 @@ as.Seurat.SingleCellExperiment <- function(
     if (length(x = mats) == 0) {
       stop("Cannot pass 'NULL' to both 'counts' and 'data'")
     }
+    # alternative experiments (e.g. spike-ins, ADTs or HTOs) often lack some of
+    # the requested assays, such as 'logcounts'; convert the ones they have
+    if (assay != orig.exp) {
+      missing <- setdiff(
+        x = unlist(x = mats),
+        y = SummarizedExperiment::assayNames(x = x)
+      )
+      if (length(x = missing) > 0) {
+        mats <- mats[!unlist(x = mats) %in% missing]
+        warning(
+          "Alternative experiment '", assay, "' has no ",
+          paste(sQuote(x = missing, q = FALSE), collapse = " or "),
+          " assay; ",
+          ifelse(test = length(x = mats) > 0, yes = "converting the rest", no = "skipping it"),
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        if (length(x = mats) == 0) {
+          next
+        }
+      }
+    }
     for (m in 1:length(x = mats)) {
       mats[[m]] <- tryCatch(
         expr = SummarizedExperiment::assay(x = x, i = mats[[m]]),
