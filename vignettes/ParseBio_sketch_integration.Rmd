@@ -44,7 +44,7 @@ In this vignette, we demonstrate how to use atomic sketch integration to harmoni
 * Identify cell-type specific differences between healthy and diabetic patients
 
 Prior to running this vignette, please [install Seurat v5](install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](bpcells_interaction_vignette.html). We also recommend reading the [Sketch-based analysis in Seurat v5](sketch_analysis.html) vignette, which introduces the concept of on-disk and in-memory storage in Seurat v5.
-```{r libraries, warning=FALSE, message=F}
+```{r libraries, warning=FALSE, message=FALSE}
 library(Seurat)
 library(BPCells)
 library(dplyr)

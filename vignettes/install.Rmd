@@ -12,7 +12,7 @@ To install Seurat, [R](https://www.r-project.org/) version 4.0 or greater is req
 
 Seurat is available on [CRAN](https://cran.r-project.org/package=Seurat) for all systems. To install, run:
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, warning=FALSE, message=FALSE}
 install.packages("Seurat")
 library(Seurat)
 ```
@@ -49,7 +49,7 @@ The development version of Seurat is available on [GitHub](https://github.com/sa
 
 To install the development version, run:
 
-```{r eval = FALSE}
+```{r eval = FALSE, warning=FALSE, message=FALSE}
 if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }

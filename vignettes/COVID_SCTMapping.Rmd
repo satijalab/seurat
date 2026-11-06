@@ -34,7 +34,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r covid-sctmapping, warning=FALSE, message=F}
+```{r covid-sctmapping, warning=FALSE, message=FALSE}
 library(Seurat)
 library(BPCells)
 library(dplyr)

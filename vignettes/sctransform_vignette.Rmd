@@ -41,7 +41,7 @@ In [Hafemeister and Satija, 2019](https://link.springer.com/article/10.1186/s130
 Inspired by important and rigorous work from [Lause et al](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02451-7), we released an [updated manuscript](https://link.springer.com/article/10.1186/s13059-021-02584-9) and updated the `sctransform` software to version v2, which is now the default in Seurat v5.
 
 
-```{r packages}
+```{r packages, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(sctransform)
@@ -94,7 +94,7 @@ In addition, sctransform returns 3,000 variable features by default, instead of 
 
 For example, the following code replicates the full end-to-end workflow, in a single command:
 
-```{r oneliner, eval=FALSE}
+```{r oneliner, eval=FALSE, warning=FALSE, message=FALSE}
 library(dplyr)
 pbmc <- CreateSeuratObject(pbmc_data) %>% 
           PercentageFeatureSet(pattern = "^MT-",col.name = 'percent.mt') %>% 

@@ -50,7 +50,7 @@ The following tutorial is designed to give you an overview of the kinds of compa
 
 For convenience, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
 
-```{r libraries}
+```{r libraries, warning=FALSE, message=FALSE}
 library(Seurat)
 library(SeuratData)
 library(patchwork)
@@ -160,7 +160,7 @@ Now that we've aligned the stimulated and control cells, we can start to do comp
 We can aggregate cells of a similar type and condition together to create "pseudobulk" profiles using the `AggregateExpression` command. As an initial exploratory analysis, we can compare pseudobulk profiles of two cell types (naive CD4 T cells, and CD14 monocytes), and compare their gene expression profiles before and after stimulation. We highlight genes that exhibit dramatic responses to interferon stimulation. As you can see, many of the same genes are upregulated in both of these cell types and likely represent a conserved interferon response pathway, though CD14 monocytes exhibit a stronger transcriptional response.
 
 
-```{r scatterplots, results = 'hide', message=FALSE}
+```{r scatterplots, results = 'hide', message=FALSE, warning=FALSE}
 library(ggplot2)
 library(cowplot)
 theme_set(theme_cowplot())

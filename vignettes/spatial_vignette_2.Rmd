@@ -339,7 +339,7 @@ devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 
 Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation. The output of the annotation is then added to the Seurat object.
 
-```{r rctd-qeury, warning=FALSE}
+```{r rctd-qeury, warning=FALSE, message=FALSE}
 library(spacexr)
 
 query.counts <- GetAssayData(xenium.obj, assay = "Xenium", layer = "counts")[, Cells(xenium.obj[["crop"]])]

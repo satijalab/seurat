@@ -43,7 +43,7 @@ We will show the methods for interacting with both a single dataset in one file 
 ```{r install-packages, eval=FALSE}
 devtools::install_github("bnprks/BPCells")
 ```
-```{r install, message = FALSE, warning = FALSE}
+```{r install, message=FALSE, warning=FALSE}
 library(BPCells)
 library(Seurat)
 library(SeuratObject)

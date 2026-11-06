@@ -48,7 +48,7 @@ In this vignette, we analyze a dataset of 8,617 cord blood mononuclear cells (CB
 
 First, we load in two count matrices--one for the RNA measurements, and one for the antibody-derived tags (ADT). You can download the ADT file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz) and the RNA file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz).
 
-```{r load-packages}
+```{r load-packages, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(patchwork)

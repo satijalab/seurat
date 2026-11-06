@@ -52,14 +52,14 @@ This vignette demonstrates how to use Seurat to analyze Visium HD cell segmentat
 
 First, we load Seurat and the other packages necessary for this vignette. Core functionality in support of Visium HD cell segmentation data was initially introduced in Seurat v5.4.0 \& SeuratObject v5.3.0.
 
-```{r install}
+```{r install, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(patchwork)
 library(dplyr)
 ```
 
-```{r libraries-for-rmd, echo = FALSE}
+```{r libraries-for-rmd, echo = FALSE, warning=FALSE, message=FALSE}
 
 library("htmltools")
 library("vembedr")
@@ -282,7 +282,7 @@ Install this package before starting the analysis.
 remotes::install_github("satijalab/AzimuthAPI")
 ```
 
-```{r load-azimuth-api}
+```{r load-azimuth-api, warning=FALSE, message=FALSE}
 library(AzimuthAPI)
 ```
 
@@ -303,7 +303,7 @@ kidney_obj <- CloudAzimuth(kidney_obj,
 
 First, we can inspect how the output of Pan-human Azimuth is stored within the object metadata. Note that the object contains both $8 \mu m$ bins and cell segmentations; after running `CloudAzimuth` above on the `Spatial.Polygons` assay, the Azimuth metadata columns are populated for (only) cell segmentations.
 
-```{r inspect-metadata}
+```{r inspect-metadata, warning=FALSE, message=FALSE}
 library(knitr)
 knitr::kable(tail(kidney_obj@meta.data %>% select(4:last_col())))
 ```

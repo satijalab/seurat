@@ -48,7 +48,7 @@ SeuratData::InstallData("pbmc3k")
 set.seed(seed = 42)
 ```
 
-```{r initialize-object}
+```{r initialize-object, warning=FALSE, message=FALSE}
 library(Seurat)
 library(SeuratData)
 library(ggplot2)

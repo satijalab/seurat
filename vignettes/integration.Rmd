@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r libraries}
+```{r libraries, warning=FALSE, message=FALSE}
 library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)

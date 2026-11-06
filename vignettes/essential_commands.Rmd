@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 Here, we present some essential commands for working with Seurat objects.
 
-```{r load-data, echo=FALSE}
+```{r load-data, echo=FALSE, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(SeuratData)

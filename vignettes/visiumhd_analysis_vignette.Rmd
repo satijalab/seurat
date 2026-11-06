@@ -62,7 +62,7 @@ install.packages("hdf5r")
 install.packages("arrow")
 ```
 
-```{r library}
+```{r library, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(patchwork)
@@ -251,7 +251,7 @@ Install this package before starting the analysis.
 remotes::install_github("prabhakarlab/Banksy@devel")
 ```
 
-```{r banksy}
+```{r banksy, warning=FALSE, message=FALSE}
 library(SeuratWrappers)
 library(Banksy)
 ```
@@ -315,7 +315,7 @@ Install this package before starting the analysis.
 devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 ```
 
-```{r load-spacexr}
+```{r load-spacexr, warning=FALSE, message=FALSE}
 library(spacexr)
 ```
 

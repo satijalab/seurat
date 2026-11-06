@@ -65,7 +65,7 @@ make_vignette_card_section <- function(vdat, cat) {
 }
 ```
 
-```{r yaml, include = FALSE}
+```{r yaml, include = FALSE, warning=FALSE, message=FALSE}
 library(yaml)
 vdat <- read_yaml(file = "vignettes.yaml")
 ```
@@ -230,7 +230,7 @@ make_vignette_card_section(vdat = vdat, cat = "Additional workflows")
 
 In order to facilitate the use of community tools with Seurat, we provide the SeuratWrappers package, which contains code to run other analysis tools on Seurat objects. We encourage package developers interested in interfacing with Seurat to check out our contributor guide [here](https://github.com/satijalab/seurat.wrappers/wiki/Submission-Process).
 
-```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+```{r results='asis', echo=FALSE, warning=FALSE, message=FALSE}
 library(knitr)
 vignettes <- vignette_entries(vdat, "SeuratWrappers")
 dat <- data.frame(Package = character(),  Vignette = character(), Reference = character(), Source = character())

@@ -54,7 +54,7 @@ if (!requireNamespace("blosc", quietly = TRUE)) {
 }
 ```
 
-```{r load-libraries}
+```{r load-libraries, warning=FALSE, message=FALSE}
 library(Seurat)
 library(future)
 library(ggplot2)

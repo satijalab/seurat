@@ -45,7 +45,7 @@ The vignette has two parts:
 
 First, we load Seurat and the other packages necessary for this vignette. scSLIDE is available in Seurat v6.
 
-```{r libraries}
+```{r libraries, warning=FALSE, message=FALSE}
 for (package in c("Seurat", "princurve", "ggplot2", "ggridges")) {
   if (!requireNamespace(package, quietly = TRUE)) {
     install.packages(package)
@@ -88,7 +88,7 @@ object <- NormalizeData(object)
 
 We use the [Pan-human Azimuth cloud tool](https://satijalab.org/pan_human_azimuth/) to annotate our data and obtain a cell-type-oriented embedding. You can read more about this reference-mapping method in [this paper](https://www.biorxiv.org/content/10.64898/2026.07.16.738997v1.full). Note that you can instead use PCA or any other integration or reference-mapping method to obtain this embedding.
 
-```{r covid-azimuth, results='hide'}
+```{r covid-azimuth, results='hide', warning=FALSE, message=FALSE}
 if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
   remotes::install_github("satijalab/AzimuthAPI")
 }

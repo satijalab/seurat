@@ -46,7 +46,7 @@ We begin by loading the [`RNAFingerprinting`](https://github.com/satijalab/rna-f
 
 Download `GSE132080_10X_matrix.mtx.gz`, `GSE132080_10X_barcodes.tsv.gz`, `GSE132080_10X_genes.tsv.gz`, and `GSE132080_cell_identities.csv.gz` from GEO, and set `data_dir` below to the directory containing these files. We retain cells with a single-cell assignment and a known guide identity, then extract the target gene and guide ID from the metadata.
 
-```{r packages-and-data}
+```{r packages-and-data, warning=FALSE, message=FALSE}
 
 if (!requireNamespace("RNAFingerprinting", quietly = TRUE)) {
   remotes::install_github("satijalab/rna-fingerprinting")

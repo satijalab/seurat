@@ -50,7 +50,7 @@ To run this vignette please install SeuratData, available on [GitHub](https://gi
 options(SeuratData.repo.use = "http://seurat.nygenome.org")
 ```
 
-```{r packages, cache=FALSE}
+```{r packages, cache=FALSE, warning=FALSE, message=FALSE}
 library(Seurat)
 library(SeuratData)
 library(cowplot)
@@ -143,7 +143,7 @@ Finally, we can visualize the modality weights that were learned for each cell. 
   NoLegend()
 ```
 
-```{r save-image, include=FALSE}
+```{r save-image, include=FALSE, warning=FALSE, message=FALSE}
 library(ggplot2)
 plot <-  VlnPlot(bm, features = "RNA.weight", group.by = 'celltype.l2', sort = TRUE, pt.size = 0.1) +
   NoLegend() + xlab("") + ggtitle("RNA Modality Weights") + theme(plot.title = element_text(hjust = 0.5, size = 30), axis.text = element_text(size = 20))
@@ -174,7 +174,7 @@ Finally, in order to run the vignette, make sure the following packages are inst
 * [EnsDb.Hsapiens.v86](https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Hsapiens.v86.html) for a set of annotations for hg38
 * [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html) to help manipulate data tables
 
-```{r multiome-libraries}
+```{r multiome-libraries, warning=FALSE, message=FALSE}
 library(Seurat)
 library(Signac)
 library(EnsDb.Hsapiens.v86)
@@ -321,7 +321,7 @@ BiocManager::install(c("chromVAR", "TFBSTools", "JASPAR2020", "motifmatchr", "BS
   
 </details>
 
-```{r chrom-var}
+```{r chrom-var, warning=FALSE, message=FALSE}
 library(chromVAR)
 library(JASPAR2020)
 library(TFBSTools)

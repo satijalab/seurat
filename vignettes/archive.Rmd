@@ -13,7 +13,7 @@ make_vignette_button <- function(name, title, version) {
 }
 ```
 
-```{r yaml, include = FALSE}
+```{r yaml, include = FALSE, warning=FALSE, message=FALSE}
 library(yaml)
 vdat <- read_yaml(file = "archive.yaml")
 ```

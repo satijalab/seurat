@@ -43,7 +43,7 @@ This tutorial demonstrates how to use mixscape for the analyses of single-cell p
 
 # Loading required packages
 
-```{r pkgs1}
+```{r pkgs1, warning=FALSE, message=FALSE}
 # Load packages.
 library(Seurat)
 library(SeuratData)

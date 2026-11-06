@@ -49,7 +49,7 @@ Here we show the analysis of spatial datasets generated with the 1) Visium platf
 
 For related vignettes, please see the **Spatial Analysis** section of the vignette landing page.
 
-```{r install}
+```{r install, warning=FALSE, message=FALSE}
 library(Seurat)
 library(SeuratData)
 library(ggplot2)
@@ -57,7 +57,7 @@ library(patchwork)
 library(dplyr)
 ```
 
-```{r libraries-for-rmd, echo = FALSE}
+```{r libraries-for-rmd, echo = FALSE, warning=FALSE, message=FALSE}
 library("htmltools")
 library("vembedr")
 ```
@@ -554,7 +554,7 @@ devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 
 Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation.
 
-```{r rctd-setup, warning=FALSE, results=FALSE}
+```{r rctd-setup, warning=FALSE, results=FALSE, message=FALSE}
 library(spacexr)
 
 # Set up reference

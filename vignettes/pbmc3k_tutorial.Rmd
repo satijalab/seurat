@@ -40,7 +40,7 @@ We start by reading in the data. The `Read10X()` function reads in the output of
 
 We next use the count matrix to create a `Seurat` object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. For more information, check out the [docs for SeuratObject](https://satijalab.github.io/seurat-object/index.html) or the [section on object interaction](essential_commands.html#seurat-object-data-access) in our list of essential commands. For example, in Seurat v5, the count matrix is stored in `pbmc[["RNA"]]$counts`.
 
-```{r libraries, warning=FALSE}
+```{r libraries, warning=FALSE, message=FALSE}
 library(dplyr)
 library(Seurat)
 library(patchwork)
@@ -357,7 +357,7 @@ pbmc <- RenameIdents(pbmc, new.cluster.ids)
 DimPlot(pbmc, reduction = 'umap', label = TRUE, pt.size = 0.5) + NoLegend()
 ```
 
-```{r save-image, include=TRUE}
+```{r save-image, include=TRUE, warning=FALSE, message=FALSE}
 library(ggplot2)
 plot <- DimPlot(pbmc, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 

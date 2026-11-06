@@ -50,7 +50,7 @@ remotes::install_github("satijalab/AzimuthAPI")
 
 # Load packages and data
 
-```{r load-packages}
+```{r load-packages, warning=FALSE, message=FALSE}
 library(AzimuthAPI)
 library(Seurat)
 library(SeuratData)
@@ -101,7 +101,7 @@ pip install panhumanpy
 
 Then ask `reticulate` to use that environment:
 
-```{r use-local-env, eval=FALSE}
+```{r use-local-env, eval=FALSE, warning=FALSE, message=FALSE}
 library(reticulate)
 # Use the local Python environment for Pan-human Azimuth
 use_condaenv("pan-human-azimuth", required = TRUE)

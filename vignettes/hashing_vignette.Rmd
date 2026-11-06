@@ -66,7 +66,7 @@ This vignette will give a brief demonstration on how to work with data produced 
 
 Load packages
 
-```{r load-pacakges}
+```{r load-pacakges, warning=FALSE, message=FALSE}
 library(Seurat)
 ```
 
