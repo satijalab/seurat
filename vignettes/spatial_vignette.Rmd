@@ -345,6 +345,7 @@ Based on these prediction scores, we can also predict *cell types* whose locatio
 ```{r sc-data8, fig.height = 10}
 cortex <- FindSpatiallyVariableFeatures(cortex, 
                                         assay = "predictions", 
+                                        image = "anterior1",
                                         selection.method = "moransi",
                                         features = rownames(cortex), 
                                         r.metric = 5, 

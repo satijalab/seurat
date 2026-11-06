@@ -125,7 +125,7 @@ We can then visualize the results of the clustering either in UMAP space (with `
 DimPlot(vizgen.obj, reduction = "umap")
 ```
 
-```{r spatial-plot, fig.height=6, fig.width=6}
+```{r spatial-plot, fig.height=7, fig.width=10}
 ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "polychrome", axes = TRUE)
 ```
 
@@ -150,7 +150,7 @@ The `ImageDimPlot()` and `ImageFeaturePlot()` functions have a few parameters wi
 
 Since it can be difficult to visualize the spatial localization patterns of an individual cluster when viewing them all together, we can highlight all cells that belong to a particular cluster:
 
-```{r merfish-clusters, fig.height=8, fig.width=12}
+```{r merfish-clusters, fig.height=6, fig.width=14}
 p1 <- ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "red", cells = WhichCells(vizgen.obj, idents = 1))
 p2 <- ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "red", cells = WhichCells(vizgen.obj, idents = 15))
 p1 + p2
@@ -158,7 +158,7 @@ p1 + p2
 
 We can find markers of individual clusters and visualize their spatial expression pattern. We can color cells based on their quantified expression of an individual gene, using `ImageFeaturePlot()`, which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. Since MERFISH images individual molecules, we can also visualize the location of individual *molecules*.
 
-```{r merfish-features, fig.height=7, fig.width=12}
+```{r merfish-features, fig.height=7, fig.width=14}
 p1 <- ImageFeaturePlot(vizgen.obj, features = "Slc17a7")
 p2 <- ImageDimPlot(vizgen.obj, molecules = "Slc17a7", nmols = 10000, alpha = 0.3, mols.cols = "red")
 p1 + p2
@@ -168,7 +168,7 @@ Note that the `nmols` parameter can be used to reduce the total number of molecu
 
 Plotting molecules is especially useful for visualizing co-expression of multiple genes on the same plot.
 
-```{r merfish-markers, fig.height=7, fig.width=12}
+```{r merfish-markers, fig.height=7, fig.width=14}
 p1 <- ImageDimPlot(vizgen.obj, fov = "s2r1", alpha = 0.3, molecules = c("Slc17a7", "Olig1"), nmols = 10000)
 markers.14 <- FindMarkers(vizgen.obj, ident.1 = "14")
 p2 <- ImageDimPlot(vizgen.obj, fov = "s2r1", alpha = 0.3, molecules = rownames(markers.14)[1:4], nmols = 10000)
@@ -179,18 +179,19 @@ The updated Seurat spatial framework has the option to treat cells as individual
 
 We can zoom into a region of tissue, creating a new field of view. For example, we can zoom into a region that contains the hippocampus. Once zoomed-in, we can set `DefaultBoundary()` to show cell segmentations. You can also 'simplify' the cell segmentations, reducing the number of edges in each polygon to speed up plotting.
 
-```{r merfish-crop, fig.height=5, fig.width=14}
+```{r merfish-crop, fig.height=6, fig.width=16}
 # create a Crop
-cropped.coords <- Crop(vizgen.obj[["s2r1"]], x = c(1750, 3000), y = c(3750, 5250), coords = "plot")
+cropped.coords <- Crop(vizgen.obj[["s2r1"]], x = c(1750, 3000), y = c(3750, 5250))
+
 # set a new field of view (fov)
 vizgen.obj[["hippo"]] <- cropped.coords
 
 # visualize FOV using default settings (no cell boundaries)
-p1 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, size = 0.7, border.color = "white", cols = "polychrome", coord.fixed = FALSE)
+p1 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, size = 0.7, border.color = "white", cols = "polychrome")
 
 # visualize FOV with full cell segmentations
 DefaultBoundary(vizgen.obj[["hippo"]]) <- "segmentation"
-p2 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome", coord.fixed = FALSE)
+p2 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome")
 
 # simplify cell segmentations
 vizgen.obj[["hippo"]][["simplified.segmentations"]] <- Simplify(coords = vizgen.obj[["hippo"]][["segmentation"]], tol = 3)
@@ -198,7 +199,7 @@ DefaultBoundary(vizgen.obj[["hippo"]]) <- "simplified.segmentations"
 
 # visualize FOV with simplified cell segmentations
 DefaultBoundary(vizgen.obj[["hippo"]]) <- "simplified.segmentations"
-p3 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome", coord.fixed = FALSE)
+p3 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome")
 
 p1 + p2 + p3
 ```
@@ -213,7 +214,7 @@ The tol parameter determines how simplified the resulting segmentations are. A h
 
 We can visualize individual molecules plotted at higher resolution after zooming-in
 
-```{r visualize-fov, fig.height=8, fig.width=8}
+```{r visualize-fov, fig.height=7, fig.width=10}
 # Since there is nothing behind the segmentations, alpha will slightly mute colors
 ImageDimPlot(vizgen.obj, fov = "hippo", molecules = rownames(markers.14)[1:4], cols = "polychrome", mols.size = 1, alpha = 0.5, mols.cols = c("red", "blue", "yellow", "green"))
 ```
@@ -249,7 +250,7 @@ VlnPlot(xenium.obj, features = c("nFeature_Xenium", "nCount_Xenium"), ncol = 2, 
 
 Next, we plot the positions of the pan-inhibitory neuron marker Gad1, inhibitory neuron sub-type markers Pvalb, and Sst, and astrocyte marker Gfap on the tissue using `ImageDimPlot()`.
 
-```{r p2-xenium, fig.width=10, fig.height=8}
+```{r p2-xenium, fig.width=10, fig.height=7}
 ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
 ```
 
@@ -260,7 +261,7 @@ ggsave(filename = "spatial_vignette_2.jpg", height = 5, width = 9, plot = plot)
 
 Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of its count distribution to improve contrast.
 
-```{r mat-xenium, message=FALSE, warning=FALSE, fig.width=12, fig.height=12}
+```{r mat-xenium, message=FALSE, warning=FALSE, fig.width=12, fig.height=9}
 ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
 ```
 
@@ -301,7 +302,7 @@ FeaturePlot(xenium.obj, features = c("Cux2", "Bcl11b", "Foxp2", "Gad1", "Sst", "
 
 We can now use `ImageDimPlot()` to color the cell positions colored by the cluster labels determined in the previous step.
 
-```{r clusters-xenium, fig.width=13, fig.height=13}
+```{r clusters-xenium, fig.width=10, fig.height=7}
 ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
 ```
 
@@ -315,7 +316,7 @@ p1 <- ImageFeaturePlot(xenium.obj, features = "Slc17a7", axes = TRUE, max.cutoff
 p1
 ```
 
-```{r resolve-crop, fig.width=5, fig.height=7, warning=FALSE}
+```{r resolve-crop, fig.width=8, fig.height=4.5, warning=FALSE}
 crop <- Crop(xenium.obj[["fov"]], x = c(600, 2100), y = c(900, 4700))
 xenium.obj[["crop"]] <- crop
 p2 <- ImageFeaturePlot(
@@ -481,7 +482,7 @@ VlnPlot(nano.obj, features = "KRT17", assay = "Nanostring", layer = "counts", pt
 FeaturePlot(nano.obj, features = "KRT17", max.cutoff = "q95")
 ```
 
-```{r plots-cell-type-3, fig.height=4, fig.width=8}
+```{r plots-cell-type-3, fig.height=6, fig.width=14}
 p1 <- ImageFeaturePlot(nano.obj, fov = "lung5.rep1", features = "KRT17", max.cutoff = "q95")
 p2 <- ImageDimPlot(nano.obj, fov = "lung5.rep1", alpha = 0.3, molecules = "KRT17", nmols = 10000) + NoLegend()
 p1 + p2
@@ -543,13 +544,13 @@ We can visualize the cell clusters based on a protein intensity-based UMAP embed
 DimPlot(codex.obj, label = TRUE, label.box = TRUE) + NoLegend()
 ```
 
-```{r codex-clusters, fig.width=6, fig.height=5}
+```{r codex-clusters, fig.width=8, fig.height=5}
 ImageDimPlot(codex.obj, cols = "parade")
 ```
 
 The expression patterns of individual markers clearly denote different cell types and spatial structures, including Lyve1 (lymphatic endothelial cells), CD34 (blood endothelial cells), and CD21 (B cells). As expected, endothelial cells group together into vessels, and B cells are key components of specialized microstructures known as germinal zones. You can read more about protein markers in this dataset, as well as cellular networks in human lymphatic tissues, in this [preprint](https://www.biorxiv.org/content/10.1101/2021.10.20.465151v1.full).
 
-```{r codex-features, fig.width=9, fig.height=8}
+```{r codex-features, fig.width=12, fig.height=8}
 p1 <- ImageFeaturePlot(codex.obj, fov = "HBM754.WKLP.262", features = c("CD34", "CD21", "Lyve1"), min.cutoff = "q10", max.cutoff = "q90")
 p2 <- ImageDimPlot(codex.obj, fov = "HBM754.WKLP.262", cols = "parade")
 p1 + p2

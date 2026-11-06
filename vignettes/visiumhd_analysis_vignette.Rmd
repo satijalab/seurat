@@ -435,9 +435,9 @@ Based on this plot, we can now assign cells (even if they are not excitatory neu
 Idents(object) <- 'banksy_cluster'
 object$layer_id <- 'Unknown'
 object$layer_id[WhichCells(object,idents = c(5))] <- "Layer 2/3"
-object$layer_id[WhichCells(object,idents = c(12))] <- "Layer 4"
-object$layer_id[WhichCells(object,idents = c(7))] <- "Layer 5"
-object$layer_id[WhichCells(object,idents = c(3))] <- "Layer 6"
+object$layer_id[WhichCells(object,idents = c(11))] <- "Layer 4"
+object$layer_id[WhichCells(object,idents = c(6))] <- "Layer 5"
+object$layer_id[WhichCells(object,idents = c(2))] <- "Layer 6"
 ```
 
 Finally, we can visualize the spatial distribution of other cell types, and ask which cortical layers they fall in. For example, in contrast to excitatory neurons, inhibitory (GABAergic) interneurons in the cortex are not spatially restricted to individual layers - but they do show biases. 
