@@ -1406,7 +1406,6 @@ RunTSNE.Seurat <- function(
   return(object)
 }
 
-#' @importFrom reticulate py_module_available py_set_seed import
 #' @importFrom uwot umap umap2 umap_transform
 #' @importFrom future nbrOfWorkers
 #'
@@ -1481,20 +1480,21 @@ RunUMAP.default <- function(
   umap.output <- switch(
     EXPR = umap.method,
     'umap-learn' = {
-      if (!py_module_available(module = 'umap')) {
+      check_installed("reticulate", reason = "to use the umap-learn backend")
+      if (!reticulate::py_module_available(module = 'umap')) {
         stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
       }
-      if (!py_module_available(module = 'sklearn')) {
+      if (!reticulate::py_module_available(module = 'sklearn')) {
         stop("Cannot find sklearn, please install through pip (e.g. pip install scikit-learn).")
       }
       if (!is.null(x = seed.use)) {
-        py_set_seed(seed = seed.use)
+        reticulate::py_set_seed(seed = seed.use)
       }
       if (typeof(x = n.epochs) == "double") {
         n.epochs <- as.integer(x = n.epochs)
       }
-      umap_import <- import(module = "umap", delay_load = TRUE)
-      sklearn <- import("sklearn", delay_load = TRUE)
+      umap_import <- reticulate::import(module = "umap", delay_load = TRUE)
+      sklearn <- reticulate::import("sklearn", delay_load = TRUE)
       if (densmap &&
           numeric_version(x = umap_import$`__version__`) <
           numeric_version(x = "0.5.0")) {
@@ -1708,7 +1708,6 @@ RunUMAP.default <- function(
   return(umap.reduction)
 }
 
-#' @importFrom reticulate py_module_available import
 #'
 #' @rdname RunUMAP
 #' @concept dimensional_reduction
@@ -1740,6 +1739,7 @@ RunUMAP.Graph <- function(
   reduction.key = 'UMAP_',
   ...
 ) {
+  check_installed("reticulate", reason = "to use RunUMAP.Graph()")
   #CheckDots(...)
   if (umap.method != 'umap-learn') {
     warning(
@@ -1748,22 +1748,22 @@ RunUMAP.Graph <- function(
       immediate. = TRUE
     )
   }
-  if (!py_module_available(module = 'umap')) {
+  if (!reticulate::py_module_available(module = 'umap')) {
     stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
   }
-  if (!py_module_available(module = 'numpy')) {
+  if (!reticulate::py_module_available(module = 'numpy')) {
     stop("Cannot find numpy, please install through pip (e.g. pip install numpy).")
   }
-  if (!py_module_available(module = 'sklearn')) {
+  if (!reticulate::py_module_available(module = 'sklearn')) {
     stop("Cannot find sklearn, please install through pip (e.g. pip install scikit-learn).")
   }
-  if (!py_module_available(module = 'scipy')) {
+  if (!reticulate::py_module_available(module = 'scipy')) {
     stop("Cannot find scipy, please install through pip (e.g. pip install scipy).")
   }
-  np <- import("numpy", delay_load = TRUE)
-  sp <- import("scipy", delay_load = TRUE)
-  sklearn <- import("sklearn", delay_load = TRUE)
-  umap <- import("umap", delay_load = TRUE)
+  np <- reticulate::import("numpy", delay_load = TRUE)
+  sp <- reticulate::import("scipy", delay_load = TRUE)
+  sklearn <- reticulate::import("sklearn", delay_load = TRUE)
+  umap <- reticulate::import("umap", delay_load = TRUE)
   diag(x = object) <- 0
   data <- object
   object <- sp$sparse$coo_matrix(arg1 = object)

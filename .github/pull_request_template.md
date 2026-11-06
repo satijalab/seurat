@@ -24,20 +24,23 @@ for instructions on submitting a pull request, then follow the template below.
 <!-- Include example code using built-in (pbmc_small) or readily available (SeuratData, etc.) datasets -->
 
 ```r
-# Example code here
+# Example code or reprex here
 ```
 
-## Related issues
-<!-- Link to related issues using #<issue_number> -->
+## Related issues or PRs
+<!-- Link to related items using #<issue_number> or #<pr_number> -->
 Closes #
+
+## AI disclosure
+<!-- If applicable, briefly describe which AI tools were used and how they helped. Otherwise, write N/A -->
 
 ## Checklist
 <!-- Ensure all items are complete before submitting -->
 
 - [ ] Branch is named appropriately (`feat/*`, `fix/*`, `docs/*`)
 - [ ] Code follows Seurat [style guidelines](https://github.com/satijalab/seurat/wiki/Contributor%27s-Guide)
-- [ ] Documentation and comments have been updated
-- [ ] `devtools::document()` has been run
+- [ ] Relevant roxygen comments have been updated
+- [ ] Code comments have been added to explain non-obvious logic
 - [ ] `devtools::check()` passes with no errors or warnings
 - [ ] Test case demonstrating new functionality is included
 - [ ] Maintainers are allowed to edit this PR

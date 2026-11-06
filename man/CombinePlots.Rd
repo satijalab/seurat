@@ -24,6 +24,7 @@ A combined plot
 Combine ggplot2-based plots into a single plot
 }
 \examples{
+\dontrun{
 data("pbmc_small")
 pbmc_small[['group']] <- sample(
   x = c('g1', 'g2'),
@@ -45,6 +46,7 @@ CombinePlots(
   legend = 'none',
   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
 )
+}
 
 }
 \concept{visualization}

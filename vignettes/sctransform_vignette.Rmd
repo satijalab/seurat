@@ -8,26 +8,28 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include = FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include = FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
+  time_it = TRUE,
   tidy = FALSE,
-  tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -39,7 +41,7 @@ In [Hafemeister and Satija, 2019](https://link.springer.com/article/10.1186/s130
 Inspired by important and rigorous work from [Lause et al](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02451-7), we released an [updated manuscript](https://link.springer.com/article/10.1186/s13059-021-02584-9) and updated the `sctransform` software to version v2, which is now the default in Seurat v5.
 
 
-```{r packages}
+```{r packages, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(sctransform)
@@ -47,7 +49,7 @@ library(sctransform)
 
 # Load data and create Seurat object
 
-```{r load_data, warning=FALSE, message=FALSE}
+```{r load-data, warning=FALSE, message=FALSE}
 pbmc_data <- Read10X(data.dir = "/brahms/shared/vignette-data/pbmc3k/filtered_gene_bc_matrices/hg19/")
 pbmc <- CreateSeuratObject(counts = pbmc_data)
 ```
@@ -60,7 +62,7 @@ In Seurat v5, SCT v2 is applied by default. You can revert to v1 by setting `vst
 
 After running `SCTransform()`, transformed data is available in the "SCT" assay, which is set as the default assay. This means that all downstream commands will use the sctransform-normalized data by default.
 
-```{r apply_sct, warning=FALSE, message=FALSE}
+```{r apply-sct, warning=FALSE, message=FALSE}
 # store mitochondrial percentage in object meta data
 pbmc <- PercentageFeatureSet(pbmc, pattern = "^MT-", col.name = 'percent.mt')
 
@@ -92,7 +94,7 @@ In addition, sctransform returns 3,000 variable features by default, instead of 
 
 For example, the following code replicates the full end-to-end workflow, in a single command:
 
-```{r oneliner, eval=FALSE}
+```{r oneliner, eval=FALSE, warning=FALSE, message=FALSE}
 library(dplyr)
 pbmc <- CreateSeuratObject(pbmc_data) %>% 
           PercentageFeatureSet(pattern = "^MT-",col.name = 'percent.mt') %>% 
@@ -136,9 +138,21 @@ FeaturePlot(pbmc, features = c("CD3D", "ISG15", "TCL1A", "FCER2", "XCL1", "FCGR3
 ```
 
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("sctransform_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "sctransform_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r session-info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

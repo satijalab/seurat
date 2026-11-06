@@ -4,29 +4,31 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
-  
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
+  time_it = TRUE,
   tidy = FALSE,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -50,14 +52,14 @@ This vignette demonstrates how to use Seurat to analyze Visium HD cell segmentat
 
 First, we load Seurat and the other packages necessary for this vignette. Core functionality in support of Visium HD cell segmentation data was initially introduced in Seurat v5.4.0 \& SeuratObject v5.3.0.
 
-```{r install}
+```{r install, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(patchwork)
 library(dplyr)
 ```
 
-```{r libraries.for.rmd, echo = FALSE}
+```{r libraries-for-rmd, echo = FALSE, warning=FALSE, message=FALSE}
 
 library("htmltools")
 library("vembedr")
@@ -74,7 +76,7 @@ In this vignette, we will use a Visium HD dataset of the human kidney (cortex) a
 
 First, create a directory to hold the data.
 
-```{bash data_dir_setup1, eval=FALSE}
+```{bash data-dir-setup1, eval=FALSE}
 
 mkdir -p visium_hd_human_kidney
 cd visium_hd_human_kidney
@@ -83,7 +85,7 @@ cd visium_hd_human_kidney
 
 Then, go to the “Output and supplemental files” tab in the link to the repository above to access the core output files. The “batch download” option gives curl and wget commands to download the data via the terminal.
 
-```{bash data_dir_setup2, eval=FALSE}
+```{bash data-dir-setup2, eval=FALSE}
 wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz
 
 wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_segmented_outputs.tar.gz
@@ -101,7 +103,7 @@ wget https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney
 
 Next, extract the binned outputs (expression matrices for $2 \mu m$, $8 \mu m$, and $16 \mu m$ resolution bins), segmented outputs (segmentation-based expression data and segmentation polygons), and spatial data (H&E tissue images and spatial coordinate mappings).
 
-```{bash data_dir_setup3, eval=FALSE}
+```{bash data-dir-setup3, eval=FALSE}
 
 tar -xzf Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz
 
@@ -122,7 +124,7 @@ The image.name argument was also introduced in Seurat v5.4. Currently, users spe
 </details>
 <br/>
 <br/>
-```{r load_data}
+```{r load-data}
 
 path_to_data <- "/brahms/shared/vignette-data/visium_hd_human_kidney"
 
@@ -158,7 +160,7 @@ One of the key advantages of the segmentation approach is the ability to analyze
 
 In order to do so, we begin by inspecting the whole tissue image and its coordinate ranges.
 
-```{r plot_coord_ranges, dpi=105, fig.width=7, fig.height=7}
+```{r plot-coord-ranges, dpi=105, fig.width=7, fig.height=7}
 
 tissue_image <- SpatialDimPlot(kidney_obj,
                                images = "slice1.008um",
@@ -187,7 +189,7 @@ Here we define two different levels of zoom, based on coordinates from the tissu
 
 For the first level of zoom, we will take a section of $800 \times 400$ pixels, and apply this to the segmented data.
 
-```{r zoom_level1}
+```{r zoom-level1}
 
 zoom1_xlim <- c(2400, 3200)
 zoom1_ylim <- c(3300, 3700)
@@ -200,7 +202,7 @@ kidney_obj[["zoom1.polygons"]] <- Crop(object = kidney_obj[["slice1.polygons"]],
 
 For the second level of zoom, we will take a smaller section of $400 \times 300$ pixels, and apply this to both the binned and segmented data.
 
-```{r zoom_level2}
+```{r zoom-level2}
 
 zoom2_xlim <- c(2750, 3150)
 zoom2_ylim <- c(3350, 3650)
@@ -219,7 +221,7 @@ kidney_obj[["zoom2.008um"]] <- Crop(object = kidney_obj[["slice1.008um"]],
 
 To see the regions captured in these zooms, we plot just the tissue:
 
-```{r plot_zooms, dpi=105, fig.width=10, fig.height=3}
+```{r plot-zooms, dpi=105, fig.width=10, fig.height=3}
 
 tissue_image_zoom1 <- SpatialDimPlot(kidney_obj,
                                      images = "zoom1.polygons",
@@ -241,7 +243,7 @@ Now, we can take a closer look at how bins and cell segmentations capture spatia
 
 When generating a spatial plot of segmented data, `plot_segmentations = TRUE` displays the full boundaries of each segmentation polygon, rather than just the centroids. This allows us to see the actual shape and size of each detected cell.
 
-```{r sdp_zoom_8um_vs_segm, dpi=105, fig.width=8, fig.height=4}
+```{r sdp-zoom-8um-vs-segm, dpi=105, fig.width=8, fig.height=4}
 
 sdp_8um_zoom <- SpatialDimPlot(kidney_obj,
                                images = "zoom2.008um",
@@ -274,11 +276,13 @@ To perform cell type annotation, we use [Pan-human Azimuth](https://satijalab.o
 
 In R, we can access Pan-human Azimuth through the [AzimuthAPI](https://github.com/satijalab/AzimuthAPI) package:
 
-```{r load_azimuth_api}
-if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
-  remotes::install_github("satijalab/AzimuthAPI")
-}
+Install this package before starting the analysis.
 
+```{r install-packages, eval=FALSE}
+remotes::install_github("satijalab/AzimuthAPI")
+```
+
+```{r load-azimuth-api, warning=FALSE, message=FALSE}
 library(AzimuthAPI)
 ```
 
@@ -288,7 +292,7 @@ library(AzimuthAPI)
 
 We set the default assay, normalize the data with standard log-normalization, and then run [`CloudAzimuth()`](https://github.com/satijalab/AzimuthAPI/blob/master/man/CloudAzimuth.Rd).
 
-```{r run_cloud_azimuth, echo=TRUE, results="hide"}
+```{r run-cloud-azimuth, echo=TRUE, results="hide"}
 DefaultAssay(kidney_obj) <- "Spatial.Polygons"
 
 kidney_obj <- NormalizeData(kidney_obj)
@@ -299,14 +303,14 @@ kidney_obj <- CloudAzimuth(kidney_obj,
 
 First, we can inspect how the output of Pan-human Azimuth is stored within the object metadata. Note that the object contains both $8 \mu m$ bins and cell segmentations; after running `CloudAzimuth` above on the `Spatial.Polygons` assay, the Azimuth metadata columns are populated for (only) cell segmentations.
 
-```{r inspect_metadata}
+```{r inspect-metadata, warning=FALSE, message=FALSE}
 library(knitr)
 knitr::kable(tail(kidney_obj@meta.data %>% select(4:last_col())))
 ```
 
 We see that in addition to cell type annotations organized hierarchically, Pan-human Azimuth provides confidence scores for each annotation; lower confidence scores indicate uncertainty in hierarchy assignments. We can set a confidence threshold to retain only high-confidence annotations for downstream tasks.
 
-```{r filter_highconf}
+```{r filter-highconf}
 
 kidney_obj_hc <- subset(kidney_obj, 
                         !is.na(final_level_confidence) & final_level_confidence > 0.7)
@@ -317,7 +321,7 @@ In addition to using the confidence score as a QC metric for annotation accuracy
 
 For example, we can look at a heatmap for cells annotated within the epithelial cell hierarchy:
 
-```{r make_qc_heatmap, message=FALSE, warning=FALSE, fig.width=10.5, fig.height=10.5, dpi=105}
+```{r make-qc-heatmap, message=FALSE, warning=FALSE, fig.width=10.5, fig.height=10.5, dpi=105}
 
 kidney_azimuth_QC_heatmaps <- make_azimuth_QC_heatmaps(kidney_obj_hc)
 
@@ -327,7 +331,7 @@ kidney_azimuth_QC_heatmaps[["Epithelial cell_1"]]
 
 Additionally, the azimuth_embed dimensional reduction layer stores a 128-dimensional reduction of the Pan-human Azimuth embeddings. This is useful in downstream analyses. For example, we can visualize the cell type predictions returned by Pan-human Azimuth in embedding space:
 
-```{r azimuth_dim_reduc, fig.width=5, fig.height=5}
+```{r azimuth-dim-reduc, fig.width=5, fig.height=5}
 kidney_obj_hc <- RunUMAP(kidney_obj_hc,
                          dims = 1:128,
                          reduction = "azimuth_embed",
@@ -350,7 +354,7 @@ Next, we can visualize where different cell types are located within the tissue.
 
 Podocytes are highly specialized cells found within the glomeruli of the kidney. We can focus our visualization on only cells annotated as podocytes:
 
-```{r plot_podocyte_annotations, dpi=105, fig.width=10, fig.height=6}
+```{r plot-podocyte-labels, dpi=105, fig.width=10, fig.height=6}
 kidney_segm_pod <- subset(kidney_obj_hc, final_level_labels == "Podocyte")
 
 Idents(kidney_segm_pod) <- "final_level_labels"
@@ -376,7 +380,7 @@ pod_annotations_tissue +
 
 We can pick out some additional cell types of interest to examine the spatial organization of major kidney cell populations.
 
-```{r plot_select_annotations, dpi=105, fig.width=9, fig.height=6}
+```{r plot-select-labels, dpi=105, fig.width=9, fig.height=6}
 
 cell_types_of_interest <- c("Capillary EC",
                             "Pericyte",
@@ -410,7 +414,7 @@ full_image_annotated
 
 Finally, zooming in again, we observe cell types annotated in and around some glomeruli.
 
-```{r plot_select_annotations_zoom, dpi=105, fig.width=12, fig.height=7}
+```{r plot-select-labels-2, dpi=105, fig.width=12, fig.height=7}
 # Define layers to customize the legend by putting it in three rows below the plot
 legend_guide_layer <- list(theme(legend.position = "bottom",
                                  legend.text = element_text(size = 12),
@@ -434,7 +438,7 @@ In this section of kidney cortex, which includes several glomeruli surrounded by
 
 - - -
 
-For more information on spatial analysis workflows, see the other [spatial vignettes](https://satijalab.org/seurat/articles/get_started_v5_new#spatial-analysis) and documentation ([Seurat](https://satijalab.org/seurat/reference/), [SeuratObject](https://satijalab.github.io/seurat-object/reference/index.html)).
+For more information on spatial analysis workflows, see the other [spatial vignettes](https://satijalab.org/seurat/articles/get_started#spatial-analysis) and documentation ([Seurat](https://satijalab.org/seurat/reference/), [SeuratObject](https://satijalab.github.io/seurat-object/reference/index.html)).
 
 # Acknowledgements
 
@@ -442,10 +446,22 @@ We would like to thank Stephen Williams and the Computational Biology team at 10
 
 <br/>
 <br/>
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("visiumhd_analysis_cell_segmentations", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "visiumhd_analysis_cell_segmentations_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r session_info}
-sessionInfo()
+```{r session-info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>
 <br/>

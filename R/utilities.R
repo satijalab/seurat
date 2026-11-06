@@ -3253,10 +3253,10 @@ BuildNicheAssay <- function(
 #' 
 #' @concept utilities
 #' 
-#' @importFrom future availableCores
+#' @importFrom parallelly availableCores
 #' @export
 setThreads <- function(n = NULL, verbose = TRUE) {
-  ncores <- future::availableCores()
+  ncores <- parallelly::availableCores()
   if (is.null(n)) {
     if (is.na(x = ncores)) {
       warning("Could not detect number of cores, defaulting to 1 thread")
@@ -3283,7 +3283,7 @@ getThreads <- function(verbose = TRUE) {
   n <- getOption("Seurat.nthreads")
   if (verbose) {
     message("Seurat threads: ", n)
-    message("Number of available cores detected: ", future::availableCores(), "\n")
+    message("Number of available cores detected: ", parallelly::availableCores(), "\n")
   }
   return(n)
 }

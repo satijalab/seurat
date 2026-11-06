@@ -2141,15 +2141,15 @@ DESeq2DETest <- function(
 }
 
 # internal function to calculate AUC values
-#' @importFrom ROCR prediction performance
 #'
 DifferentialAUC <- function(x, y) {
-  prediction.use <- prediction(
+  check_installed("ROCR", reason = "to use DifferentialAUC()")
+  prediction.use <- ROCR::prediction(
     predictions = c(x, y),
     labels = c(rep(x = 1, length(x = x)), rep(x = 0, length(x = y))),
     label.ordering = 0:1
   )
-  perf.use <- performance(prediction.obj = prediction.use, measure = "auc")
+  perf.use <- ROCR::performance(prediction.obj = prediction.use, measure = "auc")
   auc.use <- round(x = perf.use@y.values[[1]], digits = 3)
   return(auc.use)
 }
@@ -2442,7 +2442,6 @@ IdentsToCells <- function(
 # @param latent.vars Latent variables to include in model
 # @param verbose Print messages
 #
-#' @importFrom lmtest lrtest
 #' @importFrom pbapply pbsapply
 #' @importFrom stats as.formula glm
 #' @importFrom future.apply future_sapply
@@ -2455,6 +2454,7 @@ LRDETest <- function(
   latent.vars = NULL,
   verbose = TRUE
 ) {
+  check_installed("lmtest", reason = "to use LRDETest()")
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
@@ -2486,7 +2486,7 @@ LRDETest <- function(
       }
       model1 <- glm(formula = fmla, data = model.data, family = "binomial")
       model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
-      lrtest <- lrtest(model1, model2)
+      lrtest <- lmtest::lrtest(model1, model2)
       return(lrtest$Pr[2])
     }
   )
@@ -2826,6 +2826,7 @@ PerformDE <- function(
 #' @template section-progressr
 #' @template section-future
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
 #' pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20, vst.flavor="v1")
@@ -2845,6 +2846,8 @@ PerformDE <- function(
 #'   assay = "SCT",
 #'   recorrect_umi = FALSE
 #' )
+#'
+#' }
 #'
 PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   if (verbose && nbrOfWorkers() == 1) {

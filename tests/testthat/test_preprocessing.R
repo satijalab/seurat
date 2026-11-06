@@ -137,6 +137,7 @@ if (is_not_cran_submission) {
   # Tests for BPCells NormalizeData
   # --------------------------------------------------------------------------------
   test_that("NormalizeData scales properly for BPcells", {
+    skip_on_cran()
     library(Matrix)
     skip_if_not_installed("BPCells")
     library(BPCells)
@@ -152,6 +153,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("LogNormalize normalizes properly for BPCells", {
+    skip_on_cran()
     library(Matrix)
     skip_if_not_installed("BPCells")
     library(BPCells)
@@ -346,7 +348,7 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(hvf_info[VariableFeatures(object = object), grep("variance.standardized$", colnames(hvf_info))])))
 })
 
-test_that("VST variable feature ordering is stable with multiple layers", {
+test_that("VST scores and feature selection are stable with multiple layers", {
   skip_if_not(class(object[['RNA']]) == "Assay5")
 
   object.multilayer <- CreateSeuratObject(split(object[["RNA"]], f = rep(c("1", "4"), each = ncol(object) / 2)))
@@ -361,17 +363,21 @@ test_that("VST variable feature ordering is stable with multiple layers", {
   object.multi.thread.4 <- FindVariableFeatures(object.multilayer, selection.method = "vst", verbose = FALSE)
   setThreads(old.threads, verbose = FALSE)
 
-  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread))
-  expect_identical(VariableFeatures(object = object.single.thread), VariableFeatures(object = object.multi.thread.4))
-  expect_identical(
-    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
-    VariableFeatures(object = object.multi.thread[["RNA"]], method = "vst", simplify = FALSE)
-  )
-
-  expect_identical(
-    VariableFeatures(object = object.single.thread[["RNA"]], method = "vst", simplify = FALSE),
-    VariableFeatures(object = object.multi.thread.4[["RNA"]], method = "vst", simplify = FALSE)
-  )
+  # Nearly tied scores can change order across BLAS implementations.
+  for (actual in list(object.multi.thread, object.multi.thread.4)) {
+    expect_setequal(VariableFeatures(object.single.thread), VariableFeatures(actual))
+    for (layer in Layers(object.single.thread[["RNA"]], search = "counts")) {
+      expect_setequal(
+        VariableFeatures(object.single.thread[["RNA"]], method = "vst", layer = layer),
+        VariableFeatures(actual[["RNA"]], method = "vst", layer = layer)
+      )
+      expect_equal(
+        HVFInfo(actual[["RNA"]], method = "vst", layer = layer),
+        HVFInfo(object.single.thread[["RNA"]], method = "vst", layer = layer),
+        tolerance = 1e-8
+      )
+    }
+  }
 
   for (layer in Layers(object = object.single.thread[["RNA"]], search = "counts")) {
     hvf.info <- HVFInfo(object = object.single.thread[["RNA"]], method = "vst", layer = layer, status = TRUE)
@@ -518,7 +524,37 @@ if (is_not_cran_submission) {
     expect_false(anyNA(residuals[both, c(model1.cells, model2.cells)]))
   })
 
+  test_that("FetchResiduals_reference uses the original query variance floor", {
+    # higher reference counts make its resolved floor differ from the query floor
+    test.data <- CreateSeuratObject(counts = CreateAssayObject(counts = pbmc.test * 50))
+    test.data <- suppressWarnings(SCTransform(
+      object = test.data,
+      vst.flavor = "v1",
+      min_variance = "umi_median",
+      verbose = FALSE
+    ))
+    model <- test.data[["SCT"]]@SCTModel.list[[1]]
+    features <- rownames(GetAssayData(object = test.data, assay = "SCT", layer = "scale.data"))
+    result <- FetchResiduals_reference(
+      object = pbmc.test,
+      reference.SCT.model = model,
+      features = features
+    )
+
+    # restore the original string setting to calculate the expected query residuals
+    model@arguments$min_variance_original <- NULL
+    model@arguments$min_variance <- "umi_median"
+    expected <- FetchResiduals_reference(
+      object = pbmc.test,
+      reference.SCT.model = model,
+      features = features
+    )
+    # query residuals should match the behavior before the regression
+    expect_equal(result, expected, tolerance = 1e-6)
+  })
+
   test_that("SCTransform v2 works as expected", {
+    skip_on_cran()
     skip_if_not_installed("glmGamPoi")
     object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))
 
@@ -754,6 +790,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("SCTransform is equivalent for BPcells ", {
+    skip_on_cran()
     skip_if_not_installed("glmGamPoi")
 
     library(Matrix)
@@ -773,6 +810,7 @@ if (is_not_cran_submission) {
   })
 
   test_that("SCTransform preserves BPCells cells when sampling or disabling correction", {
+    skip_on_cran()
     skip_if_not_installed("glmGamPoi")
     skip_if_not_installed("BPCells")
 

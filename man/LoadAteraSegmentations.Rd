@@ -35,3 +35,5 @@ can still get polygons for a \code{\link[SeuratObject]{Crop}}ped
 region-of-interest FOV, which typically has orders of magnitude fewer
 cells.
 }
+\concept{preprocessing}
+\concept{spatial}

@@ -36,6 +36,7 @@ path.to.visium <- file.path(path.to.data, "visium")
 path.to.visium.hd <- file.path(path.to.data, "visium_hd")
 
 test_that("Read10X_h5 works as expected", {
+  skip_on_cran()
   skip_if_not_installed("hdf5r")
 
   path.to.counts <- file.path(
@@ -77,8 +78,9 @@ test_that("Radius is dispatched for VisiumV2 images", {
 test_that("Read10X_Image works as expected", {
   path.to.images <- file.path(path.to.visium, "spatial")
   coordinate.filenames <-  "tissue_positions_list.csv"
-  # only test HD the dataset containing a parquet file if `arrow` is installed
-  if (requireNamespace("arrow", quietly = TRUE)) {
+  # Test the optional parquet input off CRAN when arrow is installed.
+  if (isTRUE(as.logical(Sys.getenv("NOT_CRAN"))) &&
+      requireNamespace("arrow", quietly = TRUE)) {
     path.to.images <- c(
       path.to.images,
       file.path(
@@ -179,6 +181,7 @@ test_that("Read10X_Image works as expected", {
 })
 
 test_that("Load10X_Spatial works with SD data", {
+  skip_on_cran()
   skip_if_not_installed("hdf5r")
 
   path.to.counts <- file.path(
@@ -218,6 +221,7 @@ test_that("Load10X_Spatial works with SD data", {
 })
 
 test_that("Load10X_Spatial works with HD data", {
+  skip_on_cran()
   skip_if_not_installed("hdf5r")
   skip_if_not_installed("arrow")
 
@@ -278,4 +282,122 @@ test_that("Load10X_Spatial works with HD data", {
 test_that("Read10X_Spatial handles missing files properly", {
   expect_error(Load10X_Spatial(data.dir = "."))
   expect_error(Load10X_Spatial(data.dir = "./notadir/"))
+})
+
+test_that("fast MatrixMarket reads match readMM", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
+  # check that accelerated reads and connection fallbacks return the same sparse matrix
+  skip_if_not_installed("data.table")
+  skip_if_not_installed("R.utils")
+  path <- "../testdata/cr3.0/matrix.mtx.gz"
+  expected <- Matrix::readMM(path)
+  expect_equal(Seurat:::readMM_fast(path), expected)
+  con <- gzfile(path, "rt")
+  tryCatch(
+    expect_equal(Seurat:::readMM_fast(con), expected),
+    finally = close(con)
+  )
+  # also check real-valued entries without comments
+  path <- file.path(bundle, "matrix.mtx")
+  writeLines(c("%%MatrixMarket matrix coordinate real general",
+    "3 2 2", "1 1 1.5", "2 2 4.25"), path)
+  expect_equal(Seurat:::readMM_fast(path), Matrix::readMM(path))
+  writeLines(c("%%MatrixMarket matrix coordinate real general", "% empty matrix", "3 2 0"), path)
+  expect_equal(Seurat:::readMM_fast(path), Matrix::readMM(path))
+})
+
+test_that("Read10X and ReadMtx agree with the original MatrixMarket reader", {
+  # compare both loaders with the original reader on plain and compressed input files
+  for (folder in c("../testdata", "../testdata/cr3.0")) {
+    compressed <- grepl("cr3.0$", folder)
+    suffix <- if (compressed) ".gz" else ""
+    mtx <- file.path(folder, paste0("matrix.mtx", suffix))
+    cells <- file.path(folder, paste0("barcodes.tsv", suffix))
+    features <- file.path(folder, paste0(if (compressed) "features.tsv" else "genes.tsv", suffix))
+    actual <- list(Read10X(folder), ReadMtx(mtx, cells, features))
+    expected <- local({
+      testthat::local_mocked_bindings(readMM_fast = Matrix::readMM, .package = "Seurat")
+      list(Read10X(folder), ReadMtx(mtx, cells, features))
+    })
+    expect_equal(actual, expected)
+  }
+})
+
+test_that("Read10X and ReadMtx handle comments, entry counts, and whitespace", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
+  # check reader equivalence, incomplete counts, and whitespace labels using one fixture
+  skip_if_not_installed("data.table")
+  skip_if_not_installed("R.utils")
+  testthat::local_mocked_bindings(readMM = function(...) stop("unexpected fallback"), .package = "Matrix")
+  mtx <- file.path(bundle, "matrix.mtx")
+  cells <- file.path(bundle, "barcodes.tsv")
+  features <- file.path(bundle, "genes.tsv")
+  lines <- c("%%MatrixMarket matrix coordinate integer general", "% metadata", "",
+    "% another comment", "2 2 2", "1 1 3", "2 2 4")
+  writeLines(lines, mtx)
+  writeLines(c("0001", "0002"), cells)
+  writeLines(c("id1\tA", "id2\tB"), features)
+  read.mtx <- function(...) ReadMtx(mtx, cells, features, ...)
+  expected <- matrix(c(3, 0, 0, 4), 2L, dimnames = list(c("A", "B"), c("0001", "0002")))
+  expect_equal(as.matrix(Read10X(bundle)), expected)
+  expect_equal(as.matrix(read.mtx()), expected)
+  for (entries in c(3L, 1L)) {
+    writeLines(sub("^2 2 2$", paste("2 2", entries), lines), mtx)
+    expect_error(Read10X(bundle), "entry count mismatch", fixed = TRUE)
+    expect_error(read.mtx(), "entry count mismatch", fixed = TRUE)
+  }
+  writeLines(lines, mtx)
+  writeLines(c("row1   0001", "row2\t0002"), cells)
+  writeLines(c("id1  A", "id2\tB"), features)
+  expect_equal(as.matrix(read.mtx(cell.column = 2, cell.sep = "", feature.sep = "")), expected)
+})
+
+test_that("table fallback preserves barcodes and skips unused columns", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
+  # check that optional reader dependencies do not change projected columns or barcode values
+  path <- file.path(bundle, "table.csv.gz")
+  con <- gzfile(path, "wt")
+  writeLines(c("barcode,x,unused", "0001,2,unused"), con)
+  close(con)
+  read <- function() Seurat:::.ReadLoaderTable(path,
+    colClasses = c(barcode = "character"), select = c("barcode", "x", "qv"))
+  expected <- data.frame(barcode = "0001", x = 2L)
+  expect_identical(read(), expected)
+
+  original <- base::requireNamespace
+  for (dependency in c("data.table", "R.utils")) local({
+    testthat::local_mocked_bindings(requireNamespace = function(package, ...) {
+      if (package == dependency) FALSE else original(package, ...)
+    }, .package = "base")
+    expect_identical(read(), expected)
+  })
+})
+
+test_that("10X counts preserve single-feature modalities and protein scaling", {
+  skip_on_cran()
+  bundle <- tempfile(pattern = "seurat-test-")
+  dir.create(bundle)
+  # check that single-feature protein counts retain their dimensions and scaling
+  skip_if_not_installed("BPCells")
+  skip_if_not_installed("hdf5r")
+  path <- file.path(bundle, "cell_feature_matrix.h5")
+  matrix <- Matrix::Matrix(matrix(c(1, 2, 10, 3, 4, 20), nrow = 3,
+    dimnames = list(c("Gene", "Gene", "Protein"), c("cell1", "cell2"))), sparse = TRUE)
+  BPCells::write_matrix_10x_hdf5(methods::as(matrix, "IterableMatrix"), path,
+    feature_ids = c("id1", "id2", "id3"),
+    feature_types = c("Gene Expression", "Gene Expression", "Protein Expression"), type = "double")
+  file <- hdf5r::H5File$new(path, "r+")
+  hdf5r::h5attr(file, "protein_scaling_factor") <- 10
+  file$close_all()
+  actual <- suppressMessages(Read10X_h5(path))
+  expect_named(actual, c("Gene Expression", "Protein Expression"))
+  expect_equal(rownames(actual[[1L]]), c("Gene", "Gene.1"))
+  expect_equal(as.matrix(actual[[2L]]), matrix(c(1, 2), nrow = 1,
+    dimnames = list("Protein", c("cell1", "cell2"))))
 })

@@ -1641,14 +1641,12 @@ FeaturePlot <- function(
 #'
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 theme element_text guides scale_color_gradientn
-#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
-#' @importFrom shiny fillRow sidebarPanel selectInput plotOutput reactiveValues
-#' observeEvent stopApp observe updateSelectInput renderPlot runGadget
 #'
 #' @export
 #' @concept visualization
 #'
 IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot = 'data') {
+  check_installed(c("shiny", "miniUI"), reason = "to use IFeaturePlot()")
   # Set initial data values
   feature.label <- 'Feature to visualize'
   assay.keys <- Key(object = object)[Assays(object = object)]
@@ -1682,16 +1680,16 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
     x = colnames(x = object[[reduction]])
   )
   # Set up the gadget UI
-  ui <- miniPage(
-    miniButtonBlock(miniTitleBarButton(
+  ui <- miniUI::miniPage(
+    miniUI::miniButtonBlock(miniUI::miniTitleBarButton(
       inputId = 'done',
       label = 'Done',
       primary = TRUE
     )),
-    miniContentPanel(
-      fillRow(
-        sidebarPanel(
-          selectInput(
+    miniUI::miniContentPanel(
+      shiny::fillRow(
+        shiny::sidebarPanel(
+          shiny::selectInput(
             inputId = 'assay',
             label = 'Assay',
             choices = assays.use,
@@ -1699,7 +1697,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
             selectize = FALSE,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'feature',
             label = feature.label,
             choices = features,
@@ -1707,7 +1705,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
             selectize = FALSE,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'reduction',
             label = 'Dimensional reduction',
             choices = Reductions(object = object),
@@ -1715,7 +1713,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
             selectize = FALSE,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'xdim',
             label = 'X dimension',
             choices = dims.reduc,
@@ -1723,7 +1721,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
             selectize = FALSE,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'ydim',
             label = 'Y dimension',
             choices = dims.reduc,
@@ -1731,7 +1729,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
             selectize = FALSE,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'palette',
             label = 'Color scheme',
             choices = names(x = FeaturePalettes),
@@ -1741,7 +1739,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
           ),
           width = '100%'
         ),
-        plotOutput(outputId = 'plot', height = '100%'),
+        shiny::plotOutput(outputId = 'plot', height = '100%'),
         flex = c(1, 4)
       )
     )
@@ -1751,18 +1749,18 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   plot.data <- FetchData(object = object, vars = c(dims, feature), layer = slot)
   # Shiny server
   server <- function(input, output, session) {
-    plot.env <- reactiveValues(
+    plot.env <- shiny::reactiveValues(
       data = plot.data,
       dims = paste0(Key(object = object[[reduction]]), dims),
       feature = feature,
       palette = 'Seurat'
     )
     # Observe events
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$done,
-      handlerExpr = stopApp(returnValue = plot.env$plot)
+      handlerExpr = shiny::stopApp(returnValue = plot.env$plot)
     )
-    observe(x = {
+    shiny::observe(x = {
       assay <- input$assay
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
@@ -1787,21 +1785,21 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
           dims[i] <- dims.reduc[i]
         }
       }
-      updateSelectInput(
+      shiny::updateSelectInput(
         session = session,
         inputId = 'xdim',
         label = 'X dimension',
         choices = dims.reduc,
         selected = as.character(x = dims[1])
       )
-      updateSelectInput(
+      shiny::updateSelectInput(
         session = session,
         inputId = 'ydim',
         label = 'Y dimension',
         choices = dims.reduc,
         selected = as.character(x = dims[2])
       )
-      updateSelectInput(
+      shiny::updateSelectInput(
         session = session,
         inputId = 'feature',
         label = feature.label,
@@ -1809,7 +1807,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
         selected = feature.use
       )
     })
-    observe(x = {
+    shiny::observe(x = {
       feature.use <- input$feature
       feature.keyed <- paste0(Key(object = object[[input$assay]]), feature.use)
       reduc <- input$reduction
@@ -1834,11 +1832,11 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
       plot.env$feature <- feature.use
       plot.env$dims <- dims
     })
-    observe(x = {
+    shiny::observe(x = {
       plot.env$palette <- input$palette
     })
     # Create the plot
-    output$plot <- renderPlot(expr = {
+    output$plot <- shiny::renderPlot(expr = {
       plot.env$plot <- SingleDimPlot(
         data = plot.env$data,
         dims = plot.env$dims,
@@ -1855,7 +1853,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
       plot.env$plot
     })
   }
-  runGadget(app = ui, server = server)
+  shiny::runGadget(app = ui, server = server)
 }
 
 #' Highlight Neighbors in DimPlot
@@ -2443,7 +2441,14 @@ PolyFeaturePlot <- function(
 #' \code{patchwork} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
-#' @param flip_xy Flag to flip X and Y axes. Default is FALSE.
+#' @param flip_xy Swap x and y in the plot. \code{FALSE} shows x horizontally
+#' and y increasing downward. \code{TRUE} swaps the axes and restores the old (< v6)
+#' layout, with vertical values increasing upward. \code{NULL} (the default)
+#' uses \code{FALSE}, except for objects loaded with the deprecated
+#' \code{LoadXenium(flip.xy = TRUE)}, which retain their previous plot layout.
+#' Stored coordinates do not change. To crop using the original x/y ranges,
+#' use \code{\link[SeuratObject]{Crop}(..., coords = "tissue")}.
+#' The default \code{Crop()} still expects swapped x/y ranges.
 #'
 #' @return If \code{combine = TRUE}, a \code{patchwork}
 #' ggplot object; otherwise, a list of ggplot objects
@@ -2483,7 +2488,7 @@ ImageDimPlot <- function(
   axes = FALSE,
   combine = TRUE,
   coord.fixed = TRUE,
-  flip_xy = TRUE
+  flip_xy = NULL
 ) {
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
@@ -2542,14 +2547,13 @@ ImageDimPlot <- function(
   ))
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
+  fov.by.plot <- setNames(rep(fov, vapply(seq_along(fov), function(i) {
+    if (isTRUE(overlap[i])) 1L else length(boundaries[[i]])
+  }, integer(1L))), names(pdata))
   for (i in names(x = pdata)) {
-    ul <- unlist(x = strsplit(x = i, split = '_'))
-    img <- paste(ul[1:length(ul)-1], collapse = '_')
+    img <- fov.by.plot[[i]]
     # Apply overlap
-    lyr <- ul[length(ul)]
-    if (is.na(x = lyr)) {
-      lyr <- boundaries[[img]]
-    }
+    lyr <- if (isTRUE(overlap[match(img, fov)])) boundaries[[img]] else substring(i, nchar(img) + 2L)
     # TODO: Apply crop
     pdata[[i]] <- lapply(
       X = lyr,
@@ -2617,7 +2621,8 @@ ImageDimPlot <- function(
   idx <- 1L
   for (group in group.by) {
     for (i in seq_along(along.with = pdata)) {
-      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '_'))[1L]
+      img <- fov.by.plot[[i]]
+      orientation <- .ImagePlotOrientation(object[[img]], flip_xy)
       p <- SingleImagePlot(
         data = pdata[[i]],
         col.by = pdata[[i]] %!NA% group,
@@ -2632,7 +2637,8 @@ ImageDimPlot <- function(
         border.color = border.color,
         border.size = border.size,
         na.value = na.value,
-        dark.background = dark.background
+        dark.background = dark.background,
+        flip_xy = orientation
       )
       if (!is.null(x = split.by)) {
         p <- p + facet_wrap(
@@ -2647,10 +2653,6 @@ ImageDimPlot <- function(
       }
       if (isTRUE(coord.fixed)) {
         p <- p + coord_fixed()
-      }
-      if(!isTRUE(flip_xy) && isTRUE(coord.fixed)){
-        xy_ratio = (max(pdata[[i]]$x) - min(pdata[[i]]$x)) / (max(pdata[[i]]$y) - min(pdata[[i]]$y))
-        p = p + coord_flip() + theme(aspect.ratio = 1/xy_ratio)
       }
       plots[[idx]] <- p
       idx <- idx + 1L
@@ -2721,7 +2723,8 @@ ImageFeaturePlot <- function(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE
+  coord.fixed = TRUE,
+  flip_xy = NULL
 ) {
   cells <- cells %||% Cells(x = object)
   scale <- scale[[1L]]
@@ -2947,23 +2950,13 @@ ImageFeaturePlot <- function(
   ))
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
+  fov.by.plot <- setNames(rep(fov, vapply(seq_along(fov), function(i) {
+    if (isTRUE(overlap[i])) 1L else length(boundaries[[i]])
+  }, integer(1L))), names(pdata))
   for (i in names(x = pdata)) {
-    ul <- unlist(x = strsplit(x = i, split = '_'))
-    # img <- paste(ul[1:length(ul)-1], collapse = '_')
+    img <- fov.by.plot[[i]]
     # Apply overlap
-    # lyr <- ul[length(ul)]
-    if(length(ul) > 1) {
-         img <- paste(ul[1:length(ul)-1], collapse = '_')
-         lyr <- ul[length(ul)]
-    } else if (length(ul) == 1) {
-         img <- ul[1]
-         lyr <- "centroids"
-    } else {
-         stop("the length of ul is 0. please check.")
-    }
-    if (is.na(x = lyr)) {
-      lyr <- boundaries[[img]]
-    }
+    lyr <- if (isTRUE(overlap[match(img, fov)])) boundaries[[img]] else substring(i, nchar(img) + 2L)
     pdata[[i]] <- lapply(
       X = lyr,
       FUN = function(l) {
@@ -3071,7 +3064,8 @@ ImageFeaturePlot <- function(
     }
     for (j in seq_along(along.with = pdata)) {
       key <- names(x = pdata)[j]
-      img <- unlist(x = strsplit(x = key, split = '_'))[1L]
+      img <- fov.by.plot[[j]]
+      orientation <- .ImagePlotOrientation(object[[img]], flip_xy)
       plots[[ident]][[key]] <- vector(
         mode = 'list',
         length = length(x = features) + ifelse(
@@ -3103,7 +3097,8 @@ ImageFeaturePlot <- function(
           alpha = alpha,
           border.color = border.color,
           border.size = border.size,
-          dark.background = dark.background
+          dark.background = dark.background,
+          flip_xy = orientation
         ) +
           CenterTitle() + labs(fill=feature)
         # Remove fill guides for blended plots
@@ -3177,9 +3172,10 @@ ImageFeaturePlot <- function(
       if (isTRUE(x = blend)) {
         plots[[ident]][[key]][[length(x = plots[[ident]][[key]])]] <- blend.key
       } else if (length(x = levels(x = md[[split.by]])) > 1L) {
+        y.scale <- if (orientation) scale_y_continuous else scale_y_reverse
         plots[[ident]][[key]][[y]] <- suppressMessages(
           expr = plots[[ident]][[key]][[y]] +
-            scale_y_continuous(sec.axis = dup_axis(name = ident)) +
+            y.scale(sec.axis = dup_axis(name = ident)) +
             no.right
         )
       }
@@ -3228,10 +3224,6 @@ ImageFeaturePlot <- function(
 #' @importFrom scales hue_pal
 #' @importFrom patchwork wrap_plots
 #' @importFrom ggplot2 scale_alpha_ordinal guides
-#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
-#' @importFrom shiny fillRow plotOutput brushOpts clickOpts hoverOpts
-#' verbatimTextOutput reactiveValues observeEvent stopApp nearPoints
-#' brushedPoints renderPlot renderPrint runGadget
 #'
 #' @aliases LinkedPlot LinkedDimPlot
 #'
@@ -3255,31 +3247,32 @@ LinkedDimPlot <- function(
   alpha = c(0.1, 1),
   combine = TRUE
 ) {
+  check_installed(c("shiny", "miniUI"), reason = "to use LinkedDimPlot()")
   # Setup gadget UI
-  ui <- miniPage(
-    gadgetTitleBar(
+  ui <- miniUI::miniPage(
+    miniUI::gadgetTitleBar(
       title = 'LinkedDimPlot',
-      left = miniTitleBarButton(inputId = 'reset', label = 'Reset')
+      left = miniUI::miniTitleBarButton(inputId = 'reset', label = 'Reset')
     ),
-    miniContentPanel(
-      fillRow(
-        plotOutput(
+    miniUI::miniContentPanel(
+      shiny::fillRow(
+        shiny::plotOutput(
           outputId = 'spatialplot',
           height = '100%',
           # brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
-          click = clickOpts(id = 'spclick', clip = TRUE),
-          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+          click = shiny::clickOpts(id = 'spclick', clip = TRUE),
+          hover = shiny::hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
         ),
-        plotOutput(
+        shiny::plotOutput(
           outputId = 'dimplot',
           height = '100%',
-          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
-          click = clickOpts(id = 'dimclick', clip = TRUE),
-          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+          brush = shiny::brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
+          click = shiny::clickOpts(id = 'dimclick', clip = TRUE),
+          hover = shiny::hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
         ),
         height = '97%'
       ),
-      verbatimTextOutput(outputId = 'info')
+      shiny::verbatimTextOutput(outputId = 'info')
     )
   )
   # Prepare plotting data
@@ -3313,20 +3306,20 @@ LinkedDimPlot <- function(
 
   # Setup the server
   server <- function(input, output, session) {
-    click <- reactiveValues(pt = NULL, invert = FALSE)
-    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    click <- shiny::reactiveValues(pt = NULL, invert = FALSE)
+    plot.env <- shiny::reactiveValues(data = plot.data, alpha.by = NULL)
     # Handle events
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$done,
       handlerExpr = {
         plots <- list(plot.env$spatialplot, plot.env$dimplot)
         if (combine) {
           plots <- wrap_plots(plots, ncol = 2)
         }
-        stopApp(returnValue = plots)
+        shiny::stopApp(returnValue = plots)
       }
     )
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$reset,
       handlerExpr = {
         click$pt <- NULL
@@ -3336,8 +3329,8 @@ LinkedDimPlot <- function(
         session$resetBrush(brushId = 'brush')
       }
     )
-    observeEvent(eventExpr = input$brush, handlerExpr = click$pt <- NULL)
-    observeEvent(
+    shiny::observeEvent(eventExpr = input$brush, handlerExpr = click$pt <- NULL)
+    shiny::observeEvent(
       eventExpr = input$spclick,
       handlerExpr = {
         # Flip coordinates vertically for spatial plot to match tissue image
@@ -3345,18 +3338,18 @@ LinkedDimPlot <- function(
         click$invert <- TRUE
       }
     )
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$dimclick,
       handlerExpr = {
         click$pt <- input$dimclick
         click$invert <- FALSE
       }
     )
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = c(input$brush, input$spclick, input$dimclick),
       handlerExpr = {
         plot.env$data <- if (is.null(x = input$brush)) {
-          clicked <- nearPoints(
+          clicked <- shiny::nearPoints(
             df = plot.data,
             coordinfo = click$pt,
             threshold = 10,
@@ -3374,12 +3367,12 @@ LinkedDimPlot <- function(
             plot.data
           }
         } else if (input$brush$outputId == 'dimplot') {
-          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE, xvar = dp_x, yvar = dp_y)
+          shiny::brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE, xvar = dp_x, yvar = dp_y)
         } else if (input$brush$outputId == 'spatialplot') {
           b <- input$brush
           b$ymin <- sp_y_max - (b$ymin - sp_y_min)
           b$ymax <- sp_y_max - (b$ymax - sp_y_min)
-          brushedPoints(df = plot.data, brush = b, allRows = TRUE, xvar = sp_x, yvar = sp_y)
+          shiny::brushedPoints(df = plot.data, brush = b, allRows = TRUE, xvar = sp_x, yvar = sp_y)
         }
         plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
           'selected_'
@@ -3389,7 +3382,7 @@ LinkedDimPlot <- function(
       }
     )
     # Set plots
-    output$spatialplot <- renderPlot(
+    output$spatialplot <- shiny::renderPlot(
       expr = {
         plot.env$spatialplot <- SingleSpatialPlot(
           data = plot.env$data,
@@ -3402,7 +3395,7 @@ LinkedDimPlot <- function(
         plot.env$spatialplot
       }
     )
-    output$dimplot <- renderPlot(
+    output$dimplot <- shiny::renderPlot(
       expr = {
         plot.env$dimplot <- SingleDimPlot(
           data = plot.env$data,
@@ -3414,9 +3407,9 @@ LinkedDimPlot <- function(
       }
     )
     # Add hover text
-    output$info <- renderPrint(
+    output$info <- shiny::renderPrint(
       expr = {
-        cell.hover <- rownames(x = nearPoints(
+        cell.hover <- rownames(x = shiny::nearPoints(
           df = plot.data,
           coordinfo = if (is.null(input[['sphover']])) {
             input$dimhover
@@ -3459,7 +3452,7 @@ LinkedDimPlot <- function(
     )
   }
   # Run the thang
-  runGadget(app = ui, server = server)
+  shiny::runGadget(app = ui, server = server)
 }
 
 #' @rdname LinkedPlots
@@ -3483,27 +3476,28 @@ LinkedFeaturePlot <- function(
   alpha = c(0.1, 1),
   combine = TRUE
 ) {
+  check_installed(c("shiny", "miniUI"), reason = "to use LinkedFeaturePlot()")
   # Setup gadget UI
-  ui <- miniPage(
-    gadgetTitleBar(
+  ui <- miniUI::miniPage(
+    miniUI::gadgetTitleBar(
       title = 'LinkedFeaturePlot',
       left = NULL
     ),
-    miniContentPanel(
-      fillRow(
-        plotOutput(
+    miniUI::miniContentPanel(
+      shiny::fillRow(
+        shiny::plotOutput(
           outputId = 'spatialplot',
           height = '100%',
-          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+          hover = shiny::hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
         ),
-        plotOutput(
+        shiny::plotOutput(
           outputId = 'dimplot',
           height = '100%',
-          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+          hover = shiny::hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
         ),
         height = '97%'
       ),
-      verbatimTextOutput(outputId = 'info')
+      shiny::verbatimTextOutput(outputId = 'info')
     )
   )
   # Prepare plotting data
@@ -3529,20 +3523,20 @@ LinkedFeaturePlot <- function(
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
   server <- function(input, output, session) {
-    plot.env <- reactiveValues()
+    plot.env <- shiny::reactiveValues()
     # Handle events
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$done,
       handlerExpr = {
         plots <- list(plot.env$spatialplot, plot.env$dimplot)
         if (combine) {
           plots <- wrap_plots(plots, ncol = 2)
         }
-        stopApp(returnValue = plots)
+        shiny::stopApp(returnValue = plots)
       }
     )
     # Set plots
-    output$spatialplot <- renderPlot(
+    output$spatialplot <- shiny::renderPlot(
       expr = {
         plot.env$spatialplot <- SingleSpatialPlot(
           data = plot.data,
@@ -3559,7 +3553,7 @@ LinkedFeaturePlot <- function(
         plot.env$spatialplot
       }
     )
-    output$dimplot <- renderPlot(
+    output$dimplot <- shiny::renderPlot(
       expr = {
         plot.env$dimplot <- SingleDimPlot(
           data = plot.data,
@@ -3572,9 +3566,9 @@ LinkedFeaturePlot <- function(
       }
     )
     # Add hover text
-    output$info <- renderPrint(
+    output$info <- shiny::renderPrint(
       expr = {
-        cell.hover <- rownames(x = nearPoints(
+        cell.hover <- rownames(x = shiny::nearPoints(
           df = plot.data,
           coordinfo = if (is.null(x = input[['sphover']])) {
             input$dimhover
@@ -3596,7 +3590,7 @@ LinkedFeaturePlot <- function(
       }
     )
   }
-  runGadget(app = ui, server = server)
+  shiny::runGadget(app = ui, server = server)
 }
 
 #' Visualize clusters spatially and interactively
@@ -3608,9 +3602,6 @@ LinkedFeaturePlot <- function(
 #' @return Returns final plot as a ggplot object
 #'
 #' @importFrom ggplot2 scale_alpha_ordinal
-#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
-#' @importFrom shiny fillRow plotOutput verbatimTextOutput reactiveValues
-#' observeEvent stopApp nearPoints renderPlot runGadget
 #'
 #' @export
 #' @concept visualization
@@ -3623,24 +3614,25 @@ ISpatialDimPlot <- function(
   group.by = NULL,
   alpha = c(0.3, 1)
 ) {
+  check_installed(c("shiny", "miniUI"), reason = "to use ISpatialDimPlot()")
   # Setup gadget UI
-  ui <- miniPage(
-    miniButtonBlock(miniTitleBarButton(
+  ui <- miniUI::miniPage(
+    miniUI::miniButtonBlock(miniUI::miniTitleBarButton(
       inputId = 'done',
       label = 'Done',
       primary = TRUE
     )),
-    miniContentPanel(
-      fillRow(
-        plotOutput(
+    miniUI::miniContentPanel(
+      shiny::fillRow(
+        shiny::plotOutput(
           outputId = 'plot',
           height = '100%',
-          click = clickOpts(id = 'click', clip = TRUE),
-          hover = hoverOpts(id = 'hover', delay = 10, nullOutside = TRUE)
+          click = shiny::clickOpts(id = 'click', clip = TRUE),
+          hover = shiny::hoverOpts(id = 'hover', delay = 10, nullOutside = TRUE)
         ),
         height = '97%'
       ),
-      verbatimTextOutput(outputId = 'info')
+      shiny::verbatimTextOutput(outputId = 'info')
     )
   )
   # Get plotting data
@@ -3664,18 +3656,18 @@ ISpatialDimPlot <- function(
   Idents(object = object) <- group.by
   # Set up the server
   server <- function(input, output, session) {
-    click <- reactiveValues(pt = NULL)
-    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    click <- shiny::reactiveValues(pt = NULL)
+    plot.env <- shiny::reactiveValues(data = plot.data, alpha.by = NULL)
     # Handle events
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$done,
-      handlerExpr = stopApp(returnValue = plot.env$plot)
+      handlerExpr = shiny::stopApp(returnValue = plot.env$plot)
     )
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$click,
       handlerExpr = {
         click$pt <- flip_y(input$click)
-        clicked <- nearPoints(
+        clicked <- shiny::nearPoints(
           df = plot.data,
           coordinfo = click$pt,
           threshold = 10,
@@ -3700,7 +3692,7 @@ ISpatialDimPlot <- function(
       }
     )
     # Set plot
-    output$plot <- renderPlot(
+    output$plot <- shiny::renderPlot(
       expr = {
         plot.env$plot <- SingleSpatialPlot(
           data = plot.env$data,
@@ -3714,9 +3706,9 @@ ISpatialDimPlot <- function(
       }
     )
     # Add hover text
-    output$info <- renderPrint(
+    output$info <- shiny::renderPrint(
       expr = {
-        hovered <- nearPoints(
+        hovered <- shiny::nearPoints(
           df = plot.data,
           coordinfo = flip_y(input$hover),
           threshold = 10,
@@ -3744,7 +3736,7 @@ ISpatialDimPlot <- function(
       }
     )
   }
-  runGadget(app = ui, server = server)
+  shiny::runGadget(app = ui, server = server)
 }
 
 #' Visualize features spatially and interactively
@@ -3756,9 +3748,6 @@ ISpatialDimPlot <- function(
 #' @return Returns final plot as a ggplot object
 #'
 #' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
-#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
-#' @importFrom shiny fillRow sidebarPanel sliderInput selectInput reactiveValues
-#' observeEvent stopApp observe updateSelectInput plotOutput renderPlot runGadget
 #'
 #' @export
 #' @concept visualization
@@ -3771,6 +3760,7 @@ ISpatialFeaturePlot <- function(
   slot = 'data',
   alpha = c(0.1, 1)
 ) {
+  check_installed(c("shiny", "miniUI"), reason = "to use ISpatialFeaturePlot()")
   # Set inital data values
   assay.keys <- Key(object = object)[Assays(object = object)]
   keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
@@ -3798,16 +3788,16 @@ ISpatialFeaturePlot <- function(
   )
   assays.use <- sort(x = Assays(object = object)[assays.use])
   # Setup gadget UI
-  ui <- miniPage(
-    miniButtonBlock(miniTitleBarButton(
+  ui <- miniUI::miniPage(
+    miniUI::miniButtonBlock(miniUI::miniTitleBarButton(
       inputId = 'done',
       label = 'Done',
       primary = TRUE
     )),
-    miniContentPanel(
-      fillRow(
-        sidebarPanel(
-          sliderInput(
+    miniUI::miniContentPanel(
+      shiny::fillRow(
+        shiny::sidebarPanel(
+          shiny::sliderInput(
             inputId = 'alpha',
             label = 'Alpha intensity',
             min = 0,
@@ -3816,7 +3806,7 @@ ISpatialFeaturePlot <- function(
             step = 0.01,
             width = '100%'
           ),
-          sliderInput(
+          shiny::sliderInput(
             inputId = 'pt.size',
             label = 'Point size',
             min = 0,
@@ -3825,7 +3815,7 @@ ISpatialFeaturePlot <- function(
             step = 0.1,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'assay',
             label = 'Assay',
             choices = assays.use,
@@ -3833,7 +3823,7 @@ ISpatialFeaturePlot <- function(
             selectize = FALSE,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'feature',
             label = feature.label,
             choices = features,
@@ -3841,7 +3831,7 @@ ISpatialFeaturePlot <- function(
             selectize = FALSE,
             width = '100%'
           ),
-          selectInput(
+          shiny::selectInput(
             inputId = 'palette',
             label = 'Color scheme',
             choices = names(x = FeaturePalettes),
@@ -3851,7 +3841,7 @@ ISpatialFeaturePlot <- function(
           ),
           width = '100%'
         ),
-        plotOutput(outputId = 'plot', height = '100%'),
+        shiny::plotOutput(outputId = 'plot', height = '100%'),
         flex = c(1, 4)
       )
     )
@@ -3868,17 +3858,17 @@ ISpatialFeaturePlot <- function(
   )
   plot.data <- cbind(coords, feature.data)
   server <- function(input, output, session) {
-    plot.env <- reactiveValues(
+    plot.env <- shiny::reactiveValues(
       data = plot.data,
       feature = feature,
       palette = 'Spatial'
     )
     # Observe events
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$done,
-      handlerExpr = stopApp(returnValue = plot.env$plot)
+      handlerExpr = shiny::stopApp(returnValue = plot.env$plot)
     )
-    observe(x = {
+    shiny::observe(x = {
       assay <- input$assay
       feature.use <- input$feature
       features.assay <- sort(x = rownames(x = GetAssayData(
@@ -3891,14 +3881,14 @@ ISpatialFeaturePlot <- function(
         yes = feature.use,
         no = features.assay[1]
       )
-      updateSelectInput(
+      shiny::updateSelectInput(
         session = session,
         inputId = 'assay',
         label = 'Assay',
         choices = assays.use,
         selected = assay
       )
-      updateSelectInput(
+      shiny::updateSelectInput(
         session = session,
         inputId = 'feature',
         label = feature.label,
@@ -3906,7 +3896,7 @@ ISpatialFeaturePlot <- function(
         selected = feature.use
       )
     })
-    observe(x = {
+    shiny::observe(x = {
       feature.use <- input$feature
       try(
         expr = {
@@ -3923,11 +3913,11 @@ ISpatialFeaturePlot <- function(
         silent = TRUE
       )
     })
-    observe(x = {
+    shiny::observe(x = {
       plot.env$palette <- input$palette
     })
     # Create plot
-    output$plot <- renderPlot(expr = {
+    output$plot <- shiny::renderPlot(expr = {
       plot.env$plot <- SingleSpatialPlot(
         data = plot.env$data,
         image = object[[image]],
@@ -3944,7 +3934,7 @@ ISpatialFeaturePlot <- function(
       plot.env$plot
     })
   }
-  runGadget(app = ui, server = server)
+  shiny::runGadget(app = ui, server = server)
 }
 
 #' Interactive Spatial Cell Selection Tool
@@ -3955,7 +3945,6 @@ ISpatialFeaturePlot <- function(
 #'
 #' @note This function requires the
 #'   \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}},
-#'   \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}},
 #'   and \href{https://cran.r-project.org/package=base64enc}{\pkg{base64enc}} packages
 #'   to be installed. It also requires \pkg{shiny} and \pkg{miniUI} for the interactive UI.
 #'
@@ -3968,17 +3957,22 @@ ISpatialFeaturePlot <- function(
 #' @param overlay_image Logical; if \code{TRUE}, overlays the tissue image in the background of the plot (default \code{TRUE}).
 #'
 #' @importFrom grDevices png dev.off
-#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel
-#' @importFrom shiny uiOutput reactiveVal renderUI tags observeEvent stopApp runGadget
 #'
 #' @return A character vector of cell names selected via lasso, which can be used to subset the object.
 #' @export
+#'
+#' @concept spatial
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
 #' selected_cells <- InteractiveSpatialPlot(object = brain)
 #' selected_cells <- InteractiveSpatialPlot(object = brain, overlay_image = FALSE)
 #' }
+#'
+#' @concept spatial
+#' @concept visualization
+#'
 InteractiveSpatialPlot <- function(
   object,
   image = NULL,
@@ -3989,7 +3983,7 @@ InteractiveSpatialPlot <- function(
   overlay_image = TRUE
 ) {
   # Check for required packages, stop with clear message if missing
-  required_pkgs <- c("plotly", "magrittr", "base64enc", "shiny")
+  required_pkgs <- c("plotly", "base64enc", "shiny", "miniUI")
   
   missing_pkgs <- required_pkgs[
     !vapply(required_pkgs, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1))
@@ -4002,9 +3996,6 @@ InteractiveSpatialPlot <- function(
       call. = FALSE
     )
   }
-
-  # Import magrittr pipe locally
-  `%>%` <- magrittr::`%>%`
 
   # Use provided image name or fallback to default
   image <- image %||% DefaultImage(object)
@@ -4147,9 +4138,9 @@ InteractiveSpatialPlot <- function(
   y_ticks <- create_axis_ticks(coords$y, coords$y_raw)
 
   # Set up the gadget UI with a plotly output area
-  ui <- miniPage(
-    gadgetTitleBar("Select a subset of cells"),
-    miniContentPanel(
+  ui <- miniUI::miniPage(
+    miniUI::gadgetTitleBar("Select a subset of cells"),
+    miniUI::miniContentPanel(
       plotly::plotlyOutput("plot", height = "100%"),
       shiny::tags$div(
         shiny::uiOutput("selection_count"),
@@ -4181,7 +4172,7 @@ InteractiveSpatialPlot <- function(
 
       # Overlay the tissue image as background if available
       if (!is.null(base64_image)) {
-        plt <- plt %>% plotly::layout(
+        plt <- plotly::layout(plt,
           images = list(
             list(
               source = base64_image,
@@ -4200,7 +4191,7 @@ InteractiveSpatialPlot <- function(
 
       # Lock axes to same scale and reverse y for image alignment
       # Set lasso mode and custom axis labels
-      plt <- plt %>% plotly::layout(
+      plt <- plotly::layout(plt,
         dragmode = "lasso",
         yaxis = list(
           autorange = "reversed",
@@ -4219,7 +4210,7 @@ InteractiveSpatialPlot <- function(
       plt
     })
 
-    observeEvent(plotly::event_data("plotly_selected"), {
+    shiny::observeEvent(plotly::event_data("plotly_selected"), {
       selected <- plotly::event_data("plotly_selected")
 
       if (is.null(selected) || NROW(selected) == 0) {
@@ -4236,18 +4227,18 @@ InteractiveSpatialPlot <- function(
     })
 
     # When user clicks "Done", retrieve lasso selection and close gadget
-    observeEvent(input$done, {
-      stopApp(current_selection())
+    shiny::observeEvent(input$done, {
+      shiny::stopApp(current_selection())
     })
 
     # When user clicks "Cancel", exit gadget and return NULL
-    observeEvent(input$cancel, {
-      stopApp(NULL)
+    shiny::observeEvent(input$cancel, {
+      shiny::stopApp(NULL)
     })
   }
 
   # Launch the interactive gadget
-  runGadget(ui, server)
+  shiny::runGadget(ui, server)
 }
 
 #' Visualize spatial clustering and expression data.
@@ -4570,6 +4561,23 @@ SpatialPlot <- function(
   if (!(is.null(x = keep.scale)) && keep.scale == "all") {
     max.feature.value <- max(apply(data, 2, function(x) max(x, na.rm = TRUE)))
   }
+  feature.factors <- vapply(features, function(feature) is.factor(data[, feature]), logical(1L))
+  scale.by.feature <- !is.null(keep.scale) && keep.scale == "feature"
+  feature.max <- if (scale.by.feature) {
+    lapply(seq_along(features), function(j) if (!feature.factors[j]) max(data[, features[j]]) else NULL)
+  } else {
+    NULL
+  }
+  feature.cols <- if (is.null(cols)) {
+    lapply(seq_along(features), function(j) {
+      if (!feature.factors[j]) return(NULL)
+      groups <- levels(data[, features[j]])
+      setNames(hue_pal()(length(groups)), groups)
+    })
+  } else {
+    NULL
+  }
+  image.cache <- vector("list", length(images))
 
   for (i in 1:ncols) {
     plot.idx <- i
@@ -4577,51 +4585,49 @@ SpatialPlot <- function(
     image.use <- object[[images[[image.idx]]]]
 
     is_visium_v2 <- inherits(image.use, "VisiumV2")
-    old_axis_orientation <- (!.hasSlot(image.use, "coords_x_orientation")) || (.hasSlot(image.use, "coords_x_orientation") && (slot(image.use, "coords_x_orientation") != 'horizontal'))
-    
-    if (is_visium_v2 && old_axis_orientation) {
+    if (is_visium_v2 && !.UseImageCoordinates(image.use)) {
       stop(
         "Please run `UpdateSeuratObject` on your Seurat object first to ensure that data aligns to the image ", images[[image.idx]], " when plotting.",
         call. = TRUE
       )
     }
 
-    # When plotting segmentations, set the default boundary (temporarily) to segmentations
-    if (plot_segmentations == TRUE && inherits(image.use, "VisiumV2") && 
-        "segmentations" %in% names(image.use)) {
-      db <- DefaultBoundary(image.use)
-      on.exit(DefaultBoundary(image.use) <- db, add = TRUE) # Reset on exit
-      DefaultBoundary(image.use) <- "segmentations"
+    prepared <- image.cache[[image.idx]]
+    if (is.null(prepared)) {
+      coordinates <- if (plot_segmentations == TRUE && is_visium_v2 && "segmentations" %in% names(image.use)) {
+        GetTissueCoordinates(object = image.use, scale = image.scale, which = "segmentations")
+      } else {
+        GetTissueCoordinates(object = image.use, scale = image.scale)
+      }
+      # VisiumV1 coordinates use row names rather than a cell column.
+      if (!("cell" %in% colnames(coordinates))) {
+        coordinates$cell <- rownames(coordinates)
+      }
+      prepared <- list(
+        coordinates = coordinates,
+        index = match(coordinates$cell, rownames(data)),
+        segmentations = is_visium_v2 &&
+          !is.null(image.use@boundaries$segmentations) &&
+          "sf.data" %in% slotNames(image.use@boundaries$segmentations),
+        context = if (inherits(image.use, c("VisiumV1", "VisiumV2"))) .SpatialImageContext(image.use) else NULL
+      )
+      image.cache[[image.idx]] <- prepared
     }
-    coordinates <- GetTissueCoordinates(object = image.use, scale = image.scale)
+    coordinates <- prepared$coordinates
+    idx <- prepared$index
+    has_visium_segm_data <- prepared$segmentations
     highlight.use <- if (facet.highlight) {
       cells.highlight[i]
     } else {
       cells.highlight
     }
     for (j in seq_along(features)) {
-      cols.unset <- is.factor(x = data[, features[j]]) && is.null(x = cols)
-      if (cols.unset) {
-        cols <- hue_pal()(n = length(x = levels(x = data[, features[j]])))
-        names(x = cols) <- levels(x = data[, features[j]])
-      }
+      cols.use <- if (is.null(cols)) feature.cols[[j]] else cols
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !inherits(x = data[, features[j]], what = "factor") ) {
-        max.feature.value <- max(data[, features[j]])
+      if (scale.by.feature && !feature.factors[j]) {
+        max.feature.value <- feature.max[[j]]
       }
-
-      # Check if object is of type Visium and contains segmentations
-      has_visium_segm_data <- inherits(image.use, "VisiumV2") &&
-                              !is.null(image.use@boundaries$segmentations) &&
-                              "sf.data" %in% slotNames(image.use@boundaries$segmentations)
-
-      # GetTissueCoordinates will not always return a "cell" column (e.g., Visium V1)
-      if (!("cell" %in% colnames(x = coordinates))) {
-        coordinates$cell <- rownames(x = coordinates)
-      }
-
-      idx <- match(coordinates$cell, rownames(x = data))
       plot.data <- cbind(coordinates, data[idx, features[j], drop = FALSE])
 
       plot <- SingleSpatialPlot(
@@ -4630,7 +4636,7 @@ SpatialPlot <- function(
         image.scale = image.scale,
         image.alpha = image.alpha,
         col.by = features[j],
-        cols = cols,
+        cols = cols.use,
         alpha.by = if (is.null(x = group.by)) {
           features[j]
         } else {
@@ -4654,7 +4660,8 @@ SpatialPlot <- function(
         shape = shape,
         stroke = stroke,
         stroke.alpha = stroke.alpha,
-        crop = crop
+        crop = crop,
+        image.context = prepared$context
       )
       if (is.null(x = group.by)) {
         plot <- plot +
@@ -4707,9 +4714,6 @@ SpatialPlot <- function(
 
       plots[[plot.idx]] <- plot
       plot.idx <- plot.idx + ncols
-      if (cols.unset) {
-        cols <- NULL
-      }
     }
   }
 
@@ -5355,7 +5359,7 @@ PlotClusterTree <- function(object, direction = "downwards", ...) {
 #'
 #' @examples
 #' data("pbmc_small")
-#' VizDimLoadings(object = pbmc_small)
+#' VizDimLoadings(object = pbmc_small, dims = 1)
 #'
 VizDimLoadings <- function(
   object,
@@ -5594,10 +5598,6 @@ BlueAndRed <- function(k = 50) {
 #' otherwise, a Seurat object with the selected cells identity classes set to
 #' \code{ident}
 #'
-#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton
-#' miniContentPanel
-#' @importFrom shiny fillRow plotOutput brushOpts reactiveValues observeEvent
-#' stopApp brushedPoints renderPlot runGadget
 #'
 #' @export
 #' @concept visualization
@@ -5616,18 +5616,19 @@ BlueAndRed <- function(k = 50) {
 #' }
 #'
 CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
+  check_installed(c("shiny", "miniUI"), reason = "to use CellSelector()")
   # Set up the gadget UI
-  ui <- miniPage(
-    gadgetTitleBar(
+  ui <- miniUI::miniPage(
+    miniUI::gadgetTitleBar(
       title = "Cell Selector",
-      left = miniTitleBarButton(inputId = "reset", label = "Reset")
+      left = miniUI::miniTitleBarButton(inputId = "reset", label = "Reset")
     ),
-    miniContentPanel(
-      fillRow(
-        plotOutput(
+    miniUI::miniContentPanel(
+      shiny::fillRow(
+        shiny::plotOutput(
           outputId = "plot",
           height = '100%',
-          brush = brushOpts(
+          brush = shiny::brushOpts(
             id = 'brush',
             delay = 100,
             delayType = 'debounce',
@@ -5667,9 +5668,9 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   )
   # Server function
   server <- function(input, output, session) {
-    plot.env <- reactiveValues(data = plot.data)
+    plot.env <- shiny::reactiveValues(data = plot.data)
     # Event handlers
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$done,
       handlerExpr = {
         PlotBuild(data = plot.env$data, dark.theme = dark.theme)
@@ -5681,20 +5682,20 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
           Idents(object = object, cells = selected) <- ident
           selected <- object
         }
-        stopApp(returnValue = selected)
+        shiny::stopApp(returnValue = selected)
       }
     )
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$reset,
       handlerExpr = {
         plot.env$data <- plot.data
         session$resetBrush(brushId = 'brush')
       }
     )
-    observeEvent(
+    shiny::observeEvent(
       eventExpr = input$brush,
       handlerExpr = {
-        plot.env$data <- brushedPoints(
+        plot.env$data <- shiny::brushedPoints(
           df = plot.data,
           brush = input$brush,
           xvar = xy.aes$x,
@@ -5709,12 +5710,12 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
       }
     )
     # Render the plot
-    output$plot <- renderPlot(expr = PlotBuild(
+    output$plot <- shiny::renderPlot(expr = PlotBuild(
       data = plot.env$data,
       dark.theme = dark.theme
     ))
   }
-  return(runGadget(app = ui, server = server))
+  return(shiny::runGadget(app = ui, server = server))
 }
 
 #' Move outliers towards center on dimension reduction plot
@@ -5801,6 +5802,7 @@ CollapseEmbeddingOutliers <- function(
 #' @concept visualization
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' pbmc_small[['group']] <- sample(
 #'   x = c('g1', 'g2'),
@@ -5822,6 +5824,7 @@ CollapseEmbeddingOutliers <- function(
 #'   legend = 'none',
 #'   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
 #' )
+#' }
 #'
 CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
   .Deprecated(msg = "CombinePlots is being deprecated. Plots should now be combined using the patchwork system.")
@@ -6045,7 +6048,6 @@ FeatureLocator <- function(plot, ...) {
 #' @param ... Extra parameters to be passed to \code{\link[plotly]{layout}}
 #'
 #' @importFrom ggplot2 ggplot_build
-#' @importFrom plotly plot_ly layout add_annotations
 #' @export
 #' @concept visualization
 #'
@@ -6066,6 +6068,7 @@ HoverLocator <- function(
   dark.theme = FALSE,
   ...
 ) {
+  check_installed("plotly", reason = "to use HoverLocator()")
   # Use GGpointToBase because we already have ggplot objects
   # with colors (which are annoying in plotly)
   plot.build <- suppressWarnings(expr = GGpointToPlotlyBuild(
@@ -6106,8 +6109,8 @@ HoverLocator <- function(
   # Use I() to get plotly to accept the colors from the data as is
   # Set hoverinfo to 'text' to override the default hover information
   # rather than append to it
-  p <- layout(
-    p = plot_ly(
+  p <- plotly::layout(
+    p = plotly::plot_ly(
       data = plot.build,
       x = ~x,
       y = ~y,
@@ -6133,7 +6136,7 @@ HoverLocator <- function(
     }
   ))
   if (length(x = label.layer) == 1) {
-    p <- add_annotations(
+    p <- plotly::add_annotations(
       p = p,
       x = plot$layers[[label.layer]]$data[, 1],
       y = plot$layers[[label.layer]]$data[, 2],
@@ -6548,6 +6551,12 @@ DarkTheme <- function(...) {
       l = font.margin
     )
   )
+  legend.white.text <- element_text( # remove top & bottom margins
+    colour = 'white',
+    margin = margin(
+      r = font.margin, 
+      l = font.margin)
+  )
   white.line <- element_line(colour = 'white', linewidth = 1)
   no.line <- element_line(linewidth = 0)
   #   Create the dark theme
@@ -6558,6 +6567,7 @@ DarkTheme <- function(...) {
     legend.background = black.background,
     legend.box.background = black.background.no.border,
     legend.key = black.background.no.border,
+    legend.key.height = unit(4, 'mm'),
     strip.background = element_rect(fill = 'grey50', colour = NA),
     #   Set text colors
     plot.title = white.text,
@@ -6565,7 +6575,7 @@ DarkTheme <- function(...) {
     axis.title = white.text,
     axis.text = white.text,
     legend.title = white.text,
-    legend.text = white.text,
+    legend.text = legend.white.text,
     strip.text = white.text,
     #   Set line colors
     axis.line.x = white.line,
@@ -6890,6 +6900,81 @@ fortify.Segmentation <- function(model, data, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+.UseImageCoordinates <- function(object) {
+  .hasSlot(object, "coords_x_orientation") &&
+    identical(slot(object, "coords_x_orientation"), "horizontal")
+}
+
+.ImagePlotOrientation <- function(object, flip_xy = NULL) {
+  if (!is.null(flip_xy) && (!is.logical(flip_xy) || length(flip_xy) != 1L || is.na(flip_xy))) {
+    stop("flip_xy must be NULL, TRUE or FALSE")
+  }
+  # only deprecated Xenium loader flips request legacy axes by default
+  flip_xy %||% (.hasSlot(object, "coords_x_orientation") &&
+    identical(slot(object, "coords_x_orientation"), "vertical"))
+}
+
+
+# Keep the two existing rendering paths' interpolation and transparency
+# behavior, including the raster ordering used by GeomSpatial.
+.SpatialImageGrob <- function(image, image.alpha) {
+  grob <- GetImage(image)
+  if (image.alpha != 1) {
+    grob$raster <- as.raster(matrix(
+      data = alpha(colour = grob$raster, alpha = image.alpha),
+      nrow = nrow(grob$raster), ncol = ncol(grob$raster), byrow = TRUE
+    ))
+  }
+  grob
+}
+
+.SpatialPolygonImageGrob <- function(image, image.alpha) {
+  pixels <- GetImage(object = image, mode = "raw")
+  if (image.alpha < 1) {
+    rgba <- array(NA, dim = c(dim(pixels)[1:2], 4))
+    rgba[, , 1:3] <- pixels
+    rgba[, , 4] <- image.alpha
+    pixels <- rgba
+  }
+  rasterGrob(pixels, width = unit(1, "npc"), height = unit(1, "npc"), interpolate = FALSE)
+}
+
+# Each image gets its own context within a SpatialPlot call. Closures retain
+# only that image, not the Seurat object or expression/coordinate tables.
+# Grobs are prepared on first use so image.alpha = 0 never converts pixels.
+.SpatialImageContext <- function(image) {
+  force(image)
+  spatial <- polygon <- radius <- NULL
+  spatial.alpha <- polygon.alpha <- radius.scale <- NULL
+  radius.ready <- FALSE
+  list(
+    dimensions = dim(slot(image, "image"))[1:2],
+    ggplot4 = packageVersion("ggplot2") >= "4.0.0",
+    radius = function(scale) {
+      if (!radius.ready || !identical(scale, radius.scale)) {
+        radius <<- Radius(object = image, scale = scale)
+        radius.scale <<- scale
+        radius.ready <<- TRUE
+      }
+      radius
+    },
+    spatial = function(alpha) {
+      if (is.null(spatial) || !identical(alpha, spatial.alpha)) {
+        spatial <<- .SpatialImageGrob(image, alpha)
+        spatial.alpha <<- alpha
+      }
+      spatial
+    },
+    polygon = function(alpha) {
+      if (is.null(polygon) || !identical(alpha, polygon.alpha)) {
+        polygon <<- .SpatialPolygonImageGrob(image, alpha)
+        polygon.alpha <<- alpha
+      }
+      polygon
+    }
+  )
+}
 
 #' @importFrom SeuratObject Features Key Keys Molecules
 #'
@@ -7540,7 +7625,7 @@ GeomSpatial <- ggproto(
   "GeomSpatial",
   Geom,
   required_aes = c("x", "y"),
-  extra_params = c("na.rm", "image", "image.alpha", "image.scale", "crop"),
+  extra_params = c("na.rm", "image", "image.alpha", "image.scale", "crop", "image.context"),
   default_aes = aes(
     shape = 21,
     colour = "black",
@@ -7555,8 +7640,8 @@ GeomSpatial <- ggproto(
     data
   },
   draw_key = draw_key_point,
-  draw_panel = function(data, panel_scales, coord, image, image.alpha, image.scale, crop) {
-    img.dim <- dim(image)
+  draw_panel = function(data, panel_scales, coord, image, image.alpha, image.scale, crop, image.context = NULL) {
+    img.dim <- if (is.null(image.context)) dim(image) else image.context$dimensions
 
     # This should be in native units, where
     # Locations and sizes are relative to the x- and yscales for the current viewport.
@@ -7583,7 +7668,11 @@ GeomSpatial <- ggproto(
     )
 
     # Calculate spot size relative to the image size to be consistent across different images and scales
-    spot.radius <- Radius(object = image, scale = image.scale)
+    spot.radius <- if (is.null(image.context)) {
+      Radius(object = image, scale = image.scale)
+    } else {
+      image.context$radius(image.scale)
+    }
     base.point.size <- if (length(spot.radius) == 1L) {
       unit(spot.radius, "npc")
     } else {
@@ -7612,17 +7701,12 @@ GeomSpatial <- ggproto(
     gt <- gTree(vp = canvas_viewport) # empty gTree to add the image and points to
     # Only draw the image if it has a non-zero alpha value, otherwise just draw the points
     if (image.alpha > 0) {
-      img_grob <- GetImage(image)
-      img <- editGrob(grob = img_grob, vp = plot_viewport)
-      if (image.alpha != 1) {
-        img$raster = as.raster(
-          x = matrix(
-            data = alpha(colour = img$raster, alpha = image.alpha),
-            nrow = nrow(x = img$raster),
-            ncol = ncol(x = img$raster),
-            byrow = TRUE)
-        )
+      img_grob <- if (is.null(image.context)) {
+        .SpatialImageGrob(image, image.alpha)
+      } else {
+        image.context$spatial(image.alpha)
       }
+      img <- editGrob(grob = img_grob, vp = plot_viewport)
       gt <- addGrob(gTree = gt, child = img)
     }
     gt <- addGrob(gTree = gt, child = pts)
@@ -7649,6 +7733,7 @@ geom_spatial <-  function(
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE,
+  image.context = NULL,
   ...
 ) {
   layer(
@@ -7665,6 +7750,7 @@ geom_spatial <-  function(
       image.alpha = image.alpha,
       image.scale = image.scale,
       crop = crop,
+      image.context = image.context,
       ...
     )
   )
@@ -8512,15 +8598,15 @@ SetHighlight <- function(
   ))
 }
 
-#' @importFrom shiny brushedPoints
 #
-ShinyBrush <- function(plot.data, brush, outputs, inverts = character(length = 0L)) {#}, selected = NULL) {
+ShinyBrush <- function(plot.data, brush, outputs, inverts = character(length = 0L)) {
+  check_installed("shiny", reason = "to use ShinyBrush()")
   selected <- NULL
   if (!is.null(x = brush)) {
     if (brush$outputId %in% outputs) {
-      selected <- rownames(x = brushedPoints(df = plot.data, brush = brush))
+      selected <- rownames(x = shiny::brushedPoints(df = plot.data, brush = brush))
     } else if (brush$outputId %in% inverts) {
-      selected <- rownames(x = brushedPoints(
+      selected <- rownames(x = shiny::brushedPoints(
         df = plot.data,
         brush = InvertCoordinate(x = brush)
       ))
@@ -9279,10 +9365,8 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #'
 #' @param data A data frame with at least the following columns:
 #' \itemize{
-#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
-#'   plotted on the \emph{y}-axis
-#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
-#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{x}}: Spatially-resolved \emph{x} coordinates
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates
 #'  \item \dQuote{\code{cell}}: Cell name
 #'  \item \dQuote{\code{boundary}}: Segmentation boundary label; when plotting
 #'   multiple segmentation layers, the order of boundary transparency is set by
@@ -9308,10 +9392,8 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @param molecules A data frame with spatially-resolved molecule coordinates;
 #' should have the following columns:
 #' \itemize{
-#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
-#'   plotted on the \emph{y}-axis
-#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
-#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{x}}: Spatially-resolved \emph{x} coordinates
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates
 #'  \item \dQuote{\code{molecule}}: Molecule name
 #' }
 #' @param mols.size Point size for molecules
@@ -9336,6 +9418,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @importFrom ggplot2 geom_point geom_polygon ggplot guides
 #' guide_legend scale_alpha_manual scale_color_manual scale_fill_brewer
 #' scale_fill_manual
+#' @param flip_xy Exchange x and y axes (default \code{FALSE})
 #'
 #' @keywords internal
 #'
@@ -9357,6 +9440,7 @@ SingleImagePlot <- function(
   border.size = NULL,
   na.value = 'grey50',
   dark.background = TRUE,
+  flip_xy = FALSE,
   ...
 ) {
   # Check input data
@@ -9421,12 +9505,15 @@ SingleImagePlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes(
-      x = .data[["y"]],
-      y = .data[["x"]],
+      x = .data[[if (isTRUE(flip_xy)) "y" else "x"]],
+      y = .data[[if (isTRUE(flip_xy)) "x" else "y"]],
       alpha = .data[["boundary"]],
       !!!aes_extra
     )
   )
+  if (!isTRUE(flip_xy)) {
+    plot <- plot + scale_y_reverse()
+  }
   if (!is_na(x = data)) {
     plot <- plot +
       scale_alpha_manual(values = alphas) +
@@ -9644,10 +9731,11 @@ SingleRasterMap <- function(
 #' @param geom Switch between normal spatial geom and geom to enable hover
 #' functionality
 #' @param na.value Color for spots with NA values
+#' @param image.context Optional internal rendering context shared by panels
+#' using the same image. Defaults to \code{NULL} for standalone calls.
 #'
 #' @return A ggplot2 object
 #'
-#' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot coord_fixed geom_point xlim ylim
 #' coord_cartesian labs theme_void theme scale_fill_brewer
 #' scale_y_reverse annotation_custom after_scale
@@ -9673,13 +9761,14 @@ SingleSpatialPlot <- function(
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
   geom = c('spatial', 'interactive', 'poly', 'poly_starmap'),
-  na.value = 'grey50'
+  na.value = 'grey50',
+  image.context = NULL
 ) {
   geom <- match.arg(arg = geom)
-  image_dim <- dim(image)
+  image_dim <- if (is.null(image.context)) dim(image) else image.context$dimensions
   image.height <- image_dim[1]
   image.width <- image_dim[2]
-  ggplot_version_4 <- packageVersion("ggplot2") >= "4.0.0"
+  ggplot_version_4 <- if (is.null(image.context)) packageVersion("ggplot2") >= "4.0.0" else image.context$ggplot4
 
   # Helper to set coord limits based on image dimensions
   coord_limits <- function() {
@@ -9701,19 +9790,11 @@ SingleSpatialPlot <- function(
     if (image.alpha == 0) {
       return(NULL)
     }
-    image_to_plot <- GetImage(object = image, mode = "raw")
-    if (image.alpha < 1) {
-      rgba_image <- array(data = NA, dim = c(image_dim[1:2], 4))
-      rgba_image[, , 1:3] <- image_to_plot
-      rgba_image[, , 4] <- image.alpha
-      image_to_plot <- rgba_image
+    image.grob <- if (is.null(image.context)) {
+      .SpatialPolygonImageGrob(image, image.alpha)
+    } else {
+      image.context$polygon(image.alpha)
     }
-    image.grob <- rasterGrob(
-      image_to_plot,
-      width = unit(1, "npc"),
-      height = unit(1, "npc"),
-      interpolate = FALSE
-    )
     if (!ggplot_version_4) {
       message("Changing image annotation limits to work with ggplot2 < 4.0.0.")
       return(annotation_custom(
@@ -9781,6 +9862,7 @@ SingleSpatialPlot <- function(
           image = image,
           image.alpha = image.alpha,
           image.scale = image.scale,
+          image.context = image.context,
           crop = crop,
           shape = shape,
           stroke = stroke,
@@ -9793,6 +9875,7 @@ SingleSpatialPlot <- function(
           image = image,
           image.alpha = image.alpha,
           image.scale = image.scale,
+          image.context = image.context,
           crop = crop,
           shape = shape,
           stroke = stroke,
@@ -9807,19 +9890,19 @@ SingleSpatialPlot <- function(
     },
     'interactive' = {
       plot + geom_spatial_interactive(
-        data = tibble(
-          grob = list(
+        data = data.frame(
+          grob = I(list(
             GetImage(
               object = image,
               mode = 'grob'
             )
-          )
+          ))
         ),
         mapping = aes(grob = .data[['grob']]),
         x = 0.5,
         y = 0.5
       ) +
-        geom_point(mapping = aes(color = .data[[col.by]])) +
+        geom_point(mapping = aes(color = !!col.by.plot)) +
         xlim(0, ncol(x = image)) +
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)

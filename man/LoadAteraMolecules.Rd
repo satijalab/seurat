@@ -24,3 +24,5 @@ re-reading genes that have already been fetched (by this call or by
 where different genes are plotted one at a time and reloading the full
 transcript table for each one would be wasteful.
 }
+\concept{preprocessing}
+\concept{spatial}

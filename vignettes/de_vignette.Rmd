@@ -4,9 +4,27 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-date: 'Compiled: `r Sys.Date()`'
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
+
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
+knitr::knit_hooks$set(time_it = local({
+  start <- NULL
+  function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
+    if (before) {
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
+    }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
+  }
+}))
+knitr::opts_chunk$set(time_it = TRUE, error = FALSE, warning = FALSE, tidy = FALSE)
+```
 
 ### Load in the data
 
@@ -16,7 +34,7 @@ A key consideration for differential expression testing with single cell data is
 Analyses which treat individual cells as independent replicates do not account for biological variability, e.g. between different cells from different individuals or lines. 
 Such pseudoreplicate-based analyses have been shown to find a large number of false positive associations [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2), [Zimmerman et al., 2021](https://www.nature.com/articles/s41467-021-21038-1), [Junttila et al., 2022](https://academic.oup.com/bib/article/23/5/bbac286/6649780). Below, we show how pseudobulking can be used to account for such within-sample correlation. 
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r load-in-the-data, echo=TRUE, message=FALSE, warning=FALSE}
 library(Seurat)
 library(SeuratData)
 library(ggplot2)
@@ -27,7 +45,7 @@ ifnb <- LoadData("ifnb")
 
 The bulk of Seurat's differential expression features can be accessed through the `FindMarkers()` function. By default, Seurat performs differential expression (DE) testing based on the non-parametric Wilcoxon rank sum test. To test for DE genes between two specific groups of cells, specify the `ident.1` and `ident.2` parameters.
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r normalize, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # Normalize the data
 ifnb <- NormalizeData(ifnb)
 
@@ -49,7 +67,7 @@ The results data frame has the following columns:
 
 If the `ident.2` parameter is omitted or set to `NULL`, `FindMarkers()` will test for differentially expressed features between the group specified by `ident.1` and all other cells. Additionally, the parameter `only.pos` can be set to `TRUE` to only search for positive markers, i.e. features that are more highly expressed in the `ident.1` group. 
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r view-results, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # Find differentially expressed features between CD16 Monocytes and all other cells, only
 # search for positive markers
 monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = NULL, only.pos = TRUE)
@@ -66,7 +84,7 @@ First, we need to retrieve the sample information for each cell. This is not loa
 
 <details><summary>**Add sample information to the dataset**</summary>
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r read-table, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # load the inferred sample IDs of each cell
 ctrl <- read.table(url("https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye1.ctrl.8.10.sm.best"), head = T, stringsAsFactors = F)
 stim <- read.table(url("https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye2.stim.8.10.sm.best"), head = T, stringsAsFactors = F)
@@ -96,7 +114,7 @@ ifnb <- subset(ifnb, subset = donor_id != "unknown")
 
 We can now perform pseudobulking (`AggregateExpression()`) based on the donor IDs. 
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r pseudobulk, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # pseudobulk the counts based on donor-condition-celltype
 pseudo_ifnb <- AggregateExpression(ifnb, assays = "RNA", return.seurat = T, group.by = c("stim", "donor_id", "seurat_annotations"))
 
@@ -107,7 +125,7 @@ pseudo_ifnb$celltype.stim <- paste(pseudo_ifnb$seurat_annotations, pseudo_ifnb$s
 
 Next, we perform DE testing on the pseudobulk level for CD14 monocytes, and compare it against the previous single-cell-level DE results. 
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r bulk-de, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 Idents(pseudo_ifnb) <- "celltype.stim"
 
 bulk.mono.de <- FindMarkers(object = pseudo_ifnb, 
@@ -121,14 +139,14 @@ head(bulk.mono.de, n = 15)
 
 Treating individual cells as the unit of analysis (i.e. pseudoreplication) can lead to low p-values due to the large number of cells in single cell studies, but does not account for variability between samples. Here we will explore the difference between pseudobulk and single-cell based DE analysis. First, we create a column in the `meta.data` slot to hold both the cell type and treatment information and switch the current `Idents` to that column. Then we use `FindMarkers()` to find the genes that are different between control and stimulated CD14 monocytes.
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r single-cell-de, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 ifnb$celltype.stim <- paste(ifnb$seurat_annotations, ifnb$stim, sep = "_")
 Idents(ifnb) <- "celltype.stim"
 mono.de <- FindMarkers(ifnb, ident.1 = "CD14 Mono_STIM", ident.2 = "CD14 Mono_CTRL", verbose = FALSE)
 head(mono.de, n = 10)
 ```
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r merge-de-results, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # compare the DE P-values between the single-cell level and the pseudobulk level results
 names(bulk.mono.de) <- paste0(names(bulk.mono.de), ".bulk")
 bulk.mono.de$gene <- rownames(bulk.mono.de)
@@ -140,7 +158,7 @@ merge_dat <- merge(mono.de, bulk.mono.de, by = "gene")
 merge_dat <- merge_dat[order(merge_dat$p_val.bulk), ]
 ```
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r compare-pvalues, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # Number of genes that are marginally significant in both; marginally significant only in bulk; and marginally significant only in single-cell
 common <- merge_dat$gene[which(merge_dat$p_val.bulk < 0.05 & 
                                 merge_dat$p_val.sc < 0.05)]
@@ -157,7 +175,7 @@ We can see that while the p-values are correlated between the single-cell and ps
 
 First, we can examine the top genes that are differentially expressed in both analyses. 
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r plot-shared-genes, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 # create a new column to annotate sample-condition-celltype in the single-cell dataset
 ifnb$donor_id.stim <- paste0(ifnb$stim, "-", ifnb$donor_id)
 
@@ -172,7 +190,7 @@ In both the pseudobulk and single-cell analyses, the p-values for these two gene
 
 By contrast, we can examine examples of genes that are only DE under the single-cell analysis.
 
-```{r echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
+```{r generate-violin-plot, echo=TRUE, message=FALSE, warning=FALSE,results=TRUE}
 print(merge_dat[merge_dat$gene%in%c('SRGN','HLA-DRA'),c('gene','p_val.sc','p_val.bulk')])
 VlnPlot(ifnb, features = c('SRGN','HLA-DRA'), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"), group.by = "stim") 
 VlnPlot(ifnb, features = c('SRGN','HLA-DRA'), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"), group.by = "donor_id.stim", ncol = 1) 
@@ -189,7 +207,7 @@ Finally, we also support many other DE tests using other methods. For completene
 * "bimod" : Likelihood-ratio test for single cell feature expression, (McDavid et al., Bioinformatics, 2013)
 * "roc" : Standard AUC classifier
 * "t" : Student's t-test
-* "poisson" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
+* "poisson" : Likelihood ratio test assuming an underlying Poisson distribution. Use only for UMI-based datasets
 * "negbinom" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
 * "LR" : Uses a logistic regression framework to determine differentially expressed genes. Constructs a logistic regression model predicting group membership based on each feature individually and compares this to a null model with a likelihood ratio test.
 * "MAST" : GLM-framework that treats cellular detection rate as a covariate (Finak et al, Genome Biology, 2015) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/MAST.html))
@@ -197,16 +215,28 @@ Finally, we also support many other DE tests using other methods. For completene
 
 For MAST and DESeq2, please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, the `test.use` parameter can be used to specify which DE test to use.
 
-```{r echo=TRUE, message=FALSE,warning=FALSE,results=TRUE,eval=FALSE}
+```{r mast-de, echo=TRUE, message=FALSE,warning=FALSE,results=TRUE,eval=FALSE}
 # Test for DE features using the MAST package
 Idents(ifnb) <- "seurat_annotations"
 head(FindMarkers(ifnb, ident.1 = "CD14 Mono", ident.2 = "CD16 Mono", test.use = "MAST"))
 ```
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("de_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "de_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details><summary>**Session Info**</summary>
 
-```{r session_info}
-sessionInfo()
+```{r session-info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 
 </details>

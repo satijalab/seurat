@@ -10,7 +10,8 @@ Read10X_Image(
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE,
-  image.type = "VisiumV2"
+  image.type = "VisiumV2",
+  cells = NULL
 )
 }
 \arguments{
@@ -28,6 +29,9 @@ should include files \code{tissue_lowres_image.png},
 have been determined to be over tissue}
 
 \item{image.type}{Image type to return, one of: "VisiumV1" or "VisiumV2"}
+
+\item{cells}{Optional barcode vector to restrict tissue positions before
+collection. \code{NULL} reads all eligible positions.}
 }
 \value{
 A \code{\link{VisiumV2}} object

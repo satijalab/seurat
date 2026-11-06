@@ -5,10 +5,13 @@
 src/*.o
 src/*.so
 src/*.dll
+src/**/*.o
+src/**/*.so
+src/**/*.dll
 .DS_Store
+.vignette-tmp/
 *.pdf
 docs/
 Rplots.pdf
 revdep/
 Seurat.Rcheck/
-inst/benchmarks

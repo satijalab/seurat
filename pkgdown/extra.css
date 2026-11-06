@@ -1,0 +1,311 @@
+:root {
+  --seurat-navbar-height: 0rem; /* Measured by extra.js. */
+  --seurat-surface: #fff;
+  --seurat-card-border: #8294aa;
+}
+
+/* Theme colors */
+/* Light mode */
+[data-bs-theme="light"] {
+  --bs-body-bg: #fff;
+  --bs-body-bg-rgb: 255, 255, 255;
+  --bs-body-color: var(--bs-emphasis-color);
+  --bs-body-color-rgb: var(--bs-emphasis-color-rgb);
+  --bs-primary-bg-subtle: #e1e9f2;
+  --bs-link-hover-color: rgb(var(--bs-link-hover-color-rgb));
+  --bs-link-hover-color-rgb: 24, 188, 156;
+  --bs-tertiary-bg: #edf1f6;
+  --bs-border-color: #b2c1d2;
+}
+
+/* Dark mode */
+[data-bs-theme="dark"] {
+  --seurat-navbar-bg: #465260;
+  --seurat-surface: var(--bs-tertiary-bg);
+  --seurat-card-border: var(--bs-border-color);
+  --bs-body-bg: rgb(var(--bs-body-bg-rgb));
+  --bs-body-bg-rgb: 0, 0, 0;
+  --bs-body-color: rgb(var(--bs-body-color-rgb));
+  --bs-body-color-rgb: 226, 228, 232;
+  --bs-primary-bg-subtle: #303c49;
+  --bs-link-color: rgb(var(--bs-link-color-rgb));
+  --bs-link-color-rgb: 24, 188, 156;
+  --bs-link-hover-color: rgb(var(--bs-link-hover-color-rgb));
+  --bs-link-hover-color-rgb: 24, 188, 156;
+  --bs-secondary-bg: rgb(var(--bs-secondary-bg-rgb));
+  --bs-secondary-bg-rgb: 46, 50, 56;
+  --bs-tertiary-bg: rgb(var(--bs-tertiary-bg-rgb));
+  --bs-tertiary-bg-rgb: 37, 40, 45;
+  --bs-border-color: #454b54;
+  --bs-heading-color: var(--bs-emphasis-color);
+}
+
+/* Typography */
+main a:focus, aside a:focus, footer a:focus { text-decoration: underline; }
+
+main h1, main .h1 { font-size: 2.5rem; }
+main h2, main .h2 { font-size: 2rem; }
+main h3, main .h3 { font-size: 1.75rem; }
+main h4, main .h4 { font-size: 1.25rem; }
+main h5, main .h5 { font-size: 1rem; }
+main h6, main .h6 { font-size: 0.9rem; }
+
+main h1, main h2, main h3, main h4, main h5, main h6 { font-weight: 500; line-height: 1.25; }
+
+/* Primary buttons */
+/* Light buttons use Bootstrap defaults; dark buttons reuse the navbar palette */
+[data-bs-theme="dark"] .btn-primary {
+  --bs-btn-bg: var(--seurat-navbar-bg);
+  --bs-btn-border-color: var(--bs-btn-bg);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #536170;
+  --bs-btn-hover-border-color: var(--bs-btn-hover-bg);
+  --bs-btn-hover-color: var(--bs-btn-color);
+  --bs-btn-active-bg: #3b4652;
+  --bs-btn-active-border-color: var(--bs-btn-active-bg);
+  --bs-btn-active-color: var(--bs-btn-color);
+}
+
+/* Navbar and search */
+.navbar {
+  position: sticky;
+  top: 0;
+  --bs-navbar-nav-link-padding-x: 0.5rem;
+  --bs-navbar-color: rgb(255 255 255 / 85%);
+  --bs-navbar-hover-color: #fff;
+  --bs-navbar-active-color: #fff;
+  --bs-navbar-brand-color: #fff;
+  --bs-navbar-brand-hover-color: #fff;
+  --bs-navbar-toggler-border-color: rgb(255 255 255 / 50%);
+}
+
+[data-bs-theme="dark"] .navbar { background-color: var(--seurat-navbar-bg); border-bottom: thin solid #687584; }
+
+[data-bs-theme="dark"] .navbar .nav-item.active .nav-link,
+[data-bs-theme="dark"] .navbar .nav-link.active { background: transparent; }
+
+.navbar .navbar-toggler-icon { filter: brightness(0) invert(1); }
+
+.navbar .nav-link { font-size: 1rem; line-height: 1.4; }
+
+.navbar .nav-link:hover, .navbar .nav-link:focus-visible { background-color: rgb(255 255 255 / 10%); color: #fff; }
+
+.navbar .navbar-brand { font-size: 1.5rem; font-weight: 600; }
+
+.navbar > .container, .navbar .navbar-collapse { align-items: center; }
+
+.navbar form[role="search"] { display: flex; align-items: center; margin: 0; }
+
+.navbar input[type="search"] {
+  margin: 0;
+  width: 12em;
+  max-width: 100%;
+  padding: 0.5em 0.75em;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.navbar .dropdown-item, .navbar .dropdown-header { font-size: 1rem; }
+
+/* Add icon to highlight Seurat v6 on the getting started page and in the vignette menu */
+
+main h2:has(> .new-icon),
+body:has(main .new-icon) #toc a[href="#seurat-v6"] {
+  display: flex;
+  align-items: center;
+}
+
+.new-icon,
+body:has(main .new-icon) #toc a[href="#seurat-v6"]::after,
+.vignette-submenu[data-category="Seurat v6"] > summary::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 0.5em;
+  height: 0.45em;
+  margin-inline-start: 0.4em;
+  background: url("articles/assets/new_icon.png") center / contain no-repeat;
+}
+
+.vignette-submenu[data-category="Seurat v6"] > summary {
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.vignette-submenu[data-category="Seurat v6"] > summary::before { order: 1; }
+.vignette-submenu[data-category="Seurat v6"] > summary::after {
+  order: 2;
+  margin-inline-start: auto;
+}
+
+/* Navbar dropdowns, badge, and icons */
+.navbar .dropdown-menu {
+  --bs-dropdown-bg: var(--seurat-surface);
+  --bs-dropdown-link-hover-color: var(--bs-link-hover-color);
+  --bs-dropdown-link-hover-bg: var(--bs-primary-bg-subtle);
+  --bs-dropdown-link-active-color: var(--bs-body-color);
+  --bs-dropdown-link-active-bg: var(--bs-primary-bg-subtle);
+  --bs-dropdown-border-color: var(--bs-border-color);
+  padding: 0.5rem;
+  border: thin solid var(--bs-dropdown-border-color);
+  border-radius: 1rem;
+  box-shadow: 0 0.75rem 2rem rgb(9 21 35 / 20%);
+}
+
+.navbar .dropdown-item { padding: 0.75rem 1rem; border-radius: 0.5rem; line-height: 1.5; }
+
+.navbar .dropdown-item:focus-visible { outline: thin solid var(--bs-link-color); outline-offset: 0; }
+
+.navbar .navbar-brand + .nav-text {
+  font-size: 1rem;
+  background-color: #fff;
+  color: #2C3D50 !important;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+/* Keep icon colors consistent for links and buttons, including focused controls */
+.navbar .nav-link > .fa, .navbar .nav-link > .fab {
+  color: var(--bs-navbar-active-color);
+  font-size: 1.25em;
+  vertical-align: middle;
+}
+
+/* Page content and table of contents */
+.seurat-banner {
+  display: block;
+  width: 100%;
+  max-width: 68.75rem;
+  height: auto;
+}
+
+.row > main { margin-top: 1.25rem; }
+
+@media (min-width: 48em) {
+  .row > aside { margin-top: 1.25rem; }
+}
+
+html, body { scroll-padding-top: calc(var(--seurat-navbar-height) + 1rem); }
+
+#toc { top: calc(var(--seurat-navbar-height) + 1rem); max-height: calc(100vh - var(--seurat-navbar-height) - 2rem); }
+
+/* Vignette menu and submenus */
+.navbar [aria-labelledby="dropdown-vignettes"],
+.navbar.navbar-expand-lg .vignette-submenu > .dropdown-menu {
+  padding: 0.25rem 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.25rem 0.75rem rgb(9 21 35 / 15%);
+}
+
+.navbar [aria-labelledby="dropdown-vignettes"] {
+  overflow: visible;
+  max-height: none;
+  width: max-content;
+  min-width: 0;
+  max-width: calc(100vw - 2rem);
+}
+
+.vignette-submenu { position: relative; margin: 0; }
+
+.vignette-submenu > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+  margin: 0;
+  padding: 0.5em 1.25em;
+  border-radius: 0.25rem;
+  font-weight: 400;
+}
+
+.vignette-submenu > summary::-webkit-details-marker { display: none; }
+
+.vignette-submenu > summary::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  border-top: 0.25em solid transparent;
+  border-bottom: 0.25em solid transparent;
+  border-left: 0.25em solid currentColor;
+}
+
+.vignette-submenu[open] > summary { background: var(--bs-primary-bg-subtle); color: var(--bs-body-color); }
+
+.navbar.navbar-expand-lg .vignette-submenu > .dropdown-menu {
+  position: absolute;
+  inset: -0.25rem auto auto 100%;
+  width: max-content;
+  max-width: min(34rem, 45vw);
+  max-height: 70vh;
+  overflow: auto;
+  margin: 0;
+}
+
+.vignette-submenu[open] > .dropdown-menu { display: block; }
+
+.vignette-submenu .dropdown-item {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 0.5em 1.25em;
+  width: calc(100% - 0.5rem);
+  margin-inline: 0.25rem;
+  border-radius: 0.25rem;
+}
+
+/* Stack submenus on narrow screens and touch devices. */
+@media (width < 75em), (hover: none) {
+  .navbar.navbar-expand-lg .vignette-submenu > .dropdown-menu {
+    position: static;
+    width: 100%;
+    max-width: none;
+    margin: 0.25rem 0;
+    padding-left: 0.75rem;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .vignette-submenu[open] > summary::after { transform: rotate(90deg); }
+}
+
+/* Content width and responsive columns */
+body > .container,
+.navbar > .container {
+  width: calc(100% - 2rem);
+  max-width: 78rem;
+  padding-inline: 1rem;
+  margin-inline: auto;
+}
+
+body > .container > .row { --bs-gutter-x: 2rem; justify-content: flex-start; }
+
+/* Desktop and mobile layout */
+@media (min-width: 62em) {
+  body > .container > .row > main { width: 75%; max-width: none; }
+
+  body > .container > .row > aside { width: 25%; margin-left: 0; padding-left: 1rem; }
+}
+
+@media (width < 62em) {
+  body > .container > .row > main, body > .container > .row > aside { width: 100%; max-width: none; margin-left: 0; }
+
+  #toc { position: static; max-height: none; }
+}
+
+/* Links and search need more room than Bootstrap's default lg breakpoint. */
+@media (min-width: 75em) {
+  .navbar .navbar-nav { align-items: center; }
+}
+
+@media (width < 75em) {
+  .navbar.navbar-expand-lg > .container { flex-wrap: wrap; }
+  .navbar.navbar-expand-lg .navbar-toggler { display: block; }
+  .navbar.navbar-expand-lg .navbar-collapse { flex-basis: 100%; margin-inline-start: 0 !important; }
+  .navbar.navbar-expand-lg .navbar-collapse:not(.show) { display: none !important; }
+  .navbar.navbar-expand-lg .navbar-collapse.show { display: block !important; }
+  .navbar.navbar-expand-lg .navbar-nav { flex-direction: column; align-items: stretch; }
+  .navbar.navbar-expand-lg .navbar-nav .dropdown-menu { position: static; }
+  .navbar input[type="search"], .navbar .algolia-autocomplete { width: 100%; }
+}

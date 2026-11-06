@@ -1231,6 +1231,7 @@ FindModalityWeights  <- function(
   reduction.list,
   dims.list,
   k.nn = 20,
+  fix.wnn.weights = NULL,
   snn.far.nn = TRUE,
   s.nn = k.nn,
   prune.SNN = 0,
@@ -1240,18 +1241,36 @@ FindModalityWeights  <- function(
   cross.contant.list = NULL,
   sigma.idx = k.nn,
   smooth = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   my.lapply <- ifelse(
     test = verbose,
     yes = pblapply,
     no = lapply
   )
+  # When fix.wnn.weights is supplied, WNN weights are preset (per modality) and
+  # the within/cross-modality distance and kernel computation is skipped.
+  use_fixed_weights <- !is.null(x = fix.wnn.weights)
+  if (use_fixed_weights) {
+    if (length(x = fix.wnn.weights) != length(x = reduction.list)) {
+      stop("Please make sure the fix.wnn.weights is correctly specified! It should have the same length as your reduction.list.")
+    }
+    if (smooth) {
+      warning("'smooth = TRUE' is not applicable when wnn.weights are pre-set. Ignoring...")
+      smooth <- FALSE
+    }
+  }
   cross.contant.list <- cross.contant.list %||%
     as.list(x = rep(x = 1e-4, times = length(x = reduction.list)))
   reduction.set <- unlist(x = reduction.list)
-  names(x = reduction.list) <- names(x = dims.list) <-
-    names(x = cross.contant.list) <- reduction.set
+  if (use_fixed_weights) {
+    names(x = fix.wnn.weights) <- names(x = reduction.list) <- names(x = dims.list) <-
+      names(x = cross.contant.list) <- reduction.set
+  } else {
+    names(x = reduction.list) <- names(x = dims.list) <-
+      names(x = cross.contant.list) <- reduction.set
+  }
   embeddings.list <- lapply(
     X = reduction.list,
     FUN = function(r) Embeddings(object = object, reduction = r)[, dims.list[[r]]]
@@ -1313,6 +1332,13 @@ FindModalityWeights  <- function(
     )
   }
   nearest_dist <- lapply(X = reduction.list, FUN = function(r) Distances(object = nn.list[[r]])[, 2])
+  # In fixed-weights mode these intermediates are unused (weights are preset), so
+  # the within/cross-modality distance computation below is skipped.
+  within_impute_dist <- NULL
+  cross_impute_dist <- NULL
+  within_impute_kernel <- NULL
+  cross_impute_kernel <- NULL
+  if (!use_fixed_weights) {  # body kept at original indent to minimize the diff
   within_impute <- list()
   cross_impute <- list()
   # Calculating within and cross modality distance
@@ -1371,6 +1397,7 @@ FindModalityWeights  <- function(
       return(r_dist)
     }
   )
+  }  # end if (!use_fixed_weights)
   # calculate kernel width
   if (snn.far.nn) {
     if (verbose) {
@@ -1420,6 +1447,27 @@ FindModalityWeights  <- function(
       }
     )
   }
+  params <- list(
+    "reduction.list" = reduction.list,
+    "dims.list" = dims.list,
+    "l2.norm" = l2.norm,
+    "k.nn" = k.nn,
+    "sigma.idx" = sigma.idx,
+    "snn.far.nn" = snn.far.nn ,
+    "sigma.list" = modality_sd.list,
+    "nearest.dist" = nearest_dist
+  )
+  if (use_fixed_weights) {
+    # Fixed-weights mode: assign the preset per-modality weight to every cell.
+    modality_score <- lapply(
+      X = reduction.list,
+      FUN = function(idx) {
+        rep(x = fix.wnn.weights[[idx]], times = nrow(x = embeddings.list.norm[[ reduction.list[[idx]] ]]))
+      }
+    )
+    names(x = modality_score) <- names(x = reduction.list)
+    modality.weight <- modality_score
+  } else {
   # Calculating within and cross modality kernel, and modality weights
   within_impute_kernel <- lapply(
     X = reduction.list,
@@ -1432,16 +1480,6 @@ FindModalityWeights  <- function(
     FUN = function(r) {
       exp(-1 * (cross_impute_dist[[r]] / modality_sd.list[[r]]) )
     }
-  )
-  params <- list(
-    "reduction.list" = reduction.list,
-    "dims.list" = dims.list,
-    "l2.norm" = l2.norm,
-    "k.nn" = k.nn,
-    "sigma.idx" = sigma.idx,
-    "snn.far.nn" = snn.far.nn ,
-    "sigma.list" = modality_sd.list,
-    "nearest.dist" = nearest_dist
   )
   modality_score <-  lapply(
     X = reduction.list,
@@ -1476,6 +1514,7 @@ FindModalityWeights  <- function(
       rowSums(x = exp(x = score_m))/all_modality_score
     }
   )
+  }  # end else (calculated-weights mode)
   score.mat <- list(
     within_impute_dist = within_impute_dist,
     cross_impute_dist = cross_impute_dist,
@@ -1592,7 +1631,8 @@ MultiModalNN <- function(
   nearest.dist = NULL,
   sigma.list = NULL,
   l2.norm =  NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ){
   my.lapply <- ifelse(
     test = verbose,
@@ -1623,6 +1663,7 @@ MultiModalNN <- function(
   } else {
     reduction_embedding <- object
   }
+  self.query <- is.null(x = query)
   if (is.null(x = query)) {
     query.reduction_embedding <- reduction_embedding
     query <- object
@@ -1666,10 +1707,14 @@ MultiModalNN <- function(
       return (nn_x)
     }
   )
-  # union of rna and adt nn, remove itself from neighobors
+  # union of rna and adt nn, remove itself from neighobors. A cell is only its
+  # own first neighbor when it is queried against itself; with a separate query,
+  # the first neighbor is a real neighbor and must be kept.
   reduction_nn <- lapply(
     X = reduction_nn,
-    FUN = function(x)  Indices(object = x)[, -1]
+    FUN = function(x) {
+      if (self.query) Indices(object = x)[, -1] else Indices(object = x)
+    }
   )
   nn_idx <- lapply(
     X = 1:query.cell.num ,
@@ -1700,44 +1745,28 @@ MultiModalNN <- function(
   if (length(x = sigma.list[[1]]) == 1) {
     sigma.list <- lapply(X = sigma.list, FUN = function(x) rep(x = x, ncol(x = object)))
   }
-  nn_weighted_dist <- lapply(
-    X = 1:reduction.num,
-    FUN = function(r) {
-      lapply(
-        X = 1:query.cell.num,
-        FUN = function(x) {
-          exp(-1*(nn_dist[[r]][[x]] / sigma.list[[r]][x] ) ** kernel.power) * modality.weight.value[[r]][x]
+  # Compute the modality-weighted joint distance and select the k nearest joint
+  # neighbors in a single per-cell pass, writing straight into preallocated
+  # output matrices. This avoids materializing the (reduction.num x query.cell.num)
+  # list-of-lists of weighted distances, the separate cross-modality sum, and the
+  # two t(sapply(...)) transposes that the split version incurred.
+  select_nn <- matrix(data = 0L, nrow = query.cell.num, ncol = k.nn)
+  select_dist <- matrix(data = 0, nrow = query.cell.num, ncol = k.nn)
+  for (x in 1:query.cell.num) {
+    weighted.dist <- Reduce(
+      f = `+`,
+      x = lapply(
+        X = 1:reduction.num,
+        FUN = function(r) {
+          exp(-1 * (nn_dist[[r]][[x]] / sigma.list[[r]][x]) ** kernel.power) *
+            modality.weight.value[[r]][x]
         }
       )
-    }
-  )
-  nn_weighted_dist <- sapply(
-    X = 1:query.cell.num,
-    FUN =  function(x) {
-      Reduce(
-        f = "+",
-        x = lapply(
-          X = 1:reduction.num,
-          FUN = function(r) nn_weighted_dist[[r]][[x]]
-        )
-      )
-    }
-  )
-  # select k nearest joint neighbors
-  select_order <- lapply(
-    X = nn_weighted_dist,
-    FUN = function(dist) {
-      order(dist, decreasing = TRUE)
-    })
-  select_nn <- t(x = sapply(
-    X = 1:query.cell.num,
-    FUN = function(x) nn_idx[[x]][select_order[[x]]][1:k.nn]
-  )
-  )
-  select_dist <- t(x = sapply(
-    X = 1:query.cell.num,
-    FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][1:k.nn])
-  )
+    )
+    select.order <- order(weighted.dist, decreasing = TRUE)[1:k.nn]
+    select_nn[x, ] <- nn_idx[[x]][select.order]
+    select_dist[x, ] <- weighted.dist[select.order]
+  }
   select_dist <- sqrt(x = MinMax(data = (1 - select_dist) / 2, min = 0, max = 1))
   weighted.nn <- new(
     Class = 'Neighbor',

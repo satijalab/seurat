@@ -485,3 +485,82 @@ if (is_not_cran_submission) {
     }
   })
 }
+
+# check results as well as the globals sent to future workers
+test_that("PrepSCTIntegration pairs objects and assays without exporting object.list", {
+  skip_on_cran()
+  # exercise the future backend sequentially and restore the caller's settings
+  old.plan <- future::plan(future::sequential)
+  on.exit(future::plan(old.plan), add = TRUE)
+  old.options <- options(Seurat.nthreads = 1L)
+  on.exit(options(old.options), add = TRUE)
+  object <- suppressWarnings(SCTransform(object = pbmc_small, vst.flavor = "v1", verbose = FALSE))
+  # different assay names ensure each object uses its corresponding assay
+  other <- suppressWarnings(RenameAssays(object = object, SCT = "other", verbose = FALSE))
+  objects <- list(first = object, second = other)
+  features <- head(rownames(object[["SCT"]]), 10L)
+  calls <- 0L
+  testthat::local_mocked_bindings(
+    future_mapply = function(FUN, ...) {
+      calls <<- calls + 1L
+      # the worker callback should not capture the full input list
+      globals <- names(future::getGlobalsAndPackages(FUN)$globals)
+      expect_false("object.list" %in% globals)
+      future.apply::future_mapply(FUN = FUN, ...)
+    },
+    .package = "Seurat"
+  )
+  prepared <- PrepSCTIntegration(
+    object.list = objects, assay = c("SCT", "other"),
+    anchor.features = features, sct.clip.range = c(-1, 1), verbose = FALSE
+  )
+  # preparation should use the future backend and preserve the input names
+  expect_equal(calls, 1L)
+  expect_named(prepared, names(objects))
+  # each result should contain only the requested features with clipped residuals
+  for (i in seq_along(objects)) {
+    assay <- c("SCT", "other")[[i]]
+    expected <- GetResidual(
+      object = objects[[i]], assay = assay, features = features,
+      replace.value = TRUE, clip.range = c(-1, 1), verbose = FALSE
+    )
+    expect_equal(
+      GetAssayData(prepared[[i]], assay = assay, layer = "scale.data"),
+      GetAssayData(expected, assay = assay, layer = "scale.data")[features, ]
+    )
+  }
+})
+
+test_that("FindIntegrationAnchors passes embedding subsets without exporting object.list", {
+  skip_on_cran()
+  # exercise the future backend sequentially and restore the caller's settings
+  old.plan <- future::plan(future::sequential)
+  on.exit(future::plan(old.plan), add = TRUE)
+  old.options <- options(Seurat.nthreads = 1L)
+  on.exit(options(old.options), add = TRUE)
+  objects <- list(first = RenameCells(pbmc_small, add.cell.id = "first"),
+                  second = RenameCells(pbmc_small, add.cell.id = "second"))
+  dims <- 1:5
+  expected <- unname(lapply(objects, function(object) {
+    Embeddings(object[["pca"]])[, dims]
+  }))
+  calls <- 0L
+  testthat::local_mocked_bindings(
+    future_lapply = function(X, FUN, ...) {
+      calls <<- calls + 1L
+      # workers should receive the selected embeddings in input order
+      expect_equal(X, expected)
+      expect_false("object.list" %in% names(future::getGlobalsAndPackages(FUN)$globals))
+      future.apply::future_lapply(X = X, FUN = FUN, ...)
+    },
+    .package = "Seurat"
+  )
+  # the fixture is already scaled, so only neighborhood calculation uses this backend
+  anchors <- suppressWarnings(FindIntegrationAnchors(
+    object.list = objects, anchor.features = VariableFeatures(pbmc_small),
+    reduction = "rpca", dims = dims, scale = FALSE,
+    k.anchor = 3, k.score = 5, k.filter = NA, verbose = FALSE
+  ))
+  expect_equal(calls, 1L)
+  expect_gt(nrow(anchors@anchors), 0L)
+})

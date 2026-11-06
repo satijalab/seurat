@@ -7,36 +7,40 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
+  time_it = TRUE,
+  tidy = FALSE,
   fig.cap = '',
   fig.width = 9,
   fig.height = 7,
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 options(SeuratData.repo.use = 'seurat.nygenome.org')
 ```
 
 Here, we demonstrate visualization techniques in Seurat using our previously computed Seurat object from the 2,700 PBMC guided clustering tutorial. You can access the dataset and load it into a Seurat object using [SeuratData](https://github.com/satijalab/seurat-data).
 
-```{r data}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r install-data, eval=FALSE}
 SeuratData::InstallData("pbmc3k")
 ```
 
@@ -44,12 +48,16 @@ SeuratData::InstallData("pbmc3k")
 set.seed(seed = 42)
 ```
 
-```{r initialize_object}
+```{r initialize-object, warning=FALSE, message=FALSE}
 library(Seurat)
 library(SeuratData)
 library(ggplot2)
 library(patchwork)
 pbmc3k.final <- LoadData("pbmc3k", type = "pbmc3k.final")
+pbmc3k.final[["RNA"]] <- as(pbmc3k.final[["RNA"]], Class = "Assay5")
+pbmc3k.final <- NormalizeData(pbmc3k.final)
+pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
+pbmc3k.final <- ScaleData(pbmc3k.final)
 pbmc3k.final$groups <- sample(c("group1", "group2"), size = ncol(pbmc3k.final), replace = TRUE)
 features <- c("LYZ", "CCL5", "IL32", "PTPRCAP", "FCGR3A", "PF4")
 pbmc3k.final
@@ -58,7 +66,7 @@ pbmc3k.final
 
 # Five visualizations of marker feature expression
 
-```{r visualization_smorgasbord, fig.height=11}
+```{r expression-plots, fig.height=11}
 # Ridge plots - from ggridges. Visualize single cell expression distributions in each cluster
 RidgePlot(pbmc3k.final, features = features, ncol = 2)
 
@@ -69,7 +77,7 @@ VlnPlot(pbmc3k.final, features = features)
 FeaturePlot(pbmc3k.final, features = features)
 ```
 
-```{r visualization_smorgasbord2, fig.height = 5}
+```{r expression-plots-2, fig.height = 5}
 # Dot plots - the size of the dot corresponds to the percentage of cells expressing the feature in each cluster. The color represents the average expression level
 DotPlot(pbmc3k.final, features = features) + RotatedAxis()
 # Single cell heatmap of feature expression
@@ -94,14 +102,14 @@ FeaturePlot(pbmc3k.final, features = c('MS4A1', "PTPRCAP"), min.cutoff = "q10", 
 FeaturePlot(pbmc3k.final, features = c('MS4A1', 'CD79A'), blend = TRUE)
 ```
 
-```{r featureplot.split}
+```{r featureplot-split}
 # Split visualization to view expression by groups (replaces FeatureHeatmap)
 FeaturePlot(pbmc3k.final, features = c('MS4A1', 'CD79A'), split.by = 'groups')
 ```
 
 # Other visualization functionality
 
-```{r new_functions}
+```{r new-functions}
 # Violin plots can also be split on some variable. Simply add the splitting variable to object metadata and pass it to the split.by argument
 VlnPlot(pbmc3k.final, features = 'percent.mt', split.by = 'groups')
 
@@ -115,7 +123,7 @@ pbmc3k.final.no.umap[['umap']] <- NULL
 DimPlot(pbmc3k.final.no.umap) + RotatedAxis()
 ```
 
-```{r new2, fig.width=11, fig.height = 15}
+```{r marker-heatmap, fig.width=11, fig.height = 15}
 # DoHeatmap now shows a grouping bar, splitting the heatmap into groups or clusters. This can be changed with the `group.by` parameter
 DoHeatmap(pbmc3k.final, features = VariableFeatures(pbmc3k.final)[1:100], cells = 1:500, size = 4, angle = 90) + NoLegend()
 ```
@@ -124,7 +132,7 @@ DoHeatmap(pbmc3k.final, features = VariableFeatures(pbmc3k.final)[1:100], cells 
 
 With Seurat, all plotting functions return plots as ggplot2 objects by default, allowing one to easily customize plots just like any other ggplot2-based plot. 
 
-```{r themeing, fig.height=6}
+```{r plot-themes, fig.height=6}
 baseplot <- DimPlot(pbmc3k.final, reduction = 'umap')
 # Add custom labels and titles
 baseplot + labs(title = 'Clustering of 2,700 PBMCs')
@@ -134,11 +142,11 @@ baseplot + DarkTheme()
 
 We can also chain themes together:
 
-```{r themeing.2, fig.height=6}
+```{r plot-themes-2, fig.height=6}
 baseplot + FontSize(x.title = 20, y.title = 20) + NoLegend()
 ```
 
-```{r themeing.3, fig.height=6}
+```{r plot-themes-3, fig.height=6}
 plot <- baseplot + DarkTheme() + 
     theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
     guides(colour = guide_legend(override.aes = list(size = 10)))
@@ -151,7 +159,7 @@ plot
 
 Seurat utilizes R's `plotly` graphing library to create interactive plots. This interactive plotting feature works with any ggplot2-based scatter plots (requires a `geom_point` layer). To use, simply make a ggplot2-based scatter plot (such as `DimPlot()` or `FeaturePlot()`) and pass the resulting plot to `HoverLocator()`
 
-```{r hover}
+```{r interactive-hover}
 # Include additional data to display alongside cell names by passing in a data frame of information.
 # Works well when using FetchData
 plot <- FeaturePlot(pbmc3k.final, features = 'MS4A1')
@@ -170,7 +178,7 @@ select.cells <- CellSelector(plot = plot)
 
 ![](./assets/pbmc_select.gif)
 
-```{r load_cells, echo=FALSE}
+```{r load-cells, echo=FALSE}
 select.cells <- readLines(con = '/brahms/shared/vignette-data/pbmc_dcs_cells.txt')
 # select.cells <- paste0(select.cells, "-1")
 ```
@@ -197,11 +205,11 @@ pbmc3k.final <- CellSelector(plot = plot, object = pbmc3k.final, ident = 'select
 
 ![](./assets/pbmc_select.gif)
 
-```{r ident2_hidden, echo=FALSE}
+```{r ident2-hidden, echo=FALSE}
 pbmc3k.final <- RenameIdents(pbmc3k.final, 'NewCells' = 'selected')
 ```
 
-```{r ident2_levels}
+```{r ident2-levels}
 levels(pbmc3k.final)
 ```
 
@@ -223,7 +231,7 @@ In early Seurat versions, we used the `CombinePlots()` function to combine multi
 
 All plotting functions now use the `patchwork` system, which allows for more flexible plot arrangements and easier customization of combined plots; see the [patchwork website](https://patchwork.data-imaginist.com/) for more details and examples. 
 
-```{r combining_plots, fig.height = 5}
+```{r combining-plots, fig.height = 5}
 plot1 <- DimPlot(pbmc3k.final)
 # Create scatter plot with the Pearson correlation value as the title
 plot2 <- FeatureScatter(pbmc3k.final, feature1 = 'LYZ', feature2 = 'CCL5')
@@ -233,9 +241,21 @@ plot1 + plot2
 (plot1 + plot2) & NoLegend()
 ```
 
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("visualization_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "visualization_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r session-info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

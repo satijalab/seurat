@@ -14,8 +14,9 @@ Read10X_h5(filename, use.names = TRUE, unique.features = TRUE)
 \item{unique.features}{Make feature names unique (default TRUE)}
 }
 \value{
-Returns a sparse matrix with rows and columns labeled. If multiple
-genomes are present, returns a list of sparse matrices (one per genome).
+A sparse matrix with rows and columns labeled. Multiple feature types
+return a named list of matrices; legacy multi-genome files return one entry
+per genome.
 }
 \description{
 Read count matrix from 10X CellRanger hdf5 file.

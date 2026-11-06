@@ -11,8 +11,12 @@ CODE_OF_CONDUCT.md
 ^pkgdown$
 ^index\.md$
 ^vignettes$
+^\.vignette-tmp$
 ^benchmarks$
 ^LICENSE\.md$
 Rplots.pdf
 revdep/
 Seurat.Rcheck/
+^src/.*\.o$
+^src/.*\.so$
+^src/.*\.dll$

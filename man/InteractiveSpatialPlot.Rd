@@ -40,7 +40,6 @@ suitable for downstream subsetting or analysis.
 \note{
 This function requires the
   \href{https://cran.r-project.org/package=plotly}{\pkg{plotly}},
-  \href{https://cran.r-project.org/package=magrittr}{\pkg{magrittr}},
   and \href{https://cran.r-project.org/package=base64enc}{\pkg{base64enc}} packages
   to be installed. It also requires \pkg{shiny} and \pkg{miniUI} for the interactive UI.
 }
@@ -49,4 +48,7 @@ This function requires the
 selected_cells <- InteractiveSpatialPlot(object = brain)
 selected_cells <- InteractiveSpatialPlot(object = brain, overlay_image = FALSE)
 }
+
 }
+\concept{spatial}
+\concept{visualization}

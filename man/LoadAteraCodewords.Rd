@@ -36,3 +36,5 @@ for a common QC question: whether different codewords for the same gene
 cluster differently in space (which would suggest a probe-specific
 artifact rather than true expression).
 }
+\concept{preprocessing}
+\concept{spatial}

@@ -4,8 +4,6 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
-# date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
 ```{r setup, include=FALSE}
@@ -17,13 +15,13 @@ knitr::opts_chunk$set(
   warning = FALSE,
   results = 'hold',
   eval = FALSE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
-Here, we present some essential commands for working with Seurat objects. See also the v5-specific [essential commands](seurat5_essential_commands.html) list.
+Here, we present some essential commands for working with Seurat objects.
 
-```{r load-data, echo=FALSE}
+```{r load-data, echo=FALSE, warning=FALSE, message=FALSE}
 library(Seurat)
 library(ggplot2)
 library(SeuratData)
@@ -36,18 +34,18 @@ InstallData('ifnb')
 # load in pbmc example
 pbmc <- LoadData('pbmc3k')
 
-# load in multimodal example
-# type ?cbmc for more info
+# load in multimodal example - type ?cbmc for more info
 cbmc <- LoadData('cbmc')
 
-# load in case/control example
-# type ?ifnb for more info
+# load in case/control example - type ?ifnb for more info
 ifnb <- LoadData('ifnb')
 
+# optionally, set the number of threads used for parallelization - see ?setThreads for more details
+setThreads(4)
 ```
 
 # Standard `Seurat` workflow
-```{r seurat-standard-workflow-2}
+```{r normalize}
 pbmc <- NormalizeData(object = pbmc)
 pbmc <- FindVariableFeatures(object = pbmc)
 pbmc <- ScaleData(object = pbmc)
@@ -59,8 +57,9 @@ DimPlot(object = pbmc, reduction = 'umap')
 
 ```
 
-## SCtransform version
-```{r seurat-standard-workflow}
+## SCTransform version
+
+```{r sctransform}
 pbmc <- SCTransform(object = pbmc)
 pbmc <- RunPCA(object = pbmc)
 pbmc <- FindNeighbors(object = pbmc, dims = 1:30)
@@ -81,7 +80,7 @@ pbmc <- SCTransform(pbmc) %>%
 # `Seurat` Object Data Access
 
 ## Cell, feature, and layer names
-```{r features_and_cells}
+```{r features-and-cells}
 # Get cell and feature names, and total numbers
 # We show multiple ways to get the same output
 # cell names
@@ -164,7 +163,7 @@ random_group_labels <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc), replace 
 pbmc$groups <- random_group_labels
 ```
 
-## Expression data (stored as layers in Seurat v5)
+## Expression data
 
 ```{r expression-matrices, eval=FALSE}
 # Retrieve data in an expression matrix 
@@ -244,7 +243,7 @@ subset(x = pbmc, downsample = 100)
 
 ## Split layers
 ```{r splitlayers, results = 'hide'}
-# In Seurat v5, users can now split in object directly into different layers
+# Split an object directly into different layers
 # keeps expression data in one object, but splits multiple samples into layers
 # can proceed directly to integration workflow after splitting layers
 ifnb[["RNA"]] <- split(ifnb[["RNA"]],f = ifnb$stim)
@@ -265,7 +264,8 @@ ifnb_list$STIM
 ```
 
 ## Merge objects (without integration)
-In Seurat v5, merging creates a single object, but keeps the expression information split into different layers for integration. If not proceeding with integration, rejoin the layers after merging.
+
+Merging creates a single object, but keeps the expression information split into different layers for integration. If not proceeding with integration, rejoin the layers after merging.
 
 ```{r merging-2, eval=FALSE, results = 'hide'}
 # Merge two Seurat objects
@@ -300,7 +300,7 @@ merged_obj[["RNA"]] <- JoinLayers(merged_obj[["RNA"]])
 ## Group cells together, based on multiple categories
 See the [DE vignette](de_vignette.html) for information  on how to add the `donor_id` column to meta data.
 
-```{r, eval=FALSE}
+```{r pseudobulk, eval=FALSE}
 # pseudobulk cells only by cell type
 bulk <- AggregateExpression(ifnb,group.by ='seurat_annotations', return.seurat = TRUE)
 Cells(bulk)
@@ -358,9 +358,7 @@ DoHeatmap(pbmc,heatmap_markers,cells = subset(pbmc,downsample = 100))
 
 ```
 
-```{r newthings}
-# Available in v5.0+!
-# Note that plotting functions return ggplot2 objects, so you can add themes, titles, and options onto them
+```{r plots}
 VlnPlot(object = pbmc, features = "MS4A1", split.by = "groups")
 DotPlot(object = pbmc, features = c("LYZ", "CCL5", "IL32"), split.by = "groups")
 FeaturePlot(object = pbmc, features = c("MS4A1", "CD79A"), blend = TRUE)
@@ -401,8 +399,10 @@ With Seurat, you can easily switch between different assays at the single-cell l
 
 ```{r multi-assay}
 cbmc <- CreateSeuratObject(counts = cbmc.rna)
+
 # Add ADT data
 cbmc[['ADT']] <- CreateAssayObject(counts = cbmc.adt)
+
 # Run analyses by specifying the assay to use
 NormalizeData(object = cbmc, assay = 'RNA')
 NormalizeData(object = cbmc, assay = 'ADT', method = 'CLR')
@@ -421,7 +421,4 @@ FeatureScatter(object = cbmc, feature1 = "rna_CD3E", feature2 = "adt_CD3")
 
 # Additional resources
 
-Users who are particularly interested in some of the technical changes to data storage in Seurat v5 can explore the following resources:
-
 * [SeuratObject documentation](https://satijalab.github.io/seurat-object/index.html)
-* [Seurat v5+-specific essential commands](seurat5_essential_commands.html)

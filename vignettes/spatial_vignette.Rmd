@@ -4,31 +4,32 @@ output:
   html_document:
     theme: united
     df_print: kable
-  pdf_document: default
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
-options(future.globals.maxSize = 1024^3 * 10) # 10 GB
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
+  time_it = TRUE,
   tidy = FALSE,
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-  time_it = TRUE,
-  error = TRUE,
+  error = FALSE,
   dpi=150
 )
 ```
@@ -48,7 +49,7 @@ Here we show the analysis of spatial datasets generated with the 1) Visium platf
 
 For related vignettes, please see the **Spatial Analysis** section of the vignette landing page.
 
-```{r install}
+```{r install, warning=FALSE, message=FALSE}
 library(Seurat)
 library(SeuratData)
 library(ggplot2)
@@ -56,7 +57,7 @@ library(patchwork)
 library(dplyr)
 ```
 
-```{r libraries.for.rmd, echo = FALSE}
+```{r libraries-for-rmd, echo = FALSE, warning=FALSE, message=FALSE}
 library("htmltools")
 library("vembedr")
 ```
@@ -72,11 +73,13 @@ You can download the data from 10x Genomics' dataset repository (Sagittal-Anteri
 
 You can also use our [SeuratData package](https://github.com/satijalab/seurat-data) for easy data access, as demonstrated below. After installing the dataset, you can type `?stxBrain` to learn more.
 
-```{r data.install, message=FALSE, warning=FALSE}
+Install the required SeuratData datasets before starting the analysis.
+
+```{r install-data, message=FALSE, warning=FALSE, eval=FALSE}
 InstallData("stxBrain")
 ```
 
-```{r data}
+```{r load-brain}
 brain <- LoadData("stxBrain", type = "anterior1")
 ```
 <br/>
@@ -121,7 +124,7 @@ SpatialFeaturePlot(brain, features = c("Hpca", "Ttr"))
 
 As with other visualization functions in Seurat, the spatial plotting functions return `ggplot2` objects, so additional layers can be added for customization, as below.
 
-```{r save.img, include=TRUE}
+```{r save-image, include=TRUE}
 custom_plot <- SpatialFeaturePlot(brain, features = c("Ttr")) + 
                 theme(legend.text = element_text(size = 0),
                       legend.title = element_text(size = 20),
@@ -134,7 +137,7 @@ The default parameters in Seurat emphasize the visualization of molecular data. 
 
 For example, below, we try a different scale factor for point size and set `alpha = c(0.1, 1)`, to downweight the transparency of points with lower expression.
 
-```{r fpe1}
+```{r spatial-features}
 p1 <- SpatialFeaturePlot(brain, features = "Ttr", pt.size.factor = 1)
 
 p2 <- SpatialFeaturePlot(brain, features = "Ttr", alpha = c(0.1, 1))
@@ -146,7 +149,7 @@ p1 + p2
 
 We can then proceed to run dimensionality reduction and clustering on the RNA expression data, using the same workflow as we use for scRNA-seq analysis.
 
-```{r dim.cluster}
+```{r dim-cluster}
 brain <- RunPCA(brain, assay = "SCT", verbose = FALSE)
 brain <- FindNeighbors(brain, reduction = "pca", dims = 1:30)
 brain <- FindClusters(brain, verbose = FALSE)
@@ -155,7 +158,7 @@ brain <- RunUMAP(brain, reduction = "pca", dims = 1:30)
 
 We can then visualize the results of the clustering either in UMAP space (with `DimPlot()`) or overlaid on the image with `SpatialDimPlot()`. 
 
-```{r dim.plots,fig.height=5}
+```{r dim-plots,fig.height=5}
 p1 <- DimPlot(brain, reduction = "umap", label = TRUE) 
 
 p2 <- SpatialDimPlot(brain, label = TRUE, label.size = 3) 
@@ -184,7 +187,7 @@ The example below demonstrates an interactive `SpatialDimPlot()` in which hove
 SpatialDimPlot(brain, interactive = TRUE)
 ```
 
-```{r, echo = FALSE}
+```{r interactive-plotting, echo = FALSE}
 embed_url("https://youtu.be/E1aZjmG1neQ")
 ```
 
@@ -194,7 +197,7 @@ For `SpatialFeaturePlot()`, setting `interactive` to `TRUE` allows for adjusting
 SpatialFeaturePlot(brain, features = "Ttr", interactive = TRUE)
 ```
 
-```{r, echo = FALSE}
+```{r interactive-plotting-2, echo = FALSE}
 embed_url("https://youtu.be/ILmb8XNlgEM")
 ```
 
@@ -204,7 +207,7 @@ embed_url("https://youtu.be/ILmb8XNlgEM")
 LinkedDimPlot(brain)
 ```
 
-```{r, echo = FALSE}
+```{r interactive-plotting-3, echo = FALSE}
 embed_url("https://youtu.be/10PZqjcSKrg")
 ```
 
@@ -223,7 +226,7 @@ An alternative approach, implemented in `FindSpatiallyVariableFeatures()`, is to
 We note that there are multiple methods in the literature to accomplish this task, including [SpatialDE](https://www.nature.com/articles/nmeth.4636) and [Splotch](https://www.biorxiv.org/content/10.1101/757096v1). We encourage interested users to explore these methods as well, and hope to add support for them in the near future.
 
 
-```{r spatial.vf}
+```{r spatial-vf}
 brain <- FindSpatiallyVariableFeatures(brain,
                                        features = VariableFeatures(brain)[1:1000],
                                        selection.method = "moransi")
@@ -231,7 +234,7 @@ brain <- FindSpatiallyVariableFeatures(brain,
 
 Now we visualize the expression of the top 6 features identified by this measure. 
 
-```{r spatial.vf.plot, fig.height=8}
+```{r spatial-vf-plot, fig.height=8}
 top.features <- head(SpatiallyVariableFeatures(brain, method = "moransi"), 6)
 
 SpatialFeaturePlot(brain, features = top.features, ncol = 3, alpha = c(0.1, 1)) & 
@@ -281,7 +284,7 @@ cortex <- subset(brain_sub,
                  cells = cortex_coords$cell)
 ```
 
-```{r}
+```{r plot-cortex}
 SpatialDimPlot(cortex, label = T, label.size = 3, crop = F)
 
 c1 <- SpatialDimPlot(cortex, images = "anterior1", crop = T, label = T)
@@ -298,11 +301,11 @@ We consistently found superior performance using integration methods (as opposed
 
 We first load the data (download available [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=0)), pre-process the scRNA-seq reference, and then perform label transfer. The procedure outputs, for each spot, a probabilistic classification for each of the scRNA-seq derived classes. We add these predictions as a new assay in the Seurat object.
 
-```{r sc.data}
+```{r sc-data}
 allen_reference <- readRDS("/brahms/shared/vignette-data/allen_cortex.rds")
 ```
 
-```{r sc.data2}
+```{r sc-data2}
 # Note: setting ncells=3000 normalizes the full dataset, but learns noise models on 3k cells
 # This speeds up SCTransform dramatically with no loss in performance
 allen_reference <- SCTransform(allen_reference, ncells = 3000, verbose = FALSE) %>%
@@ -310,12 +313,12 @@ allen_reference <- SCTransform(allen_reference, ncells = 3000, verbose = FALSE) 
                       RunUMAP(dims = 1:30)
 ```
 
-```{r sc.data3, fig.width=8, fig.align="center"}
+```{r sc-data3, fig.width=8, fig.align="center"}
 # The annotation is stored in the 'subclass' column of object metadata
 DimPlot(allen_reference, group.by = "subclass", label = TRUE)
 ```
 
-```{r sc.data5}
+```{r sc-data5}
 anchors <- FindTransferAnchors(reference = allen_reference,
                                query = cortex)
 
@@ -330,7 +333,7 @@ cortex[["predictions"]] <- predictions.assay
 
 Now we get prediction scores for each spot for each class. Of particular interest in the frontal cortex region are the laminar excitatory neurons. Here we can distinguish between distinct sequential layers of these neuronal subtypes; for example:
 
-```{r sc.data7}
+```{r sc-data7}
 DefaultAssay(cortex) <- "predictions"
 
 SpatialFeaturePlot(cortex, features = c("L2/3 IT", "L4"), ncol = 2, crop = TRUE) &
@@ -339,9 +342,10 @@ SpatialFeaturePlot(cortex, features = c("L2/3 IT", "L4"), ncol = 2, crop = TRUE)
 
 Based on these prediction scores, we can also predict *cell types* whose location is spatially restricted. We use the same methods based on marked point processes to define spatially variable features, but use the cell type prediction scores as the "marks" rather than gene expression.
 
-```{r sc.data8, fig.height = 10}
+```{r sc-data8, fig.height = 10}
 cortex <- FindSpatiallyVariableFeatures(cortex, 
                                         assay = "predictions", 
+                                        image = "anterior1",
                                         selection.method = "moransi",
                                         features = rownames(cortex), 
                                         r.metric = 5, 
@@ -355,7 +359,7 @@ SpatialFeaturePlot(object = cortex, features = top.clusters, ncol = 2) &
 
 Finally, we show that our integrative procedure is capable of recovering the known spatial localization patterns of both neuronal and non-neuronal subsets, including laminar excitatory, layer-1 astrocytes, and the cortical grey matter. 
 
-```{r sc.data9,fig.height=20,fig.width=10}
+```{r sc-data9,fig.height=20,fig.width=10}
 features_of_interest <- c("Astro", "L2/3 IT", "L4", "L5 PT", "L5 IT", "L6 CT", "L6 IT", "L6b", "Oligo")
 
 SpatialFeaturePlot(cortex, 
@@ -385,7 +389,7 @@ brain.merge <- merge(brain, brain2)
 
 This then enables joint dimensional reduction and clustering on the underlying RNA expression data.
 
-```{r joint.analysis}
+```{r joint-analysis}
 DefaultAssay(brain.merge) <- "SCT"
 VariableFeatures(brain.merge) <- c(VariableFeatures(brain), VariableFeatures(brain2))
 brain.merge <- RunPCA(brain.merge, verbose = FALSE)
@@ -396,15 +400,15 @@ brain.merge <- RunUMAP(brain.merge, dims = 1:30)
 
 Finally, the data can be jointly visualized in a single UMAP plot. `SpatialDimPlot()` and `SpatialFeaturePlot()` will by default plot all slices as columns and groupings/features as rows. 
 
-```{r joint.viz, fig.height = 4}
+```{r joint-viz, fig.height = 4}
 DimPlot(brain.merge, reduction = "umap", group.by = c("ident", "orig.ident"))
 ```
 
-```{r joint.viz2}
+```{r joint-viz2}
 SpatialDimPlot(brain.merge)
 ```
 
-```{r joint.viz3, fig.height = 10}
+```{r joint-viz3, fig.height = 10}
 SpatialFeaturePlot(brain.merge, features = c("Hpca", "Plp1"))
 ```
 
@@ -420,11 +424,11 @@ Here, we will be analyzing a dataset generated using [Slide-seq v2](https://www
 
 You can use our [SeuratData package](https://github.com/satijalab/seurat-data) for easy data access, as demonstrated below. After installing the dataset, you can type ?ssHippo to see the commands used to create the Seurat object.
 
-```{r data.ss.install, message=FALSE, warning=FALSE}
+```{r data-ss-install, message=FALSE, warning=FALSE, eval=FALSE}
 InstallData("ssHippo")
 ```
 
-```{r data.ss}
+```{r data-ss}
 slide.seq <- LoadData('ssHippo')
 ```
 
@@ -432,7 +436,7 @@ slide.seq <- LoadData('ssHippo')
 
 The initial preprocessing steps for the bead by gene expression data are similar to other spatial Seurat analyses and to typical scRNA-seq experiments. Here, we note that many beads contain particularly low UMI counts, but choose to keep all detected beads for downstream analysis. 
 
-```{r qc.ss, fig.height=5}
+```{r qc-ss, fig.height=5}
 plot1 <- VlnPlot(slide.seq, features = 'nCount_Spatial', pt.size = 0, log = TRUE) + NoLegend()
 slide.seq$log_nCount_Spatial <- log(slide.seq$nCount_Spatial)
 plot2 <- SpatialFeaturePlot(slide.seq, features = 'log_nCount_Spatial') + theme(legend.position = "right")
@@ -441,7 +445,7 @@ wrap_plots(plot1, plot2)
 
 We then normalize the data using [sctransform](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1) and perform a standard scRNA-seq dimensionality reduction and clustering workflow.
 
-```{r preprocess.ss}
+```{r preprocess-ss}
 slide.seq <- SCTransform(slide.seq, assay = "Spatial", ncells = 3000, verbose = FALSE)
 slide.seq <- RunPCA(slide.seq)
 slide.seq <- RunUMAP(slide.seq, dims = 1:30)
@@ -451,7 +455,7 @@ slide.seq <- FindClusters(slide.seq, resolution = 0.3, verbose = FALSE)
 
 We can then visualize the results of the clustering either in UMAP space (with `DimPlot()`) or in the bead coordinate space with `SpatialDimPlot()`. 
 
-```{r dim.plots.ss,fig.height=5}
+```{r dim-plots-ss,fig.height=5}
 plot1 <- DimPlot(slide.seq, reduction = "umap", label = TRUE)
 plot2 <- SpatialDimPlot(slide.seq, stroke = 0)
 plot1 + plot2
@@ -462,7 +466,7 @@ SpatialDimPlot(slide.seq, cells.highlight = CellsByIdentities(object = slide.seq
 
 To facilitate cell-type annotation of the Slide-seq dataset, we are leveraging an existing mouse single-cell RNA-seq hippocampus dataset, produced in [Saunders\*, Macosko\*, et al. 2018](https://doi.org/10.1016/j.cell.2018.07.028). The data is available for download as a processed Seurat object [here](https://www.dropbox.com/s/cs6pii5my4p3ke3/mouse_hippocampus_reference.rds?dl=0), with the raw count matrices available on the [DropViz website](http://dropviz.org/). 
 
-```{r ref.saunders}
+```{r ref-saunders}
 ref <- readRDS("/brahms/shared/vignette-data/mouse_hippocampus_reference.rds")
 ref <- UpdateSeuratObject(ref)
 ```
@@ -471,7 +475,7 @@ The original annotations from the paper are provided in the cell metadata of the
 
 We'll start by running the Seurat label transfer method to predict the major celltype for each bead. 
 
-```{r ref.preprocessing.ss}
+```{r ref-preprocessing-ss}
 anchors <- FindTransferAnchors(reference = ref, 
                                query = slide.seq, 
                                normalization.method = "SCT",
@@ -488,7 +492,7 @@ slide.seq[["predictions"]] <- predictions.assay
 
 We can then visualize the prediction scores for some of the major expected classes. 
 
-```{r transfer.viz.ss, fig.height = 8} 
+```{r transfer-viz-ss, fig.height = 8}
 DefaultAssay(slide.seq) <- "predictions"
 
 cell.types.of.interest <- c("CA3 Principal cells", "Dentate Principal cells", "Endothelial tip", "Entorhinal cortex", "Ependymal", "Oligodendrocyte")
@@ -496,7 +500,7 @@ cell.types.of.interest <- c("CA3 Principal cells", "Dentate Principal cells", "E
 SpatialFeaturePlot(slide.seq, features = cell.types.of.interest, alpha = c(0.1, 1))
 ```
 
-```{r max.idents.ss}
+```{r max-idents-ss}
 slide.seq$predicted.id <- GetTransferPredictions(slide.seq)
 
 Idents(slide.seq) <- "predicted.id"
@@ -514,7 +518,7 @@ Here, we demonstrate the latter with an implementation of Moran’s I available 
 
 In order to facilitate quick estimation of this statistic, we implemented a basic binning strategy that will draw a rectangular grid over a Slide-seq puck and average the feature and location within each bin. The number of bins in the x and y direction are controlled by the `x.cuts` and `y.cuts` parameters, respectively. Additionally, while not required, installing the optional `Rfast2` package will significantly decrease the runtime via a more efficient implementation.
 
-```{r spatial.vf.ss}
+```{r spatial-vf-ss}
 DefaultAssay(slide.seq) <- "SCT"
 
 slide.seq <- FindSpatiallyVariableFeatures(slide.seq, 
@@ -527,7 +531,7 @@ slide.seq <- FindSpatiallyVariableFeatures(slide.seq,
 
 Now we visualize the expression of the top 6 features identified by Moran's I.  
 
-```{r spatial.vf.plot.ss, fig.height = 8} 
+```{r spatial-vf-plot-ss, fig.height = 8}
 
 spatially.variable.feats <- SpatiallyVariableFeatures(slide.seq, method = "moransi")
 
@@ -544,13 +548,13 @@ While `FindTransferAnchors` can be used to integrate spot-level data from spatia
 
 To run RCTD, we first install the `spacexr` package from GitHub which implements RCTD.
 
-```{r, eval=FALSE}
+```{r install-packages, eval=FALSE}
 devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 ```
 
 Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation.
 
-```{r rctd.setup, warning=FALSE, results=FALSE}
+```{r rctd-setup, warning=FALSE, results=FALSE, message=FALSE}
 library(spacexr)
 
 # Set up reference
@@ -577,7 +581,7 @@ query <- SpatialRNA(coords, counts, colSums(counts))
 
 Using the `reference` and `query` object, we annotate the dataset and add the cell type labels to the query Seurat object. RCTD parallelizes well, so multiple cores can be specified for faster performance.
 
-```{r run.rctd, warning=FALSE, results=FALSE}
+```{r run-rctd, warning=FALSE, results=FALSE}
 RCTD <- create.RCTD(query, reference, max_cores = 8)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
@@ -585,7 +589,7 @@ slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 
 Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the algorithm assigns a `first_type` and `second_type` for each barcode or spot.
 
-```{r rctd_results, fig.height=8, fig.width=14}
+```{r rctd-results, fig.height=8, fig.width=14}
 p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
 p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
 
@@ -595,9 +599,21 @@ p1 | p2
 
 <br/>
 <br/>
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("spatial_vignette", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "spatial_vignette_times.csv"),
+  row.names = FALSE
+)
+```
+
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r session-info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

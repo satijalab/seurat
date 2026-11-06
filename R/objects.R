@@ -1631,7 +1631,6 @@ GetImage.STARmap <- function(
   return(NullImage(mode = mode))
 }
 
-#' @importFrom plotly raster2uri
 #' @importFrom grDevices as.raster
 #' @importFrom grid rasterGrob unit
 #'
@@ -1658,16 +1657,19 @@ GetImage.VisiumV1 <- function(
       height = unit(x = 1, units = 'npc')
     ),
     'raster' = as.raster(x = image),
-    'plotly' = list(
-      source = raster2uri(GetImage(object, mode = 'raster')),
-      xref = 'x',
-      yref = 'y',
-      sizex = ncol(x = object),
-      sizey = nrow(x = object),
-      sizing = 'stretch',
-      opacity = 1,
-      layer = 'below'
-    ),
+    'plotly' = {
+      check_installed("plotly", reason = "to create a plotly image")
+      list(
+        source = plotly::raster2uri(GetImage(object, mode = 'raster')),
+        xref = 'x',
+        yref = 'y',
+        sizex = ncol(x = object),
+        sizey = nrow(x = object),
+        sizing = 'stretch',
+        opacity = 1,
+        layer = 'below'
+      )
+    },
     'raw' = image,
     stop("Unknown image mode: ", mode, call. = FALSE)
   )
@@ -1774,7 +1776,7 @@ GetTissueCoordinates.VisiumV2 <- function(
   if (!(inherits(object[[which]], "Segmentation"))) {
     rownames(coordinates) <- coordinates[["cell"]]
   }
-  coordinates <- coordinates[, c("x", "y", "cell")]
+  coordinates <- coordinates[, c("x", "y", "cell"), drop = FALSE]
   if (!is.null(scale)) {
     # scale the coordinates by the specified factor
     scale <- match.arg(scale, choices = c("lowres", "hires"))
@@ -1869,7 +1871,7 @@ Radius.VisiumV1 <- function(object, scale = "lowres", ...) {
     match.arg(scale, choices = c("hires", "lowres"))
   ]]
 
-  image.size <- max(dim(GetImage(object, resolution=scale)$raster))
+  image.size <- max(dim(slot(object, "image"))[1:2])
 
   return ((spot.size * scale.factor) / image.size)
 }

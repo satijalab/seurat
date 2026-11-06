@@ -7,26 +7,28 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
+```{r setup, include=FALSE, error=FALSE}
+options(warn = 0)
+all_times <- list()  # store elapsed seconds for each chunk
 knitr::knit_hooks$set(time_it = local({
-  now <- NULL
+  start <- NULL
   function(before, options) {
+    if (!isTRUE(options$time_it) || identical(options$eval, FALSE)) return(NULL)
     if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
+      start <<- proc.time()[["elapsed"]]
+      return(NULL)
     }
+    seconds <- proc.time()[["elapsed"]] - start
+    all_times[[options$label]] <<- seconds
+    return(NULL)
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  tidy = FALSE,
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  error = TRUE
+  error = FALSE
 )
 ```
 
@@ -34,11 +36,11 @@ knitr::opts_chunk$set(
 
 For this tutorial, we will be analyzing a dataset of Peripheral Blood Mononuclear Cells (PBMC) freely available from 10X Genomics. There are 2,700 single cells that were sequenced on the Illumina NextSeq 500. The raw data can be found [here](https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz).
 
-We start by reading in the data. The `Read10X()` function reads in the output of the [cellranger](https://www.10xgenomics.com/support/software/cell-ranger/latest/getting-started/cr-what-is-cell-ranger) pipeline from 10X, returning a unique molecular identified (UMI) count matrix. The values in this matrix represent the number of molecules for each feature (i.e. gene; row) that are detected in each cell (column). Note that more recent versions of cellranger now also output using the [h5 file format](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/advanced/h5_matrices), which can be read in using the `Read10X_h5()` function in Seurat.
+We start by reading in the data. The `Read10X()` function reads in the output of the [cellranger](https://www.10xgenomics.com/support/software/cell-ranger/latest/getting-started/cr-what-is-cell-ranger) pipeline from 10X, returning a unique molecular identifier (UMI) count matrix. The values in this matrix represent the number of molecules for each feature (i.e. gene; row) that are detected in each cell (column). Note that more recent versions of cellranger now also output using the [h5 file format](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/advanced/h5_matrices), which can be read in using the `Read10X_h5()` function in Seurat.
 
 We next use the count matrix to create a `Seurat` object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. For more information, check out the [docs for SeuratObject](https://satijalab.github.io/seurat-object/index.html) or the [section on object interaction](essential_commands.html#seurat-object-data-access) in our list of essential commands. For example, in Seurat v5, the count matrix is stored in `pbmc[["RNA"]]$counts`.
 
-```{r init}
+```{r libraries, warning=FALSE, message=FALSE}
 library(dplyr)
 library(Seurat)
 library(patchwork)
@@ -52,14 +54,14 @@ pbmc
 <details>
   <summary>**What does data in a count matrix look like?**</summary>
 
-```{r}
+```{r initialize-seurat}
 # Lets examine a few genes in the first thirty cells
 pbmc.data[c("CD3D","TCL1A","MS4A1"), 1:30]
 ```
 
 The `.` values in the matrix represent 0s (no molecules detected). Since most values in an scRNA-seq matrix are 0, Seurat uses a sparse-matrix representation whenever possible. This results in significant memory and speed savings for Drop-seq/inDrop/10x data.
 
-```{r}
+```{r compare-memory}
 dense.size <- object.size(as.matrix(pbmc.data))
 dense.size
 sparse.size <- object.size(pbmc.data)
@@ -86,7 +88,7 @@ Seurat allows you to easily explore QC metrics and filter cells based on any use
     + We calculate mitochondrial QC metrics with the `PercentageFeatureSet()` function, which calculates the percentage of counts originating from a set of features
     + We use the set of all genes starting with `MT-` as a set of mitochondrial genes
 
-```{r mito}
+```{r mito-percent}
 # The [[ operator can add columns to object metadata. This is a great place to stash QC stats
 pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 ```
@@ -108,7 +110,7 @@ In the example below, we visualize QC metrics, and use these to filter cells.
 * We filter cells that have unique feature counts over 2,500 or less than 200
 * We filter cells that have >5% mitochondrial counts
     
-```{r qc2, fig.height=7, fig.width=13}
+```{r qc-plots, fig.height=7, fig.width=13}
 
 #Visualize QC metrics as a violin plot
 VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
@@ -133,7 +135,7 @@ pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor 
 ```
 For clarity, in this previous line of code (and in future commands), we provide the default values for certain parameters in the function call. However, this isn't required and the same behavior can be achieved with:
 
-```{r normalize.default, eval = FALSE}
+```{r normalize-default, eval = FALSE}
 pbmc <- NormalizeData(pbmc)
 ```
 
@@ -146,7 +148,7 @@ We next calculate a subset of features that exhibit high cell-to-cell variation 
 
 Our procedure in Seurat is described in detail [here](https://doi.org/10.1016/j.cell.2019.05.031), and improves on previous versions by directly modeling the mean-variance relationship inherent in single-cell data, and is implemented in the `FindVariableFeatures()` function. By default, we return 2,000 features per dataset. These will be used in downstream analysis, like PCA.
 
-```{r var_features, fig.height=5, fig.width=10}
+```{r var-features, fig.height=5, fig.width=10}
 pbmc <- FindVariableFeatures(pbmc, selection.method = 'vst', nfeatures = 2000)
 
 # Identify the 10 most highly variable genes
@@ -199,7 +201,7 @@ pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
 
 Seurat provides several useful ways of visualizing both cells and features that define the PCA, including `VizDimLoadings()`, `DimPlot()`, and `DimHeatmap()`.
 
-```{r pca_viz, fig.height=8, fig.width=10, message=TRUE}
+```{r pca-viz, fig.height=8, fig.width=10, message=TRUE}
 # Examine and visualize PCA results a few different ways
 print(pbmc[['pca']], dims = 1:5, nfeatures = 5)
 VizDimLoadings(pbmc, dims = 1:2, reduction = 'pca')
@@ -220,11 +222,11 @@ DimHeatmap(pbmc, dims = 1:15, cells = 500, balanced = TRUE)
 
 To overcome the extensive technical noise in any single feature for scRNA-seq data, Seurat clusters cells based on their PCA scores, with each PC essentially representing a 'metafeature' that combines information across a correlated feature set. The top principal components therefore represent a robust compression of the dataset. However, how many components should we choose to include? 10? 20? 100?
 
-In [Macosko *et al*](https://www.cell.com/fulltext/S0092-8674(15)00549-8), we implemented a resampling test inspired by the JackStraw procedure. While still [available](https://satijalab.org/seurat/reference/jackstraw) in Seurat, this is a slow and computationally expensive procedure, and we is no longer routinely used in single cell analysis.
+In [Macosko *et al*](https://www.cell.com/fulltext/S0092-8674(15)00549-8), we implemented a resampling test inspired by the JackStraw procedure. While still [available](https://satijalab.org/seurat/reference/jackstraw) in Seurat, this is a slow and computationally expensive procedure, and it is no longer routinely used in single cell analysis.
 
-An alternative heuristic method generates an elbow plot: a ranking of principle components based on the percentage of variance explained by each one (`ElbowPlot()` function). In this example, we can observe an 'elbow' around PC9-10, suggesting that the majority of true signal is captured in the first 10 PCs. 
+An alternative heuristic method generates an elbow plot: a ranking of principal components based on the percentage of variance explained by each one (`ElbowPlot()` function). In this example, we can observe an 'elbow' around PC9-10, suggesting that the majority of true signal is captured in the first 10 PCs. 
 
-```{r elbow_plot, fig.height=6, fig.width=10}
+```{r elbow-plot, fig.height=6, fig.width=10}
 ElbowPlot(pbmc)
 ```
 
@@ -313,15 +315,15 @@ We include several tools for visualizing marker expression. `VlnPlot()` (shows e
 ```{r markerplots, fig.height=5, fig.width=10}
 VlnPlot(pbmc, features = c("MS4A1", "CD79A"))
 # you can plot raw counts as well
-VlnPlot(pbmc, features = c("NKG7", "PF4"), slot = 'counts', log = TRUE)
+VlnPlot(pbmc, features = c("NKG7", "PF4"), layer = 'counts', log = TRUE)
 ```
 
-```{r, fig.height=8, fig.width=10}
+```{r feature-plot, fig.height=8, fig.width=10}
 FeaturePlot(pbmc, features = c("MS4A1", "GNLY", "CD3E", "CD14", "FCER1A", "FCGR3A", "LYZ", "PPBP", "CD8A"))
 ```
 `DoHeatmap()` generates an expression heatmap for given cells and features. In this case, we are plotting the top 10 markers (or all markers if less than 10) for each cluster.
 
-```{r clusterHeatmap, fig.height=8, fig.width=10}
+```{r cluster-heatmap, fig.height=8, fig.width=10}
 pbmc.markers %>%
     group_by(cluster) %>%
     dplyr::filter(avg_log2FC > 1) %>%
@@ -355,7 +357,7 @@ pbmc <- RenameIdents(pbmc, new.cluster.ids)
 DimPlot(pbmc, reduction = 'umap', label = TRUE, pt.size = 0.5) + NoLegend()
 ```
 
-```{r save.img, include=TRUE}
+```{r save-image, include=TRUE, warning=FALSE, message=FALSE}
 library(ggplot2)
 plot <- DimPlot(pbmc, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
@@ -364,13 +366,25 @@ plot <- DimPlot(pbmc, reduction = "umap", label = TRUE, label.size = 4.5) + xlab
 # ggsave(filename = "../output/images/pbmc3k_umap.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
-```{r save.rds, eval=FALSE}
+```{r save-rds, eval=FALSE}
 saveRDS(pbmc, file = "../output/pbmc3k_final.rds")
+```
+
+```{r save-times, include=FALSE, cache=FALSE, time_it=FALSE}
+timing_dir <- "../output/timings"
+dir.create(timing_dir, recursive = TRUE, showWarnings = FALSE)
+write.csv(
+  data.frame(vignette = rep("pbmc3k_tutorial", length(all_times)),
+             chunk = as.character(names(all_times)),
+             elapsed_seconds = as.numeric(unlist(all_times, use.names = FALSE))),
+  file = file.path(timing_dir, "pbmc3k_tutorial_times.csv"),
+  row.names = FALSE
+)
 ```
 
 <details>
   <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+```{r session-info, cache=FALSE}
+sessioninfo::session_info(pkgs = "attached")
 ```
 </details>

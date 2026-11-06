@@ -282,10 +282,12 @@ FindIntegrationAnchors <- function(
     }
     k.neighbor <- max(k.anchor, k.score)
     internal.neighbors <- my.lapply(
-      X = 1:length(x = object.list),
-      FUN = function(x) {
+      X = unname(obj = lapply(X = object.list, FUN = function(object) {
+        Embeddings(object = object[[nn.reduction]])[, dims]
+      })),
+      FUN = function(embeddings) {
         NNHelper(
-          data = Embeddings(object = object.list[[x]][[nn.reduction]])[, dims],
+          data = embeddings,
           k = k.neighbor + 1,
           method = nn.method,
           n.trees = n.trees,
@@ -2908,10 +2910,10 @@ MixingMetric <- function(
 #' @return A list of \code{\link[SeuratObject]{Seurat}} objects with the appropriate \code{scale.data} slots
 #' containing only the required \code{anchor.features}.
 #'
-#' @importFrom pbapply pblapply
+#' @importFrom pbapply pblapply pbmapply
 #' @importFrom methods slot slot<-
 #' @importFrom future nbrOfWorkers
-#' @importFrom future.apply future_lapply
+#' @importFrom future.apply future_lapply future_mapply
 #'
 #' @export
 #' @concept integration
@@ -2951,10 +2953,10 @@ PrepSCTIntegration <- function(
   sct.clip.range = NULL,
   verbose = TRUE
 ) {
-  my.lapply <- if (getThreads(verbose = FALSE) > 1L) {
-    if (verbose) pblapply else lapply
+  my.mapply <- if (getThreads(verbose = FALSE) > 1L) {
+    if (verbose) pbmapply else mapply
   } else {
-    if (verbose && nbrOfWorkers() == 1) pblapply else future_lapply
+    if (verbose && nbrOfWorkers() == 1) pbmapply else future_mapply
   }
   assay <- assay %||% sapply(X = object.list, FUN = DefaultAssay)
   assay <- rep_len(x = assay, length.out = length(x = object.list))
@@ -3002,12 +3004,15 @@ PrepSCTIntegration <- function(
       verbose = verbose
     )
   }
-  object.list <- my.lapply(
-    X = 1:length(x = object.list),
-    FUN = function(i) {
+  object.list <- my.mapply(
+    object = object.list,
+    assay = assay,
+    SIMPLIFY = FALSE,
+    USE.NAMES = FALSE,
+    FUN = function(object, assay) {
       obj <- GetResidual(
-        object = object.list[[i]],
-        assay = assay[i],
+        object = object,
+        assay = assay,
         features = anchor.features,
         replace.value = ifelse(test = is.null(x = sct.clip.range), yes = FALSE, no = TRUE),
         clip.range = sct.clip.range,
@@ -3015,14 +3020,14 @@ PrepSCTIntegration <- function(
       )
       scale.data <- GetAssayData(
         object = obj,
-        assay = assay[i],
+        assay = assay,
         layer = 'scale.data'
       )
       obj <- SetAssayData(
         object = obj,
         layer = 'scale.data',
         new.data = scale.data[anchor.features, ],
-        assay = assay[i]
+        assay = assay
       )
       return(obj)
     }
@@ -4779,14 +4784,17 @@ MapQueryData <- function(
   } else {
     query.datasets <- setdiff(x = seq_along(along.with = object.list), y = reference.datasets)
   }
-  my.lapply <- if (getThreads(verbose = FALSE) > 1L) {
-    if (verbose) pblapply else lapply
+  my.mapply <- if (getThreads(verbose = FALSE) > 1L) {
+    if (verbose) pbmapply else mapply
   } else {
-    if (verbose && nbrOfWorkers() == 1) pblapply else future_lapply
+    if (verbose && nbrOfWorkers() == 1) pbmapply else future_mapply
   }
-  query.corrected <- my.lapply(
-    X = query.datasets,
-    FUN = function(dataset1) {
+  query.corrected <- my.mapply(
+    query = object.list[query.datasets],
+    dataset1 = query.datasets,
+    SIMPLIFY = FALSE,
+    USE.NAMES = FALSE,
+    FUN = function(query, dataset1) {
       if (verbose) {
         message("\nIntegrating dataset ", dataset1, " with reference dataset")
       }
@@ -4794,7 +4802,7 @@ MapQueryData <- function(
       integrated <- RunIntegration(
         filtered.anchors = filtered.anchors,
         reference = reference,
-        query = object.list[[dataset1]],
+        query = query,
         new.assay.name = new.assay.name,
         normalization.method = normalization.method,
         cellnames.list = cellnames.list,
@@ -6839,11 +6847,9 @@ BridgeCellsRepresentation <- function(object.list,
                                       l2.norm = TRUE,
                                       verbose = TRUE
 ) {
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
+  use.progress <- verbose && nbrOfWorkers() == 1
+  my.lapply <- if (use.progress) pblapply else future_lapply
+  my.mapply <- if (use.progress) pbmapply else future_mapply
   if (verbose) {
     message("Constructing Bridge-cells representation")
   }
@@ -6887,39 +6893,45 @@ BridgeCellsRepresentation <- function(object.list,
      names(dims.list[[i]]) <- c('object', 'bridge')
    }
     }
-  object.list <- my.lapply(
-    X = 1:length(x = object.list),
-    FUN = function(x) {
-      SA.inv <- ginv(
-        X = Embeddings(
-          object = bridge.object,
-          reduction = bridge.reduction[[x]]
-        )[ ,dims.list[[x]]$bridge]
-      )
-        if (!is.null(laplacian.reduction)) {
-          lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[,laplacian.dims]
-          X <- Embeddings(
-            object = object.list[[x]],
-            reduction = object.reduction[[x]]
-          )[, dims.list[[x]]$object] %*% (SA.inv %*% lap.vector)
-        } else {
-          X <- Embeddings(
-            object = object.list[[x]],
-            reduction = object.reduction[[x]]
-          )[,  dims.list[[x]]$object] %*% SA.inv
-          colnames(X) <- Cells(bridge.object)
-        }
+  object.embeddings <- lapply(X = seq_along(object.list), FUN = function(i) {
+    Embeddings(object = object.list[[i]], reduction = object.reduction[[i]])[
+      , dims.list[[i]]$object
+    ]
+  })
+  bridge.embeddings <- lapply(X = seq_along(object.list), FUN = function(i) {
+    Embeddings(object = bridge.object, reduction = bridge.reduction[[i]])[
+      , dims.list[[i]]$bridge
+    ]
+  })
+  if (!is.null(laplacian.reduction)) {
+    lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[, laplacian.dims]
+  }
+  bridge.cells <- Cells(x = bridge.object)
+  object.list <- my.mapply(
+    object = object.list,
+    object.embeddings = object.embeddings,
+    bridge.embeddings = bridge.embeddings,
+    SIMPLIFY = FALSE,
+    USE.NAMES = FALSE,
+    FUN = function(object, object.embeddings, bridge.embeddings) {
+      SA.inv <- ginv(X = bridge.embeddings)
+      if (!is.null(laplacian.reduction)) {
+        X <- object.embeddings %*% (SA.inv %*% lap.vector)
+      } else {
+        X <- object.embeddings %*% SA.inv
+        colnames(X) <- bridge.cells
+      }
       if (l2.norm) {
         X <- L2Norm(mat = X, MARGIN = 1)
       }
       colnames(x = X) <- paste0('bridge_',  colnames(x = X))
       suppressWarnings(
-        object.list[[x]][[bridge.assay.name]] <- CreateAssayObject(data = t(X))
+        object[[bridge.assay.name]] <- CreateAssayObject(data = t(X))
         )
-      object.list[[x]][[bridge.assay.name]]@misc$SA.inv <- SA.inv
-      DefaultAssay(object.list[[x]]) <- bridge.assay.name
-      VariableFeatures(object = object.list[[x]]) <- rownames(object.list[[x]])
-      return (object.list[[x]])
+      object[[bridge.assay.name]]@misc$SA.inv <- SA.inv
+      DefaultAssay(object) <- bridge.assay.name
+      VariableFeatures(object = object) <- rownames(object)
+      return (object)
     }
   )
   if (!return.all.assays) {
@@ -7196,7 +7208,9 @@ TransferLablesNN <- function(
   query.label.score <- apply(X = query.label.mat, MARGIN = 1, FUN = max)
   names(query.label) <- names(query.label.score) <- rownames(query.label.mat)
   if (is.factor(reference.labels)) {
-    levels(query.label) <- levels(reference.labels)
+    query.label <- factor(x = query.label,
+                          levels = levels(x = reference.labels),
+                          ordered = is.ordered(x = reference.labels))
   }
   output.list <- list(labels = query.label,
                       scores = query.label.score,

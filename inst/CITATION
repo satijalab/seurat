@@ -2,6 +2,23 @@ citHeader("To cite Seurat in publications, please use:")
 
 bibentry(bibtype = "article",
   author = c(
+  as.person("Longda Jiang"),
+  as.person("Zhixin Cyrillus Tan"),
+  as.person("Isabella N Grabski"),
+  as.person("Yuhan Hao"),
+  as.person("Nathan Nakatsuka"),
+  as.person("Sourav Sarkar"),
+  as.person("Anagha Shenoy"),
+  as.person("Rahul Satija")
+  ),
+  title = "Reconstructing developmental and disease progression with sample-level embeddings",
+  journal = "Cell",
+  year = "2026",
+  textVersion = "Jiang et al. Reconstructing developmental and disease progression with sample-level embeddings. Cell (2026) [Seurat V6]"
+)
+
+bibentry(bibtype = "article",
+  author = c(
   as.person("Yuhan Hao"),
   as.person("Tim Stuart"),
   as.person("Madeline H Kowalski"),

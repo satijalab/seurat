@@ -371,6 +371,7 @@ test_that("BuildNicheAssay works as expected", {
 })
 
 test_that("BuildNicheAssay works with FOV and VisiumV2 instances", {
+  skip_on_cran()
   skip_if_not_installed("hdf5r")
 
   path.to.data = file.path("../testdata/visium")
@@ -444,6 +445,7 @@ test_that("AddModuleScore works in the multi-layer case", {
 })
 
 test_that("AddModuleScore preserves IterableMatrix layers", {
+  skip_on_cran()
   skip_if_not_installed("BPCells")
   library(BPCells)
   library(Matrix)
