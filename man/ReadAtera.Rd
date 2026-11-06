@@ -156,7 +156,7 @@ values:
 \code{LoadAtera}: A \code{\link[SeuratObject]{Seurat}} object
 }
 \description{
-Read the output of \href{https://www.10xgenomics.com}{10x Genomics} Atera,
+Read the output of 10x Genomics Atera,
 a next-generation in situ sequencing platform. All Atera outputs (aside
 from images) are stored in AnnData zarr (storage format v2) files, zipped
 with \code{Stored} (uncompressed) zip entries; reading them requires the
