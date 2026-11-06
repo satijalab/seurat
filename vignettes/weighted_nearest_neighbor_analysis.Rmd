@@ -189,7 +189,7 @@ We'll create a Seurat object based on the gene expression data, and then add in 
 
 ```{r create-object}
 # the 10x hdf5 file contains both data types. 
-inputdata.10x <- Read10X_h5("/brahms/hartmana/vignette_data/pbmc_cellranger_arc_2/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
+inputdata.10x <- Read10X_h5("/brahms/hartmana/vignette_data/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
 
 # extract RNA and ATAC data
 rna_counts <- inputdata.10x$`Gene Expression`
@@ -208,7 +208,7 @@ annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
 seqlevelsStyle(annotations) <- 'UCSC'
 genome(annotations) <- "hg38"
 
-frag.file <- "/brahms/hartmana/vignette_data/pbmc_cellranger_arc_2/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
+frag.file <- "/brahms/hartmana/vignette_data/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
 chrom_assay <- CreateChromatinAssay(
    counts = atac_counts,
    sep = c(":", "-"),
