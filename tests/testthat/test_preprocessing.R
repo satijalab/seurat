@@ -522,6 +522,35 @@ if (is_not_cran_submission) {
     expect_false(anyNA(residuals[both, c(model1.cells, model2.cells)]))
   })
 
+  test_that("FetchResiduals_reference uses the original query variance floor", {
+    # higher reference counts make its resolved floor differ from the query floor
+    test.data <- CreateSeuratObject(counts = CreateAssayObject(counts = pbmc.test * 50))
+    test.data <- suppressWarnings(SCTransform(
+      object = test.data,
+      vst.flavor = "v1",
+      min_variance = "umi_median",
+      verbose = FALSE
+    ))
+    model <- test.data[["SCT"]]@SCTModel.list[[1]]
+    features <- rownames(GetAssayData(object = test.data, assay = "SCT", layer = "scale.data"))
+    result <- FetchResiduals_reference(
+      object = pbmc.test,
+      reference.SCT.model = model,
+      features = features
+    )
+
+    # restore the original string setting to calculate the expected query residuals
+    model@arguments$min_variance_original <- NULL
+    model@arguments$min_variance <- "umi_median"
+    expected <- FetchResiduals_reference(
+      object = pbmc.test,
+      reference.SCT.model = model,
+      features = features
+    )
+    # query residuals should match the behavior before the regression
+    expect_equal(result, expected, tolerance = 1e-6)
+  })
+
   test_that("SCTransform v2 works as expected", {
     skip_if_not_installed("glmGamPoi")
     object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor = "v2",  seed.use = 1448145))

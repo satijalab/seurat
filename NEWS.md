@@ -25,6 +25,7 @@
 - Fixed `LeverageScore` on BPCells on-disk data deleting unrelated files from the session temporary directory and leaving behind a full on-disk copy of the input matrix
 - Fixed `LeverageScore` densifying the whole layer when retrying after a failure, and reporting that no zero-variance features were found even when it had removed some
 - Fixed `ProjectData` and `TransferSketchLabels` not preserving factor levels and ordering in projected labels
+- Fixed SCT query projection using the resolved reference variance floor instead of the original `"umi_median"` setting, which could reduce anchors in `FindTransferAnchors` and cause `TransferData` to fail
 - Improved table reading in `Read10X`, `ReadMtx`, `LoadSTARmap`, `LoadCurioSeeker`, and `ReadSlideSeq`, and coordinate handling in `SpatialPlot`
 - Fixed `Load10X_Spatial` with custom assay and slice names and uppercase feature names, and cell filtering in `Read10X_Coordinates`, `Read10X_Segmentations`, and `Read10X_HD_GeoJson`
 - Fixed `ImageDimPlot` and `ImageFeaturePlot` with FOV and boundary names containing underscores

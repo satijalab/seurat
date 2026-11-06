@@ -5994,6 +5994,8 @@ SCTransform.default <- function(
         # That recompute is order/subset dependent, so it can diverge from the
         # value used here for scale.data. Storing the resolved value makes later
         # residuals deterministic and consistent with scale.data.
+        # Keep the original setting for normalization of a different query dataset.
+        vst.out$arguments$min_variance_original <- min.variance
         vst.out$arguments$min_variance <- min.var
         # should be set already by the vst call but just fixing in case its null
         res.clip.range <- vst.out$arguments$res_clip_range %||%

@@ -2063,12 +2063,13 @@ FetchResiduals_reference <- function(object,
     message("using reference sct model")
   }
 
-  if (vst_out$arguments$min_variance == "umi_median"){
+  min.variance <- vst_out$arguments$min_variance_original %||% vst_out$arguments$min_variance
+  if (identical(x = min.variance, y = "umi_median")) {
     nz_median <- 1
     min_var_custom <- (nz_median / 5)^2
     min_var <- min_var_custom
   } else {
-    min_var <- vst_out$arguments$min_variance
+    min_var <- min.variance
   }
   new_residual <- get_residuals(
     vst_out = vst_out,
