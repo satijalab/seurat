@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 6.0.0
 
 ### Additions
 
