@@ -14,6 +14,8 @@ bibentry(bibtype = "article",
   title = "Reconstructing developmental and disease progression with sample-level embeddings",
   journal = "Cell",
   year = "2026",
+  doi = "10.1016/j.cell.2026.10.018",
+  url = "https://doi.org/10.1016/j.cell.2026.10.018",
   textVersion = "Jiang et al. Reconstructing developmental and disease progression with sample-level embeddings. Cell (2026) [Seurat V6]"
 )
 
