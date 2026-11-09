@@ -20,6 +20,7 @@
 
 ### Fixes
 
+- Fixed `as.Seurat` for `SingleCellExperiment` objects whose alternative experiments lack a requested assay (e.g. spike-ins or ADTs without `logcounts`): the missing assay is skipped with a warning instead of failing with "No data in provided assay"
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
 - Updated `LeverageScore` (and so `SketchData`) to scale better on BPCells on-disk data, by computing the random projection in blocks of cells instead of transposing the whole matrix. Results for a given `seed` differ from previous versions
 - Fixed `LeverageScore` on BPCells on-disk data deleting unrelated files from the session temporary directory and leaving behind a full on-disk copy of the input matrix
