@@ -20,6 +20,7 @@
 
 ### Fixes
 
+- Fixed `Read10X_Coordinates` (and so `Read10X_Image` and `Load10X_Spatial`) to detect a header row in tissue positions CSVs from the file contents instead of the file name, so renamed files (e.g. a headed `tissue_positions_list.csv` from GEO) no longer produce character coordinates and a "cannot derive coordinates from non-numeric matrix" error
 - Fixed `LeverageScore` (and so `SketchData`) on objects with fewer than 50 features or cells by using the number of components already computed from the object's size
 - Updated `LeverageScore` (and so `SketchData`) to scale better on BPCells on-disk data, by computing the random projection in blocks of cells instead of transposing the whole matrix. Results for a given `seed` differ from previous versions
 - Fixed `LeverageScore` on BPCells on-disk data deleting unrelated files from the session temporary directory and leaving behind a full on-disk copy of the input matrix
