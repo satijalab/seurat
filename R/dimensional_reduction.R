@@ -1750,7 +1750,6 @@ RunUMAP.Graph <- function(
   ...
 ) {
   check_installed("reticulate", reason = "to use RunUMAP.Graph()")
-  #CheckDots(...)
   if (umap.method != 'umap-learn') {
     warning(
       "Running UMAP on Graph objects is only supported using the umap-learn method",
@@ -1771,12 +1770,17 @@ RunUMAP.Graph <- function(
     stop("Cannot find scipy, please install through pip (e.g. pip install scipy).")
   }
   np <- reticulate::import("numpy", delay_load = TRUE)
-  sp <- reticulate::import("scipy", delay_load = TRUE)
+  sp <- reticulate::import("scipy", delay_load = TRUE, convert = FALSE)
   sklearn <- reticulate::import("sklearn", delay_load = TRUE)
   umap <- reticulate::import("umap", delay_load = TRUE)
+  umap_ver <- umap$`__version__`
+  umap_ver_clean <- paste(regmatches(umap_ver, gregexpr("[0-9]+", umap_ver))[[1]][1:3], collapse = ".")
   diag(x = object) <- 0
   data <- object
   object <- sp$sparse$coo_matrix(arg1 = object)
+  if (numeric_version(x = umap_ver_clean) >= numeric_version(x = "0.6.0")) {
+    object <- object$astype(dtype = np$float32)
+  }
   ab.params <- umap$umap_$find_ab_params(spread = spread, min_dist = min.dist)
   a <- a %||% ab.params[[1]]
   b <- b %||% ab.params[[2]]
@@ -1795,20 +1799,22 @@ RunUMAP.Graph <- function(
     negative_sample_rate = negative.sample.rate,
     n_epochs = as.integer(x = n.epochs),
     random_state = random.state,
-    approx_pow = uwot.approx_pow,
     init = uwot.init,
     metric = metric,
     metric_kwds = metric.kwds,
     verbose = verbose
   )
-  if (numeric_version(x = umap$`__version__`) >=
-      numeric_version(x = "0.5.0")) {
+  if (numeric_version(x = umap_ver_clean) >= numeric_version(x = "0.5.0")) {
     umap.args <- c(umap.args, list(
       densmap = densmap,
       densmap_kwds = densmap.kwds,
       output_dens = FALSE
     ))
   }
+  if ("init" %in% names(x = list(...))) {
+    umap.args$init <- NULL
+  }
+  umap.args <- c(umap.args, list(...))
   embeddings <- do.call(what = umap$umap_$simplicial_set_embedding, args = umap.args)
   if (length(x = embeddings) == 2) {
     embeddings <- embeddings[[1]]
@@ -2079,6 +2085,9 @@ RunUMAP.Seurat <- function(
     reduction.key = reduction.key %||% Key(object = reduction.name, quiet = TRUE),
     verbose = verbose
   )
+  if (inherits(x = data.use, what = "Graph")) {
+    umap.args <- umap.args[intersect(names(x = umap.args), names(x = formals(fun = RunUMAP.Graph)))]
+  }
   object[[reduction.name]] <- do.call(what = RunUMAP, args = c(umap.args, list(...)))
   object <- LogSeuratCommand(object = object)
   return(object)
