@@ -1447,7 +1447,6 @@ RunUMAP.default <- function(
   verbose = TRUE,
   ...
 ) {
-  CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -1475,6 +1474,9 @@ RunUMAP.default <- function(
       message("Running UMAP projection")
     }
     umap.method <- "uwot-predict"
+  }
+  if (umap.method != "umap-learn") {
+    CheckDots(...)
   }
   nthreads <- getThreads(verbose = FALSE)
   umap.output <- switch(
@@ -1533,6 +1535,10 @@ RunUMAP.default <- function(
           dens_var_shift = dens.var.shift,
           output_dens = FALSE
         ))
+      }
+      umap.args <- c(umap.args, list(...))
+      if (!"n_jobs" %in% names(x = umap.args)) {
+        umap.args$n_jobs <- as.integer(x = nthreads)
       }
       umap <- do.call(what = umap_import$UMAP, args = umap.args)
       umap$fit_transform(as.matrix(x = object))
@@ -1976,7 +1982,6 @@ RunUMAP.Seurat <- function(
   reduction.key = NULL,
   ...
 ) {
-  CheckDots(...)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
@@ -2036,7 +2041,7 @@ RunUMAP.Seurat <- function(
   } else {
     stop("Please specify one of dims, features, or graph")
   }
-  object[[reduction.name]] <- RunUMAP(
+  umap.args <- list(
     object = data.use,
     reduction.model = reduction.model,
     return.model = return.model,
@@ -2068,6 +2073,7 @@ RunUMAP.Seurat <- function(
     reduction.key = reduction.key %||% Key(object = reduction.name, quiet = TRUE),
     verbose = verbose
   )
+  object[[reduction.name]] <- do.call(what = RunUMAP, args = c(umap.args, list(...)))
   object <- LogSeuratCommand(object = object)
   return(object)
 }
