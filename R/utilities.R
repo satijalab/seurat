@@ -3243,9 +3243,11 @@ BuildNicheAssay <- function(
 #' applies to supported C++ kernels in \code{NormalizeData},
 #' \code{FindVariableFeatures}, \code{ScaleData}, \code{SCTransform},
 #' \code{RunPCA}, \code{FindNeighbors}, \code{FindClusters}, and 
-#' CCA/RPCA integration. \code{RunUMAP} also passes this setting to the 
-#' \pkg{uwot} backend. Support depends on the input type, backend, and arguments; 
-#' not every stage of these functions can be run in parallel.
+#' CCA/RPCA integration. \code{RunUMAP} also passes this setting to the
+#' \pkg{uwot} backend and the Python `umap-learn` backend (via the `n_jobs`
+#' parameter). Note that support for parallel processing depends on the
+#' input type, backend, and arguments, as not every stage of these functions
+#' can be run in parallel.
 #'
 #' Note that this thread setting is separate from \code{\link[future]{plan}}.
 #'
