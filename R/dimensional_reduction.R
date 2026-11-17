@@ -1502,7 +1502,11 @@ RunUMAP.default <- function(
           numeric_version(x = "0.5.0")) {
         stop("densmap is only supported by versions >= 0.5.0 of umap-learn. Upgrade umap-learn (e.g. pip install --upgrade umap-learn).")
       }
-      random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+      random.state <- if (is.null(x = seed.use)) {
+        NULL
+      } else {
+        sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+      }
       umap.args <- list(
         n_neighbors = as.integer(x = n.neighbors),
         n_components = as.integer(x = n.components),
@@ -1777,7 +1781,9 @@ RunUMAP.Graph <- function(
   a <- a %||% ab.params[[1]]
   b <- b %||% ab.params[[2]]
   n.epochs <- n.epochs %||% 0L
-  random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+  random.state <- sklearn$utils$check_random_state(
+    seed = if (is.null(x = seed.use)) NULL else as.integer(x = seed.use)
+  )
   umap.args <- list(
     data = data,
     graph = object,
