@@ -1778,8 +1778,19 @@ RunUMAP.Graph <- function(
   diag(x = object) <- 0
   data <- object
   object <- sp$sparse$coo_matrix(arg1 = object)
+  extra.args <- list(...)
   if (numeric_version(x = umap_ver_clean) >= numeric_version(x = "0.6.0")) {
-    object <- object$astype(dtype = np$float32)
+    compatibility.layout <- extra.args[["compatibility_layout"]]
+    optimizer <- extra.args[["optimizer"]]
+    # umap-learn defaults to the legacy optimizer unless the caller opts in
+    modern.optimizer <- if (is.null(optimizer)) {
+      isFALSE(compatibility.layout)
+    } else {
+      !isTRUE(compatibility.layout) && isTRUE(optimizer %in% c("adam", "momentum"))
+    }
+    if (modern.optimizer) {
+      object <- object$astype(dtype = np$float32)
+    }
   }
   ab.params <- umap$umap_$find_ab_params(spread = spread, min_dist = min.dist)
   a <- a %||% ab.params[[1]]
@@ -1811,10 +1822,10 @@ RunUMAP.Graph <- function(
       output_dens = FALSE
     ))
   }
-  if ("init" %in% names(x = list(...))) {
+  if ("init" %in% names(x = extra.args)) {
     umap.args$init <- NULL
   }
-  umap.args <- c(umap.args, list(...))
+  umap.args <- c(umap.args, extra.args)
   embeddings <- do.call(what = umap$umap_$simplicial_set_embedding, args = umap.args)
   if (length(x = embeddings) == 2) {
     embeddings <- embeddings[[1]]
