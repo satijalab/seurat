@@ -116,7 +116,17 @@ RunUMAP(object, ...)
 \arguments{
 \item{object}{An object}
 
-\item{...}{Arguments passed to other methods and UMAP}
+\item{...}{Additional arguments passed to other methods. For \code{umap.method = "umap-learn"},
+named arguments are forwarded to Python's \code{UMAP} constructor, or to
+\code{simplicial_set_embedding} for Graph input, using Python parameter names. Arguments already
+supplied by Seurat cannot be overridden, except for \code{init} with Graph input.
+Seurat leaves \code{compatibility_layout} unset unless supplied through
+\code{...}, allowing the installed umap-learn version to choose its default.
+Pass \code{compatibility_layout = FALSE} to opt into the new pipeline in
+umap-learn >= 0.6.0.
+For Python's \code{UMAP} constructor, \code{n_jobs} defaults to the Seurat
+thread count set by \code{\link{setThreads}}; pass \code{n_jobs} through
+\code{...} to override it. This does not apply to Graph input.}
 
 \item{reduction.key}{dimensional reduction key, specifies the string before
 the number for the dimension names. UMAP by default}
@@ -191,9 +201,12 @@ right adjoint functor.}
 \item{uwot.approx_pow}{Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
 \code{\link[uwot]{umap}} for more details.}
 
-\item{uwot.init}{Set the initialization method to use for \code{\link[uwot]{umap}} or 
-\code{\link[uwot]{umap2}}, which is passed to the \code{init} parameter of these functions.
-See these functions for available options. Default is \code{"spectral"}.}
+\item{uwot.init}{Set the initialization method to use for the \code{uwot} and \code{uwot2}
+backends, passed to the \code{init} parameter of \code{\link[uwot]{umap}} / \code{\link[uwot]{umap2}}.
+Also controls initialization for \code{umap-learn} with Graph input, where it is passed to
+\code{simplicial_set_embedding}. Default is \code{"spectral"}; available methods depend on the backend
+and its version. To set Python initialization, pass \code{init} through \code{...}.
+With Graph input, \code{init} in \code{...} overrides \code{uwot.init}.}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed}
