@@ -1120,6 +1120,40 @@ test_that("transcript projection tolerates missing QV in CSV and Parquet", {
 
 context("Atera file loading")
 
+test_that("Atera reads rows correctly when a chunk has a padding column", {
+  skip_on_cran()
+  skip_if_not_installed("blosc")
+  skip_if(Sys.which("zip") == "", "zip executable is required")
+  bundle <- tempfile()
+  dir.create(file.path(bundle, "arr"), recursive = TRUE)
+  previous <- setwd(bundle)
+  on.exit({
+    setwd(previous)
+    unlink(bundle, recursive = TRUE)
+  })
+
+  # The array has two columns and the stored chunk has a third column of padding
+  # so the two rows are stored as (1, 2, 0) and (3, 4, 0)
+  stored <- c(1, 2, 0, 3, 4, 0)
+  meta <- list(
+    zarr_format = 2L, shape = c(2L, 2L), chunks = c(2L, 3L),
+    dtype = "<f4", order = "C", fill_value = 0, filters = NULL,
+    compressor = list(id = "blosc", cname = "lz4", clevel = 5L, shuffle = 1L, blocksize = 0L)
+  )
+  jsonlite::write_json(meta, "arr/.zarray", auto_unbox = TRUE, null = "null")
+  writeBin(blosc::blosc_compress(stored, dtype = meta$dtype), "arr/0.0")
+  utils::zip("test.zarr.zip", c("arr/.zarray", "arr/0.0"), flags = "-0 -q")
+
+  index <- Seurat:::.AteraZipIndex("test.zarr.zip")
+  con <- file("test.zarr.zip", "rb")
+  on.exit(close(con), add = TRUE, after = FALSE)
+  actual <- Seurat:::.AteraReadArray(con, index, "arr", parallel = FALSE)
+
+  # Grouping the stored values in pairs would give (0, 3) for the second row which is incorrect
+  # (the reader must reconstruct the full chunk according to its shape before dropping the padding)
+  expect_identical(actual, rbind(c(1, 2), c(3, 4)))
+})
+
 write_atera_fixture <- function(bundle, multiplier = 1) {
   skip_if_not_installed("blosc")
   skip_if_not_installed("data.table")
