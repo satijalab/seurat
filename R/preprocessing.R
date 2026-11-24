@@ -3291,7 +3291,7 @@ ReadXenium <- function(
       chunk.mat <- if (identical(order, "F")) {
         matrix(vals, nrow = crow, ncol = ccol)
       } else {
-        t(matrix(vals, nrow = ccol, ncol = crow))
+        matrix(vals, nrow = crow, ncol = ccol, byrow = TRUE)
       }
       out[(job$lo - start + 1L):(job$hi - start + 1L), job$col0:(job$col0 + job$ncol - 1L)] <-
         chunk.mat[(job$lo - job$row0 + 1L):(job$hi - job$row0 + 1L), seq_len(job$ncol), drop = FALSE]
