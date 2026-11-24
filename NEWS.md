@@ -2,8 +2,14 @@
 
 ### Additions
 
+- Updated `RunUMAP` to forward additional arguments through `...` to the Python `umap-learn` backend, including `compatibility_layout = FALSE` to opt into the new pipeline in `umap-learn` >= v0.6
+  - Updated `RunUMAP` to use the Seurat thread setting for the Python `UMAP` constructor, unless `n_jobs` is supplied explicitly
+
 ### Fixes
 
+- Fixed `RunUMAP` failing with `seed.use = NULL` in the Python `umap-learn` backend to pass Python `None` instead of an empty integer vector
+- Fixed `RunUMAP` on Graph input with `umap-learn` >= v0.6 by preserving the SciPy sparse matrix and using 32-bit edge weights for the new optimizers
+  - `init` supplied through `...` will override `uwot.init` for Graph input
 - Fixed incorrect Atera segmentation coordinates when reading padded Zarr v2 chunks that could result in invalid polygons (reported at [#10551](https://github.com/satijalab/seurat/issues/10551))
 
 # Seurat 6.0.0

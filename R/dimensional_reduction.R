@@ -1447,7 +1447,6 @@ RunUMAP.default <- function(
   verbose = TRUE,
   ...
 ) {
-  CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -1476,6 +1475,9 @@ RunUMAP.default <- function(
     }
     umap.method <- "uwot-predict"
   }
+  if (umap.method != "umap-learn") {
+    CheckDots(...)
+  }
   nthreads <- getThreads(verbose = FALSE)
   umap.output <- switch(
     EXPR = umap.method,
@@ -1500,7 +1502,11 @@ RunUMAP.default <- function(
           numeric_version(x = "0.5.0")) {
         stop("densmap is only supported by versions >= 0.5.0 of umap-learn. Upgrade umap-learn (e.g. pip install --upgrade umap-learn).")
       }
-      random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+      random.state <- if (is.null(x = seed.use)) {
+        NULL
+      } else {
+        sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+      }
       umap.args <- list(
         n_neighbors = as.integer(x = n.neighbors),
         n_components = as.integer(x = n.components),
@@ -1533,6 +1539,10 @@ RunUMAP.default <- function(
           dens_var_shift = dens.var.shift,
           output_dens = FALSE
         ))
+      }
+      umap.args <- c(umap.args, list(...))
+      if (!"n_jobs" %in% names(x = umap.args)) {
+        umap.args$n_jobs <- as.integer(x = nthreads)
       }
       umap <- do.call(what = umap_import$UMAP, args = umap.args)
       umap$fit_transform(as.matrix(x = object))
@@ -1740,7 +1750,6 @@ RunUMAP.Graph <- function(
   ...
 ) {
   check_installed("reticulate", reason = "to use RunUMAP.Graph()")
-  #CheckDots(...)
   if (umap.method != 'umap-learn') {
     warning(
       "Running UMAP on Graph objects is only supported using the umap-learn method",
@@ -1761,17 +1770,35 @@ RunUMAP.Graph <- function(
     stop("Cannot find scipy, please install through pip (e.g. pip install scipy).")
   }
   np <- reticulate::import("numpy", delay_load = TRUE)
-  sp <- reticulate::import("scipy", delay_load = TRUE)
+  sp <- reticulate::import("scipy", delay_load = TRUE, convert = FALSE)
   sklearn <- reticulate::import("sklearn", delay_load = TRUE)
   umap <- reticulate::import("umap", delay_load = TRUE)
+  umap_ver <- umap$`__version__`
+  umap_ver_clean <- paste(regmatches(umap_ver, gregexpr("[0-9]+", umap_ver))[[1]][1:3], collapse = ".")
   diag(x = object) <- 0
   data <- object
   object <- sp$sparse$coo_matrix(arg1 = object)
+  extra.args <- list(...)
+  if (numeric_version(x = umap_ver_clean) >= numeric_version(x = "0.6.0")) {
+    compatibility.layout <- extra.args[["compatibility_layout"]]
+    optimizer <- extra.args[["optimizer"]]
+    # umap-learn defaults to the legacy optimizer unless the caller opts in
+    modern.optimizer <- if (is.null(optimizer)) {
+      isFALSE(compatibility.layout)
+    } else {
+      !isTRUE(compatibility.layout) && isTRUE(optimizer %in% c("adam", "momentum"))
+    }
+    if (modern.optimizer) {
+      object <- object$astype(dtype = np$float32)
+    }
+  }
   ab.params <- umap$umap_$find_ab_params(spread = spread, min_dist = min.dist)
   a <- a %||% ab.params[[1]]
   b <- b %||% ab.params[[2]]
   n.epochs <- n.epochs %||% 0L
-  random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+  random.state <- sklearn$utils$check_random_state(
+    seed = if (is.null(x = seed.use)) NULL else as.integer(x = seed.use)
+  )
   umap.args <- list(
     data = data,
     graph = object,
@@ -1783,20 +1810,22 @@ RunUMAP.Graph <- function(
     negative_sample_rate = negative.sample.rate,
     n_epochs = as.integer(x = n.epochs),
     random_state = random.state,
-    approx_pow = uwot.approx_pow,
     init = uwot.init,
     metric = metric,
     metric_kwds = metric.kwds,
     verbose = verbose
   )
-  if (numeric_version(x = umap$`__version__`) >=
-      numeric_version(x = "0.5.0")) {
+  if (numeric_version(x = umap_ver_clean) >= numeric_version(x = "0.5.0")) {
     umap.args <- c(umap.args, list(
       densmap = densmap,
       densmap_kwds = densmap.kwds,
       output_dens = FALSE
     ))
   }
+  if ("init" %in% names(x = extra.args)) {
+    umap.args$init <- NULL
+  }
+  umap.args <- c(umap.args, extra.args)
   embeddings <- do.call(what = umap$umap_$simplicial_set_embedding, args = umap.args)
   if (length(x = embeddings) == 2) {
     embeddings <- embeddings[[1]]
@@ -1894,9 +1923,12 @@ RunUMAP.Neighbor <- function(
 #' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
 #' @param uwot.approx_pow Set \code{uwot::umap(approx_pow = TRUE)}. Default is \code{FALSE}. See
 #' \code{\link[uwot]{umap}} for more details.
-#' @param uwot.init Set the initialization method to use for \code{\link[uwot]{umap}} or 
-#' \code{\link[uwot]{umap2}}, which is passed to the \code{init} parameter of these functions.
-#' See these functions for available options. Default is \code{"spectral"}.
+#' @param uwot.init Set the initialization method to use for the \code{uwot} and \code{uwot2}
+#' backends, passed to the \code{init} parameter of \code{\link[uwot]{umap}} / \code{\link[uwot]{umap2}}.
+#' Also controls initialization for \code{umap-learn} with Graph input, where it is passed to
+#' \code{simplicial_set_embedding}. Default is \code{"spectral"}; available methods depend on the backend
+#' and its version. To set Python initialization, pass \code{init} through \code{...}.
+#' With Graph input, \code{init} in \code{...} overrides \code{uwot.init}.
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
 #' @param angular.rp.forest Whether to use an angular random projection forest to initialize the
@@ -1910,6 +1942,17 @@ RunUMAP.Neighbor <- function(
 #' of this extension. Default is FALSE. Only compatible with 'umap-learn' method
 #' and version of umap-learn >= 0.5.0
 #' @param densmap.kwds A dictionary of arguments to pass on to the densMAP optimization.
+#' @param ... Additional arguments passed to other methods. For \code{umap.method = "umap-learn"},
+#' named arguments are forwarded to Python's \code{UMAP} constructor, or to
+#' \code{simplicial_set_embedding} for Graph input, using Python parameter names. Arguments already
+#' supplied by Seurat cannot be overridden, except for \code{init} with Graph input.
+#' Seurat leaves \code{compatibility_layout} unset unless supplied through
+#' \code{...}, allowing the installed umap-learn version to choose its default.
+#' Pass \code{compatibility_layout = FALSE} to opt into the new pipeline in
+#' umap-learn >= 0.6.0.
+#' For Python's \code{UMAP} constructor, \code{n_jobs} defaults to the Seurat
+#' thread count set by \code{\link{setThreads}}; pass \code{n_jobs} through
+#' \code{...} to override it. This does not apply to Graph input.
 #' @param dens.lambda Specific parameter which controls the regularization weight
 #' of the density correlation term in densMAP. Higher values prioritize density
 #' preservation over the UMAP objective, and vice versa for values closer to zero.
@@ -1976,7 +2019,6 @@ RunUMAP.Seurat <- function(
   reduction.key = NULL,
   ...
 ) {
-  CheckDots(...)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
@@ -2036,7 +2078,7 @@ RunUMAP.Seurat <- function(
   } else {
     stop("Please specify one of dims, features, or graph")
   }
-  object[[reduction.name]] <- RunUMAP(
+  umap.args <- list(
     object = data.use,
     reduction.model = reduction.model,
     return.model = return.model,
@@ -2068,6 +2110,10 @@ RunUMAP.Seurat <- function(
     reduction.key = reduction.key %||% Key(object = reduction.name, quiet = TRUE),
     verbose = verbose
   )
+  if (inherits(x = data.use, what = "Graph")) {
+    umap.args <- umap.args[intersect(names(x = umap.args), names(x = formals(fun = RunUMAP.Graph)))]
+  }
+  object[[reduction.name]] <- do.call(what = RunUMAP, args = c(umap.args, list(...)))
   object <- LogSeuratCommand(object = object)
   return(object)
 }
