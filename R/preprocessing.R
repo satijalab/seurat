@@ -1573,8 +1573,15 @@ Read10X_Coordinates <- function(filename, filter.matrix, cells = NULL) {
     if (!requireNamespace("arrow", quietly = TRUE)) stop("Please install arrow to read parquet files")
     coordinates <- as.data.frame(arrow::read_parquet(filename))
   } else {
+    # Space Ranger >= 2.0 writes "tissue_positions.csv" with a header and
+    # older versions write "tissue_positions_list.csv" without one, but files
+    # are often renamed (e.g. on GEO), so detect the header from the content:
+    # the second field (`in_tissue`) of a data row is always 0 or 1
+    first.line <- readLines(con = filename, n = 1L)
+    second.field <- strsplit(x = first.line, split = ",", fixed = TRUE)[[1]][2]
+    has.header <- !trimws(x = gsub(pattern = '"', replacement = '', x = second.field)) %in% c('0', '1')
     coordinates <- .ReadLoaderTable(filename,
-      header = basename(filename) == "tissue_positions.csv",
+      header = has.header,
       col.names = input.names, colClasses = c("character", rep("numeric", 5L)))
   }
   if (filter.matrix) coordinates <- coordinates[coordinates$in_tissue %in% 1, , drop = FALSE]
