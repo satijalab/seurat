@@ -44,4 +44,4 @@ Improvements and new features are added on a regular basis.
 
 ## Code of conduct
 
-We are committed to fostering a welcoming and respectful community. _All participants are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md)._
+We are committed to fostering a welcoming and respectful community. _All participants are expected to follow our [Code of Conduct](https://satijalab.org/seurat/code_of_conduct)._
