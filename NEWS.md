@@ -3,6 +3,7 @@
 ### Fixes
 
 - Fixed incorrect Atera segmentation coordinates when reading padded Zarr v2 chunks that could result in invalid polygons (reported at [#10551](https://github.com/satijalab/seurat/issues/10551))
+- Fixed a compiler deprecation warning with Eigen 5 in `pls.cpp`
 
 # Seurat 6.0.0 (2026-11-07)
 
