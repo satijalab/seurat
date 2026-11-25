@@ -3272,16 +3272,16 @@ ReadXenium <- function(
         raw.chunk <- .AteraReadEntryRaw(con, zidx, key)
         jobs[[length(jobs) + 1L]] <- list(
           raw = raw.chunk,
-          n = actual.nrow * actual.ncol,
-          nrow = actual.nrow,
           ncol = actual.ncol,
           row0 = row0, col0 = col0, lo = lo, hi = hi
         )
       }
     }
 
+    # Since Zarr v2 edge chunks retain the full stored dimensions,
+    # reshape before slicing to keep padding from shifting values between rows or columns
     decoded <- apply.chunks(jobs, function(job) {
-      .AteraDecodeChunk(job$raw, dtype, job$n, fill.value)
+      .AteraDecodeChunk(job$raw, dtype, crow * ccol, fill.value)
     })
 
     out <- matrix(vector(mode = .AteraDtypeRType(dtype), length = 1L), nrow = end - start + 1L, ncol = ncol)
@@ -3289,12 +3289,12 @@ ReadXenium <- function(
       job <- jobs[[k]]
       vals <- decoded[[k]]
       chunk.mat <- if (identical(order, "F")) {
-        matrix(vals, nrow = job$nrow, ncol = job$ncol)
+        matrix(vals, nrow = crow, ncol = ccol)
       } else {
-        t(matrix(vals, nrow = job$ncol, ncol = job$nrow))
+        matrix(vals, nrow = crow, ncol = ccol, byrow = TRUE)
       }
       out[(job$lo - start + 1L):(job$hi - start + 1L), job$col0:(job$col0 + job$ncol - 1L)] <-
-        chunk.mat[(job$lo - job$row0 + 1L):(job$hi - job$row0 + 1L), , drop = FALSE]
+        chunk.mat[(job$lo - job$row0 + 1L):(job$hi - job$row0 + 1L), seq_len(job$ncol), drop = FALSE]
     }
     return(out)
   }
