@@ -357,7 +357,12 @@ CCAResult cancorr(Eigen::MatrixXd Z, const Eigen::MatrixXd &Yprim) {
     // Step 3: truncate to first dx rows
     Eigen::MatrixXd cross = M.topRows(dx);  // dx × dy
 
+    // Eigen 5 deprecates passing SVD options to the constructor, so specify ComputeThinU as a template parameter for later versions
+#if EIGEN_VERSION_AT_LEAST(5, 0, 0)
+    Eigen::BDCSVD<Eigen::MatrixXd, Eigen::ComputeThinU> svd(cross);
+#else
     Eigen::BDCSVD<Eigen::MatrixXd> svd(cross, Eigen::ComputeThinU);
+#endif
 
     // Canonical correlation: clamp to [0, 1]
     double r = svd.singularValues()(0);
