@@ -1,5 +1,9 @@
 # Seurat v6.0.1
 
+## Resubmission
+
+This resubmission fixes the `-Wdeprecated-declarations` warning in `src/pls.cpp` reported on `r-devel-windows-x86_64` during incoming checks. The BDCSVD computation options are now passed as a template parameter when building against Eigen >= 5.0.0, as recommended.
+
 ## Test environments
 * Ubuntu 24.04 (local) (R 4.6.0)
 * macOS 15.6.1 (local) (R 4.6.1)
